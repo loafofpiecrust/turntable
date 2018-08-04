@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">@color/md_purple_300</color>
+    <color name="primary_dark">@color/md_deep_purple_400</color>
+    <color name="accent">@color/md_teal_A200</color>
+    <color name="text">@color/md_purple_50</color>
+    <color name="text_unavailable">@color/md_grey_600</color>
+    <color name="background">@color/md_grey_850</color>
+    <color name="divider_color">@color/md_grey_800</color>
+</resources>

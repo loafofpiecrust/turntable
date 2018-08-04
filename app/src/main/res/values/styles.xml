@@ -1,0 +1,89 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="MaterialTheme.TranslucentStatus">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="android:textColor">@color/text</item>
+        <item name="android:windowBackground">@color/background</item>
+        <!--<item name="android:popupBackground">@color/background</item>-->
+        <item name="android:textSize">@dimen/standard_text_size</item>
+        <!--<iidname="android:background">#000000</item>-->
+        <item name="colorAccent">@color/accent</item>
+        <item name="android:statusBarColor">@color/transparent</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowContentTransitions">true</item>
+        <item name="android:windowSharedElementsUseOverlay">true</item>
+        <item name="android:windowAllowEnterTransitionOverlap">true</item>
+        <item name="android:windowAllowReturnTransitionOverlap">true</item>
+        <!--<iidname="android:splitMotionEvents">false</item>-->
+        <!--<iidname="android:windowEnterTransition">@transition/explode</item>-->
+        <!--<iidname="android:windowExitTransition">@transition/explode</item>-->
+        <item name="android:toolbarStyle">@style/AppTheme.AppBarOverlay</item>
+        <item name="android:popupMenuStyle">@style/AppTheme.PopupOverlay</item>
+        <item name="android:popupTheme">@style/AppTheme.PopupOverlay</item>
+        <item name="android:popupElevation">@dimen/high_elevation</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <!--<item name="android:fitsSystemWindows">false</item>-->
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+
+    <style name="AppTheme.NoActionBar" parent="AppTheme">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">48dp</item>
+        <!--<iidname="android:minHeight">48dp</item>-->
+        <!--<iidname="android:paddingLeft">16dp</item>-->
+        <item name="android:popupTheme">@style/AppTheme.PopupOverlay</item>
+        <!--<iidname="android:textSize">@dimen/title_text_size</item>-->
+        <!--<iidname="android:paddingTop">8dp</item>-->
+        <!--<iidname="android:backgro">@color/colorPrimary</item>-->
+    </style>
+
+    <style name="AppTheme.DetailsToolbar" parent="AppTheme.AppBarOverlay">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">72dp</item>
+        <!--<iidname="android:minHeight">72dp</item>-->
+        <item name="android:popupTheme">@style/AppTheme.PopupOverlay</item>
+    </style>
+
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Dark">
+        <item name="android:popupBackground">@color/background</item>
+        <item name="android:overlapAnchor">true</item>
+    </style>
+
+    <!--<stidname="AppTheme.SearchBox">-->
+        <!--&lt;!&ndash; Background for the search bar &ndash;&gt;-->
+        <!--<iidname="searchBackground">@color/primary</item>-->
+
+        <!--&lt;!&ndash; Change voice icon &ndash;&gt;-->
+        <!--<iidname="searchVoiceIcon">@drawable/ic_action_voice_search_inverted</item>-->
+
+        <!--&lt;!&ndash; Change clear text icon &ndash;&gt;-->
+        <!--<iidname="searchCloseIcon">@drawable/ic_action_navigation_close_inverted</item>-->
+
+        <!--&lt;!&ndash; Change up icon &ndash;&gt;-->
+        <!--<iidname="searchBackIcon">@drawable/ic_action_navigation_arrow_back_inverted</item>-->
+
+        <!--&lt;!&ndash; Change icon for the suggestions &ndash;&gt;-->
+        <!--<iidname="searchSuggestionIcon">@drawable/ic_suggestion</item>-->
+
+        <!--&lt;!&ndash; Change background for the suggestions list view &ndash;&gt;-->
+        <!--<iidname="searchSuggestionBackground">@android:color/white</item>-->
+
+        <!--&lt;!&ndash; Change text color for edit text. This will also be the color of the cursor &ndash;&gt;-->
+        <!--<iidname="android:textColor">@color/text</item>-->
+
+        <!--&lt;!&ndash; Change hint text color for edit text &ndash;&gt;-->
+        <!--<iidname="android:textColorHint">@color/md_blue_grey_50</item>-->
+
+        <!--&lt;!&ndash; Hint for edit text &ndash;&gt;-->
+        <!--<iidname="android:hint">@string/search_hint</item>-->
+    <!--</style>-->
+
+</resources>

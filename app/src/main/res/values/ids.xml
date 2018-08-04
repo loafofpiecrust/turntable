@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="mainContent" type="id"></item>
+    <item name="image" type="id"></item>
+    <item name="smallImage" type="id"></item>
+    <item name="bottomSlidingView" type="id"></item>
+    <item name="card" type="id"></item>
+    <item name="mainLine" type="id"></item>
+    <item name="subLine" type="id"></item>
+    <item name="track" type="id"></item>
+    <item name="playing_icon" type="id"></item>
+    <item name="status_icon" type="id"></item>
+    <item name="itemMenuDots" type="id"></item>
+    <item name="nowPlayingPanel" type="id"></item>
+    <item name="mainContentContainer" type="id"></item>
+    <item name="gridRecycler" type="id"></item>
+    <item name="fragmentContent" type="id"></item>
+    <item name="artistPager" type="id"></item>
+    <item name="queueSlider" type="id"></item>
+    <item name="progressBg" type="id"></item>
+</resources>

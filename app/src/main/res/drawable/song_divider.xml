@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetLeft="@dimen/overflow_icon_space"
+    android:insetRight="0dp">
+    <shape>
+        <size android:height="1dp"/>
+        <solid android:color="@color/divider_color" />
+    </shape>
+</inset>

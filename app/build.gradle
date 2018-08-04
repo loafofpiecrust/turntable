@@ -1,0 +1,291 @@
+//plugins {
+//    id "org.jetbrains.kotlin.kapt" version "1.1.3"
+//}
+
+apply plugin: 'com.android.application'
+apply plugin: 'com.getkeepsafe.dexcount'
+
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-kapt'
+
+apply plugin: 'kotlin-android-extensions'
+
+apply plugin: 'org.jmailen.kotlinter'
+
+
+
+android {
+//    signingConfigs {
+//        release {
+//            keyAlias 'AndroidRelease'
+//            keyPassword 'Pok10101'
+//            storeFile file('/home/snead/.android/release.keystore')
+//            storePassword 'Pok10101'
+//        }
+//        debug {
+//            keyAlias 'AndroidDebug'
+//            keyPassword 'Pok10101'
+//            storeFile file('/home/snead/.android/debug.keystore')
+//            storePassword 'Pok10101'
+//        }
+//    }
+    compileSdkVersion 27
+    buildToolsVersion '27.0.3'
+    packagingOptions {
+        pickFirst 'META-INF/DEPENDENCIES'
+    }
+    defaultConfig {
+        applicationId "com.loafofpiecrust.turntable"
+        minSdkVersion 21
+        targetSdkVersion 27
+        versionCode 3
+        versionName "0.1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        multiDexEnabled false
+        ndk {
+            abiFilters 'x86', 'x86_64', 'armeabi', 'armeabi-v7a', 'arm64-v8a'
+        }
+
+        // secret constants
+        buildConfigField("String", "YOUTUBE_API_KEY", YouTubeApiKey)
+        buildConfigField("String", "LASTFM_API_KEY", LastFMApiKey)
+        buildConfigField("String", "FIREBASE_API_KEY", FirebaseApiKey)
+        buildConfigField("String", "FIREBASE_SERVER_KEY", FirebaseServerKey)
+        buildConfigField("String", "FIREBASE_PROJECT_ID", FirebaseProjectId)
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            useProguard true
+//            runProguard true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+//            signingConfig signingConfigs.release
+        }
+        debug {
+            debuggable true
+            minifyEnabled true
+//            shrinkResources true
+            useProguard false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
+        }
+    }
+//    productFlavors {
+//        dev {
+//            resConfigs "en", "xhdpi"
+//        }
+//    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+}
+
+kotlin {
+    experimental {
+        coroutines "enable"
+    }
+}
+kapt {
+    generateStubs = true
+    arguments {
+//        resourcePackageName android.defaultConfig.applicationId
+//        arg("androidManifestFile", variant.outputs[0]?.processResources?.manifestFile)
+    }
+}
+
+androidExtensions {
+    experimental = true
+}
+
+configurations {
+    runtime.exclude group: "org.apache.http.legacy", module: "boot"
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation project(':exoplayer-flac')
+
+
+
+    implementation "com.google.firebase:firebase-auth:16.0.2"
+    implementation "com.firebaseui:firebase-ui-auth:4.0.0"
+
+    // For google login
+    implementation "com.google.android.gms:play-services-auth:$google_ver"
+
+    //    implementation 'com.google.android.gms:play-services-gcm:11.2.2'
+    implementation "com.google.firebase:firebase-messaging:17.1.0"
+    implementation "com.google.firebase:firebase-firestore:17.0.4"
+    implementation "com.google.firebase:firebase-core:16.0.1"
+
+    //    implementation 'com.google.firebase:firebase-database:11.0.4'
+//    implementation "com.google.android.gms:play-services-drive:$google_ver"
+
+    //    compile('com.google.api-client:google-api-client-android:1.22.0') {
+
+    //        exclude group: 'org.apache.httpcomponents'
+
+    //        exclude group: 'com.google.code.findbugs'
+
+    ////        exclude group: 'com.google.android.gms'
+
+    //    }
+
+    //    compile('com.google.apis:google-api-services-drive:+') {
+
+    //        exclude group: 'org.apache.httpcomponents'
+
+    //        exclude group: 'com.google.code.findbugs'
+
+    ////        exclude group: 'com.google.android.gms'
+
+    //    }
+    androidTestImplementation('com.android.support.test.espresso:espresso-core:3.0.0', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    testImplementation 'junit:junit:4.12'
+
+    // YOUTUBS!
+
+    //    implementation 'com.google.apis:google-api-services-youtube:v3-rev183-1.22.0'
+
+
+    //    implementation('org.mongodb:stitch:0.1.0-SNAPSHOT') {
+
+    //        exclude group: 'com.google.android.gms'
+
+    //        exclude group: 'com.fasterxml.jackson.core'
+
+    //    }
+
+    // Search!
+
+    //    implementation 'com.miguelcatalan:materialsearchview:1.4.0'
+    implementation 'com.github.arimorty:floatingsearchview:2.1.1'
+    implementation 'jp.wasabeef:recyclerview-animators:2.2.7'
+
+
+    //    implementation 'com.android.support:customtabs:26.0.0'
+    // http!
+//    implementation('com.github.jkcclemens:f:master-SNAPSHOT') {
+//        exclude group: 'org.json', module: 'json'
+//    }
+//    implementation "com.egorzh.networkinkt:networkinkt:0.2"
+    implementation "com.squareup.okhttp3:okhttp:3.10.0"
+
+
+    // General
+
+    implementation 'com.karumi:dexter:4.1.0'
+
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:0.22.5'
+//    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-rx2:0.22.1'
+    implementation 'com.simplecityapps:recyclerview-fastscroll:1.0.16'
+
+    // Anko
+
+    // Appcompat-v7 (Anko Layouts)
+    implementation "org.jetbrains.anko:anko-sdk25:$anko_version"
+    implementation "org.jetbrains.anko:anko-sdk25-coroutines:$anko_version"
+    implementation "org.jetbrains.anko:anko-appcompat-v7-coroutines:$anko_version"
+    implementation "org.jetbrains.anko:anko-appcompat-v7:$anko_version"
+
+    // CardView-v7
+    implementation "org.jetbrains.anko:anko-cardview-v7:$anko_version"
+
+    // Design
+    implementation "org.jetbrains.anko:anko-design:$anko_version"
+    implementation "org.jetbrains.anko:anko-design-coroutines:$anko_version"
+
+
+    // RecyclerView-v7
+    implementation "org.jetbrains.anko:anko-recyclerview-v7:$anko_version"
+    implementation "org.jetbrains.anko:anko-recyclerview-v7-coroutines:$anko_version"
+    implementation "org.jetbrains.anko:anko-constraint-layout:$anko_version"
+
+    //    implementation 'com.infstory:rx-media-store:1.0.0'
+    implementation 'com.github.bumptech.glide:glide:4.7.1'
+    kapt 'com.github.bumptech.glide:compiler:4.7.1'
+    implementation 'com.github.florent37:glidepalette:2.1.2'
+    implementation('com.github.bumptech.glide:recyclerview-integration:4.0.0') {
+        transitive = false
+    }
+//    implementation 'com.sothree.slidinguppanel:library:3.4.0'
+    implementation 'co.zsmb:materialdrawer-kt:1.0.6'
+    implementation 'org.jsoup:jsoup:1.11.3'
+
+
+    implementation 'com.github.marcinmoskala.activitystarter:activitystarter:1.01'
+    kapt 'com.github.marcinmoskala.activitystarter:activitystarter-compiler:1.01'
+    def JLIBTORRENT_VERSION = '1.2.0.10'
+    implementation 'com.frostwire:jlibtorrent:' + JLIBTORRENT_VERSION
+    implementation "com.frostwire:jlibtorrent-android-arm:" + JLIBTORRENT_VERSION
+    implementation "com.frostwire:jlibtorrent-android-arm64:" + JLIBTORRENT_VERSION
+    implementation "com.frostwire:jlibtorrent-android-x86:" + JLIBTORRENT_VERSION
+    implementation "com.frostwire:jlibtorrent-android-x86_64:" + JLIBTORRENT_VERSION
+
+    implementation 'com.github.HaarigerHarald:android-youtubeExtractor:v1.7.0'
+    implementation 'com.github.Commit451:YouTubeExtractor:4.2.0'
+    implementation 'com.github.salomonbrys.kotson:kotson:2.5.0'
+    implementation 'com.github.lsjwzh.RecyclerViewPager:lib:v1.1.2@aar'
+    implementation 'me.xdrop:fuzzywuzzy:1.1.8'
+    implementation 'com.google.android.exoplayer:exoplayer-core:2.8.1'
+    implementation 'com.github.daemontus:kotlin-option-result:1.0.1'
+
+    // Preferences
+    implementation 'com.jaredrummler:colorpicker:1.0.2'
+    implementation 'com.mcxiaoke.koi:core:0.5.4'
+    implementation 'com.github.castorflex.smoothprogressbar:library-circular:1.2.0'
+    implementation 'com.minimize.library:seekbar-compat:0.2.5'
+    implementation 'com.esotericsoftware:kryo:4.0.1'
+    implementation 'de.javakaffee:kryo-serializers:0.42'
+    implementation 'com.afollestad:sectioned-recyclerview:0.5.0'
+
+
+    // Amazon DynamoDB, has way more space and shit than Firebase
+    implementation("com.amazonaws:aws-android-sdk-core:$aws_ver") {
+        exclude group: 'org.apache.httpcomponents'
+    }
+    implementation("com.amazonaws:aws-android-sdk-ddb:$aws_ver") {
+        exclude group: 'org.apache.httpcomponents'
+    }
+    implementation "com.amazonaws:aws-android-sdk-ddb-mapper:$aws_ver"
+    kapt "com.amazonaws:aws-android-sdk-ddb-mapper:$aws_ver"
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+
+
+    // Android core
+
+//    implementation "androidx.appcompat:appcompat:1.0.0-beta01"
+//    implementation "androidx.fragment:fragment:1.0.0-beta01"
+//    implementation "androidx.palette:palette:1.0.0-beta01"
+//    implementation "com.google.android.material:material:1.0.0-beta01"
+//    implementation "androidx.constraintlayout:constraintlayout:1.1.2"
+//    implementation "androidx.cardview:cardview:1.0.0-beta01"
+    implementation "com.android.support:appcompat-v7:$android_ver"
+    implementation "com.android.support:support-core-ui:$android_ver"
+    implementation "com.android.support:support-fragment:$android_ver"
+
+    implementation "com.android.support:palette-v7:$android_ver"
+
+    implementation "com.android.support:design:$android_ver"
+    implementation 'com.android.support.constraint:constraint-layout:1.1.2'
+
+    implementation "com.android.support:cardview-v7:$android_ver"
+
+
+    implementation 'com.github.javiersantos:AppUpdater:2.7'
+
+    // Better Recycler Adapter!
+    implementation "eu.davidea:flexible-adapter:5.0.5"
+//    implementation "co.trikita:anvil-sdk21:0.5.1"
+//    implementation "co.trikita:anvil-recyclerview-v7:0.5.1"
+}
+apply plugin: 'com.google.gms.google-services'

@@ -1,0 +1,55 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    ext.kotlin_version = '1.2.51'
+    ext.anko_version = '0.10.5'
+    ext.google_ver = '15.0.1'
+    ext.firebase_ver = '17.0.0'
+    ext.android_ver = '27.0.1'
+    ext.ktor_ver = '0.9.3'
+    ext.aws_ver = '2.4.0'
+
+
+    repositories {
+        google()
+        jcenter()
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+        maven { url "https://plugins.gradle.org/m2/" }
+//        maven { url 'https://jitpack.io' }
+//        maven { url 'file:///home/snead/piecrust' }
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.1.3'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+        classpath 'com.google.gms:google-services:4.0.2'
+
+        classpath "com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.3-SNAPSHOT"
+        classpath 'gradle.plugin.org.jmailen.gradle:kotlinter-gradle:1.15.1'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+        mavenCentral()
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+        maven { url 'https://dl.bintray.com/ijabz/maven' }
+        maven { url 'https://jitpack.io' }
+        maven { url "https://dl.bintray.com/kotlin/ktor" }
+//        maven { url 'file:///home/snead/piecrust' }
+//        flatDir {
+//            dirs 'libs'
+//        }
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+repositories {
+    mavenCentral()
+}
