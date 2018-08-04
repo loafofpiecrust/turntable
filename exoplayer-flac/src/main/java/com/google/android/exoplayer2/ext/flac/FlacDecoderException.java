@@ -20,10 +20,13 @@ import com.google.android.exoplayer2.audio.AudioDecoderException;
 /**
  * Thrown when an Flac decoder error occurs.
  */
-@SuppressWarnings("ALL") public final class FlacDecoderException extends AudioDecoderException {
+public final class FlacDecoderException extends AudioDecoderException {
 
   /* package */ FlacDecoderException(String message) {
     super(message);
   }
 
+  /* package */ FlacDecoderException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

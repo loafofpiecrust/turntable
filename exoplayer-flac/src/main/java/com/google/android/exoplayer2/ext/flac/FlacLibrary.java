@@ -21,13 +21,13 @@ import com.google.android.exoplayer2.util.LibraryLoader;
 /**
  * Configures and queries the underlying native library.
  */
-@SuppressWarnings("ALL") public final class FlacLibrary {
-
-  private static final LibraryLoader LOADER = new LibraryLoader("flacJNI");
+public final class FlacLibrary {
 
   static {
     ExoPlayerLibraryInfo.registerModule("goog.exo.flac");
   }
+
+  private static final LibraryLoader LOADER = new LibraryLoader("flacJNI");
 
   private FlacLibrary() {}
 

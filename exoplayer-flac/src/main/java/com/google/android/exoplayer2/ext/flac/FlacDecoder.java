@@ -19,7 +19,6 @@ import com.google.android.exoplayer2.decoder.DecoderInputBuffer;
 import com.google.android.exoplayer2.decoder.SimpleDecoder;
 import com.google.android.exoplayer2.decoder.SimpleOutputBuffer;
 import com.google.android.exoplayer2.util.FlacStreamInfo;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -27,7 +26,7 @@ import java.util.List;
 /**
  * Flac decoder.
  */
-/* package */ @SuppressWarnings("ALL") final class FlacDecoder extends
+/* package */ final class FlacDecoder extends
     SimpleDecoder<DecoderInputBuffer, SimpleOutputBuffer, FlacDecoderException> {
 
   private final int maxOutputBufferSize;
@@ -36,10 +35,10 @@ import java.util.List;
   /**
    * Creates a Flac decoder.
    *
-   * @param numInputBuffers    The number of input buffers.
-   * @param numOutputBuffers   The number of output buffers.
+   * @param numInputBuffers The number of input buffers.
+   * @param numOutputBuffers The number of output buffers.
    * @param initializationData Codec-specific initialization data. It should contain only one entry
-   *                           which is the flac file header.
+   *    which is the flac file header.
    * @throws FlacDecoderException Thrown if an exception occurs when initializing the decoder.
    */
   public FlacDecoder(int numInputBuffers, int numOutputBuffers, List<byte[]> initializationData)
@@ -71,35 +70,36 @@ import java.util.List;
   }
 
   @Override
-  public DecoderInputBuffer createInputBuffer() {
+  protected DecoderInputBuffer createInputBuffer() {
     return new DecoderInputBuffer(DecoderInputBuffer.BUFFER_REPLACEMENT_MODE_NORMAL);
   }
 
   @Override
-  public SimpleOutputBuffer createOutputBuffer() {
+  protected SimpleOutputBuffer createOutputBuffer() {
     return new SimpleOutputBuffer(this);
   }
 
   @Override
-  public FlacDecoderException decode(DecoderInputBuffer inputBuffer,
-                                     SimpleOutputBuffer outputBuffer, boolean reset) {
+  protected FlacDecoderException createUnexpectedDecodeException(Throwable error) {
+    return new FlacDecoderException("Unexpected decode error", error);
+  }
+
+  @Override
+  protected FlacDecoderException decode(
+      DecoderInputBuffer inputBuffer, SimpleOutputBuffer outputBuffer, boolean reset) {
     if (reset) {
       decoderJni.flush();
     }
     decoderJni.setData(inputBuffer.data);
     ByteBuffer outputData = outputBuffer.init(inputBuffer.timeUs, maxOutputBufferSize);
-    int result;
     try {
-      result = decoderJni.decodeSample(outputData);
+      decoderJni.decodeSample(outputData);
+    } catch (FlacDecoderJni.FlacFrameDecodeException e) {
+      return new FlacDecoderException("Frame decoding failed", e);
     } catch (IOException | InterruptedException e) {
       // Never happens.
       throw new IllegalStateException(e);
     }
-    if (result < 0) {
-      return new FlacDecoderException("Frame decoding failed");
-    }
-    outputData.position(0);
-    outputData.limit(result);
     return null;
   }
 

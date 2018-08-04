@@ -27,7 +27,6 @@ import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.map
 import kotlinx.coroutines.experimental.channels.produce
 import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
 import org.jetbrains.anko.info
@@ -132,9 +131,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
     var isStreaming: Boolean = false
         private set
 
-
-    var shouldSync: Boolean = true
-        private set
     var shouldAutoplay: Boolean = false
         private set
 
@@ -148,30 +144,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         get() = player.volume
         set(value) { player.volume = value }
 
-
-    init {
-//        currentSong.consumeEach(BG_POOL + subs) { song ->
-//            prepareJob?.cancel()
-//            prepareJob = task(ALT_BG_POOL) {
-//                if (song != null) {
-//                    desynced { temporaryPause() }
-//                    if (shouldAutoplay) {
-//                        if (prepareSong(song)) {
-//                            desynced { play() }
-//                        } else playNext()
-//                    }
-//                } else {
-//
-//                }
-//                true
-//            }
-//                .fail {
-//                if (shouldAutoplay) {
-//                    playNext()
-//                }
-//            }
-//        }
-    }
 
     fun release() {
         subs.cancel()
@@ -227,7 +199,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
 //                }
                 player.stop()
             }
-            Player.STATE_IDLE -> desynced { pause() }
+            Player.STATE_IDLE -> pause()
             Player.STATE_READY -> {
                 // TODO: reset error count
             }
@@ -305,15 +277,17 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         }
 
         val q = _queue.value
-        mediaSource = ConcatenatingMediaSource(StreamMediaSource(q.list.first(), sourceFactory, extractorsFactory) { loaded ->
-            isPrepared = loaded
-            if (loaded) play()
-        }).apply {
-            addMediaSources(q.list.drop(1).map {
-                StreamMediaSource(it, sourceFactory, extractorsFactory)
+        mediaSource = ConcatenatingMediaSource().apply {
+            addMediaSources(q.list.map {
+                StreamMediaSource(it, sourceFactory, extractorsFactory) { loaded ->
+                    if (loaded && !isPrepared) play()
+                    isPrepared = loaded
+                }
             })
         }
-        player.prepare(mediaSource)
+        player.seekTo(q.position, 0)
+        player.prepare(mediaSource, false, true)
+        player.playWhenReady = true
         player.shuffleModeEnabled = mode == OrderMode.SHUFFLE
     }
 
@@ -466,16 +440,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         player.seekTo(timeMs)
         lastResumeTime = player.currentPosition
     }
-
-    fun desynced(cb: suspend MusicPlayer.() -> Unit) {
-//        synchronized(shouldSync) {
-        val orig = shouldSync
-        shouldSync = false
-        runBlocking { cb(this@MusicPlayer) }
-        shouldSync = orig
-//        }
-    }
-
 
     var lastResumeTime = 0L
     var totalListenedTime = 0L

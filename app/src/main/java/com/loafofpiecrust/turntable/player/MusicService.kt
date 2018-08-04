@@ -167,11 +167,9 @@ class MusicService : Service(), OnAudioFocusChangeListener {
                 }
             }
 
-        player.queue.consumeEach(BG_POOL + subs) {
-            if (player.shouldSync) {
-                SyncService.send(SyncService.Message.QueuePosition(it.position))
-            }
-        }
+//        player.queue.consumeEach(BG_POOL + subs) {
+//            SyncService.send(SyncService.Message.QueuePosition(it.position))
+//        }
 
         registerReceiver(object: BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -206,11 +204,14 @@ class MusicService : Service(), OnAudioFocusChangeListener {
 //        }
         stopForeground(true)
         audioManager.abandonAudioFocus(this)
-//        player?.reset()
         player.release()
         subs.cancel()
-        wakeLock.release()
-        wifiLock.release()
+        if (wakeLock.isHeld) {
+            wakeLock.release()
+        }
+        if (wifiLock.isHeld) {
+            wifiLock.release()
+        }
         session.release()
     }
 
