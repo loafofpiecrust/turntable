@@ -30,7 +30,7 @@ import org.jetbrains.anko.recyclerview.v7.recyclerView
 
 
 //@EActivity
-open class SearchFragment : BaseFragment(), FloatingSearchView.OnSearchListener, Search.OnQueryTextListener {
+open class SearchFragment : BaseFragment(), FloatingSearchView.OnSearchListener {
 
     enum class Category {
         ARTISTS,
@@ -113,16 +113,17 @@ open class SearchFragment : BaseFragment(), FloatingSearchView.OnSearchListener,
 
         searchBar {
             setHint("Search...")
-            setOnQueryTextListener(this@SearchFragment)
-//            queryHint = "Search..."
-//            onQueryTextListener {
-//                onQueryTextSubmit {
-//                    onSearchAction(it!!)
-//                    true
-//                }
-//            }
-        }.lparams(width = matchParent, height = wrapContent)
+            setOnQueryTextListener(object : Search.OnQueryTextListener {
+                override fun onQueryTextChange(newText: CharSequence) {
+                }
 
+                override fun onQueryTextSubmit(query: CharSequence): Boolean {
+                    onSearchAction(query.toString())
+                    hideKeyboard()
+                    return false
+                }
+            })
+        }.lparams(width = matchParent, height = wrapContent)
 //        floatingSearchView {
 //            id = View.generateViewId()
 //            fitsSystemWindows = true
@@ -156,20 +157,13 @@ open class SearchFragment : BaseFragment(), FloatingSearchView.OnSearchListener,
         }
     }
 
-    override fun onQueryTextSubmit(query: CharSequence?): Boolean {
-        onSearchAction(query.toString())
-        return true
-    }
-
-    override fun onQueryTextChange(newText: CharSequence?) {
-    }
-
     override fun onSearchAction(query: String) {
         if (query != prevQuery) {
 //                        task(UI) { loadCircle.start() }
             prevQuery = query
             searchJob?.cancel()
             searchJob = task { doSearch(query, category) }
+
 //                            .always(UI) { loadCircle.progressiveStop() }
         }
     }
