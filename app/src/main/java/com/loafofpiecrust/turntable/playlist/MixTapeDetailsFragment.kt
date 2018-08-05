@@ -3,6 +3,8 @@ package com.loafofpiecrust.turntable.playlist
 import activitystarter.Arg
 import android.support.design.widget.TabLayout
 import android.support.v4.app.FragmentPagerAdapter
+import android.view.Menu
+import android.view.MenuInflater
 import android.view.View
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
@@ -23,7 +25,6 @@ import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.themedToolbar
 import org.jetbrains.anko.design.appBarLayout
-import org.jetbrains.anko.design.floatingActionButton
 import org.jetbrains.anko.design.tabLayout
 import org.jetbrains.anko.support.v4.alert
 import org.jetbrains.anko.support.v4.ctx
@@ -36,16 +37,16 @@ class MixTapeDetailsFragment: BaseFragment() {
     @Arg lateinit var playlistTitle: String
 
     private lateinit var tabs: TabLayout
+    private lateinit var playlist: MixTape
 
-    override fun makeView(ui: ViewManager): View = ui.relativeLayout {
-        val playlist = runBlocking {
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
+    }
+
+    override fun makeView(ui: ViewManager): View  = with(ui) {
+        playlist = runBlocking {
             Library.instance.findPlaylist(playlistId).first()
                 ?: ctx.library.findCachedPlaylist(playlistId).first()
         } as MixTape
-
-//        MixTape.queryMostRecent(TimeUnit.DAYS.toMillis(10)).success(UI) {
-//            println("mixtape: recents... $it")
-//        }
 
         verticalLayout {
             appBarLayout {
@@ -61,7 +62,7 @@ class MixTapeDetailsFragment: BaseFragment() {
                             .forEach { it.download() }
                     }
 
-                    menuItem("Share", showIcon=false).onClick {
+                    menuItem("Share").onClick {
                         FriendPickerDialog().apply {
                             onAccept = {
                                 SyncService.send(
@@ -70,6 +71,15 @@ class MixTapeDetailsFragment: BaseFragment() {
                                 )
                             }
                         }.show(MainActivity.latest.supportFragmentManager, "friends")
+                    }
+
+                    menuItem("Publish").onClick {
+                        alert("Publish this mixtape?") {
+                            positiveButton("Publish") {
+                                playlist.publish()
+                            }
+                            negativeButton("Cancel") {}
+                        }.show()
                     }
                 }.lparams(width = matchParent, height = dip(72))
 
@@ -90,22 +100,5 @@ class MixTapeDetailsFragment: BaseFragment() {
             }
             tabs.setupWithViewPager(pager)
         }
-
-        floatingActionButton {
-            imageResource = R.drawable.ic_publish
-            setOnClickListener {
-                alert("Publish this mixtape?") {
-                    positiveButton("Publish") {
-                        playlist.publish()
-                    }
-                    negativeButton("Cancel") {}
-                }.show()
-            }
-        }.lparams {
-            alignParentBottom()
-            alignParentRight()
-            margin = dimen(R.dimen.fullscreen_card_margin)
-        }
     }
-
 }

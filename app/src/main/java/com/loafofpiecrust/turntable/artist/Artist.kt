@@ -183,14 +183,14 @@ data class Artist(
 
     override fun optionsMenu(menu: Menu) = with(menu) {
         val ctx = MainActivity.latest.ctx
-        menuItem("Similar Artists", R.drawable.ic_people, showType=0).onClick {
+        menuItem("Similar Artists", R.drawable.ic_people, showIcon=false).onClick {
             ctx.replaceMainContent(
                 RelatedArtistsFragmentStarter.newInstance(this@Artist),
                 true
             )
         }
 
-        menuItem("Recommend", showType=0).onClick {
+        menuItem("Recommend", showIcon=false).onClick {
             FriendPickerDialog().apply {
                 onAccept = {
                     SyncService.send(
@@ -203,7 +203,7 @@ data class Artist(
 
         // TODO: Sync with radios...
         // TODO: Sync with any type of queue!
-        menuItem("Start Radio", showType=0).onClick(BG_POOL) {
+        menuItem("Start Radio", showIcon=false).onClick(BG_POOL) {
             MusicService.enact(SyncService.Message.Pause(), false)
 
             val radio = RadioQueue.fromSeed(listOf(this@Artist))
@@ -215,7 +215,7 @@ data class Artist(
             }
         }
 
-        menuItem("Biography", showType=0).onClick(BG_POOL) {
+        menuItem("Biography", showIcon=false).onClick(BG_POOL) {
             ctx.replaceMainContent(BiographyFragmentStarter.newInstance(this@Artist.minimize()))
         }
     }

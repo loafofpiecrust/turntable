@@ -4,25 +4,14 @@ import android.content.SharedPreferences
 import android.util.Base64
 import com.chibatching.kotpref.KotprefModel
 import com.chibatching.kotpref.pref.AbstractPref
-import com.esotericsoftware.kryo.Kryo
-import com.esotericsoftware.kryo.io.Input
-import com.esotericsoftware.kryo.io.InputChunked
-import com.esotericsoftware.kryo.io.Output
-import com.esotericsoftware.kryo.io.OutputChunked
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.objectFromBytes
 import com.loafofpiecrust.turntable.objectToBytes
 import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.hasValue
 import com.loafofpiecrust.turntable.util.task
-import com.mcxiaoke.koi.ext.closeQuietly
 import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.launch
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.nio.charset.Charset
 import kotlin.reflect.KProperty
 
 

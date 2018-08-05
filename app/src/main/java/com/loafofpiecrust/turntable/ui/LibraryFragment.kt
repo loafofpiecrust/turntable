@@ -88,7 +88,8 @@ class LibraryFragment: BaseFragment() {
                 backgroundColor = it
             }
             toolbar {
-                fitsSystemWindows = true
+                MainActivity.latest.setSupportActionBar(this)
+//                fitsSystemWindows = true
                 UserPrefs.primaryColor.consumeEach(UI) {
                     backgroundColor = it
                 }

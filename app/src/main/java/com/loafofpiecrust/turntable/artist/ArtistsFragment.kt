@@ -3,6 +3,7 @@ package com.loafofpiecrust.turntable.artist
 import activitystarter.Arg
 import android.os.Parcelable
 import android.support.v7.widget.GridLayoutManager
+import android.support.v7.widget.SearchView
 import android.view.*
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
@@ -37,7 +38,9 @@ class ArtistsFragment : BaseFragment() {
 
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
-        menu.menuItem("Search", R.drawable.ic_search, showType = 1) {
+        menu.menuItem("Search", R.drawable.ic_search, showIcon = true) {
+            actionView = SearchView(ctx).apply {
+            }
             onClick {
                 MainActivity.replaceContent(
                     SearchFragmentStarter.newInstance(SearchFragment.Category.ARTISTS),

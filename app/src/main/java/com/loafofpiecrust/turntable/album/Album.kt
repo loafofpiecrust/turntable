@@ -18,10 +18,10 @@ import com.loafofpiecrust.turntable.browse.Discogs
 import com.loafofpiecrust.turntable.browse.MusicBrainz
 import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.player.MusicPlayer
+import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.PlaylistPickerDialogStarter
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.*
@@ -39,9 +39,9 @@ import kotlinx.coroutines.experimental.channels.map
 import kotlinx.coroutines.experimental.channels.produce
 import org.jetbrains.anko.*
 import java.io.Serializable
-import kotlin.coroutines.experimental.coroutineContext
 import java.util.*
 import java.util.regex.Pattern
+import kotlin.coroutines.experimental.coroutineContext
 
 
 // Remote never has: id, artistId
@@ -262,7 +262,7 @@ data class Album(
     override fun optionsMenu(menu: Menu) {
         val ctx = MainActivity.latest.ctx
 
-        menu.menuItem("Shuffle", R.drawable.ic_shuffle, showType=0).onClick {
+        menu.menuItem("Shuffle", R.drawable.ic_shuffle, showIcon=false).onClick {
             task {
                 Library.instance.songsOnAlbum(this).first()
             }.success { tracks ->
@@ -275,7 +275,7 @@ data class Album(
         }
 
         if (remote != null || hasTrackGaps) {
-            menu.menuItem("Download", R.drawable.ic_cloud_download, showType=0).onClick(ALT_BG_POOL) {
+            menu.menuItem("Download", R.drawable.ic_cloud_download, showIcon=false).onClick(ALT_BG_POOL) {
                 if (App.instance.hasInternet) {
                     given(ctx.library.findCachedAlbum(this@Album).first()?.tracks) { tracks ->
                         tracks.filter {

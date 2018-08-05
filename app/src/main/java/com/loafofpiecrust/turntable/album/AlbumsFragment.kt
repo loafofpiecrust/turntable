@@ -51,7 +51,7 @@ class AlbumsFragment : BaseFragment() {
 
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) = menu.run {
-        menuItem("Search", R.drawable.ic_search, showType = 1).onClick {
+        menuItem("Search", R.drawable.ic_search, showIcon=true).onClick {
             MainActivity.replaceContent(
                 SearchFragmentStarter.newInstance(SearchFragment.Category.ALBUMS),
                 true
@@ -135,6 +135,8 @@ class AlbumsFragment : BaseFragment() {
                     .distinctSeq()
                     .consumeEach(UI) { grid.spanCount = it }
             }
+
+            addItemDecoration(ItemOffsetDecoration(dip(4)))
 
 
             category.openSubscription().switchMap { cat ->

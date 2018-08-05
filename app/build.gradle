@@ -245,6 +245,7 @@ dependencies {
     implementation 'com.esotericsoftware:kryo:4.0.1'
     implementation 'de.javakaffee:kryo-serializers:0.42'
     implementation 'com.afollestad:sectioned-recyclerview:0.5.0'
+//    implementation "androidx.core:core-ktx:1.0.0-beta01"
 
 
     // Amazon DynamoDB, has way more space and shit than Firebase

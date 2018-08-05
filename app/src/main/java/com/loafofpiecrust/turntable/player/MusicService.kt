@@ -156,12 +156,12 @@ class MusicService : Service(), OnAudioFocusChangeListener {
                     }
                 }
                 if (isPlaying) {
-//                    val buffer = player.bufferState.firstOrNull()
-//                    if (buffer != null) {
-//                        wakeLock.acquire(buffer.duration - buffer.position)
-//                    } else {
+                    val buffer = player.bufferState.firstOrNull()
+                    if (buffer != null) {
+                        wakeLock.acquire(buffer.duration - buffer.position)
+                    } else {
                         wakeLock.acquire()
-//                    }
+                    }
                 } else if (wakeLock.isHeld) {
                     wakeLock.release()
                 }

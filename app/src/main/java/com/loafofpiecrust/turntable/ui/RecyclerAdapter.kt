@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.ui
 
 import android.content.Context
+import android.graphics.Rect
 import android.graphics.Typeface
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
@@ -200,7 +201,17 @@ class RecyclerGridItem(
 //    val statusIcon: View = itemView.findViewById(R.id.status_icon)
 //}
 
-
+class ItemOffsetDecoration(private val mItemOffset: Int) : RecyclerView.ItemDecoration() {
+    override fun getItemOffsets(
+        outRect: Rect,
+        view: View,
+        parent: RecyclerView,
+        state: RecyclerView.State
+    ) {
+        super.getItemOffsets(outRect, view, parent, state)
+        outRect.set(mItemOffset, mItemOffset, mItemOffset, mItemOffset)
+    }
+}
 
 
 fun ViewManager.defaultGridItem(maxTextLines: Int = 3, init: LinearLayout.() -> Unit = {}) = frameLayout {
@@ -277,15 +288,13 @@ fun ViewManager.defaultGridItemOpt(maxTextLines: Int = 3, init: LinearLayout.() 
     cardElevation = dip(3).toFloat()
     radius = dip(2).toFloat()
     clipToOutline = false
-    lparams(width = matchParent, height = wrapContent) {
-        margin = dimen(R.dimen.grid_gutter) / 2
-    }
+    lparams(width = matchParent, height = wrapContent)
 
     constraintLayout {
         val thumbnail = imageView(R.drawable.ic_default_album) {
             id = R.id.image
             scaleType = ImageView.ScaleType.CENTER_CROP
-            adjustViewBounds = true
+            adjustViewBounds = false
         }
 
         val mainLine = textView {

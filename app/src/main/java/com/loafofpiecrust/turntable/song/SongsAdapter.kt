@@ -26,14 +26,14 @@ import org.jetbrains.anko.sdk25.coroutines.onClick
 import org.jetbrains.anko.textColor
 
 
-class SongsAdapter(
+open class SongsAdapter(
     private val category: SongsFragment.Category? = null,
     private val listener: (List<Song>, Int) -> Unit
 ): RecyclerAdapter<Song, RecyclerListItemOptimized>(
     itemsSame = { a, b, aIdx, bIdx -> a.id == b.id },
     contentsSame = { a, b, aIdx, bIdx -> a == b }
 ), FastScrollRecyclerView.SectionedAdapter {
-    private val progressSubs = HashMap<RecyclerListItemOptimized, Job>()
+    protected val progressSubs = HashMap<RecyclerListItemOptimized, Job>()
 
     override fun getSectionName(position: Int): String
         = data[position].id.name.first().toUpperCase().toString()
@@ -117,13 +117,13 @@ class SongsAdapter(
 //            // TODO: Optimize playlist retrieval to not happen every time we see a new track...
 //            val playlist = runBlocking { Library.instance.findPlaylist(category.id).first()!! }
 //            if (playlist.isCompletable) {
-//                holder.playingIcon.visibility = View.VISIBLE
+//                holder.statusIcon.visibility = View.VISIBLE
 //                UserPrefs.history.consumeEach(UI + subs) { history ->
 //                    val entry = history.find { it.song.id == song.id }
-//                    if (entry != null && entry.timestamp > playlist.createdTime) {
-//                        holder.playingIcon.imageResource = R.drawable.ic_check_box
+//                    if (entry != null && entry.timestamp > playlist.createdTime.time) {
+//                        holder.statusIcon.imageResource = R.drawable.ic_check_box
 //                    } else {
-//                        holder.playingIcon.imageResource = R.drawable.ic_check_box_outline_blank
+//                        holder.statusIcon.imageResource = R.drawable.ic_check_box_outline_blank
 //                    }
 //                }
 //            }

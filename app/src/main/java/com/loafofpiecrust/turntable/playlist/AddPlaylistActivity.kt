@@ -3,6 +3,7 @@ package com.loafofpiecrust.turntable.playlist
 import activitystarter.Arg
 import android.content.Context
 import android.os.Parcelable
+import android.support.v7.widget.Toolbar
 import android.text.InputType
 import android.view.View
 import android.view.ViewManager
@@ -40,10 +41,10 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
     private var playlistType: String = "Playlist"
     private var playlistColor: Int = UserPrefs.accentColor.value
 
-    override fun makeView(ui: ViewManager): View = ui.verticalLayout {
-        fitsSystemWindows = true
+    private lateinit var toolbar: Toolbar
 
-        turntableToolbar(this@AddPlaylistActivity) {
+    override fun makeView(ui: ViewManager): View = ui.verticalLayout {
+        toolbar = turntableToolbar(this@AddPlaylistActivity) {
             title = "New Collection"
         }.lparams(width=matchParent, height=dimen(R.dimen.toolbar_height))
 
@@ -144,6 +145,7 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
 
     override fun onColorSelected(dialogId: Int, color: Int) {
         playlistColor = color
+        toolbar.backgroundColor = color
     }
 }
 

@@ -344,7 +344,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         }
     }
 
-    //    @Synchronized
     fun playPrevious() = task {
         addCurrentToHistory()
         val q = _queue.value.prev()
@@ -354,7 +353,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         }
     }
 
-    //    @Synchronized
     fun shiftQueuePosition(pos: Int) {
         val q = _queue.value
         when {
@@ -369,8 +367,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
                 }
             }
         }
-//        }
-//        }
     }
 
     fun shiftQueueItem(from: Int, to: Int) = task {
@@ -441,8 +437,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         lastResumeTime = player.currentPosition
     }
 
-    var lastResumeTime = 0L
-    var totalListenedTime = 0L
+    private var lastResumeTime = 0L
+    private var totalListenedTime = 0L
 
     private fun addCurrentToHistory() {
         val now = System.currentTimeMillis()

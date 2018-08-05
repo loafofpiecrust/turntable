@@ -143,7 +143,6 @@ class App: Application() {
 }
 
 val Context.kryo inline get() = App.kryo
-val Context.apiVersion inline get() = android.os.Build.VERSION.SDK_INT
 
 data class Size(val width: Int, val height: Int)
 val Context.screenSize get(): Size {

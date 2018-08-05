@@ -110,26 +110,13 @@ fun Toolbar.menuItem(
     title: String,
     iconId: Int? = null,
     color: Int? = null,
-    showType: Int = MenuItem.SHOW_AS_ACTION_NEVER,
-    init: MenuItem.() -> Unit = {}
-): MenuItem = menu.menuItem(title, iconId, color, showType, init)
-
-fun Toolbar.menuItem(
-    title: String,
-    iconId: Int? = null,
-    color: Int? = null,
     showIcon: Boolean = false,
     init: MenuItem.() -> Unit = {}
 ): MenuItem {
-    val showType = if (showIcon) {
-        MenuItem.SHOW_AS_ACTION_IF_ROOM
-    } else {
-        MenuItem.SHOW_AS_ACTION_NEVER
-    }
-    return menu.menuItem(title, iconId, color, showType, init)
+    return menu.menuItem(title, iconId, color, showIcon, init)
 }
 
-fun Menu.menuItem(title: String, iconId: Int? = null, color: Int? = null, showType: Int = MenuItem.SHOW_AS_ACTION_NEVER, init: MenuItem.() -> Unit = {}): MenuItem {
+fun Menu.menuItem(title: String, iconId: Int? = null, color: Int? = null, showIcon: Boolean = false, init: MenuItem.() -> Unit = {}): MenuItem {
     val item = add(title)
     if (iconId != null) {
         item.icon = App.instance.resources.getDrawable(iconId)
@@ -140,7 +127,11 @@ fun Menu.menuItem(title: String, iconId: Int? = null, color: Int? = null, showTy
         item.icon.setColorFilter(color, PorterDuff.Mode.SRC_ATOP)
     }
     init.invoke(item)
-    item.setShowAsAction(showType)
+    item.setShowAsAction(
+        if (showIcon) {
+            MenuItem.SHOW_AS_ACTION_IF_ROOM
+        } else MenuItem.SHOW_AS_ACTION_NEVER
+    )
     return item
 }
 
@@ -167,7 +158,7 @@ data class MenuGroup(val menu: Menu, val id: Int) {
             field = value
         }
 
-    fun menuItem(title: String, iconId: Int, color: Int? = null, showIcon: Boolean = false, init: MenuItem.() -> Unit = {}): MenuItem {
+    fun menuItem(title: String, iconId: Int? = null, color: Int? = null, showIcon: Boolean = false, init: MenuItem.() -> Unit = {}): MenuItem {
         val showType = if (showIcon) {
             MenuItem.SHOW_AS_ACTION_IF_ROOM
         } else {
@@ -176,7 +167,7 @@ data class MenuGroup(val menu: Menu, val id: Int) {
         return menuItem(title, iconId, color, showType, init)
     }
 
-    fun menuItem(title: String, iconId: Int? = null, color: Int? = null, showType: Int = MenuItem.SHOW_AS_ACTION_NEVER, init: MenuItem.() -> Unit = {}): MenuItem {
+    private fun menuItem(title: String, iconId: Int? = null, color: Int? = null, showType: Int = MenuItem.SHOW_AS_ACTION_NEVER, init: MenuItem.() -> Unit = {}): MenuItem {
         val item = menu.add(id, Menu.NONE, Menu.NONE, title)
         if (iconId != null) {
             item.icon = App.instance.resources.getDrawable(iconId)

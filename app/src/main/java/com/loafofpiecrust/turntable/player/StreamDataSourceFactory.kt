@@ -98,28 +98,28 @@ class StreamMediaPeriod(
         mediaPeriod?.reevaluateBuffer(positionUs)
     }
 
-    private fun setupMedia(media: Song.Media) {
-        source = ExtractorMediaSource(
-            Uri.parse(media.url),
-            sourceFactory,
-            extractorsFactory,
-            null, null
-        )
-
-        if (media.start > 0 || media.end > 0) {
-            val start = TimeUnit.MILLISECONDS.toMicros(media.start.toLong())
-            val end = if (media.end > 0) {
-                TimeUnit.MILLISECONDS.toMicros(media.end.toLong())
-            } else C.TIME_END_OF_SOURCE
-            source = ClippingMediaSource(source, start, end)
-        }
-
-        callback.onContinueLoadingRequested(this)
-    }
-
     override fun prepare(callback: MediaPeriod.Callback, positionUs: Long) {
         // Loading happens here, telling `callback` when it's done.
         this.callback = callback
+
+        fun setupMedia(media: Song.Media) {
+            source = ExtractorMediaSource(
+                Uri.parse(media.url),
+                sourceFactory,
+                extractorsFactory,
+                null, null
+            )
+
+            if (media.start > 0 || media.end > 0) {
+                val start = TimeUnit.MILLISECONDS.toMicros(media.start.toLong())
+                val end = if (media.end > 0) {
+                    TimeUnit.MILLISECONDS.toMicros(media.end.toLong())
+                } else C.TIME_END_OF_SOURCE
+                source = ClippingMediaSource(source, start, end)
+            }
+
+            callback.onContinueLoadingRequested(this)
+        }
 
         val local = song.localMedia
         if (local != null) {

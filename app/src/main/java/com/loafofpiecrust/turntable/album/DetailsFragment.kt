@@ -1,10 +1,10 @@
 package com.loafofpiecrust.turntable.album
 
 import activitystarter.Arg
-import android.graphics.Color.TRANSPARENT
-import android.graphics.Typeface.BOLD
+import android.graphics.Color.*
+import android.graphics.Typeface.*
 import android.support.design.widget.AppBarLayout
-import android.support.design.widget.CollapsingToolbarLayout.LayoutParams.COLLAPSE_MODE_PIN
+import android.support.design.widget.CollapsingToolbarLayout.LayoutParams.*
 import android.transition.*
 import android.view.Gravity
 import android.view.View
@@ -24,6 +24,10 @@ import com.loafofpiecrust.turntable.util.task
 import kotlinx.coroutines.experimental.channels.consumeEach
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
+import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
+import org.jetbrains.anko.constraint.layout.applyConstraintSet
+import org.jetbrains.anko.constraint.layout.constraintLayout
+import org.jetbrains.anko.constraint.layout.matchConstraint
 import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.design.collapsingToolbarLayout
 import org.jetbrains.anko.design.coordinatorLayout
@@ -81,20 +85,19 @@ class DetailsFragment: BaseFragment() {
                 clipToPadding = false
                 clipToOutline = false
 
-                relativeLayout {
+                constraintLayout {
                     clipToPadding = false
                     clipToOutline = false
-//                    fitsSystemWindows = false
 
                     image = imageView {
                         fitsSystemWindows = false
                         scaleType = ImageView.ScaleType.CENTER_CROP
                         transitionName = album.id.transitionFor("art")
-                    }.lparams(height=matchParent, width=matchParent)
+                    }
 
                     // Downloaded status
-                    coloredText += textView {
-//                        text = "Not Downloaded"
+                    val status = textView {
+                        //                        text = "Not Downloaded"
                         text = getString(R.string.album_remote)
                         textSizeDimen = R.dimen.small_text_size
 //                        backgroundColor = Color.BLACK
@@ -112,23 +115,42 @@ class DetailsFragment: BaseFragment() {
                                 } ?: "Not Downloaded"
                             }
                         }
-                    }.lparams {
-                        margin = dip(4)
-                        alignParentBottom()
-                        alignParentRight()
-                    }
+                    }.also { coloredText += it }
 
                     // Year
-                    coloredText += textView {
+                    val year = textView {
                         text = album.year?.toString() ?: "".also {
                             visibility = View.GONE
                         }
                         textSizeDimen = R.dimen.small_text_size
                         backgroundResource = R.drawable.rounded_rect
-                    }.lparams {
-                        margin = dip(4)
-                        alignParentBottom()
-                        alignParentLeft()
+                    }.also { coloredText += it }
+
+                    generateChildrenIds()
+                    applyConstraintSet {
+                        image {
+                            connect(
+                                TOP to TOP of this@constraintLayout,
+                                START to START of this@constraintLayout,
+                                BOTTOM to BOTTOM of this@constraintLayout,
+                                END to END of this@constraintLayout
+                            )
+                            width = matchConstraint
+                            height = matchConstraint
+                            dimensionRation = "H,1:1"
+                        }
+                        status {
+                            connect(
+                                BOTTOM to BOTTOM of this@constraintLayout margin dip(4),
+                                END to END of this@constraintLayout margin dip(4)
+                            )
+                        }
+                        year {
+                            connect(
+                                BOTTOM to BOTTOM of this@constraintLayout margin dip(4),
+                                START to START of this@constraintLayout margin dip(4)
+                            )
+                        }
                     }
                 }.collapsingToolbarlparams {
                     collapseMode = COLLAPSE_MODE_PIN
@@ -183,7 +205,7 @@ class DetailsFragment: BaseFragment() {
                 if (album.remote != null) { // is remote album
                     // Option to mark the album for offline listening
                     // First, see if it's already marked
-                    menu.menuItem("Favorite", R.drawable.ic_turned_in_not, showType=1) {
+                    menu.menuItem("Favorite", R.drawable.ic_turned_in_not, showIcon=true) {
                         ctx.library.findAlbum(album.id).consumeEach(UI) { existing ->
                             if (existing != null) {
                                 icon = ctx.getDrawable(R.drawable.ic_turned_in)

@@ -38,7 +38,7 @@ class SyncTabFragment: BaseFragment() {
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
         val choices = listOf("From Contacts", "Email Address")
-        menu.menuItem("Add friend", R.drawable.ic_add, showType = 1) {
+        menu.menuItem("Add friend", R.drawable.ic_add, showIcon=true) {
             onClick {
                 selector("Add friend", choices) { dialog, idx ->
                     if (idx == 0) {

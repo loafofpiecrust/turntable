@@ -2,7 +2,6 @@ package com.loafofpiecrust.turntable.artist
 
 import activitystarter.Arg
 import android.graphics.Color
-import android.os.Build
 import android.support.design.widget.AppBarLayout
 import android.support.design.widget.CollapsingToolbarLayout
 import android.support.design.widget.TabLayout
@@ -24,6 +23,10 @@ import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.themedToolbar
+import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
+import org.jetbrains.anko.constraint.layout.applyConstraintSet
+import org.jetbrains.anko.constraint.layout.constraintLayout
+import org.jetbrains.anko.constraint.layout.matchConstraint
 import org.jetbrains.anko.design.collapsingToolbarLayout
 import org.jetbrains.anko.design.coordinatorLayout
 import org.jetbrains.anko.design.themedAppBarLayout
@@ -70,17 +73,14 @@ class ArtistDetailsFragment: BaseFragment() {
                 collapsedTitleGravity = Gravity.BOTTOM
                 expandedTitleGravity = Gravity.BOTTOM
 
-                relativeLayout {
+                constraintLayout {
                     image = imageView {
                         scaleType = ImageView.ScaleType.CENTER_CROP
-
-                        onApi(Build.VERSION_CODES.LOLLIPOP) {
-                            transitionName = artist.id.imageTransition
-                        }
-                    }.lparams(height=matchParent, width=matchParent)
+                        transitionName = artist.id.imageTransition
+                    }
 
                     // Years of the artist
-                    if (artist.startYear != null) {
+                    val year = if (artist.startYear != null) {
                         textView {
                             backgroundResource = R.drawable.rounded_rect
                             textSizeDimen = R.dimen.small_text_size
@@ -89,15 +89,11 @@ class ArtistDetailsFragment: BaseFragment() {
                                 artist.startYear.toString(),
                                 artist.endYear ?: "Now"
                             )
-                        }.lparams {
-                            alignParentBottom()
-                            alignParentLeft()
-                            margin = dip(4)
                         }
-                    }
+                    } else null
 
                     // Current display mode
-                    textView {
+                    val mode = textView {
                         backgroundResource = R.drawable.rounded_rect
                         textSizeDimen = R.dimen.small_text_size
 
@@ -125,10 +121,36 @@ class ArtistDetailsFragment: BaseFragment() {
                                 currentMode puts choice
                             }
                         }
-                    }.lparams {
-                        alignParentBottom()
-                        alignParentRight()
-                        margin = dip(4)
+                    }
+
+                    generateChildrenIds()
+                    applyConstraintSet {
+                        val padBy = dip(4)
+                        image {
+                            connect(
+                                TOP to TOP of this@constraintLayout,
+                                BOTTOM to BOTTOM of this@constraintLayout,
+                                START to START of this@constraintLayout,
+                                END to END of this@constraintLayout
+                            )
+                            width = matchConstraint
+                            height = matchConstraint
+                            dimensionRation = "H,1:1"
+                        }
+                        if (year != null) {
+                            year {
+                                connect(
+                                    BOTTOM to BOTTOM of image margin padBy,
+                                    START to START of image margin padBy
+                                )
+                            }
+                        }
+                        mode {
+                            connect(
+                                BOTTOM to BOTTOM of image margin padBy,
+                                END to END of image margin padBy
+                            )
+                        }
                     }
                 }.collapsingToolbarlparams {
                     collapseMode = CollapsingToolbarLayout.LayoutParams.COLLAPSE_MODE_OFF

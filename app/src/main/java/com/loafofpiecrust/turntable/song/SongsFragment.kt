@@ -169,56 +169,7 @@ open class SongsFragment: BaseFragment() {
                                 produceTask { cached.tracks }
                             } else /*if (internet != App.InternetStatus.OFFLINE)*/ {
                                 produceTask { tryOr(listOf()) { cat.album.resolveTracks() } }
-                            } /*else {
-                                // TODO: Add message above list: 'No Internet Connection'
-                                task(UI) { toast("No Internet Connection") }
-                                produce {  }
-                            }*/
-//                            else {
-//                                val obs = BehaviorSubject.create<List<Song>>()
-//                                if (existing != null) {
-//                                    obs.onNext(existing.tracks)
-//                                }
-//                                task {
-//                                    val res = JsonParser().parse(get("http://ws.audioscrobbler.com/2.0", params = mapOf(
-//                                        "api_key" to SearchFragment.LASTFM_KEY, "format" to "json",
-//                                        "method" to "album.getinfo",
-//                                        "album" to cat.album.name,
-//                                        "artist" to cat.album.artist
-//                                    )).text).obj
-//
-//                                    if (res.has("album")) {
-//                                        val album = res["album"].obj
-//                                        val albumMbid = if (res.has("id")) res["id"].string else null
-//                                        val tracks = album["tracks"]["track"].array
-//                                        val cover = if (res.has("image")) album["image"][4]["#text"].string else null
-//                                        obs.onNext((0 until tracks.size()).map { tracks[it].obj }.map {
-//                                            Song(
-//                                                null,
-//                                                Song.RemoteDetails(
-//                                                    null, albumMbid, null
-//                                                ),
-//                                                it["id"].string,
-//                                                cat.album.name,
-//                                                cat.album.artist,
-//                                                track = it["@attr"]["rank"].string.toInt(),
-//                                                disc = 1,
-//                                                duration = it["duration"].string.toInt() * 1000,
-//                                                year = null,
-//                                                artworkUrl = cover
-//                                            )
-//                                        })
-//
-//                                        if (local != null) {
-//                                            Library.instance.cacheRemoteAlbum(local.copy(tracks = obs.value))
-//                                        }
-//                                    }
-//
-//                                    obs.onComplete()
-//                                }
-//
-//                                obs
-//                            }
+                            }
                         }
                     }
                     is Category.Custom -> produceTask { cat.songs }

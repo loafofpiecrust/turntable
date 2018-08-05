@@ -23,9 +23,7 @@ import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.produce
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.imageResource
-import org.jetbrains.anko.matchParent
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-import org.jetbrains.anko.relativeLayout
 import org.jetbrains.anko.support.v4.ctx
 
 
@@ -38,49 +36,31 @@ class PlaylistsFragment: BaseFragment() {
         menu.menuItem("Recent Mixtapes").onClick {
             ctx.replaceMainContent(RecentMixTapesFragment(), true)
         }
-//        menu.menuItem("Recent Playlists").onClick {
-////            ctx.replaceMainContent(RecentMixTapesFragment(), true)
-//            ctx.replaceMainContent()
-//        }
 
-        menu.menuItem("Add", R.drawable.ic_add, showType = 1).onClick {
+        menu.menuItem("Add", R.drawable.ic_add, showIcon=true).onClick {
             AddPlaylistActivityStarter.start(ctx)
         }
     }
 
-    override fun makeView(ui: ViewManager): View = ui.relativeLayout {
-        recyclerView {
-            layoutManager = LinearLayoutManager(ctx, LinearLayoutManager.VERTICAL, false)
-            adapter = Adapter { playlist ->
-                println("playlist: opening '${playlist.name}'")
-                ctx.replaceMainContent(
-                    when(playlist) {
-                        is MixTape -> MixTapeDetailsFragmentStarter.newInstance(playlist.id, playlist.name)
-                        is AlbumCollection -> AlbumsFragmentStarter.newInstance(AlbumsFragment.Category.Custom(runBlocking { playlist.albums.first() }))
-                        else -> PlaylistDetailsFragmentStarter.newInstance(playlist.id, playlist.name)
-                    },
-                    true
-                )
-            }.also { adapter -> task {
-                (given(user) { user ->
-                    produce(BG_POOL) { send(MixTape.allFromUser(user)) }
-                } ?: UserPrefs.playlists.openSubscription()).consumeEach { pls ->
-                    adapter.updateData(pls)
-                }
-            } }
-        }.lparams(width=matchParent, height=matchParent)
-//        floatingActionButton {
-//            imageResource = R.drawable.ic_add
-//            onClick {
-//                AddPlaylistActivityStarter.start(ctx)
-//                // Open playlist creation activity
-//            }
-//        }.lparams {
-//            alignParentRight()
-//            alignParentBottom()
-//            margin = dimen(R.dimen.fullscreen_card_margin)
-////            gravity = BOTTOM and RIGHT
-//        }
+    override fun makeView(ui: ViewManager): View = ui.recyclerView {
+        layoutManager = LinearLayoutManager(ctx, LinearLayoutManager.VERTICAL, false)
+        adapter = Adapter { playlist ->
+            println("playlist: opening '${playlist.name}'")
+            ctx.replaceMainContent(
+                when(playlist) {
+                    is MixTape -> MixTapeDetailsFragmentStarter.newInstance(playlist.id, playlist.name)
+                    is AlbumCollection -> AlbumsFragmentStarter.newInstance(AlbumsFragment.Category.Custom(runBlocking { playlist.albums.first() }))
+                    else -> PlaylistDetailsFragmentStarter.newInstance(playlist.id, playlist.name)
+                },
+                true
+            )
+        }.also { adapter -> task {
+            (given(user) { user ->
+                produce(BG_POOL) { send(MixTape.allFromUser(user)) }
+            } ?: UserPrefs.playlists.openSubscription()).consumeEach { pls ->
+                adapter.updateData(pls)
+            }
+        } }
     }
 
     class Adapter(

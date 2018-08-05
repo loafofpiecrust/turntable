@@ -249,6 +249,10 @@ class RecyclerListItemOptimized(
         textAlignment = TextView.TEXT_ALIGNMENT_CENTER
     }
 
+    val statusIcon = imageView {
+        id = R.id.status_icon
+    }
+
     val overflow = imageButton(R.drawable.ic_overflow) {
         id = R.id.itemMenuDots
         backgroundResource = R.drawable.round_selector_dark
@@ -262,6 +266,16 @@ class RecyclerListItemOptimized(
                 BOTTOM to BOTTOM of subLine
             )
             width = dip(64)
+        }
+        statusIcon {
+            connect(
+                START to START of track,
+                END to END of track,
+                TOP to TOP of mainLine,
+                BOTTOM to BOTTOM of subLine
+            )
+            width = dip(24)
+            height = dip(24)
         }
         mainLine {
             connect(
@@ -297,5 +311,5 @@ class RecyclerListItemOptimized(
     val menu: View = itemView.findViewById(R.id.itemMenuDots)
 //    val progress: View = itemView.findViewById(R.id.progressBg)
 //    val playingIcon: ImageView = itemView.findViewById(R.id.playing_icon)
-//    val statusIcon: View = itemView.findViewById(R.id.status_icon)
+    val statusIcon: ImageView = itemView.findViewById(R.id.status_icon)
 }
