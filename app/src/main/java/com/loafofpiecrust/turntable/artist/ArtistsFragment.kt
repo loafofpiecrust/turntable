@@ -3,7 +3,6 @@ package com.loafofpiecrust.turntable.artist
 import activitystarter.Arg
 import android.os.Parcelable
 import android.support.v7.widget.GridLayoutManager
-import android.support.v7.widget.SearchView
 import android.view.*
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
@@ -21,9 +20,7 @@ import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.consumeEach
-import org.jetbrains.anko.backgroundColor
-import org.jetbrains.anko.imageResource
-import org.jetbrains.anko.matchParent
+import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.ctx
 
@@ -39,8 +36,6 @@ class ArtistsFragment : BaseFragment() {
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
         menu.menuItem("Search", R.drawable.ic_search, showIcon = true) {
-            actionView = SearchView(ctx).apply {
-            }
             onClick {
                 MainActivity.replaceContent(
                     SearchFragmentStarter.newInstance(SearchFragment.Category.ARTISTS),
@@ -112,6 +107,9 @@ class ArtistsFragment : BaseFragment() {
                     }
                 }
             }
+
+            padding = dimen(R.dimen.grid_gutter)
+            addItemDecoration(ItemOffsetDecoration(dimen(R.dimen.grid_gutter)))
         }
     }
 }

@@ -26,6 +26,7 @@ import com.github.daemontus.unwrapOrElse
 import com.github.salomonbrys.kotson.jsonNull
 import com.github.salomonbrys.kotson.registerTypeAdapter
 import com.google.gson.GsonBuilder
+import com.lapism.searchview.widget.SearchView
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.hasValue
@@ -69,6 +70,8 @@ inline fun ViewManager.recyclerViewPager(init: @AnkoViewDslMarker RecyclerViewPa
 inline fun ViewManager.floatingSearchView(theme: Int = 0, init: FloatingSearchView.() -> Unit = {}): FloatingSearchView =
     ankoView({ FloatingSearchView(it) }, theme, init)
 
+inline fun ViewManager.searchBar(theme: Int = 0, init: SearchView.() -> Unit = {}): SearchView =
+    ankoView({ SearchView(it) }, theme, init)
 //fun ViewManager.voronoiView(theme: Int = 0, init: @AnkoViewDslMarker VoronoiView.() -> Unit = {}): VoronoiView =
 //    ankoView({ VoronoiView(it) }, theme = theme, init = init)
 

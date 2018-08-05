@@ -285,7 +285,7 @@ fun ViewManager.defaultGridItem(maxTextLines: Int = 3, init: LinearLayout.() -> 
 
 fun ViewManager.defaultGridItemOpt(maxTextLines: Int = 3, init: LinearLayout.() -> Unit = {}) = cardView {
     id = R.id.card
-    cardElevation = dip(3).toFloat()
+    cardElevation = dimen(R.dimen.medium_elevation).toFloat()
     radius = dip(2).toFloat()
     clipToOutline = false
     lparams(width = matchParent, height = wrapContent)

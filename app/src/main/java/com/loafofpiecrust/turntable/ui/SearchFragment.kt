@@ -1,15 +1,14 @@
 package com.loafofpiecrust.turntable.ui
 
 import activitystarter.Arg
-import android.graphics.Color
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.transition.Slide
 import android.view.Gravity
-import android.view.View
 import android.view.ViewManager
 import com.arlib.floatingsearchview.FloatingSearchView
 import com.arlib.floatingsearchview.suggestions.model.SearchSuggestion
+import com.lapism.searchview.Search
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumsAdapter
 import com.loafofpiecrust.turntable.album.DetailsFragmentStarter
@@ -17,8 +16,8 @@ import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
 import com.loafofpiecrust.turntable.artist.ArtistDetailsFragmentStarter
 import com.loafofpiecrust.turntable.artist.ArtistsAdapter
 import com.loafofpiecrust.turntable.browse.SearchApi
-import com.loafofpiecrust.turntable.floatingSearchView
 import com.loafofpiecrust.turntable.player.MusicService
+import com.loafofpiecrust.turntable.searchBar
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.SongsAdapter
@@ -26,15 +25,12 @@ import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.util.task
 import jp.wasabeef.recyclerview.animators.SlideInUpAnimator
 import kotlinx.coroutines.experimental.Job
-import org.jetbrains.anko.dip
-import org.jetbrains.anko.frameLayout
-import org.jetbrains.anko.matchParent
+import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-import org.jetbrains.anko.topPadding
 
 
 //@EActivity
-open class SearchFragment : BaseFragment(), FloatingSearchView.OnSearchListener {
+open class SearchFragment : BaseFragment(), FloatingSearchView.OnSearchListener, Search.OnQueryTextListener {
 
     enum class Category {
         ARTISTS,
@@ -67,13 +63,14 @@ open class SearchFragment : BaseFragment(), FloatingSearchView.OnSearchListener 
     }
 
     override fun makeView(ui: ViewManager) = ui.frameLayout {
-        fitsSystemWindows = true
         id = R.id.content_layout
+        topPadding = dimen(R.dimen.statusbar_height)
+        clipToPadding = false
 
         recycler = recyclerView {
             itemAnimator = SlideInUpAnimator()
             layoutManager = GridLayoutManager(context, 3)
-            topPadding = dip(48)
+            topPadding = dimen(R.dimen.toolbar_height)
             clipToPadding = false
             when (category) {
                 Category.ALBUMS -> {
@@ -114,22 +111,34 @@ open class SearchFragment : BaseFragment(), FloatingSearchView.OnSearchListener 
             }
         }
 
-        floatingSearchView {
-            id = View.generateViewId()
-            fitsSystemWindows = true
-            setSearchHint("Search...")
-            setCloseSearchOnKeyboardDismiss(true)
-            setLeftActionMode(FloatingSearchView.LEFT_ACTION_MODE_SHOW_HOME)
-            setOnHomeActionClickListener {
-                fragmentManager?.popBackStack()
-            }
-            setQueryTextColor(Color.WHITE)
-            setHintTextColor(Color.DKGRAY)
-            setDimBackground(true)
+        searchBar {
+            setHint("Search...")
+            setOnQueryTextListener(this@SearchFragment)
+//            queryHint = "Search..."
+//            onQueryTextListener {
+//                onQueryTextSubmit {
+//                    onSearchAction(it!!)
+//                    true
+//                }
+//            }
+        }.lparams(width = matchParent, height = wrapContent)
 
-            setOnSearchListener(this@SearchFragment)
-
-        }.lparams(height=matchParent, width=matchParent)
+//        floatingSearchView {
+//            id = View.generateViewId()
+//            fitsSystemWindows = true
+//            setSearchHint("Search...")
+//            setCloseSearchOnKeyboardDismiss(true)
+//            setLeftActionMode(FloatingSearchView.LEFT_ACTION_MODE_SHOW_HOME)
+//            setOnHomeActionClickListener {
+//                fragmentManager?.popBackStack()
+//            }
+//            setQueryTextColor(Color.WHITE)
+//            setHintTextColor(Color.DKGRAY)
+//            setDimBackground(true)
+//
+//            setOnSearchListener(this@SearchFragment)
+//
+//        }.lparams(height=matchParent, width=matchParent)
     }
 
 
@@ -145,6 +154,14 @@ open class SearchFragment : BaseFragment(), FloatingSearchView.OnSearchListener 
                 songsList?.updateData(it)
             }
         }
+    }
+
+    override fun onQueryTextSubmit(query: CharSequence?): Boolean {
+        onSearchAction(query.toString())
+        return true
+    }
+
+    override fun onQueryTextChange(newText: CharSequence?) {
     }
 
     override fun onSearchAction(query: String) {

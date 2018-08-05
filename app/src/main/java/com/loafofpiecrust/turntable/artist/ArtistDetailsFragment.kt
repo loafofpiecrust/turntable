@@ -125,7 +125,7 @@ class ArtistDetailsFragment: BaseFragment() {
 
                     generateChildrenIds()
                     applyConstraintSet {
-                        val padBy = dip(4)
+                        val padBy = dimen(R.dimen.details_image_padding)
                         image {
                             connect(
                                 TOP to TOP of this@constraintLayout,
@@ -135,26 +135,25 @@ class ArtistDetailsFragment: BaseFragment() {
                             )
                             width = matchConstraint
                             height = matchConstraint
-                            dimensionRation = "H,1:1"
+                            dimensionRation = "H,2:1"
                         }
                         if (year != null) {
                             year {
                                 connect(
-                                    BOTTOM to BOTTOM of image margin padBy,
-                                    START to START of image margin padBy
+                                    BOTTOM to BOTTOM of this@constraintLayout margin padBy,
+                                    START to START of this@constraintLayout margin padBy
                                 )
                             }
                         }
                         mode {
                             connect(
-                                BOTTOM to BOTTOM of image margin padBy,
-                                END to END of image margin padBy
+                                BOTTOM to BOTTOM of this@constraintLayout margin padBy,
+                                END to END of this@constraintLayout margin padBy
                             )
                         }
                     }
                 }.collapsingToolbarlparams {
                     collapseMode = CollapsingToolbarLayout.LayoutParams.COLLAPSE_MODE_OFF
-                    height = dip(280)
                     width = matchParent
                 }
             }.lparams {

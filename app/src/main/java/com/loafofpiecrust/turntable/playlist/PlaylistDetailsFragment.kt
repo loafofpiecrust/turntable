@@ -57,7 +57,7 @@ class PlaylistDetailsFragment: BaseFragment() {
     }
 
     override fun makeView(ui: ViewManager): View = ui.verticalLayout {
-        fitsSystemWindows = true
+//        fitsSystemWindows = true
 
         playlist = runBlocking {
             ctx.library.findPlaylist(playlistId).first()
@@ -69,10 +69,12 @@ class PlaylistDetailsFragment: BaseFragment() {
         }
 
             appBarLayout {
-                fitsSystemWindows = true
+//                fitsSystemWindows = true
                 given(playlist.color) { backgroundColor = it }
+                topPadding = dimen(R.dimen.statusbar_height)
+
                 themedToolbar(R.style.AppTheme_DetailsToolbar) {
-                    fitsSystemWindows = true
+//                    fitsSystemWindows = true
                     title = playlistTitle
                     transitionName = playlistId.toString()
 

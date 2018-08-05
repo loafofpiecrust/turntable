@@ -126,7 +126,7 @@ class AlbumsFragment : BaseFragment() {
             this.adapter = adapter
 
             layoutManager = grid
-            padding = dimen(R.dimen.grid_gutter) / 2
+            padding = dimen(R.dimen.grid_gutter)
 
             if (columnCount > 0) {
                 grid.spanCount = columnCount
@@ -136,7 +136,7 @@ class AlbumsFragment : BaseFragment() {
                     .consumeEach(UI) { grid.spanCount = it }
             }
 
-            addItemDecoration(ItemOffsetDecoration(dip(4)))
+            addItemDecoration(ItemOffsetDecoration(dimen(R.dimen.grid_gutter)))
 
 
             category.openSubscription().switchMap { cat ->

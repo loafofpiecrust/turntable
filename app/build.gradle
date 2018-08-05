@@ -167,6 +167,7 @@ dependencies {
 
     //    implementation 'com.miguelcatalan:materialsearchview:1.4.0'
     implementation 'com.github.arimorty:floatingsearchview:2.1.1'
+    implementation 'com.lapism:searchview:27.1.1.0.0'
     implementation 'jp.wasabeef:recyclerview-animators:2.2.7'
 
 

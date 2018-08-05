@@ -75,7 +75,6 @@ class DetailsFragment: BaseFragment() {
             backgroundColor = TRANSPARENT
 
             lateinit var image: ImageView
-            val screenWidth = ctx.screenSize.width
             collapsingToolbarLayout {
                 fitsSystemWindows = false
                 setContentScrimColor(UserPrefs.primaryColor.value)
@@ -128,6 +127,7 @@ class DetailsFragment: BaseFragment() {
 
                     generateChildrenIds()
                     applyConstraintSet {
+                        val padBy = dimen(R.dimen.details_image_padding)
                         image {
                             connect(
                                 TOP to TOP of this@constraintLayout,
@@ -141,20 +141,19 @@ class DetailsFragment: BaseFragment() {
                         }
                         status {
                             connect(
-                                BOTTOM to BOTTOM of this@constraintLayout margin dip(4),
-                                END to END of this@constraintLayout margin dip(4)
+                                BOTTOM to BOTTOM of this@constraintLayout margin padBy,
+                                END to END of this@constraintLayout margin padBy
                             )
                         }
                         year {
                             connect(
-                                BOTTOM to BOTTOM of this@constraintLayout margin dip(4),
-                                START to START of this@constraintLayout margin dip(4)
+                                BOTTOM to BOTTOM of this@constraintLayout margin padBy,
+                                START to START of this@constraintLayout margin padBy
                             )
                         }
                     }
                 }.collapsingToolbarlparams {
                     collapseMode = COLLAPSE_MODE_PIN
-                    height = screenWidth
                     width = matchParent
                 }
 

@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.album
 
 import android.graphics.Typeface
+import android.support.v7.widget.CardView
 import android.support.v7.widget.RecyclerView
 import android.view.ViewGroup
 import android.widget.TextView
@@ -65,7 +66,11 @@ class AlbumsAdapter(
         holder.mainLine.transitionName = album.id.nameTransition
         holder.coverImage?.transitionName = album.id.imageTransition
 
-        holder.card.backgroundColor = UserPrefs.primaryColor.value
+        if (holder.card is CardView) {
+            holder.card.setCardBackgroundColor(UserPrefs.primaryColor.value)
+        } else {
+            holder.card.backgroundColor = UserPrefs.primaryColor.value
+        }
         holder.mainLine.textColor = holder.card.resources.getColor(R.color.text)
         holder.subLine.textColor = holder.card.resources.getColor(R.color.text)
 

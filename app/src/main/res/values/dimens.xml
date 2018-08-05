@@ -11,6 +11,7 @@
     <dimen name="statusbar_height">24dp</dimen>
     <dimen name="toolbar_height">48dp</dimen>
     <dimen name="details_toolbar_height">90dp</dimen>
+    <dimen name="details_image_padding">4dp</dimen>
     <dimen name="mini_player_height">@dimen/song_item_height</dimen>
     <dimen name="song_item_height">64dp</dimen>
     <dimen name="overflow_icon_space">64dp</dimen>
@@ -32,6 +33,6 @@
     <dimen name="top_elevation">16dp</dimen>
     <dimen name="toolbar_elevation">4dp</dimen>
 
-    <dimen name="grid_gutter">6dp</dimen>
+    <dimen name="grid_gutter">4dp</dimen>
 
 </resources>

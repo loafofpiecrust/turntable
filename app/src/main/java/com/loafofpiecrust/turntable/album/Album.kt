@@ -4,6 +4,7 @@ package com.loafofpiecrust.turntable.album
 import android.graphics.drawable.Drawable
 import android.os.Parcelable
 import android.support.v7.graphics.Palette
+import android.support.v7.widget.CardView
 import android.support.v7.widget.Toolbar
 import android.view.Menu
 import android.view.View
@@ -313,7 +314,7 @@ data class Album(
 
 fun loadPalette(id: MusicId, view: View, titles: List<TextView>? = null) =
     loadPalette(id) { palette, swatch ->
-        view.backgroundColor = if (swatch == null) {
+        val color = if (swatch == null) {
             val textColor = view.resources.getColor(R.color.text)
             if (view is Toolbar) {
                 view.setTitleTextColor(textColor)
@@ -332,6 +333,12 @@ fun loadPalette(id: MusicId, view: View, titles: List<TextView>? = null) =
                 it.textColor = swatch.titleTextColor
             }
             swatch.rgb
+        }
+
+        if (view is CardView) {
+            view.setCardBackgroundColor(color)
+        } else {
+            view.backgroundColor = color
         }
     }
 

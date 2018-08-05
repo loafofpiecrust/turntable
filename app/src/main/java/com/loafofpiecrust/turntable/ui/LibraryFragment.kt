@@ -77,12 +77,8 @@ class LibraryFragment: BaseFragment() {
     override fun makeView(ui: ViewManager): View = ui.verticalLayout {
         var tabs: TabLayout? = null
 
-        fitsSystemWindows = true
         themedAppBarLayout(R.style.AppTheme_AppBarOverlay) {
-            fitsSystemWindows = true
-            lparams(width=matchParent, height=wrapContent) {
-//                elevation = dip(4).toFloat()
-            }
+            topPadding = dimen(R.dimen.statusbar_height)
 
             UserPrefs.primaryColor.consumeEach(UI) {
                 backgroundColor = it
@@ -168,7 +164,7 @@ class LibraryFragment: BaseFragment() {
             tabs = tabLayout {
                 tabMode = TabLayout.MODE_SCROLLABLE
             }
-        }
+        }.lparams(width=matchParent, height=wrapContent)
 
 
         val pager = viewPager {

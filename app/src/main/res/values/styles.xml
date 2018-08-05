@@ -26,7 +26,7 @@
         <item name="android:popupElevation">@dimen/high_elevation</item>
         <item name="android:windowTranslucentStatus">true</item>
         <!--<item name="android:fitsSystemWindows">false</item>-->
-        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">false</item>
     </style>
 
     <style name="AppTheme.NoActionBar" parent="AppTheme">
