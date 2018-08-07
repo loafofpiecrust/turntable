@@ -104,8 +104,8 @@ class SyncTabFragment: BaseFragment() {
                 SyncService.User.resolve(email)
             }.success(UI) {
                 if (it != null) {
-                    toast("Befriending $it")
-//                SyncService.instance.requestFriendship(it)
+                    toast("Befriending ${it.name}")
+                    SyncService.requestFriendship(it)
                 } else {
                     toast("$name isn't on Turntable yet")
                 }

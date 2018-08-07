@@ -501,11 +501,15 @@ class SyncService : FirebaseMessagingService() {
             }
 
             is Message.FriendRequest -> task(UI) {
-//                val sender = if (sender.displayName == null) {
-//                    sender.refresh().await()
-//                } else sender
+                val sender = if (sender.displayName == null) {
+                    sender.refresh().await()
+                } else sender
 
-//                UserPrefs.friends appends Friend(sender, Friend.Status.RECEIVED_REQUEST)
+                // TODO: Don't add duplicate.
+                if (UserPrefs.friends.value.find { it.user == sender } == null) {
+                    // We don't know this user in any capacity yet.
+                    UserPrefs.friends appends Friend(sender, Friend.Status.RECEIVED_REQUEST)
+                }
 
                 notificationManager.notify(12350, NotificationCompat.Builder(ctx, "turntable").apply {
                     priority = PRIORITY_DEFAULT
@@ -524,7 +528,13 @@ class SyncService : FirebaseMessagingService() {
             }
 
             is Message.FriendResponse -> if (message.accept) {
-                UserPrefs.friends appends Friend(sender, Friend.Status.CONFIRMED)
+                val sender = if (sender.displayName == null) {
+                    sender.refresh().await()
+                } else sender
+
+                val friends = UserPrefs.friends.value
+                val existingIdx = friends.indexOfFirst { it.user == sender }
+                UserPrefs.friends puts friends.replace(existingIdx, Friend(sender, Friend.Status.CONFIRMED))
                 task(UI) { toast("Friendship fostered with ${sender.name}") }
             } else {
                 task(UI) { toast("${sender.name} declined friendship :(") }

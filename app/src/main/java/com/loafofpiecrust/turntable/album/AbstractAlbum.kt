@@ -34,6 +34,7 @@ data class LocalAlbum(
     override val id: AlbumId,
     override val tracks: List<Song>
 ): Album {
+    // TODO: Extract this album merging out
     override fun mergeWith(other: Album): Album {
         return if (other is LocalAlbum) {
             LocalAlbum(
@@ -78,7 +79,6 @@ open class RemoteAlbum(
     override val type: Album.Type = Album.Type.LP,
     override val year: Int? = null
 ): Album {
-
     override val tracks: List<Song> by lazy {
         runBlocking {
 //            val cached = Library.instance.findCachedRemoteAlbum(id).first()
@@ -106,14 +106,17 @@ open class RemoteAlbum(
                     { a, b -> a.disc == b.disc && a.id.displayName.equals(b.id.displayName, true) },
                     { a, b -> if (a.local != null) a else b }
                 ),
-            type = when {
-                other.id.name.contains(Regex("\\bEP\\b", RegexOption.IGNORE_CASE)) -> Album.Type.EP
-                other.tracks.size <= 3 -> Album.Type.SINGLE // A-side, B-side, extra
-                other.tracks.size <= 7 -> Album.Type.EP
-                other.id.name.contains(Regex("\\b(Collection|Compilation|Best of|Greatest hits)\\b", RegexOption.IGNORE_CASE)) -> Album.Type.COMPILATION
-                else -> Album.Type.LP
-            },
-            year = year ?: other.year
+            type = minOf(type, other.type),
+            // type = when {
+            //     other.id.name.contains(Regex("\\bEP\\b", RegexOption.IGNORE_CASE)) -> Album.Type.EP
+            //     other.tracks.size <= 3 -> Album.Type.SINGLE // A-side, B-side, extra
+            //     other.tracks.size <= 7 -> Album.Type.EP
+            //     other.id.name.contains(Regex("\\b(Collection|Compilation|Best of|Greatest hits)\\b", RegexOption.IGNORE_CASE)) -> Album.Type.COMPILATION
+            //     else -> Album.Type.LP
+            // },
+            year = if (year != null && other.year != null) {
+                minOf(year!!, other.year!!)
+            } else year ?: other.year
         )
     }
 
@@ -141,7 +144,6 @@ open class RemoteAlbum(
         }
     }
 }
-
 
 @Parcelize
 data class MergedAlbum(
