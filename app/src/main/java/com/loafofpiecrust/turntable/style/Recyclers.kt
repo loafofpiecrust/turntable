@@ -7,14 +7,13 @@ import com.loafofpiecrust.turntable.util.consumeEach
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import com.simplecityapps.recyclerview_fastscroll.views.FastScroller
 import jp.wasabeef.recyclerview.animators.SlideInUpAnimator
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.android.UI
+import kotlin.coroutines.experimental.CoroutineContext
 
 
-fun FastScrollRecyclerView.turntableStyle(subs: Job) {
-    (RecyclerView::turntableStyle)(this, subs)
+fun FastScrollRecyclerView.turntableStyle(uiContext: CoroutineContext) {
+    (RecyclerView::turntableStyle)(this, uiContext)
 
-    UserPrefs.secondaryColor.consumeEach(UI + subs) {
+    UserPrefs.secondaryColor.consumeEach(uiContext) {
         setThumbColor(it)
         setPopupBgColor(it)
     }
@@ -24,6 +23,6 @@ fun FastScrollRecyclerView.turntableStyle(subs: Job) {
     addOnItemTouchListener(this)
 }
 
-fun RecyclerView.turntableStyle(subs: Job) {
+fun RecyclerView.turntableStyle(uiContext: CoroutineContext) {
     itemAnimator = SlideInUpAnimator()
 }

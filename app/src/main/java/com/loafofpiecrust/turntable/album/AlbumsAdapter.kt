@@ -86,7 +86,7 @@ class AlbumsAdapter(
                     given(it) {
                         it.apply(opts)
                             .transition(DrawableTransitionOptions().crossFade(200))
-                            .listener(album.loadPalette(holder.card, listOf(holder.mainLine, holder.subLine)))
+                            .listener(album.loadPalette(holder.card, holder.mainLine, holder.subLine))
                             .into(holder.coverImage)
                     } ?: run {
                         holder.coverImage.imageResource = R.drawable.ic_default_album
@@ -158,7 +158,7 @@ class AlbumSectionAdapter(
                     given(it) {
                         it.apply(opts)
                             .transition(DrawableTransitionOptions().crossFade(200))
-                            .listener(album.loadPalette(holder.card, listOf(holder.mainLine, holder.subLine)))
+                            .listener(album.loadPalette(holder.card, holder.mainLine, holder.subLine))
                             .into(holder.coverImage)
                     } ?: run {
                         holder.coverImage.imageResource = R.drawable.ic_default_album

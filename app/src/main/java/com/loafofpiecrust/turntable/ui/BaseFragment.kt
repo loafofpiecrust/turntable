@@ -13,7 +13,6 @@ import com.loafofpiecrust.turntable.R
 import kotlinx.coroutines.experimental.Job
 import org.jetbrains.anko.AnkoContext
 import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.debug
 import org.jetbrains.anko.support.v4.ctx
 import java.lang.ref.WeakReference
 
@@ -36,7 +35,6 @@ abstract class BaseFragment: Fragment(), AnkoLogger {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         ActivityStarter.fill(this)
         if (existingContentView?.get() == null) {
-            debug { "creating new view" }
             existingContentView = WeakReference(makeView(AnkoContext.create(ctx, this)))
         }
         return existingContentView?.get()

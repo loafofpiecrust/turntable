@@ -3,12 +3,12 @@ package com.loafofpiecrust.turntable.util
 
 fun <T: Any> compareByIgnoreCase(vararg selectors: (T) -> String): Comparator<T> {
     require(selectors.isNotEmpty())
-    return Comparator { a, b -> compareValuesByImpl(a, b, selectors) }
+    return Comparator { a, b -> compareValuesByIgnoreCase(a, b, selectors) }
 //    return compareBy(selectors)
 }
 
 
-private fun <T> compareValuesByImpl(a: T, b: T, selectors: Array<out (T)->String>): Int {
+fun <T> compareValuesByIgnoreCase(a: T, b: T, selectors: Array<out (T)->String>): Int {
     for (fn in selectors) {
         val v1 = fn(a)
         val v2 = fn(b)

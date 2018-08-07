@@ -3,8 +3,6 @@ package com.loafofpiecrust.turntable.ui
 import activitystarter.Arg
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
-import android.transition.Slide
-import android.view.Gravity
 import android.view.ViewManager
 import com.arlib.floatingsearchview.FloatingSearchView
 import com.arlib.floatingsearchview.suggestions.model.SearchSuggestion
@@ -51,9 +49,9 @@ open class SearchFragment : BaseFragment(), FloatingSearchView.OnSearchListener 
 
     override fun onCreate() {
         super.onCreate()
-        enterTransition = Slide().apply {
-            slideEdge = Gravity.BOTTOM
-        }
+//        enterTransition = Slide().apply {
+//            slideEdge = Gravity.BOTTOM
+//        }
         allowEnterTransitionOverlap = true
     }
 
@@ -70,7 +68,7 @@ open class SearchFragment : BaseFragment(), FloatingSearchView.OnSearchListener 
         recycler = recyclerView {
             itemAnimator = SlideInUpAnimator()
             layoutManager = GridLayoutManager(context, 3)
-            topPadding = dimen(R.dimen.toolbar_height)
+            topPadding = dip(64)
             clipToPadding = false
             when (category) {
                 Category.ALBUMS -> {
@@ -113,33 +111,23 @@ open class SearchFragment : BaseFragment(), FloatingSearchView.OnSearchListener 
 
         searchBar {
             setHint("Search...")
+            requestFocusFromTouch()
+            showKeyboard()
+            setLogoHamburgerToLogoArrowWithoutAnimation(true)
+            logo = Search.Logo.ARROW
+            setOnLogoClickListener { activity?.onBackPressed() }
+
             setOnQueryTextListener(object : Search.OnQueryTextListener {
                 override fun onQueryTextChange(newText: CharSequence) {
                 }
 
                 override fun onQueryTextSubmit(query: CharSequence): Boolean {
                     onSearchAction(query.toString())
-                    hideKeyboard()
+                    close()
                     return false
                 }
             })
         }.lparams(width = matchParent, height = wrapContent)
-//        floatingSearchView {
-//            id = View.generateViewId()
-//            fitsSystemWindows = true
-//            setSearchHint("Search...")
-//            setCloseSearchOnKeyboardDismiss(true)
-//            setLeftActionMode(FloatingSearchView.LEFT_ACTION_MODE_SHOW_HOME)
-//            setOnHomeActionClickListener {
-//                fragmentManager?.popBackStack()
-//            }
-//            setQueryTextColor(Color.WHITE)
-//            setHintTextColor(Color.DKGRAY)
-//            setDimBackground(true)
-//
-//            setOnSearchListener(this@SearchFragment)
-//
-//        }.lparams(height=matchParent, width=matchParent)
     }
 
 

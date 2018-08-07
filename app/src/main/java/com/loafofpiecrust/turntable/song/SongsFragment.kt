@@ -140,7 +140,7 @@ open class SongsFragment: BaseFragment() {
                     }
                     is Category.ByArtist -> Library.instance.songsByArtist(cat.artist.id)
                     is Category.OnAlbum -> {
-                        Library.instance.findAlbum(cat.album).combineLatest(
+                        Library.instance.findAlbum(cat.album.id).combineLatest(
 //                                App.instance.internetStatus,
                             Library.instance.findCachedRemoteAlbum(cat.album)
                         ).switchMap { (local/*, internet*/, cached) ->
@@ -154,7 +154,7 @@ open class SongsFragment: BaseFragment() {
                                     } else {
                                         produce(BG_POOL) {
                                             send(localTracks)
-                                            send(localTracks + cat.album.resolveTracks())
+                                            send(localTracks + cat.album.tracks)
                                         }
                                     }.map {
                                         it.sortedBy { it.disc * 1000 + it.track }.dedupMerge(
@@ -168,7 +168,7 @@ open class SongsFragment: BaseFragment() {
                             } else if (cached != null) {
                                 produceTask { cached.tracks }
                             } else /*if (internet != App.InternetStatus.OFFLINE)*/ {
-                                produceTask { tryOr(listOf()) { cat.album.resolveTracks() } }
+                                produceTask { tryOr(listOf()) { cat.album.tracks } }
                             }
                         }
                     }

@@ -197,9 +197,9 @@ inline fun Menu.group(
     g
 }
 
-inline fun MenuItem.onClick(
+fun MenuItem.onClick(
     context: CoroutineContext = UI,
-    noinline handler: suspend (v: MenuItem) -> Unit
+    handler: suspend (v: MenuItem) -> Unit
 ) {
     setOnMenuItemClickListener { v ->
         task(context) {

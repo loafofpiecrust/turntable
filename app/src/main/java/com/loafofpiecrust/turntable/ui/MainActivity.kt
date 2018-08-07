@@ -31,8 +31,8 @@ import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.album.DetailsFragmentStarter
+import com.loafofpiecrust.turntable.album.LocalAlbum
 import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistDetailsFragmentStarter
 import com.loafofpiecrust.turntable.artist.ArtistId
@@ -417,7 +417,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                 val title = url.getQueryParameter("name")
                 val artist = url.getQueryParameter("artist")
                 ctx.replaceMainContent(
-                    DetailsFragmentStarter.newInstance(Album.justForSearch(ArtistId(artist).forAlbum(title))),
+                    DetailsFragmentStarter.newInstance(LocalAlbum(ArtistId(artist).forAlbum(title), emptyList())),
                     true
                 )
             }

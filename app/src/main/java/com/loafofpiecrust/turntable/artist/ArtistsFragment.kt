@@ -156,7 +156,7 @@ class ArtistsAdapter(
                 item.loadArtwork(Glide.with(holder.card.context)).consumeEach {
                     given(it) {
                         it.apply(RequestOptions().placeholder(R.drawable.ic_default_album))
-                            .listener(loadPalette(item.id, holder.card))
+                            .listener(loadPalette(item.id, arrayOf(holder.card)))
                             .transition(DrawableTransitionOptions().crossFade(200))
 //                withContext(UI) {
                             .into(holder.coverImage)

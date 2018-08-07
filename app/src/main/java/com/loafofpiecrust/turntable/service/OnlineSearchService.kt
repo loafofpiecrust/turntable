@@ -24,6 +24,7 @@ import com.github.salomonbrys.kotson.string
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.album.AlbumId
+import com.loafofpiecrust.turntable.album.LocalAlbum
 import com.loafofpiecrust.turntable.album.YouTubeFullAlbum
 import com.loafofpiecrust.turntable.artist.MusicDownload
 import com.loafofpiecrust.turntable.song.Song
@@ -294,7 +295,7 @@ class OnlineSearchService : Service(), AnkoLogger {
         } else {
             val albumKey = song.id.album.dbKey
             val album = /*Library.instance.findAlbumOfSong(song).first()
-                ?:*/ Album.justForSearch(song.id.album, listOf(song))
+                ?:*/ LocalAlbum(song.id.album, listOf(song))
 
             getExistingEntry(albumKey).let { entry ->
                 if (entry is StreamStatus.Available) {

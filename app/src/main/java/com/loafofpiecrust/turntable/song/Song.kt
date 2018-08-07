@@ -13,9 +13,9 @@ import android.view.Menu
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
 import com.loafofpiecrust.turntable.App
-import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.album.AlbumId
 import com.loafofpiecrust.turntable.album.DetailsFragmentStarter
+import com.loafofpiecrust.turntable.album.LocalAlbum
 import com.loafofpiecrust.turntable.album.loadPalette
 import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistDetailsFragmentStarter
@@ -402,7 +402,7 @@ data class Song(
 //                            .apply(Library.ARTWORK_OPTIONS)
 //                            .thumbnail(req.load("$prefix/front-250"))
 //                    }
-                    else -> Album.justForSearch(id.album).loadCover(req).map {
+                    else -> LocalAlbum(id.album, emptyList()).loadCover(req).map {
                         it?.listener(loadPalette(id.album, cb))
                     }
 //                    else -> {

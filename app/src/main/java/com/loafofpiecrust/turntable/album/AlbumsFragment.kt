@@ -100,10 +100,10 @@ class AlbumsFragment : BaseFragment() {
 
         val recycler = if (cat is Category.All) {
             fastScrollRecycler().apply {
-                turntableStyle(jobs)
+                turntableStyle(UI)
             }
         } else recyclerView().apply {
-            turntableStyle(jobs)
+            turntableStyle(UI)
         }
 
         val loadCircle = CircularProgressDrawable.Builder(ctx)

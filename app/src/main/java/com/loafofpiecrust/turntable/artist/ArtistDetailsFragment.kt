@@ -14,7 +14,7 @@ import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.album.AlbumsFragment
 import com.loafofpiecrust.turntable.album.AlbumsFragmentStarter
-import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.task
@@ -22,7 +22,7 @@ import com.mcxiaoke.koi.ext.onClick
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
 import org.jetbrains.anko.*
-import org.jetbrains.anko.appcompat.v7.themedToolbar
+import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
 import org.jetbrains.anko.constraint.layout.applyConstraintSet
 import org.jetbrains.anko.constraint.layout.constraintLayout
@@ -161,18 +161,12 @@ class ArtistDetailsFragment: BaseFragment() {
                 height = matchParent
             }
 
-            val toolbar = themedToolbar(R.style.AppTheme_DetailsToolbar) {
-                fitsSystemWindows = true
-                UserPrefs.primaryColor.consumeEach(UI) {
-                    backgroundColor = it
-                }
+            val toolbar = toolbar {
+                standardStyle(UI)
                 title = artist.id.displayName
                 transitionName = artist.id.nameTransition
-
                 artist.optionsMenu(menu)
             }.lparams {
-                height = dip(72)
-                width = matchParent
                 scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL and AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
             }
 

@@ -3,13 +3,14 @@ package com.loafofpiecrust.turntable.browse
 import com.github.salomonbrys.kotson.*
 import com.google.gson.JsonObject
 import com.loafofpiecrust.turntable.album.Album
+import com.loafofpiecrust.turntable.album.AlbumId
+import com.loafofpiecrust.turntable.album.RemoteAlbum
 import com.loafofpiecrust.turntable.artist.Artist
+import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.awaitAllNotNull
 import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.parMap
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.album.AlbumId
-import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
 import com.loafofpiecrust.turntable.tryOr
@@ -128,15 +129,14 @@ object Discogs: SearchApi, AnkoLogger {
             "type" to "master"
         )).map {
             val titleParts = it["title"].string.split(" - ", limit=2)
-            Album(
-                null,
-                AlbumDetails(
-                    it["id"].int.toString(),
-                    thumbnailUrl = it["thumb"].nullString
-                ),
+            RemoteAlbum(
                 AlbumId(
                     titleParts[1],
                     ArtistId(disambPattern.replace(titleParts[0], ""))
+                ),
+                AlbumDetails(
+                    it["id"].int.toString(),
+                    thumbnailUrl = it["thumb"].nullString
                 ),
                 year = it["year"].nullString?.toIntOrNull()
             )
@@ -176,7 +176,7 @@ object Discogs: SearchApi, AnkoLogger {
 //    }
 
 
-    private fun releasesToAlbums(artist: ArtistId?, rels: List<JsonObject>): List<Pair<Album, String>> {
+    private fun releasesToAlbums(artist: ArtistId?, rels: List<JsonObject>): List<Pair<RemoteAlbum, String>> {
         return rels.mapNotNull {
             val role = it["role"].nullString
             val title = if (role == null) {
@@ -224,8 +224,8 @@ object Discogs: SearchApi, AnkoLogger {
 
             // TODO: Include featured albums as well, somewhere
             if (role == null || role == "Main") {
-                Album(
-                    null,
+                RemoteAlbum(
+                    AlbumId(title, given(artistName) { ArtistId(it) } ?: artist ?: ArtistId("")),
                     AlbumDetails(
                         remoteId,
                         thumbnailUrl = it["thumb"].nullString,
@@ -233,7 +233,6 @@ object Discogs: SearchApi, AnkoLogger {
                             ?.firstOrNull { it["type"].nullString == "primary" }
                             ?.get("uri")?.string
                     ),
-                    AlbumId(title, given(artistName) { ArtistId(it) } ?: artist ?: ArtistId("")),
 //                    artworkUrl = null,
                     year = it["year"].nullInt,
                     type = type
@@ -243,8 +242,14 @@ object Discogs: SearchApi, AnkoLogger {
     }
 
     override suspend fun fullArtwork(album: Album, search: Boolean): String? {
+        // FIXME: Generalize this!!!
         val id = when {
-            album.remote is Discogs.AlbumDetails -> album.remote.id
+            album is RemoteAlbum -> {
+                val remote = album.remoteId
+                if (remote is Discogs.AlbumDetails) {
+                    remote.id
+                } else searchFor(album).firstOrNull()
+            }
             search -> searchFor(album).firstOrNull() ?: return null
             else -> return null
         }
@@ -263,7 +268,7 @@ object Discogs: SearchApi, AnkoLogger {
         return url
     }
 
-    private suspend fun discographyPages(id: Int, page: Int = 1, perPage: Int = 100): List<Pair<Album, String>> {
+    private suspend fun discographyPages(id: Int, page: Int = 1, perPage: Int = 100): List<Pair<RemoteAlbum, String>> {
         val res = apiRequest("https://api.discogs.com/artists/$id/releases", params = mapOf(
             "sort" to "year",
             "sort_order" to "desc",
@@ -279,12 +284,12 @@ object Discogs: SearchApi, AnkoLogger {
         } else curr
     }
 
-    suspend fun discography(id: ArtistId): List<Album> =
+    suspend fun discography(id: ArtistId): List<RemoteAlbum> =
         given(searchFor(id).firstOrNull()) {
             discography(it)
         } ?: listOf()
 
-    private suspend fun discography(id: Int): List<Album> {
+    private suspend fun discography(id: Int): List<RemoteAlbum> {
         val releases = discographyPages(id).toMutableList()
         var masters = releases.filter { it.second == "master" }
             .also { releases.removeAll(it) }
@@ -304,7 +309,7 @@ object Discogs: SearchApi, AnkoLogger {
                     synchronized(releases) {
                         totalMasterReqs += 1
                     }
-                val det = master.remote as Discogs.AlbumDetails
+                val det = master.remoteId as Discogs.AlbumDetails
                     val res = apiRequest(
                         "https://api.discogs.com/${det.id}/versions",
                         mapOf("per_page" to "5")
@@ -327,8 +332,10 @@ object Discogs: SearchApi, AnkoLogger {
                     } else 0
                 }
 
-            master.copy(
-//                remote = first?.remote ?: master.remote,
+            RemoteAlbum(
+                master.id,
+                master.remoteId,
+                year = master.year,
                 type = common?.key ?: master.type
             )
         }.awaitAllNotNull()
@@ -423,10 +430,9 @@ object Discogs: SearchApi, AnkoLogger {
                     cols.first { it.hasClass("artist") }.text()
                 )
 
-                Album(
-                    null,
-                    AlbumDetails(id, thumbLink),
+                RemoteAlbum(
                     AlbumId(title, artist),
+                    AlbumDetails(id, thumbLink),
                     year = year,
                     type = ty!!
                 )

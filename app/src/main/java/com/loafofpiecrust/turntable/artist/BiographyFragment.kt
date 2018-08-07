@@ -5,10 +5,11 @@ import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.provided
+import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.ui.turntableToolbar
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.*
+import org.jetbrains.anko.appcompat.v7.toolbar
 
 class BiographyFragment: BaseFragment() {
     @Arg lateinit var artist: Artist
@@ -23,7 +24,8 @@ class BiographyFragment: BaseFragment() {
 
         // TODO: Add full-res artist image, as not-cropped as possible.
         // TODO: Multiple artist images?
-        turntableToolbar(this@BiographyFragment) {
+        toolbar {
+            standardStyle(UI)
             title = artist.id.displayName
         }
 

@@ -1,11 +1,16 @@
 package com.loafofpiecrust.turntable.browse
 
 import com.loafofpiecrust.turntable.album.Album
+import com.loafofpiecrust.turntable.album.RemoteAlbum
 import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.provided
 import com.loafofpiecrust.turntable.song.Song
 
 interface SearchApi {
+    interface Id {
+        val id: String
+    }
+
     suspend fun searchArtists(query: String): List<Artist>
     suspend fun searchAlbums(query: String): List<Album>
     suspend fun searchSongs(query: String): List<Song>
@@ -60,8 +65,8 @@ interface SearchApi {
             } ?: listOf()
 
         override suspend fun fullArtwork(album: Album, search: Boolean): String? {
-            return if (album.remote != null) {
-                return album.remote.artworkUrl ?: when (album.remote) {
+            return if (album is RemoteAlbum) {
+                return album.remoteId.artworkUrl ?: when (album.remoteId) {
                     is Discogs.AlbumDetails -> Discogs.fullArtwork(album, search)
                     is Spotify.AlbumDetails -> Spotify.fullArtwork(album, search)
                     is MusicBrainz.AlbumDetails -> MusicBrainz.fullArtwork(album, search)

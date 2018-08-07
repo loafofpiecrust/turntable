@@ -144,7 +144,7 @@ class PlaylistDetailsFragment: BaseFragment() {
                         playlist.isCompletable = true
                     }
 
-                }.lparams(width=matchParent, height=dip(72)) {
+                }.lparams(width=matchParent, height=dimen(R.dimen.toolbar_height)) {
 //                    scrollFlags = SCROLL_FLAG_SCROLL and SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
                 }
             }.lparams(width= matchParent)

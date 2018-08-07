@@ -4,10 +4,11 @@ import com.github.salomonbrys.kotson.*
 import com.google.gson.JsonObject
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.album.Album
-import com.loafofpiecrust.turntable.artist.Artist
-import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.album.AlbumId
+import com.loafofpiecrust.turntable.album.RemoteAlbum
+import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistId
+import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
 import com.loafofpiecrust.turntable.util.Http
@@ -91,17 +92,15 @@ object MusicBrainz: SearchApi, AnkoLogger {
             }
 
             val details = task.await()
-            Album(
-                null,
-                details?.first ?: AlbumDetails(mbid),
+            RemoteAlbum(
                 ArtistId(artistName).forAlbum(name).also { id ->
                     Library.instance.addAlbumExtras(
                         Library.AlbumMetadata(id, details?.second)
                     )
                 },
-                listOf(),
-                null,
-                type
+                details?.first ?: AlbumDetails(mbid),
+                type = type,
+                year = null
             ) //to it["score"].string.toInt()
         }.awaitAllNotNull()
     }
@@ -343,17 +342,15 @@ object MusicBrainz: SearchApi, AnkoLogger {
 //                            ) to imgUrls?.get(1)
 //                        }
 
-                val album = Album(
-                    null,
-                    remote,
+                val album = RemoteAlbum(
                     AlbumId(title, ArtistId(artistName)).also { id ->
                         Library.instance.addAlbumExtras(
                             Library.AlbumMetadata(id, cover)
                         )
                     },
-                    listOf(),
-                    year,
-                    type
+                    remote,
+                    year = year,
+                    type = type
                 )
 
                 info { "album: added '$title'!!" }

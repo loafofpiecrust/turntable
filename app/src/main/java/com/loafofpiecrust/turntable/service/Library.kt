@@ -24,6 +24,8 @@ import com.github.salomonbrys.kotson.string
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.album.AlbumId
+import com.loafofpiecrust.turntable.album.LocalAlbum
+import com.loafofpiecrust.turntable.album.MergedAlbum
 import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.playlist.Playlist
@@ -190,46 +192,14 @@ class Library : Service() {
         }.map {
             val tracks = it.value.sortedBy { (it.disc * 1000) + it.track }
             val firstTrack = tracks.first()
-            val firstLocal = tracks.map { it.local }.find { it is Song.LocalDetails.Downloaded }
-//            val firstRemote = tracks.map { it.remote }.find { it != null }
-            // TODO: Sort-of phase out IDs... Use _only_ names instead, it merges local and remote.
-            val local = given(firstLocal) {
-                val l = firstLocal as Song.LocalDetails.Downloaded
-                Album.LocalDetails.Downloaded(l.albumId, l.artistId)
-            }
-//            val remote = given(firstRemote) {
-//                Album.RemoteDetails(it.albumId, it.artistId)
-//            }
-//            val year = firstTrack.year
-            val year = tracks.find { it.year != null && it.year > 0 }?.year
-            val title = firstTrack.id.album.name
-//            val artist = tracks.map { it.artist }.longestSharedPrefix(true)!!
-//            val artist = firstTrack.id.artist
-//            val art = firstTrack.artworkUrl
-//            val cover: String? = findAlbumExtras(name, artist).blockingFirst().map {
-//                it.artworkUri
-//            }.toNullable()
             val id = firstTrack.id.album
             val discNum = id.discNumber
-            val trackCount = maxOf(tracks.maxBy { it.track }?.track ?: tracks.size, tracks.size)
-            val album = Album(
-                local, null,
+            val album = LocalAlbum(
                 id = id,
-//                artist = artist,
-                tracks = tracks,
-//                artworkUrl = null,
-                year = year,
-                type = when {
-                    title.contains(Regex("\\bEP\\b", RegexOption.IGNORE_CASE)) -> Album.Type.EP
-                    trackCount <= 3 -> Album.Type.SINGLE // A-side, B-side, extra
-                    trackCount <= 7 -> Album.Type.EP
-                    title.contains(Regex("\\b(Collection|Compilation|Best of|Greatest hits)\\b", RegexOption.IGNORE_CASE)) -> Album.Type.COMPILATION
-                    else -> Album.Type.LP
-                }
+                tracks = tracks
             )
             album.tracks.forEach {
                 it.disc = discNum
-//                it.album = album.displayName
             }
             album
         }
@@ -243,25 +213,8 @@ class Library : Service() {
     val albums: ConflatedBroadcastChannel<List<Album>> = localAlbums.combineLatest(remoteAlbums.openSubscription()).map { (a, b) ->
         (a + b).sortedWith(ALBUM_COMPARATOR).dedupMergeSorted(
             { a, b -> a.id == b.id },
-            { a, b ->
-                // How to merge the duplicate albums
-                b.copy(
-                    id = b.id.copy(name = b.id.name.commonPrefixWith(a.id.name, true)),
-                    tracks = (a.tracks + b.tracks)
-                        .sortedBy { it.disc * 1000 + it.track }
-                        .dedupMergeSorted(
-                            { a, b -> a.disc == b.disc && a.id.displayName.equals(b.id.displayName, true) },
-                            { a, b -> if (a.local != null) a else b }
-                        ),
-                    type = when {
-                        b.id.name.contains(Regex("\\bEP\\b", RegexOption.IGNORE_CASE)) -> Album.Type.EP
-                        b.tracks.size <= 3 -> Album.Type.SINGLE // A-side, B-side, extra
-                        b.tracks.size <= 7 -> Album.Type.EP
-                        b.id.name.contains(Regex("\\b(Collection|Compilation|Best of|Greatest hits)\\b", RegexOption.IGNORE_CASE)) -> Album.Type.COMPILATION
-                        else -> Album.Type.LP
-                    }
-                )
-            })
+            { a, b -> a.mergeWith(b) }
+        )
     }.replayOne()
 
 
@@ -283,7 +236,7 @@ class Library : Service() {
 
     val artists: ConflatedBroadcastChannel<List<Artist>> = albums.openSubscription().map { albums ->
         albums.groupBy { it.id.artist.displayName.toLowerCase() }.values.map { it: List<Album> ->
-            val firstAlbum = it.find { it.local != null } ?: it.first()
+            val firstAlbum = it.find { it is LocalAlbum } ?: it.first()
 //            val artistId = when (firstAlbum.local) {
 //                is Album.LocalDetails.Downloaded -> firstAlbum.local.artistId
 //                else -> 0
@@ -312,7 +265,8 @@ class Library : Service() {
         artist?.albums ?: listOf()
     }
 
-    suspend fun songsOnAlbum(id: AlbumId) = songsOnAlbum(Album.justForSearch(id))
+    suspend fun songsOnAlbum(id: AlbumId)
+        = findCachedAlbum(id).map { it?.tracks }
 
 //    fun songsOnAlbum(unresolved: Album): Observable<List<Song>> = albums.map {
 ////        val album = it.getOrNull(it.binarySearch(unresolved, ALBUM_COMPARATOR))
@@ -343,27 +297,23 @@ class Library : Service() {
     fun songsByArtist(id: ArtistId): ReceiveChannel<List<Song>>
         = albumsByArtist(id).map { it.flatMap { it.tracks } }
 
-    fun findAlbum(id: AlbumId): ReceiveChannel<Album?>
-        = findAlbum(Album.justForSearch(id))
-    fun findAlbum(key: Album): ReceiveChannel<Album?> =
+    fun findAlbum(key: AlbumId): ReceiveChannel<Album?> =
         albums.openSubscription().map { libAlbums ->
-            libAlbums.binarySearchElem(key, ALBUM_COMPARATOR)
+            libAlbums.binarySearchElem(key) { it.id }
         }
 
-    suspend fun findCachedAlbumNow(album: Album): ReceiveChannel<Album?> = findAlbum(album).switchMap {
+    suspend fun findCachedAlbumNow(album: AlbumId): ReceiveChannel<Album?> = findAlbum(album).switchMap {
         if (it == null) {
-            cachedAlbums.openSubscription().map { it.binarySearchElem(album, ALBUM_COMPARATOR) }
+            cachedAlbums.openSubscription().map { it.binarySearchElem(album) { it.id } }
         } else produceTask { it }
     }
 
-    private suspend fun findCachedAlbum(id: AlbumId): ReceiveChannel<Album?>
-        = findCachedAlbum(Album.justForSearch(id))
-    suspend fun findCachedAlbum(album: Album): ReceiveChannel<Album?>
+    suspend fun findCachedAlbum(album: AlbumId): ReceiveChannel<Album?>
         = findAlbum(album).switchMap {
             if (it != null) {
                 produce(coroutineContext) { send(it) }
             } else {
-                cachedAlbums.openSubscription().map { it.binarySearchElem(album, ALBUM_COMPARATOR) }
+                cachedAlbums.openSubscription().map { it.binarySearchElem(album) { it.id } }
             }
         }
 
@@ -867,7 +817,7 @@ class Library : Service() {
         val frontReg = Regex("\\b(front|cover|folder|album|booklet)\\b", RegexOption.IGNORE_CASE)
         val existingCovers = albumCovers.value
         albums.parMap {
-            if (it.local !is Album.LocalDetails.Downloaded) return@parMap
+            if (it !is LocalAlbum && it !is MergedAlbum) return@parMap
 
             if (existingCovers.isNotEmpty()) {
                 val existingKey = AlbumMetadata(it.id, null)

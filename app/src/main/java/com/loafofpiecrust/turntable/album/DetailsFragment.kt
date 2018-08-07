@@ -18,10 +18,9 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.song.SongsFragmentStarter
+import com.loafofpiecrust.turntable.style.detailsStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.consumeEach
-import com.loafofpiecrust.turntable.util.task
-import kotlinx.coroutines.experimental.channels.consumeEach
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
@@ -102,23 +101,23 @@ class DetailsFragment: BaseFragment() {
 //                        backgroundColor = Color.BLACK
                         backgroundResource = R.drawable.rounded_rect
 
-                        task(UI) {
-                            ctx.library.findAlbum(album).consumeEach {
-                                text = given(it) {
-                                    when {
-                                        it.local != null -> if (it.hasTrackGaps) {
-                                            getString(R.string.album_partial)
-                                        } else getString(R.string.album_local)
-                                        else -> getString(R.string.album_remote)
-                                    }
-                                } ?: "Not Downloaded"
-                            }
+                        ctx.library.findAlbum(album.id).consumeEach(UI) {
+                            text = given(it) {
+                                when {
+                                    it is LocalAlbum -> if (it.hasTrackGaps) {
+                                        getString(R.string.album_partial)
+                                    } else getString(R.string.album_local)
+                                    else -> getString(R.string.album_remote)
+                                }
+                            } ?: getString(R.string.album_remote)
                         }
                     }.also { coloredText += it }
 
                     // Year
                     val year = textView {
-                        text = album.year?.toString() ?: "".also {
+                        if (album.year != null) {
+                            text = album.year.toString()
+                        } else {
                             visibility = View.GONE
                         }
                         textSizeDimen = R.dimen.small_text_size
@@ -172,10 +171,8 @@ class DetailsFragment: BaseFragment() {
 
 
             toolbar {
-                fitsSystemWindows = true
-                backgroundColor = UserPrefs.primaryColor.value
+                detailsStyle(UI)
                 transitionName = album.id.nameTransition
-//                gravity = Gravity.CENTER_VERTICAL
 
                 verticalLayout {
                     gravity = Gravity.CENTER_VERTICAL
@@ -189,22 +186,19 @@ class DetailsFragment: BaseFragment() {
                         maxLines = 1
                     }
 
-
-                    task(UI) {
-                        album.loadCover(Glide.with(image)).consumeEach {
-                            it?.transition(DrawableTransitionOptions().crossFade(200))
-                                ?.listener(album.loadPalette(this@toolbar, listOf(mainLine, subLine)))
-                                ?.into(image)
-                                ?: run { image.imageResource = R.drawable.ic_default_album }
-                        }
+                    album.loadCover(Glide.with(image)).consumeEach(UI) {
+                        it?.transition(DrawableTransitionOptions().crossFade(200))
+                            ?.listener(album.loadPalette(this@toolbar, mainLine, subLine))
+                            ?.into(image)
+                            ?: run { image.imageResource = R.drawable.ic_default_album }
                     }
                 }.lparams(height = matchParent)
 
 
-                if (album.remote != null) { // is remote album
+                if (album is RemoteAlbum) { // is remote album
                     // Option to mark the album for offline listening
                     // First, see if it's already marked
-                    menu.menuItem("Favorite", R.drawable.ic_turned_in_not, showIcon=true) {
+                    menuItem("Favorite", R.drawable.ic_turned_in_not, showIcon=true) {
                         ctx.library.findAlbum(album.id).consumeEach(UI) { existing ->
                             if (existing != null) {
                                 icon = ctx.getDrawable(R.drawable.ic_turned_in)
@@ -230,7 +224,7 @@ class DetailsFragment: BaseFragment() {
 
             }.lparams {
                 minimumHeight = dimen(R.dimen.details_toolbar_height)
-                height = dimen(R.dimen.details_toolbar_height)
+//                height = dimen(R.dimen.details_toolbar_height)
                 width = matchParent
             }
 

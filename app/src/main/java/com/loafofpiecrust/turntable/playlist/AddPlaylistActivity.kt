@@ -18,11 +18,12 @@ import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.Music
 import com.loafofpiecrust.turntable.song.Song
+import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseActivity
-import com.loafofpiecrust.turntable.ui.turntableToolbar
 import com.mcxiaoke.koi.ext.onTextChange
 import kotlinx.android.parcel.Parcelize
 import org.jetbrains.anko.*
+import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.design.textInputLayout
 import org.jetbrains.anko.sdk25.coroutines.onClick
 import org.jetbrains.anko.sdk25.coroutines.onItemSelectedListener
@@ -44,9 +45,10 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
     private lateinit var toolbar: Toolbar
 
     override fun makeView(ui: ViewManager): View = ui.verticalLayout {
-        toolbar = turntableToolbar(this@AddPlaylistActivity) {
+        toolbar = toolbar {
+            standardStyle(UI)
             title = "New Collection"
-        }.lparams(width=matchParent, height=dimen(R.dimen.toolbar_height))
+        }.lparams(width=matchParent)
 
         verticalLayout {
             // Things to configure:

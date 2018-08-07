@@ -60,7 +60,7 @@ class AlbumCollection(
     fun add(album: Album): Boolean {
         val isNew = _albums.value.find { it.id == album.id } == null
         if (isNew) {
-            _albums puts _albums.value + album.minimize()
+            _albums puts _albums.value + album
             updateLastModified()
         }
         return isNew
@@ -68,7 +68,7 @@ class AlbumCollection(
 
     fun addAll(albums: List<Album>) {
         updateLastModified()
-        _albums puts _albums.value + albums.map { it.minimize() }
+        _albums puts _albums.value + albums
     }
 
     fun remove(index: Int) {

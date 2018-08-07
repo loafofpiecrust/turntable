@@ -524,9 +524,7 @@ data class YouTubeFullAlbum(
 
 
     fun resolveToAlbum(): Album {
-        return goal.copy(
-            tracks = this.tracks
-        )
+        return goal
     }
 
     companion object: AnkoLogger by AnkoLogger<YouTubeFullAlbum>() {

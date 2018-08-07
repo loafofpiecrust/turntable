@@ -287,8 +287,7 @@ fun ViewManager.defaultGridItemOpt(maxTextLines: Int = 3, init: LinearLayout.() 
     id = R.id.card
     cardElevation = dimen(R.dimen.medium_elevation).toFloat()
     radius = dip(2).toFloat()
-    clipToOutline = false
-    lparams(width = matchParent, height = wrapContent)
+//    lparams(width = matchParent, height = wrapContent)
 
     constraintLayout {
         val thumbnail = imageView(R.drawable.ic_default_album) {

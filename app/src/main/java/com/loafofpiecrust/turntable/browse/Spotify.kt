@@ -5,6 +5,7 @@ import android.util.Base64
 import com.github.salomonbrys.kotson.*
 import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.album.AlbumId
+import com.loafofpiecrust.turntable.album.RemoteAlbum
 import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.given
@@ -51,6 +52,16 @@ object Spotify: SearchApi {
                 )
             }
         }
+
+        suspend fun fullArtwork(): String? {
+            if (artworkUrl != null) return artworkUrl
+
+            val res = Http.get("https://api.spotify.com/v1/albums/$id", headers = mapOf(
+                "Authorization" to "Bearer $accessToken"
+            )).gson
+
+            return res["images"][0]["url"].nullString
+        }
     }
 
     @Parcelize
@@ -67,16 +78,15 @@ object Spotify: SearchApi {
             ).gson["items"].array.map {
                 val imgs = it["images"].array
                 val artists = it["artists"].array
-                Album(
-                    null,
+                RemoteAlbum(
+                    AlbumId(
+                        it["name"].string,
+                        ArtistId(artists[0]["name"].string)
+                    ),
                     AlbumDetails(
                         it["id"].string,
                         imgs.last()["url"].string,
                         imgs.first()["url"].string
-                    ),
-                    AlbumId(
-                        it["name"].string,
-                        ArtistId(artists[0]["name"].string)
                     ),
                     year = it["release_date"].nullString?.take(4)?.toInt(),
                     type = when (it["album_type"].string) {
@@ -207,16 +217,15 @@ object Spotify: SearchApi {
 
         return res["albums"]["items"].array.map {
             val imgs = it["images"].array
-            Album(
-                null,
+            RemoteAlbum(
+                AlbumId(
+                    it["name"].string,
+                    ArtistId(it["artists"][0]["name"].string)
+                ),
                 AlbumDetails(
                     it["id"].string,
                     imgs.last()["url"].string,
                     imgs.first()["url"].string
-                ),
-                AlbumId(
-                    it["name"].string,
-                    ArtistId(it["artists"][0]["name"].string)
                 ),
                 type = when (it["album_type"].string) {
                     "single" -> Album.Type.SINGLE
@@ -375,22 +384,21 @@ object Spotify: SearchApi {
 
 
     override suspend fun fullArtwork(album: Album, search: Boolean): String? {
-        if (album.remote is AlbumDetails) {
-            val res = Http.get("https://api.spotify.com/v1/albums/${album.remote.id}", headers = mapOf(
-                "Authorization" to "Bearer $accessToken"
-            )).gson
-
-            return res["images"][0]["url"].nullString
-        } else {
-            val res = Http.get("https://api.spotify.com/v1/search", headers = mapOf(
-                "Authorization" to "Bearer $accessToken"
-            ), params = mapOf(
-                "q" to "album:\"${album.id.name}\" artist:\"${album.id.artist.name}\"",
-                "type" to "album",
-                "limit" to "3"
-            )).gson
-
-            return res["albums"]["items"].nullArray?.map { it["images"][0]["url"].nullString }?.first()
+        if (album is RemoteAlbum) {
+            val remote = album.remoteId
+            if (remote is AlbumDetails) {
+                return remote.fullArtwork()
+            }
         }
+
+        val res = Http.get("https://api.spotify.com/v1/search", headers = mapOf(
+            "Authorization" to "Bearer $accessToken"
+        ), params = mapOf(
+            "q" to "album:\"${album.id.name}\" artist:\"${album.id.artist.name}\"",
+            "type" to "album",
+            "limit" to "3"
+        )).gson
+
+        return res["albums"]["items"].nullArray?.map { it["images"][0]["url"].nullString }?.first()
     }
 }

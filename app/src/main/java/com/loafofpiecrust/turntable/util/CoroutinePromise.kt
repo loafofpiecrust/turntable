@@ -7,9 +7,10 @@ import kotlin.coroutines.experimental.Continuation
 import kotlin.coroutines.experimental.CoroutineContext
 import kotlin.coroutines.experimental.coroutineContext
 import kotlin.coroutines.experimental.suspendCoroutine
+import kotlin.reflect.KProperty
 
-val BG_POOL = newFixedThreadPoolContext(2 * Runtime.getRuntime().availableProcessors(), "bg")
-//val BG_POOL = CommonPool
+//val BG_POOL = newFixedThreadPoolContext(2 * Runtime.getRuntime().availableProcessors(), "bg")
+val BG_POOL = CommonPool
 val ALT_BG_POOL = newSingleThreadContext("alt-bg")
 
 fun <T> task(ctx: CoroutineContext = BG_POOL, block: suspend () -> T): Deferred<T> {
@@ -77,3 +78,17 @@ fun <T> Deferred<T>.fail(ctx: CoroutineContext = Unconfined, block: suspend (Thr
 }
 
 fun <T> Deferred<T>.get() = runBlocking { await() }
+
+
+fun <T> asyncLazy(block: suspend () -> T) = CoroutineLazyImpl(block)
+class CoroutineLazyImpl<T>(
+    val block: suspend () -> T
+) {
+    var value: T? = null
+    suspend operator fun getValue(thisRef: Any, property: KProperty<*>): T {
+        if (value == null) {
+            value = block.invoke()
+        }
+        return value!!
+    }
+}

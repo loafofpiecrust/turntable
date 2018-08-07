@@ -4,7 +4,6 @@ import android.graphics.drawable.Drawable
 import android.os.Parcelable
 import android.view.Menu
 import android.view.View
-import android.widget.TextView
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
 import com.loafofpiecrust.turntable.*
@@ -121,7 +120,8 @@ data class Artist(
                 { a, b -> a.id.displayName.equals(b.id.displayName, true) && a.type == b.type },
                 { a, b ->
                     if (a.year != null && a.year!! > 0 && (b.year == null || b.year!! <= 0)) {
-                        b.year = a.year
+                        // FIXME: Abstract album
+//                        b.year = a.year
                     }
                     b
                 }
@@ -172,8 +172,8 @@ data class Artist(
             Library.instance.loadArtistImage(req, id)
         }
 
-    fun loadPalette(view: View, titleView: List<TextView>? = null)
-        = loadPalette(id, view, titleView)
+    fun loadPalette(vararg views: View)
+        = loadPalette(id, views)
 
     fun minimize(): Artist = if (albums.isNotEmpty()) {
         copy(albums = listOf())
