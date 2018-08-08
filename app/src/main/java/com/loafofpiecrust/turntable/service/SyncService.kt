@@ -527,17 +527,19 @@ class SyncService : FirebaseMessagingService() {
                 }.build())
             }
 
-            is Message.FriendResponse -> if (message.accept) {
-                val sender = if (sender.displayName == null) {
-                    sender.refresh().await()
-                } else sender
+            is Message.FriendResponse -> task {
+                if (message.accept) {
+                    val sender = if (sender.displayName == null) {
+                        sender.refresh().await()
+                    } else sender
 
-                val friends = UserPrefs.friends.value
-                val existingIdx = friends.indexOfFirst { it.user == sender }
-                UserPrefs.friends puts friends.replace(existingIdx, Friend(sender, Friend.Status.CONFIRMED))
-                task(UI) { toast("Friendship fostered with ${sender.name}") }
-            } else {
-                task(UI) { toast("${sender.name} declined friendship :(") }
+                    val friends = UserPrefs.friends.value
+                    val existingIdx = friends.indexOfFirst { it.user == sender }
+                    UserPrefs.friends puts friends.withReplaced(existingIdx, Friend(sender, Friend.Status.CONFIRMED))
+                    task(UI) { toast("Friendship fostered with ${sender.name}") }
+                } else {
+                    task(UI) { toast("${sender.name} declined friendship :(") }
+                }
             }
 
             is Message.Recommendation -> task {

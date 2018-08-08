@@ -9,6 +9,7 @@ import android.view.*
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
+import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.turntableStyle
@@ -17,7 +18,7 @@ import com.loafofpiecrust.turntable.util.*
 import fr.castorflex.android.circularprogressbar.CircularProgressDrawable
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.produce
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.withContext
 import org.jetbrains.anko.dimen
 import org.jetbrains.anko.dip
@@ -30,7 +31,7 @@ class AlbumsFragment : BaseFragment() {
     sealed class Category: Parcelable {
         @Parcelize class All: Category()
         @Parcelize data class ByArtist(
-            val artist: Artist,
+            val artist: ArtistId,
             val mode: ArtistDetailsFragment.Mode
         ): Category()
         @Parcelize data class Custom(val albums: List<Album>): Category()
@@ -47,8 +48,40 @@ class AlbumsFragment : BaseFragment() {
     @Arg(optional=true) var sortBy: SortBy = SortBy.NONE
     @Arg(optional=true) var columnCount: Int = 0
 
-    val category by lazy { ConflatedBroadcastChannel(initialCategory) }
+    private lateinit var albums: ReceiveChannel<List<Album>>
+    private val category by lazy { ConflatedBroadcastChannel(initialCategory) }
 
+    companion object {
+        fun fromArtist(artist: Artist, mode: ArtistDetailsFragment.Mode): AlbumsFragment {
+            val cat = Category.ByArtist(artist.id, mode)
+            return AlbumsFragmentStarter.newInstance(cat).apply {
+                initialCategory = cat
+                albums = category.openSubscription().switchMap { cat ->
+                    when (cat) {
+                        is Category.All -> Library.instance.albums.openSubscription()
+                        is Category.ByArtist -> {
+//                            withContext(UI) {
+//                                circleProgress.visibility = View.VISIBLE
+//                                loadCircle.start()
+//                            }
+
+                            when (cat.mode) {
+                                ArtistDetailsFragment.Mode.REMOTE -> produceTask(BG_POOL) {
+                                    artist.resolveAlbums(false)
+                                }
+                                ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE -> produceTask(BG_POOL) {
+                                    artist.resolveAlbums(true)
+                                }
+                                else -> Library.instance.albumsByArtist(cat.artist)
+                            }
+                        }
+                        is Category.Custom -> produceSingle(cat.albums)
+                    }
+                }
+            }
+        }
+
+    }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) = menu.run {
         menuItem("Search", R.drawable.ic_search, showIcon=true).onClick {
@@ -81,7 +114,7 @@ class AlbumsFragment : BaseFragment() {
         val adapter = if (cat is Category.ByArtist) {
             AlbumSectionAdapter { view, album ->
                 ctx.replaceMainContent(
-                    DetailsFragmentStarter.newInstance(album),
+                    DetailsFragmentStarter.newInstance(album.id),
                     true,
                     view.transitionViews
                 )
@@ -91,7 +124,7 @@ class AlbumsFragment : BaseFragment() {
         } else {
             AlbumsAdapter(false) { view, album ->
                 ctx.replaceMainContent(
-                    DetailsFragmentStarter.newInstance(album),
+                    DetailsFragmentStarter.newInstance(album.id),
                     true,
                     view.transitionViews
                 )
@@ -111,9 +144,10 @@ class AlbumsFragment : BaseFragment() {
             .rotationSpeed(3f)
             .strokeWidth(dip(8).toFloat())
             .build()
+            .apply { start() }
 
         val circleProgress = circularProgressBar {
-            visibility = View.INVISIBLE
+            visibility = View.VISIBLE
             isIndeterminate = true
             indeterminateDrawable = loadCircle
         }.lparams(dip(64), dip(64)) {
@@ -139,27 +173,7 @@ class AlbumsFragment : BaseFragment() {
             addItemDecoration(ItemOffsetDecoration(dimen(R.dimen.grid_gutter)))
 
 
-            category.openSubscription().switchMap { cat ->
-                when (cat) {
-                    is Category.All -> Library.instance.albums.openSubscription()
-                    is Category.ByArtist -> {
-                        withContext(UI) {
-                            circleProgress.visibility = View.VISIBLE
-                            loadCircle.start()
-                        }
-                        when (cat.mode) {
-                            ArtistDetailsFragment.Mode.REMOTE -> produce(BG_POOL) {
-                                send(cat.artist.resolveAlbums(false))
-                            }
-                            ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE -> produce(BG_POOL) {
-                                send(cat.artist.resolveAlbums(true))
-                            }
-                            else -> Library.instance.albumsByArtist(cat.artist.id)
-                        }
-                    }
-                    is Category.Custom -> produceTask { cat.albums }
-                }
-            }.consumeEach(BG_POOL + jobs) {
+            albums.consumeEach(BG_POOL + jobs) {
                 withContext(UI) {
                     loadCircle.progressiveStop()
                     circleProgress.visibility = View.INVISIBLE

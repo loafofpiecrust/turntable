@@ -21,7 +21,7 @@ class PlaylistTracksAdapter(
 
         val item = data[position]
         holder.mainLine.text = item.id.displayName
-        holder.subLine.text = item.id.artist
+        holder.subLine.text = item.id.artist.displayName
         if (playlist.isCompletable) {
             holder.track.visibility = View.INVISIBLE
             holder.statusIcon.visibility = View.VISIBLE

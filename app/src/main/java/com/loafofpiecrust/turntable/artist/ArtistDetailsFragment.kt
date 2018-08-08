@@ -10,17 +10,20 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewManager
 import android.widget.ImageView
-import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.album.AlbumsFragment
 import com.loafofpiecrust.turntable.album.AlbumsFragmentStarter
+import com.loafofpiecrust.turntable.browse.SearchApi
+import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.util.consumeEach
+import com.loafofpiecrust.turntable.util.produceSingle
 import com.loafofpiecrust.turntable.util.task
 import com.mcxiaoke.koi.ext.onClick
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
+import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
@@ -32,8 +35,18 @@ import org.jetbrains.anko.design.coordinatorLayout
 import org.jetbrains.anko.design.themedAppBarLayout
 import org.jetbrains.anko.support.v4.selector
 
+/**
+ * We want to be able to open Artist details with either:
+ * 1. full artist
+ * 2. artist id (from Song/Album)
+ * 3. artist id (from saved state)
+ */
 class ArtistDetailsFragment: BaseFragment() {
-    @Arg lateinit var artist: Artist
+
+    @Arg lateinit var artistId: ArtistId
+    private lateinit var artist: ReceiveChannel<Artist>
+
+//    @Arg lateinit var artistId: ArtistId
     @Arg(optional = true) var initialMode = Mode.LIBRARY
 
     enum class Mode {
@@ -42,6 +55,28 @@ class ArtistDetailsFragment: BaseFragment() {
 
     private val currentMode by lazy { ConflatedBroadcastChannel(initialMode) }
     private lateinit var albums: AlbumsFragment
+
+    companion object {
+        fun fromId(id: ArtistId): ArtistDetailsFragment? {
+            val frag = ArtistDetailsFragmentStarter.newInstance(id).apply {
+                setupArtist(id)
+            }
+            return frag
+        }
+
+        fun fromArtist(artist: Artist, mode: Mode = Mode.LIBRARY): ArtistDetailsFragment {
+            return ArtistDetailsFragmentStarter.newInstance(artist.id, mode).also {
+                it.artist = produceSingle(artist)
+            }
+        }
+    }
+
+    // TODO: Generalize this some more
+    private fun setupArtist(id: ArtistId) {
+        artist = Library.instance.findArtist(id).map {
+            it ?: SearchApi.find(id)!!
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -63,6 +98,12 @@ class ArtistDetailsFragment: BaseFragment() {
     }
 
     override fun makeView(ui: ViewManager): View = ui.coordinatorLayout {
+//        val artist = if (artist != null) {
+//            produceSingle(artist!!)
+//        } else {
+//            ctx.library.findArtist(artistId)
+//        }
+
         lateinit var tabs: TabLayout
         themedAppBarLayout(R.style.AppTheme_AppBarOverlay) {
             backgroundColor = Color.TRANSPARENT
@@ -76,21 +117,21 @@ class ArtistDetailsFragment: BaseFragment() {
                 constraintLayout {
                     image = imageView {
                         scaleType = ImageView.ScaleType.CENTER_CROP
-                        transitionName = artist.id.imageTransition
+                        transitionName = artistId.imageTransition
                     }
 
                     // Years of the artist
-                    val year = if (artist.startYear != null) {
-                        textView {
-                            backgroundResource = R.drawable.rounded_rect
-                            textSizeDimen = R.dimen.small_text_size
-                            text = getString(
-                                R.string.artist_date_range,
-                                artist.startYear.toString(),
-                                artist.endYear ?: "Now"
-                            )
-                        }
-                    } else null
+//                    val year = if (artist.startYear != null) {
+//                        textView {
+//                            backgroundResource = R.drawable.rounded_rect
+//                            textSizeDimen = R.dimen.small_text_size
+//                            text = getString(
+//                                R.string.artist_date_range,
+//                                artist.startYear.toString(),
+//                                artist.endYear ?: "Now"
+//                            )
+//                        }
+//                    } else null
 
                     // Current display mode
                     val mode = textView {
@@ -109,9 +150,9 @@ class ArtistDetailsFragment: BaseFragment() {
                                     R.string.artist_content_source,
                                     choices.find { it.first == mode }!!.second
                                 )
-                                albums.category.send(
-                                    AlbumsFragment.Category.ByArtist(artist.copy(albums = listOf()), mode)
-                                )
+//                                albums.category.send(
+//                                    AlbumsFragment.Category.ByArtist(artist.copy(albums = listOf()), mode)
+//                                )
                             }
                         }
 
@@ -137,14 +178,14 @@ class ArtistDetailsFragment: BaseFragment() {
                             height = matchConstraint
                             dimensionRation = "H,2:1"
                         }
-                        if (year != null) {
-                            year {
-                                connect(
-                                    BOTTOM to BOTTOM of this@constraintLayout margin padBy,
-                                    START to START of this@constraintLayout margin padBy
-                                )
-                            }
-                        }
+//                        if (year != null) {
+//                            year {
+//                                connect(
+//                                    BOTTOM to BOTTOM of this@constraintLayout margin padBy,
+//                                    START to START of this@constraintLayout margin padBy
+//                                )
+//                            }
+//                        }
                         mode {
                             connect(
                                 BOTTOM to BOTTOM of this@constraintLayout margin padBy,
@@ -163,19 +204,19 @@ class ArtistDetailsFragment: BaseFragment() {
 
             val toolbar = toolbar {
                 standardStyle(UI)
-                title = artist.id.displayName
-                transitionName = artist.id.nameTransition
-                artist.optionsMenu(menu)
+                title = artistId.displayName
+                transitionName = artistId.nameTransition
+//                artist.optionsMenu(menu)
             }.lparams {
                 scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL and AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
             }
 
-            artist.loadArtwork(Glide.with(image)).consumeEach(UI) {
-                it?.listener(artist.loadPalette(toolbar))
-                    ?.into(image) ?: run {
-                        image.imageResource = R.drawable.ic_default_album
-                    }
-            }
+//            artist.loadArtwork(Glide.with(image)).consumeEach(UI) {
+//                it?.listener(artist.loadPalette(toolbar))
+//                    ?.into(image) ?: run {
+//                        image.imageResource = R.drawable.ic_default_album
+//                    }
+//            }
 
         }.lparams(width = matchParent, height = wrapContent)
 
@@ -183,7 +224,7 @@ class ArtistDetailsFragment: BaseFragment() {
         frameLayout {
             id = View.generateViewId()
             fragment(fragmentManager, AlbumsFragmentStarter.newInstance(
-                AlbumsFragment.Category.ByArtist(artist.copy(albums = listOf()), currentMode.value),
+                AlbumsFragment.Category.ByArtist(artistId, currentMode.value),
                 AlbumsFragment.SortBy.YEAR,
                 3
             ).also { albums = it })

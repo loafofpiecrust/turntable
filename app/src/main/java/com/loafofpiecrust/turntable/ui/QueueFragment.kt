@@ -9,7 +9,7 @@ import android.support.v7.widget.PopupMenu
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.helper.ItemTouchHelper
 import android.view.Gravity
-import android.view.Gravity.CENTER_VERTICAL
+import android.view.Gravity.*
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewManager
@@ -123,7 +123,7 @@ class QueueFragment : BaseFragment() {
                     .consumeEach(UI) { q ->
                         val song = q.current
                         nowPlayingMainLine.text = song?.id?.displayName ?: ""
-                        nowPlayingSubLine.text = song?.id?.artist ?: ""
+                        nowPlayingSubLine.text = song?.id?.artist?.displayName ?: ""
                         queueAdapter.updateData(q.list, q.position)
                         if (queueAdapter.overscroll) { // collapsed
                             delay(100) // Let the queue update itself.
@@ -212,7 +212,7 @@ class QueueAdapter : RecyclerAdapter<Song, RecyclerListItemOptimized>(
             }
 
             holder.mainLine.text = song.id.displayName
-            holder.subLine.text = song.id.artist
+            holder.subLine.text = song.id.artist.displayName
             holder.menu.visibility = View.VISIBLE
             holder.mainLine.textColor = c
             holder.subLine.textColor = c

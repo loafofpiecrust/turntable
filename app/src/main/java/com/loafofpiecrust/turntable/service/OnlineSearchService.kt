@@ -313,7 +313,7 @@ class OnlineSearchService : Service(), AnkoLogger {
                 val res = Http.get("https://us-central1-turntable-3961c.cloudfunctions.net/parseStreamsFromYouTube", params = mapOf(
                     "title" to song.id.displayName.toLowerCase(),
                     "album" to song.id.album.displayName.toLowerCase(),
-                    "artist" to song.id.artist.toLowerCase(),
+                    "artist" to song.id.artist.displayName.toLowerCase(),
                     "duration" to song.duration.toString()
                 )).gson.obj
 
@@ -701,7 +701,7 @@ class OnlineSearchService : Service(), AnkoLogger {
                             try {
                                 val f = AudioFileIO.read(path)
                                 val tags = f.tag
-                                tags.setField(FieldKey.ARTIST, dl.song.id.artist)
+                                tags.setField(FieldKey.ARTIST, dl.song.id.artist.displayName)
                                 tags.setField(FieldKey.ALBUM_ARTIST, dl.song.id.album.artist.toString())
                                 tags.setField(FieldKey.ALBUM, dl.song.id.album.toString())
                                 tags.setField(FieldKey.TITLE, dl.song.id.displayName)

@@ -197,7 +197,7 @@ object MusicBrainz: SearchApi, AnkoLogger {
                         SongId(
                             title,
                             albumId,
-                            tryOr(albumId.artist.name) { recording["artist-credit"][0]["name"].string }
+                            tryOr(albumId.artist) { ArtistId(recording["artist-credit"][0]["name"].string) }
                         ),
                         track = recording["position"].nullInt ?: idx + 1,
                         disc = discIdx + 1,
@@ -393,7 +393,7 @@ object MusicBrainz: SearchApi, AnkoLogger {
     }
 
 
-    override suspend fun find(artist: Artist): Artist.RemoteDetails? {
+    override suspend fun find(artist: ArtistId): Artist? {
         return null
     }
 

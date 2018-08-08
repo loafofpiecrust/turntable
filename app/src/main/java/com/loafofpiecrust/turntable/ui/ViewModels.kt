@@ -4,6 +4,7 @@ import android.arch.lifecycle.Lifecycle
 import android.arch.lifecycle.LifecycleObserver
 import android.arch.lifecycle.OnLifecycleEvent
 import android.arch.lifecycle.ViewModel
+import com.loafofpiecrust.turntable.song.Song
 import kotlinx.coroutines.experimental.Unconfined
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
@@ -13,8 +14,16 @@ import kotlinx.coroutines.experimental.channels.sendBlocking
 import kotlinx.coroutines.experimental.launch
 import kotlin.coroutines.experimental.CoroutineContext
 
-
+/**
+ * View model usage:
+ * Library -> ArtistsFragment =(all)> ArtistsViewModel (0)
+ * (tap artist) -(idx)> AlbumsFragment =(idx)> ArtistsViewModel (0) =(artist)> AlbumsViewModel (1)
+ * (similars) -> ArtistsFragment =(idx)> ArtistsViewModel (0) =(similars)> ArtistsViewModel (2) <=
+ * (tap artist) -> AlbumsFragment =(idx)> ArtistsViewModel (2) =(artist)> AlbumsViewModel (3) <=
+ * (tap album) -> SongsFragment =(idx)> AlbumsViewModel (3) =(album)> SongsViewModel (4) <=
+ */
 class SongsModel: ViewModel() {
+    lateinit var songs: ReceiveChannel<List<Song>>
     override fun onCleared() {
         super.onCleared()
     }

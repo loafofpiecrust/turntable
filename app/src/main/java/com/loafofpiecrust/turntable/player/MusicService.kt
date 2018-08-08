@@ -291,9 +291,9 @@ class MusicService : Service(), OnAudioFocusChangeListener {
     private fun updateSessionMeta(song: Song?, playing: Boolean) {
         if (song != null) {
             session.setMetadata(MediaMetadataCompat.Builder()
-                .putString(METADATA_KEY_ALBUM, song.id.album.toString())
-                .putString(METADATA_KEY_ARTIST, song.id.artist)
-                .putString(METADATA_KEY_ALBUM_ARTIST, song.id.album.artist.toString())
+                .putString(METADATA_KEY_ALBUM, song.id.album.displayName)
+                .putString(METADATA_KEY_ARTIST, song.id.artist.displayName)
+                .putString(METADATA_KEY_ALBUM_ARTIST, song.id.album.artist.displayName)
                 .putString(METADATA_KEY_ALBUM_ART_URI, song.artworkUrl)
                 .putLong(METADATA_KEY_YEAR, song.year?.toLong() ?: 0)
                 .putLong(METADATA_KEY_DISC_NUMBER, song.disc.toLong())
@@ -361,7 +361,7 @@ class MusicService : Service(), OnAudioFocusChangeListener {
 
             setSmallIcon(R.drawable.ic_album)
             setContentTitle(song.id.displayName)
-            setContentText(song.id.artist)
+            setContentText(song.id.artist.displayName)
             setContentInfo(song.id.album.displayName)
             setAutoCancel(false)
 //            setOngoing(playing)

@@ -9,14 +9,12 @@ import com.arlib.floatingsearchview.suggestions.model.SearchSuggestion
 import com.lapism.searchview.Search
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumsAdapter
-import com.loafofpiecrust.turntable.album.DetailsFragmentStarter
+import com.loafofpiecrust.turntable.album.DetailsFragment
 import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
-import com.loafofpiecrust.turntable.artist.ArtistDetailsFragmentStarter
 import com.loafofpiecrust.turntable.artist.ArtistsAdapter
 import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.searchBar
-import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.SongsAdapter
 import com.loafofpiecrust.turntable.song.SongsFragment
@@ -77,12 +75,12 @@ open class SearchFragment : BaseFragment(), FloatingSearchView.OnSearchListener 
                         // go to details?
                         // First, let's see if we already have the album.
                         // Search _case-insensitively_ for the album name and artist
-                        val allAlbums = Library.instance.albums.value
-                        val existing = allAlbums.find { it.id == album.id }
+//                        val allAlbums = Library.instance.albums.value
+//                        val existing = allAlbums.find { it.id == album.id }
 
                         // Open the album!
                         context.replaceMainContent(
-                            DetailsFragmentStarter.newInstance(existing ?: album),
+                            DetailsFragment.fromAlbum(album),
                             true,
                             view.transitionViews
                         )
@@ -95,7 +93,7 @@ open class SearchFragment : BaseFragment(), FloatingSearchView.OnSearchListener 
                         val artist = artists[idx]
 
                         context.replaceMainContent(
-                            ArtistDetailsFragmentStarter.newInstance(artist, ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE),
+                            ArtistDetailsFragment.fromArtist(artist, ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE),
                             true,
                             view.transitionViews
                         )

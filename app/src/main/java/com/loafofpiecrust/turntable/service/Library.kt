@@ -308,7 +308,7 @@ class Library : Service() {
         } else produceTask { it }
     }
 
-    suspend fun findCachedAlbum(album: AlbumId): ReceiveChannel<Album?>
+    fun findCachedAlbum(album: AlbumId): ReceiveChannel<Album?>
         = findAlbum(album).switchMap {
             if (it != null) {
                 produce(coroutineContext) { send(it) }
@@ -569,7 +569,7 @@ class Library : Service() {
         }
 
         if (album.tracks.isEmpty()) {
-            given(findCachedRemoteAlbum(album).first()) {
+            given(findCachedRemoteAlbum(album.id).first()) {
                 UserPrefs.remoteAlbums appends it
             }
         } else {
@@ -601,9 +601,9 @@ class Library : Service() {
         _cachedAlbums puts cache
     }
 
-    fun findCachedRemoteAlbum(album: Album): ReceiveChannel<Album?>
+    fun findCachedRemoteAlbum(album: AlbumId): ReceiveChannel<Album?>
         = cachedAlbums.openSubscription().map {
-            it.binarySearchElem(album, ALBUM_COMPARATOR)
+            it.binarySearchElem(album) { it.id }
         }
 
     fun cacheRemoteArtist(artist: Artist) = task {

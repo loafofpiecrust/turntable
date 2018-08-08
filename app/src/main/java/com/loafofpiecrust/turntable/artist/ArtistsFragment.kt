@@ -80,7 +80,7 @@ class ArtistsFragment : BaseFragment() {
             this.adapter = ArtistsAdapter { holder, artists, idx ->
                 // smoothly transition the cover image!
                 ctx.replaceMainContent(
-                    ArtistDetailsFragmentStarter.newInstance(artists[idx]), true,
+                    ArtistDetailsFragment.fromArtist(artists[idx]), true,
                     holder.transitionViews
                 )
             }.apply {

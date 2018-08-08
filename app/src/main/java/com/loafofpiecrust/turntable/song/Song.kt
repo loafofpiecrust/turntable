@@ -17,8 +17,7 @@ import com.loafofpiecrust.turntable.album.AlbumId
 import com.loafofpiecrust.turntable.album.DetailsFragmentStarter
 import com.loafofpiecrust.turntable.album.LocalAlbum
 import com.loafofpiecrust.turntable.album.loadPalette
-import com.loafofpiecrust.turntable.artist.Artist
-import com.loafofpiecrust.turntable.artist.ArtistDetailsFragmentStarter
+import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
 import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.given
@@ -93,12 +92,12 @@ interface MusicId {
 data class SongId(
     override val name: String,
     val album: AlbumId,
-    val artist: String = album.artist.displayName,
+    val artist: ArtistId = album.artist,
     var features: List<ArtistId> = listOf()
 ): MusicId, Parcelable {
     private constructor(): this("", "", "")
     constructor(title: String, album: String, artist: String, songArtist: String = artist):
-        this(title, AlbumId(album, ArtistId(artist)), songArtist)
+        this(title, AlbumId(album, ArtistId(artist)), ArtistId(songArtist))
 
     companion object {
         val FEATURE_PAT by lazy {
@@ -110,7 +109,7 @@ data class SongId(
     override fun equals(other: Any?) = given(other as? SongId) { other ->
         this.displayName.equals(other.displayName, true)
             && this.album == other.album
-            && this.artist.equals(other.artist, true)
+            && this.artist == other.artist
     } ?: false
     fun fuzzyEquals(other: SongId)
         = FuzzySearch.ratio(name, other.name) >= 88
@@ -120,7 +119,7 @@ data class SongId(
     override fun hashCode() = Objects.hash(
         displayName.toLowerCase(),
         album,
-        artist.toLowerCase()
+        artist
     )
 
     val dbKey: String get() = "$name~${album.sortTitle}~$artist".toLowerCase()
@@ -177,7 +176,7 @@ data class Song(
             withContext(UI) {
                 if (album != null) {
                     MainActivity.replaceContent(
-                        DetailsFragmentStarter.newInstance(album), true
+                        DetailsFragmentStarter.newInstance(album.id), true
                     )
                 }
             }
@@ -197,18 +196,19 @@ data class Song(
         }
         menuItem("Go to artist").onClick {
             val artist = if (local is Song.LocalDetails.Downloaded) {
-                Library.instance.findArtist(ArtistId(id.artist)).first()
+                Library.instance.findArtist(id.artist).first()
             } else {
-                val search = Artist.justForSearch(id.artist)
-                search.copy(remote = SearchApi.find(search) ?: run {
+                SearchApi.find(id.artist) ?: run {
                     ctx.toast("No remote artist for '${this@Song.id}'")
                     return@onClick
-                })
+                }
             }
 
-            MainActivity.replaceContent(
-                ArtistDetailsFragmentStarter.newInstance(artist), true
-            )
+            if (artist != null) {
+                MainActivity.replaceContent(
+                    ArtistDetailsFragment.fromArtist(artist), true
+                )
+            }
         }
 
         menuItem("Recommend").onClick {

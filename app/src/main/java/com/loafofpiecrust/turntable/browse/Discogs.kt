@@ -153,13 +153,17 @@ object Discogs: SearchApi, AnkoLogger {
         }
     }
 
-    override suspend fun find(artist: Artist): Artist.RemoteDetails? {
-        return given(searchFor(artist.id).firstOrNull()) {
+    override suspend fun find(artist: ArtistId): Artist? {
+        return given(searchFor(artist).firstOrNull()) {
             val res = apiRequest("https://api.discogs.com/artists/$it").obj
-            ArtistDetails(
-                it,
-                res["profile"].nullString,
-                res["images"]?.get(0)?.get("uri")?.nullString
+            Artist(
+                artist,
+                ArtistDetails(
+                    it,
+                    res["profile"].nullString,
+                    res["images"]?.get(0)?.get("uri")?.nullString
+                ),
+                listOf()
             )
         }
     }

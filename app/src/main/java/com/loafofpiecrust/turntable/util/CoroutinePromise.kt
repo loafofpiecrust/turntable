@@ -5,7 +5,6 @@ import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.produce
 import kotlin.coroutines.experimental.Continuation
 import kotlin.coroutines.experimental.CoroutineContext
-import kotlin.coroutines.experimental.coroutineContext
 import kotlin.coroutines.experimental.suspendCoroutine
 import kotlin.reflect.KProperty
 
@@ -21,16 +20,16 @@ fun <T> task(ctx: CoroutineContext = BG_POOL, block: suspend () -> T): Deferred<
 //    return cont.promise
 }
 
-suspend fun <T> produceTask(block: suspend () -> T): ReceiveChannel<T> {
+fun <T> produceTask(ctx: CoroutineContext = Unconfined, block: suspend () -> T): ReceiveChannel<T> {
 //    val cont = deferred<T, Throwable>()
-    return produce(coroutineContext) {
+    return produce(ctx) {
         send(block())
     }
 //    return cont.promise
 }
-suspend fun <T> produceSingle(v: T): ReceiveChannel<T> {
+fun <T> produceSingle(v: T): ReceiveChannel<T> {
 //    val cont = deferred<T, Throwable>()
-    return produce(coroutineContext) {
+    return produce(Unconfined) {
         send(v)
     }
 //    return cont.promise

@@ -101,10 +101,10 @@ data class YouTubeSong(
 //            // TODO: More extensive vetting here
 //            return videos.firstOrNull()
 
-            val otherArtist = if (song.id.artist != song.id.album.artist.altName) {
+            val otherArtist = if (song.id.artist.displayName != song.id.album.artist.altName) {
                 song.id.album.artist.altName ?: ""
             } else ""
-            val query = if (song.id.artist.length <= 50) {
+            val query = if (song.id.artist.displayName.length <= 50) {
                 "${song.id.displayName} ${song.id.artist} $otherArtist"
             } else {
                 "${song.id.displayName} ${song.id.album.displayName}"
@@ -235,7 +235,7 @@ data class YouTubeSong(
                     matchRatio -= idx
 
                     // Check for the artist
-                    val artist = song.id.artist.toLowerCase()
+                    val artist = song.id.artist.displayName.toLowerCase()
                     val artistMatch = maxOf(
                         FuzzySearch.partialRatio(artist, title),
                         FuzzySearch.partialRatio(artist, channel)

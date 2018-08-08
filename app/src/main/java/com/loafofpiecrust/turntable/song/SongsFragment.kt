@@ -12,8 +12,8 @@ import android.view.MenuInflater
 import android.view.View
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.album.Album
-import com.loafofpiecrust.turntable.artist.Artist
+import com.loafofpiecrust.turntable.album.AlbumId
+import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.playlist.MixTape
@@ -42,8 +42,8 @@ open class SongsFragment: BaseFragment() {
     sealed class Category: Parcelable {
         @Parcelize class All: Category()
         @Parcelize data class History(val limit: Int? = null): Category()
-        @Parcelize data class ByArtist(val artist: Artist): Category()
-        @Parcelize data class OnAlbum(val album: Album, val isPartial: Boolean = false): Category()
+        @Parcelize data class ByArtist(val artist: ArtistId): Category()
+        @Parcelize data class OnAlbum(val album: AlbumId, val isPartial: Boolean = false): Category()
         @Parcelize data class Custom(val songs: List<Song>): Category()
         @Parcelize data class Playlist(val id: UUID, val sideIdx: Int = 0): Category()
     }
@@ -138,9 +138,9 @@ open class SongsFragment: BaseFragment() {
                             rev
                         }.map { it.song }
                     }
-                    is Category.ByArtist -> Library.instance.songsByArtist(cat.artist.id)
+                    is Category.ByArtist -> Library.instance.songsByArtist(cat.artist)
                     is Category.OnAlbum -> {
-                        Library.instance.findAlbum(cat.album.id).combineLatest(
+                        Library.instance.findAlbum(cat.album).combineLatest(
 //                                App.instance.internetStatus,
                             Library.instance.findCachedRemoteAlbum(cat.album)
                         ).switchMap { (local/*, internet*/, cached) ->
@@ -154,7 +154,6 @@ open class SongsFragment: BaseFragment() {
                                     } else {
                                         produce(BG_POOL) {
                                             send(localTracks)
-                                            send(localTracks + cat.album.tracks)
                                         }
                                     }.map {
                                         it.sortedBy { it.disc * 1000 + it.track }.dedupMerge(
@@ -168,7 +167,7 @@ open class SongsFragment: BaseFragment() {
                             } else if (cached != null) {
                                 produceTask { cached.tracks }
                             } else /*if (internet != App.InternetStatus.OFFLINE)*/ {
-                                produceTask { tryOr(listOf()) { cat.album.tracks } }
+                                produceTask { listOf<Song>() }
                             }
                         }
                     }

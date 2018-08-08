@@ -3,6 +3,7 @@ package com.loafofpiecrust.turntable.browse
 import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.album.RemoteAlbum
 import com.loafofpiecrust.turntable.artist.Artist
+import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.provided
 import com.loafofpiecrust.turntable.song.Song
 
@@ -16,7 +17,7 @@ interface SearchApi {
     suspend fun searchSongs(query: String): List<Song>
 
     suspend fun find(album: Album): Album.RemoteDetails?
-    suspend fun find(artist: Artist): Artist.RemoteDetails?
+    suspend fun find(artist: ArtistId): Artist?
 //    suspend fun find(song: Song): Song.RemoteDetails?
 
     suspend fun fullArtwork(album: Album, search: Boolean = false): String?
@@ -43,7 +44,7 @@ interface SearchApi {
         override suspend fun find(album: Album): Album.RemoteDetails?
             = overApis { find(album) }
 
-        override suspend fun find(artist: Artist): Artist.RemoteDetails?
+        override suspend fun find(artist: ArtistId): Artist?
             = overApis { find(artist) }
 
 //        override suspend fun find(song: Song): Song.RemoteDetails?

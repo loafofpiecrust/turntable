@@ -19,7 +19,7 @@ class BiographyFragment: BaseFragment() {
 
         val remote = artist.remote.provided {
             it?.description != null
-        } ?: runBlocking { SearchApi.find(artist) }
+        } ?: runBlocking { SearchApi.find(artist.id)?.remote }
 
 
         // TODO: Add full-res artist image, as not-cropped as possible.

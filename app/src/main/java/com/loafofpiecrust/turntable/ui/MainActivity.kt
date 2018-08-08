@@ -32,9 +32,7 @@ import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.album.DetailsFragmentStarter
-import com.loafofpiecrust.turntable.album.LocalAlbum
-import com.loafofpiecrust.turntable.artist.Artist
-import com.loafofpiecrust.turntable.artist.ArtistDetailsFragmentStarter
+import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
 import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.player.MusicService
@@ -417,16 +415,15 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                 val title = url.getQueryParameter("name")
                 val artist = url.getQueryParameter("artist")
                 ctx.replaceMainContent(
-                    DetailsFragmentStarter.newInstance(LocalAlbum(ArtistId(artist).forAlbum(title), emptyList())),
+                    DetailsFragmentStarter.newInstance(ArtistId(artist).forAlbum(title)),
                     true
                 )
             }
             "artist" -> {
                 val name = url.getQueryParameter("id")
-                ctx.replaceMainContent(
-                    ArtistDetailsFragmentStarter.newInstance(Artist.justForSearch(name)),
-                    true
-                )
+                given(ArtistDetailsFragment.fromId(ArtistId(name))) {
+                    ctx.replaceMainContent(it, true)
+                }
             }
             "sync-request" -> {
                 val id = url.getQueryParameter("from")

@@ -10,7 +10,6 @@ import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.album.DetailsFragmentStarter
 import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
-import com.loafofpiecrust.turntable.artist.ArtistDetailsFragmentStarter
 import com.loafofpiecrust.turntable.browse.ui.RecommendationsFragment
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.Playlist
@@ -101,7 +100,7 @@ class MusicAdapter(
         val ctx = holder.itemView.context
         when (item) {
             is Song -> {
-                holder.subLine.text = item.id.artist
+                holder.subLine.text = item.id.artist.displayName
                 holder.coverImage?.image = null
                 holder.card.onClick {
                     MusicService.enact(SyncService.Message.PlaySongs(listOf(item)))
@@ -120,7 +119,7 @@ class MusicAdapter(
                 }
                 holder.card.onClick {
                     MainActivity.replaceContent(
-                        DetailsFragmentStarter.newInstance(item)
+                        DetailsFragmentStarter.newInstance(item.id)
                     )
                 }
             }
@@ -129,10 +128,7 @@ class MusicAdapter(
                 holder.coverImage?.image = null
                 holder.card.onClick {
                     MainActivity.replaceContent(
-                        ArtistDetailsFragmentStarter.newInstance(
-                            item,
-                            ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE
-                        )
+                        ArtistDetailsFragment.fromArtist(item, ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE)
                     )
                 }
             }

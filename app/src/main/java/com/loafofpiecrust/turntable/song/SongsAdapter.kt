@@ -75,7 +75,7 @@ open class SongsAdapter(
         holder.mainLine.text = song.id.displayName
         when (category) {
             is SongsFragment.Category.All -> {
-                holder.subLine.text = song.id.artist
+                holder.subLine.text = song.id.artist.displayName
                 holder.track.visibility = View.GONE
             }
             is SongsFragment.Category.ByArtist -> {
@@ -94,8 +94,8 @@ open class SongsAdapter(
                     holder.track.text = (position + 1).toString()
                 }
 
-                if (song.id.artist != song.id.album.artist.displayName) {
-                    holder.subLine.text = song.id.artist
+                if (song.id.artist != song.id.album.artist) {
+                    holder.subLine.text = song.id.artist.displayName
                 }
                 if (song.id.features.isNotEmpty()) {
                     holder.subLine.text = ctx.getString(
@@ -106,7 +106,7 @@ open class SongsAdapter(
                 }
             }
             else -> {
-                holder.subLine.text = song.id.artist
+                holder.subLine.text = song.id.artist.displayName
 //                holder.track.visibility = View.GONE
                 holder.track.text = (position + 1).toString()
                 // Show if listened to in recent history

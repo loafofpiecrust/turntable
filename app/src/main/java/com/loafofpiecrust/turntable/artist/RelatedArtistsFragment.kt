@@ -35,7 +35,7 @@ class RelatedArtistsFragment: BaseFragment() {
                     // smoothly transition the cover image!
                     val artist = artists[pos]
                     ctx.replaceMainContent(
-                        ArtistDetailsFragmentStarter.newInstance(artist, ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE) ,
+                        ArtistDetailsFragment.fromArtist(artist, ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE),
                         true,
                         view.transitionViews
                     )

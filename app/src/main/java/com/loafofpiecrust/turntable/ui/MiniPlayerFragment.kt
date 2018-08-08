@@ -71,8 +71,8 @@ class MiniPlayerFragment: BaseFragment() {
         MusicService.instance.filterNotNull().switchMap {
             it.player.currentSong.filterNotNull()
         }.consumeEach(UI) { song ->
-            mainLine.text = song.id.name
-            subLine.text = song.id.artist
+            mainLine.text = song.id.displayName
+            subLine.text = song.id.artist.displayName
 
             song.loadCover(Glide.with(cover)).first()
                 ?.listener(loadPalette(song.id.album) { palette, swatch ->

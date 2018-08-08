@@ -44,7 +44,7 @@ object Spotify: SearchApi {
                     SongId(
                         it["name"].string,
                         album,
-                        it["artists"][0]["name"].string
+                        ArtistId(it["artists"][0]["name"].string)
                     ),
                     track = it["track_number"].int,
                     disc = it["disc_number"].int,
@@ -172,9 +172,9 @@ object Spotify: SearchApi {
         }
     }
 
-    override suspend fun find(artist: Artist): Artist.RemoteDetails? {
-        return given(searchFor(artist.id).firstOrNull()) {
-            ArtistDetails(it)
+    override suspend fun find(artist: ArtistId): Artist? {
+        return given(searchFor(artist).firstOrNull()) {
+            Artist(artist, ArtistDetails(it), listOf())
         }
     }
 

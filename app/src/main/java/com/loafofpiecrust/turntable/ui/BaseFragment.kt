@@ -21,6 +21,15 @@ abstract class BaseFragment: Fragment(), AnkoLogger {
     protected val jobs = Job()
     val UI = kotlinx.coroutines.experimental.android.UI + jobs
 
+    val stackId: Int
+        get() = activity!!.supportFragmentManager.let { frags ->
+            frags.getBackStackEntryAt(frags.backStackEntryCount - 1).id
+        }
+    val parentStackId: Int
+        get() = activity!!.supportFragmentManager.let { frags ->
+            frags.getBackStackEntryAt(frags.backStackEntryCount - 2).id
+        }
+
     abstract fun makeView(ui: ViewManager): View
 
     open fun onCreate() {}
