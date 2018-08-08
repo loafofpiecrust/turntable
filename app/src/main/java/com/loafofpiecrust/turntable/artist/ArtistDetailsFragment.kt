@@ -227,7 +227,9 @@ class ArtistDetailsFragment: BaseFragment() {
                 AlbumsFragment.Category.ByArtist(artistId, currentMode.value),
                 AlbumsFragment.SortBy.YEAR,
                 3
-            ).also { albums = it })
+            ).also {
+                it.albums = 
+            })
         }.lparams(width = matchParent) {
             behavior = AppBarLayout.ScrollingViewBehavior()
         }

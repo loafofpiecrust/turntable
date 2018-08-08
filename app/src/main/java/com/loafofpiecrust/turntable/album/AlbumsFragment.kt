@@ -34,7 +34,7 @@ class AlbumsFragment : BaseFragment() {
             val artist: ArtistId,
             val mode: ArtistDetailsFragment.Mode
         ): Category()
-        @Parcelize data class Custom(val albums: List<Album>): Category()
+        // @Parcelize data class Custom(val albums: List<Album>): Category()
     }
 
     enum class SortBy {
@@ -48,7 +48,11 @@ class AlbumsFragment : BaseFragment() {
     @Arg(optional=true) var sortBy: SortBy = SortBy.NONE
     @Arg(optional=true) var columnCount: Int = 0
 
-    private lateinit var albums: ReceiveChannel<List<Album>>
+    // TODO: Make this cold by using a function returning the channel
+    // This would be to prevent any filtering, resolution, and merging from happening while the view is invisible!
+    // This also allows us to drop the channel entirely onDetach and make a new one in onAttach (if we want that??)
+    // private lateinit var albums: ReceiveChannel<List<Album>>
+    private lateinit var albums: () -> ReceiveChannel<List<Album>>
     private val category by lazy { ConflatedBroadcastChannel(initialCategory) }
 
     companion object {
@@ -75,7 +79,7 @@ class AlbumsFragment : BaseFragment() {
                                 else -> Library.instance.albumsByArtist(cat.artist)
                             }
                         }
-                        is Category.Custom -> produceSingle(cat.albums)
+                        // is Category.Custom -> produceSingle(cat.albums)
                     }
                 }
             }

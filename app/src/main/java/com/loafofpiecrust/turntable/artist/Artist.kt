@@ -104,6 +104,7 @@ data class Artist(
     suspend fun resolveAlbums(includeLocals: Boolean = true): List<Album> {
         // Find any local albums concurrently
         val localAlbums = Library.instance.albumsByArtist(id).first()
+        // TODO: Have SearchApi.find(...) do caching so it's unified...
         val cached = Library.instance.findCachedRemoteArtist(this@Artist).first()?.albums
             ?: SearchApi.find(id)?.albums
 
