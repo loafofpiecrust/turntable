@@ -265,9 +265,18 @@ class SyncService : FirebaseMessagingService() {
             send(Message.SyncResponse(true))
         }
 
-        fun requestFriendship(otherUser: User) {
-            UserPrefs.friends appends Friend(otherUser, Friend.Status.SENT_REQUEST)
-            send(Message.FriendRequest(), Mode.OneOnOne(otherUser))
+        /**
+         * @return true if the user wasn't already a friend.
+         */
+        fun requestFriendship(otherUser: User): Boolean {
+            val existing = UserPrefs.friends.value.find { it.user == otherUser }
+            return if (existing != null) {
+                false
+            } else {
+                UserPrefs.friends appends Friend(otherUser, Friend.Status.SENT_REQUEST)
+                send(Message.FriendRequest(), Mode.OneOnOne(otherUser))
+                true
+            }
         }
 
         fun shareFriendshipLink() = task(UI) {

@@ -45,7 +45,7 @@ class SyncTabFragment: BaseFragment() {
                         pickContact()
                     } else {
                         alert("Add friend") {
-                            var textBox: EditText? = null
+                            lateinit var textBox: EditText
                             customView {
                                 verticalLayout {
                                     padding = dip(16)
@@ -60,12 +60,16 @@ class SyncTabFragment: BaseFragment() {
                                 task {
                                     SyncService.User.resolve(key)
                                 }.success(UI) { user ->
-                                    if (user != null) {
-                                        toast("Befriending ${user.displayName}")
-                                        SyncService.requestFriendship(user)
+                                    // TODO: Use localized strings in xml
+                                    toast(if (user != null) {
+                                        if (SyncService.requestFriendship(user)) {
+                                            "Befriending ${user.displayName}"
+                                        } else {
+                                            "${user.displayName} is already a friend"
+                                        }
                                     } else {
-                                        toast("User '$key' doesn't exist.")
-                                    }
+                                        "User '$key' doesn't exist"
+                                    })
                                 }
                             }
                             negativeButton("Cancel") {}
@@ -102,10 +106,13 @@ class SyncTabFragment: BaseFragment() {
             cursor.closeQuietly()
             task {
                 SyncService.User.resolve(email)
-            }.success(UI) {
-                if (it != null) {
-                    toast("Befriending ${it.name}")
-                    SyncService.requestFriendship(it)
+            }.success(UI) { user ->
+                if (user != null) {
+                    if (SyncService.requestFriendship(user)) {
+                        "Befriending ${user.name}"
+                    } else {
+                        "${user.name} is already a friend"
+                    }
                 } else {
                     toast("$name isn't on Turntable yet")
                 }
@@ -127,18 +134,34 @@ class SyncTabFragment: BaseFragment() {
                     val friend = data[position]
                     holder.apply {
                         mainLine.text = friend.user.name
-                        subLine.text = friend.user.deviceId
-                        val choices = sortedMapOf(
-                            "Request Sync" to {
-                                friend.user.refresh().success {
-                                    SyncService.requestSync(it)
+                        subLine.text = when (friend.status) {
+                            SyncService.Friend.Status.CONFIRMED -> friend.user.deviceId
+                            SyncService.Friend.Status.RECEIVED_REQUEST -> "Wants to be friends"
+                            SyncService.Friend.Status.SENT_REQUEST -> "Friendship request sent"
+                        }
+                        val choices = when (friend.status) {
+                            SyncService.Friend.Status.CONFIRMED -> sortedMapOf(
+                                "Request Sync" to {
+                                    friend.user.refresh().success {
+                                        SyncService.requestSync(it)
+                                    }
+                                    toast("Requested sync with ${friend.user.name}")
                                 }
-                                toast("Requested sync with ${friend.user.name}")
-                            }//,
-//                            "Playlists" to {
-//
-//                            }
-                        )
+                            )
+                            SyncService.Friend.Status.RECEIVED_REQUEST -> sortedMapOf(
+                                "Confirm Friendship" to {
+                                    friend.respondToRequest(true)
+                                },
+                                "Reject Friendship" to {
+                                    friend.respondToRequest(false)
+                                }
+                            )
+                            SyncService.Friend.Status.SENT_REQUEST -> sortedMapOf(
+                                "Rescind Request" to {
+                                    UserPrefs.friends putsMapped { it.without(position) }
+                                }
+                            )
+                        }
                         card.onClick {
                             val keys = choices.keys.toList()
 
@@ -146,25 +169,6 @@ class SyncTabFragment: BaseFragment() {
                                 choices[keys[idx]]!!.invoke()
                             }
                         }
-//                        menu.onClick {
-//                            val popup = PopupMenu(
-//                                menu.context, menu, Gravity.CENTER,
-//                                0, R.style.AppTheme_PopupOverlay
-//                            )
-//                            popup.menu.apply {
-//                                when (friend.status) {
-//                                    SyncService.Friend.Status.RECEIVED_REQUEST -> {
-//                                        menuItem("Accept").onClick {
-//                                            friend.respondToRequest(true)
-//                                        }
-//                                        menuItem("Reject").onClick {
-//                                            friend.respondToRequest(false)
-//                                        }
-//                                    }
-//                                }
-//                            }
-//                            popup.show()
-//                        }
                     }
                 }
             }.apply {
