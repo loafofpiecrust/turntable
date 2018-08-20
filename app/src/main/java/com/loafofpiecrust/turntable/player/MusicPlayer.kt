@@ -157,11 +157,30 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
 
     }
 
-    override fun onPlayerError(error: ExoPlaybackException?) {
+    private var errorCount = 0
+    override fun onPlayerError(error: ExoPlaybackException) {
         // This means the current song couldn't be loaded.
         // In this case, delete the DB entry for the current song.
         // Then, try again to play it.
         info { "player err: $error" }
+
+        // if the error is a SOURCE error 404 or 403,
+        // clear streams and try again
+        // if that fails the 2nd time, skip to the next track in the MediaSource.
+        if (error.type == ExoPlaybackException.TYPE_SOURCE) {
+            errorCount++
+            if (errorCount < 2) {
+                task {
+                    OnlineSearchService.instance.reloadSongStreams(song.id)
+                }.then(UI) {
+                    // TODO: Ensure this works vs resetting the media source entirely.
+                    player.seekToDefaultPosition(player.currentWindowIndex)
+                }
+            } else {
+                errorCount = 0
+                playNext()
+            }
+        }
 
 //        if (currentSong.value.remote != null) {
 //        errorCount++
@@ -201,7 +220,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
             }
             Player.STATE_IDLE -> pause()
             Player.STATE_READY -> {
-                // TODO: reset error count
+                errorCount = 0
             }
         }
     }
@@ -275,7 +294,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
                 }
             }
         }
-
+    }.then(UI) {
         val q = _queue.value
         mediaSource = ConcatenatingMediaSource().apply {
             addMediaSources(q.list.map {
@@ -299,7 +318,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
     }
 
     /// By default enqueues at the end, passing 1 will queue next.
-    fun enqueue(songs: List<Song>, mode: EnqueueMode = EnqueueMode.NEXT) = task {
+    fun enqueue(songs: List<Song>, mode: EnqueueMode = EnqueueMode.NEXT) {
         if (mediaSource == null) {
             mediaSource = ConcatenatingMediaSource()
             player.prepare(mediaSource)
@@ -329,7 +348,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         enqueue(listOf(song), mode)
     }
 
-    fun removeFromQueue(position: Int) = task {
+    fun removeFromQueue(position: Int) {
         // TODO: Start with removing from nextUp, then from anywhere else if from StaticQueue (new interface method?)
 
 //        _queue putsMapped { q -> StaticQueue(q.list.without(position), q.position) }
@@ -337,8 +356,10 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
 
     fun playNext() = task {
         addCurrentToHistory()
-        val q = _queue.value.next()
+        _queue.value.next()
         _queue puts q as CombinedQueue
+        q
+    }.then(UI) { q ->
         if (q.position != player.currentWindowIndex) {
             player.seekToDefaultPosition(q.position)
         }
@@ -348,6 +369,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         addCurrentToHistory()
         val q = _queue.value.prev()
         _queue puts q as CombinedQueue
+        q
+    }.then(UI) { q ->
         if (q.position != player.currentWindowIndex) {
             player.seekToDefaultPosition(q.position)
         }
@@ -373,6 +396,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         _queue putsMapped { q ->
             q.shifted(from, to) as CombinedQueue
         }
+    }.then(UI) {
         mediaSource?.moveMediaSource(from, to)
     }
 

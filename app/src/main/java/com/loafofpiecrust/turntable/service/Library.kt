@@ -768,9 +768,9 @@ class Library : Service() {
         val external = compileSongsFrom(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
 //        val internal = task { compileSongsFrom(MediaStore.Audio.Media.INTERNAL_CONTENT_URI) }
 //        val songs = external.await() //+ internal.await()
-        synchronized(this) {
-            this@Library._songs.send(external)
-        }
+        // synchronized(this) {
+            _songs.send(external)
+        // }
     }
 
 //    private fun updateLocalArtwork() = async(CommonPool) {

@@ -170,4 +170,9 @@ class ArtistsAdapter(
         }
 
     }
+    
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        imageJobs.forEach { (holder, job) -> job.cancel() }
+        imageJobs.clear()
+    }
 }

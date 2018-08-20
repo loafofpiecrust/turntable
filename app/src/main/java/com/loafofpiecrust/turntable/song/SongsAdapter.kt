@@ -225,4 +225,9 @@ open class SongsAdapter(
 //        }
 
     }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        progressSubs.forEach { (holder, job) -> job.cancel() }
+        progressSubs.clear()
+    }
 }
