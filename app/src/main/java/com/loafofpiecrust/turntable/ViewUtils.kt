@@ -3,11 +3,11 @@ package com.loafofpiecrust.turntable
 //import quatja.com.vorolay.VoronoiView
 import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PorterDuff
-import android.support.v4.app.Fragment
-import android.support.v4.app.FragmentManager
+import android.support.annotation.ColorInt
 import android.support.v4.view.ViewPager
 import android.support.v7.widget.PopupMenu
 import android.support.v7.widget.Toolbar
@@ -15,7 +15,6 @@ import android.view.*
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
-import com.arlib.floatingsearchview.FloatingSearchView
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.Input
 import com.esotericsoftware.kryo.io.Output
@@ -40,13 +39,11 @@ import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.Runnable
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.*
-import org.jetbrains.anko.AnkoViewDslMarker
-import org.jetbrains.anko.backgroundColor
-import org.jetbrains.anko.childrenSequence
+import kotlinx.coroutines.experimental.launch
+import org.jetbrains.anko.*
 import org.jetbrains.anko.custom.ankoView
 import org.jetbrains.anko.sdk25.coroutines.onClick
 import org.jetbrains.anko.support.v4.onPageChangeListener
-import org.jetbrains.anko.wrapContent
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.*
@@ -66,9 +63,6 @@ inline fun ViewManager.fastScrollRecycler(init: @AnkoViewDslMarker FastScrollRec
 
 inline fun ViewManager.recyclerViewPager(init: @AnkoViewDslMarker RecyclerViewPager.() -> Unit): RecyclerViewPager =
     ankoView({ RecyclerViewPager(it) }, theme = 0, init = init)
-
-inline fun ViewManager.floatingSearchView(theme: Int = 0, init: FloatingSearchView.() -> Unit = {}): FloatingSearchView =
-    ankoView({ FloatingSearchView(it) }, theme, init)
 
 inline fun ViewManager.searchBar(theme: Int = 0, init: SearchView.() -> Unit = {}): SearchView =
     ankoView({ SearchView(it) }, theme, init)
@@ -93,21 +87,6 @@ inline fun ViewManager.circularProgressBar(theme: Int = 0, init: @AnkoViewDslMar
 
 //fun ViewManager.playbackControlView(theme: Int = 0, init: PlaybackControlView.() -> Unit = {}): FloatingSearchView =
 //    ankoView({ FloatingSearchView(it) }, theme = theme, init = init)
-
-
-inline fun <reified T: Fragment> View.fragment(
-    manager: FragmentManager?,
-    fragment: T
-): T {
-    if (this.id == View.NO_ID) {
-        this.id = View.generateViewId()
-    }
-    manager?.beginTransaction()
-        ?.add(this.id, fragment)
-        ?.commit()
-//    fragment.view?.init()
-    return fragment
-}
 
 fun Toolbar.menuItem(
     title: String,
@@ -202,7 +181,7 @@ fun MenuItem.onClick(
     handler: suspend (v: MenuItem) -> Unit
 ) {
     setOnMenuItemClickListener { v ->
-        task(context) {
+        launch(context) {
             handler.invoke(v)
         }
         true
@@ -234,7 +213,7 @@ inline fun <T> List<T>.without(pos: Int): List<T>
     = take(pos) + drop(pos + 1)
 inline fun <T> List<T>.withoutFirst(picker: (T) -> Boolean): List<T> {
     val pos = indexOfFirst(picker)
-    return take(pos) + drop(pos + 1)
+    return without(pos)
 }
 fun <T> List<T>.withoutElem(elem: T): List<T> {
     val idx = indexOfFirst { it === elem }
@@ -522,7 +501,7 @@ fun List<String>.longestSharedSuffix(ignoreCase: Boolean = false): String? {
 }
 
 infix fun <T> T.provided(b: Boolean): T? = if (b) this else null
-infix fun <T> T.provided(block: (T) -> Boolean): T? = if (block(this)) this else null
+inline infix fun <T> T.provided(block: (T) -> Boolean): T? = if (block(this)) this else null
 
 inline fun <reified T: Any> GsonBuilder.registerSubjectType() = run {
     registerTypeAdapter<ConflatedBroadcastChannel<T>> {
@@ -708,4 +687,39 @@ fun View.generateChildrenIds() {
             it.id = View.generateViewId()
         }
     }
+}
+
+@get:ColorInt
+val Int.complementaryColor: Int get() {
+    val hsv = FloatArray(3)
+    Color.RGBToHSV(Color.red(this), Color.green(this),
+        Color.blue(this), hsv)
+    hsv[0] = (hsv[0] + 180) % 360
+    return Color.HSVToColor(hsv)
+}
+
+inline fun <T: Any> Context.selector(
+    prompt: String,
+    options: List<Pair<T, (DialogInterface, T) -> Unit>>,
+    format: (T) -> String = { it.toString() }
+): Unit = selector(prompt, options.map { format(it.first) }) { dialog, idx ->
+    val (choice, cb) = options[idx]
+    cb(dialog, choice)
+}
+
+inline fun <T: Any> Context.selector(
+    prompt: String,
+    options: List<Pair<Pair<T, String>, (DialogInterface, T) -> Unit>>
+): Unit = selector(prompt, options.map { it.first.second }) { dialog, idx ->
+    val (choice, cb) = options[idx]
+    cb(dialog, choice.first)
+}
+
+inline fun <T: Any> Context.selector(
+    prompt: String,
+    options: List<Pair<T, String>>,
+    crossinline cb: (DialogInterface, T) -> Unit
+): Unit = selector(prompt, options.map { it.second }) { dialog, idx ->
+    val (choice, name) = options[idx]
+    cb(dialog, choice)
 }

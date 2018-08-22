@@ -5,7 +5,7 @@ buildscript {
     ext.anko_version = '0.10.5'
     ext.google_ver = '15.0.1'
     ext.firebase_ver = '17.0.0'
-    ext.android_ver = '27.0.1'
+    ext.android_ver = '27.1.1'
     ext.ktor_ver = '0.9.3'
     ext.aws_ver = '2.4.0'
 

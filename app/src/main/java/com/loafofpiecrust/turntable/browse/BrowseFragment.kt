@@ -17,7 +17,10 @@ import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragmentStarter
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.*
-import com.loafofpiecrust.turntable.ui.*
+import com.loafofpiecrust.turntable.ui.BaseFragment
+import com.loafofpiecrust.turntable.ui.RecyclerAdapter
+import com.loafofpiecrust.turntable.ui.RecyclerListItem
+import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.task
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
@@ -32,7 +35,7 @@ import org.jetbrains.anko.support.v4.ctx
  * Home page for browsing recommendations, history, friends, etc.
  */
 class BrowseFragment: BaseFragment() {
-    override fun makeView(ui: ViewManager) = ui.verticalLayout {
+    override fun ViewManager.createView() = verticalLayout {
         // Recommendations
         linearLayout {
             textView("Recommendations").lparams {
@@ -118,7 +121,7 @@ class MusicAdapter(
                     }
                 }
                 holder.card.onClick {
-                    MainActivity.replaceContent(
+                    ctx.replaceMainContent(
                         DetailsFragmentStarter.newInstance(item.id)
                     )
                 }
@@ -127,7 +130,7 @@ class MusicAdapter(
                 holder.subLine.text = ""
                 holder.coverImage?.image = null
                 holder.card.onClick {
-                    MainActivity.replaceContent(
+                    ctx.replaceMainContent(
                         ArtistDetailsFragment.fromArtist(item, ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE)
                     )
                 }
@@ -135,7 +138,7 @@ class MusicAdapter(
             is Playlist -> {
                 holder.subLine.text = ctx.getString(R.string.playlist_author, item.owner, null)
                 holder.card.onClick {
-                    MainActivity.replaceContent(
+                    ctx.replaceMainContent(
                         PlaylistDetailsFragmentStarter.newInstance(item.id, item.name)
                     )
                 }

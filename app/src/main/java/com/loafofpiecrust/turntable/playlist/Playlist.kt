@@ -1,23 +1,21 @@
 package com.loafofpiecrust.turntable.playlist
 
+import android.content.Context
 import android.view.Menu
 import com.google.firebase.firestore.FirebaseFirestore
-import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.reiterate
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Music
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.util.suspendedTask
 import com.loafofpiecrust.turntable.util.task
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.runBlocking
 import java.io.Serializable
 import java.util.*
 
 abstract class Playlist(
-    open val owner: String,
+    open val owner: SyncService.User,
     open var name: String,
     open var color: Int? = null,
     open var lastModified: Date = Date(),
@@ -36,7 +34,7 @@ abstract class Playlist(
     abstract val typeName: String
 
     override val simpleName: String get() = name
-    override fun optionsMenu(menu: Menu) {
+    override fun optionsMenu(ctx: Context, menu: Menu) {
 
     }
 
@@ -88,18 +86,7 @@ abstract class Playlist(
                                 when (it.getString("format")) {
                                     "mixtape" -> MixTape.fromDocument(it)
 
-                                    "playlist" -> CollaborativePlaylist(
-                                        it.getString("owner")!!,
-                                        it.getString("name")!!,
-                                        it.getLong("color")?.toInt(),
-                                        UUID.fromString(it.id)
-                                    ).apply {
-                                        isPublished = true
-                                        operations puts App.kryo.objectFromBytes(
-                                            it.getString("operations")!!.toByteArray(Charsets.ISO_8859_1),
-                                            decompress = true
-                                        )
-                                    }
+                                    "playlist" -> CollaborativePlaylist.fromDocument(it)
 
                                     "albums" -> AlbumCollection.fromDocument(it)
 
@@ -118,46 +105,46 @@ abstract class Playlist(
 }
 
 
-sealed class SongCollection(
-    owner: String,
-    name: String,
-    color: Int? = null
-    /// For saving the current tracklist to JSON
-//    var currentTracks: List<Song> = listOf()
-) : Playlist(owner, name, color) {
-    private val _tracks = ConflatedBroadcastChannel(listOf<Song>())
-    override val tracks get() = _tracks.openSubscription()
-
-    override fun diffAndMerge(newer: Playlist): Boolean {
-        super.diffAndMerge(newer)
-        _tracks puts runBlocking { newer.tracks.first() }
-        return false
-    }
-
-    /**
-     * @return true if the collection has reached some implementation defined capacity (if any)
-     */
-    open fun add(song: Song): Boolean {
-        _tracks puts _tracks.value + song.minimize()
-        updateLastModified()
-        return false
-    }
-
-    open fun addAll(songs: List<Song>): Boolean {
-        _tracks puts _tracks.value + songs.map { it.minimize() }
-        updateLastModified()
-        return false
-    }
-
-    open fun remove(index: Int) {
-        if (_tracks.value.isNotEmpty()) {
-            _tracks puts _tracks.value.without(index)
-            updateLastModified()
-        }
-    }
-
-    open fun move(from: Int, to: Int) {
-        _tracks puts _tracks.value.shifted(from, to)
-        updateLastModified()
-    }
-}
+//sealed class SongCollection(
+//    owner: SyncService.User,
+//    name: String,
+//    color: Int? = null
+//    /// For saving the current tracklist to JSON
+////    var currentTracks: List<Song> = listOf()
+//) : Playlist(owner, name, color) {
+//    private val _tracks = ConflatedBroadcastChannel(listOf<Song>())
+//    override val tracks get() = _tracks.openSubscription()
+//
+//    override fun diffAndMerge(newer: Playlist): Boolean {
+//        super.diffAndMerge(newer)
+//        _tracks puts runBlocking { newer.tracks.first() }
+//        return false
+//    }
+//
+//    /**
+//     * @return true if the collection has reached some implementation defined capacity (if any)
+//     */
+//    open fun add(song: Song): Boolean {
+//        _tracks puts _tracks.value + song.minimize()
+//        updateLastModified()
+//        return false
+//    }
+//
+//    open fun addAll(songs: List<Song>): Boolean {
+//        _tracks puts _tracks.value + songs.map { it.minimize() }
+//        updateLastModified()
+//        return false
+//    }
+//
+//    open fun remove(index: Int) {
+//        if (_tracks.value.isNotEmpty()) {
+//            _tracks puts _tracks.value.without(index)
+//            updateLastModified()
+//        }
+//    }
+//
+//    open fun move(from: Int, to: Int) {
+//        _tracks puts _tracks.value.shifted(from, to)
+//        updateLastModified()
+//    }
+//}

@@ -16,14 +16,15 @@ import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.song.SongsFragmentStarter
-import com.loafofpiecrust.turntable.sync.FriendPickerDialog
+import com.loafofpiecrust.turntable.style.standardStyle
+import com.loafofpiecrust.turntable.sync.FriendPickerDialogStarter
 import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.util.ALT_BG_POOL
+import com.loafofpiecrust.turntable.util.replayOne
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.*
-import org.jetbrains.anko.appcompat.v7.themedToolbar
+import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.design.tabLayout
 import org.jetbrains.anko.support.v4.alert
@@ -42,7 +43,7 @@ class MixTapeDetailsFragment: BaseFragment() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
     }
 
-    override fun makeView(ui: ViewManager): View  = with(ui) {
+    override fun ViewManager.createView(): View  = with(this) {
         playlist = runBlocking {
             Library.instance.findPlaylist(playlistId).first()
                 ?: ctx.library.findCachedPlaylist(playlistId).first()
@@ -51,26 +52,24 @@ class MixTapeDetailsFragment: BaseFragment() {
         verticalLayout {
             appBarLayout {
                 backgroundColor = playlist.color ?: UserPrefs.primaryColor.value
+                topPadding = dimen(R.dimen.statusbar_height)
 
-                themedToolbar(R.style.AppTheme_DetailsToolbar) {
+                toolbar {
+                    standardStyle(UI)
                     title = playlistTitle
                     transitionName = playlistId.toString()
 
-                    menuItem("Download", R.drawable.ic_cloud_download, showIcon=true).onClick(ALT_BG_POOL) {
+                    menuItem("Download", R.drawable.ic_cloud_download, showIcon = true).onClick(ALT_BG_POOL) {
                         playlist.tracks.first()
                             .filter { ctx.library.findSong(it.id).first()?.local == null }
                             .forEach { it.download() }
                     }
 
                     menuItem("Share").onClick {
-                        FriendPickerDialog().apply {
-                            onAccept = {
-                                SyncService.send(
-                                    SyncService.Message.Playlist(playlist.id),
-                                    SyncService.Mode.OneOnOne(it)
-                                )
-                            }
-                        }.show(MainActivity.latest.supportFragmentManager, "friends")
+                        FriendPickerDialogStarter.newInstance(
+                            SyncService.Message.Playlist(playlistId),
+                            "Share"
+                        ).show(ctx)
                     }
 
                     menuItem("Publish").onClick {
@@ -81,7 +80,7 @@ class MixTapeDetailsFragment: BaseFragment() {
                             negativeButton("Cancel") {}
                         }.show()
                     }
-                }.lparams(width = matchParent, height = dip(72))
+                }.lparams(width = matchParent)
 
                 tabs = tabLayout()
             }.lparams(width = matchParent, height = wrapContent)
@@ -93,7 +92,9 @@ class MixTapeDetailsFragment: BaseFragment() {
 
                     override fun getItem(idx: Int) = SongsFragmentStarter.newInstance(
                         SongsFragment.Category.Playlist(playlist.id, idx)
-                    )
+                    ).apply {
+                        songs = playlist.tracksOnSide(idx).replayOne()
+                    }
 
                     override fun getCount(): Int = playlist.type.sideCount
                 }

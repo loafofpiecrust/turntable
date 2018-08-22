@@ -1,11 +1,11 @@
 package com.loafofpiecrust.turntable.playlist
 
 import activitystarter.Arg
+import android.support.v7.graphics.Palette
 import android.support.v7.widget.LinearLayoutManager
 import android.view.*
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumsFragment
-import com.loafofpiecrust.turntable.album.AlbumsFragmentStarter
 import com.loafofpiecrust.turntable.browse.RecentMixTapesFragment
 import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.menuItem
@@ -19,12 +19,12 @@ import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.task
 import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.produce
-import kotlinx.coroutines.experimental.runBlocking
+import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.imageResource
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.ctx
+import org.jetbrains.anko.textColor
 
 
 class PlaylistsFragment: BaseFragment() {
@@ -42,14 +42,14 @@ class PlaylistsFragment: BaseFragment() {
         }
     }
 
-    override fun makeView(ui: ViewManager): View = ui.recyclerView {
+    override fun ViewManager.createView() = recyclerView {
         layoutManager = LinearLayoutManager(ctx, LinearLayoutManager.VERTICAL, false)
         adapter = Adapter { playlist ->
             println("playlist: opening '${playlist.name}'")
             ctx.replaceMainContent(
                 when(playlist) {
                     is MixTape -> MixTapeDetailsFragmentStarter.newInstance(playlist.id, playlist.name)
-                    is AlbumCollection -> AlbumsFragmentStarter.newInstance(AlbumsFragment.Category.Custom(runBlocking { playlist.albums.first() }))
+                    is AlbumCollection -> AlbumsFragment.fromChan(playlist.albums)
                     else -> PlaylistDetailsFragmentStarter.newInstance(playlist.id, playlist.name)
                 },
                 true
@@ -76,9 +76,20 @@ class PlaylistsFragment: BaseFragment() {
             val item = data[position]
             val ctx = holder.itemView.context
             holder.mainLine.text = item.name
-            holder.subLine.text = ctx.getString(R.string.playlist_author, item.owner, item.typeName)
+            val owner = if (item.owner == SyncService.selfUser) {
+                "you"
+            } else item.owner.name
+            holder.subLine.text = ctx.getString(R.string.playlist_author, owner, item.typeName)
             holder.track.visibility = View.GONE
             holder.header.transitionName = "playlistHeader${item.name}"
+
+            given(item.color) {
+                val contrast = Palette.Swatch(it, 0).titleTextColor
+                holder.card.backgroundColor = it
+                holder.mainLine.textColor = contrast
+                holder.subLine.textColor = contrast
+                holder.menu.setColorFilter(contrast)
+            }
 
             holder.coverImage?.imageResource = when (item) {
                 is MixTape -> R.drawable.ic_cassette

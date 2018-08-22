@@ -1,12 +1,13 @@
 package com.loafofpiecrust.turntable.playlist
 
 //import kaaes.spotify.webapi.android.SpotifyApi
+import com.google.firebase.firestore.Blob
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
-import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
@@ -23,9 +24,8 @@ import kotlin.coroutines.experimental.suspendCoroutine
  * Optionally collaborative playlist that syncs to the user's Google Drive storage.
  * It can be shared with other users and edited by them as well.
  */
-@Parcelize
 class CollaborativePlaylist(
-    override val owner: String,
+    override val owner: SyncService.User,
     override var name: String,
     override var color: Int?,
     override val id: UUID
@@ -61,14 +61,14 @@ class CollaborativePlaylist(
     companion object: AnkoLogger {
         fun fromDocument(doc: DocumentSnapshot): CollaborativePlaylist = run {
             CollaborativePlaylist(
-                doc.getString("owner")!!,
+                App.kryo.concreteFromBytes(doc.getBlob("owner")!!.toBytes()),
                 doc.getString("name")!!,
                 doc.getLong("color")?.toInt(),
                 UUID.fromString(doc.id)
             ).apply {
                 operations puts App.kryoWithRefs {
                     it.objectFromBytes<List<Operation>>(
-                        doc.getString("operations")!!.toByteArray(Charsets.ISO_8859_1)
+                        doc.getBlob("operations")!!.toBytes()
                     )
                 }
                 lastModified = doc.getDate("lastModified")!!
@@ -160,7 +160,7 @@ class CollaborativePlaylist(
         songs
     }
 
-    constructor(): this("", "", null, UUID.randomUUID())
+    constructor(): this(SyncService.User(), "", null, UUID.randomUUID())
 
     override fun updateLastModified() {
         super.updateLastModified()
@@ -241,8 +241,8 @@ class CollaborativePlaylist(
             "color" to color,
             "lastModified" to lastModified,
             "createdTime" to createdTime,
-            "operations" to App.kryoWithRefs { it.objectToBytes(operations.value) },
-            "owner" to owner
+            "operations" to Blob.fromBytes(App.kryoWithRefs { it.objectToBytes(operations.value) }),
+            "owner" to Blob.fromBytes(App.kryo.concreteToBytes(owner))
         ))
 //        val ops = doc.collection("operations")
 //        operations.value.forEach { batch.set(ops.document(), it) }

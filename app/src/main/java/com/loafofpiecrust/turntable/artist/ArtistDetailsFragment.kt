@@ -10,19 +10,21 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewManager
 import android.widget.ImageView
-import com.loafofpiecrust.turntable.*
+import com.bumptech.glide.Glide
+import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumsFragment
 import com.loafofpiecrust.turntable.album.AlbumsFragmentStarter
 import com.loafofpiecrust.turntable.browse.SearchApi
+import com.loafofpiecrust.turntable.collapsingToolbarlparams
+import com.loafofpiecrust.turntable.generateChildrenIds
+import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.util.produceSingle
-import com.loafofpiecrust.turntable.util.task
-import com.mcxiaoke.koi.ext.onClick
+import com.loafofpiecrust.turntable.util.*
+import kotlinx.coroutines.experimental.channels.BroadcastChannel
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.consumeEach
+import kotlinx.coroutines.experimental.channels.broadcast
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
@@ -30,10 +32,10 @@ import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
 import org.jetbrains.anko.constraint.layout.applyConstraintSet
 import org.jetbrains.anko.constraint.layout.constraintLayout
 import org.jetbrains.anko.constraint.layout.matchConstraint
+import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.design.collapsingToolbarLayout
 import org.jetbrains.anko.design.coordinatorLayout
-import org.jetbrains.anko.design.themedAppBarLayout
-import org.jetbrains.anko.support.v4.selector
+import org.jetbrains.anko.support.v4.ctx
 
 /**
  * We want to be able to open Artist details with either:
@@ -42,62 +44,67 @@ import org.jetbrains.anko.support.v4.selector
  * 3. artist id (from saved state)
  */
 class ArtistDetailsFragment: BaseFragment() {
-
-    @Arg lateinit var artistId: ArtistId
-    private lateinit var artist: ReceiveChannel<Artist>
-
-//    @Arg lateinit var artistId: ArtistId
-    @Arg(optional = true) var initialMode = Mode.LIBRARY
-
     enum class Mode {
         LIBRARY, REMOTE, LIBRARY_AND_REMOTE
     }
 
+    @Arg lateinit var artistId: ArtistId
+    // Procedural creation:
+    // init: artistId is known
+    //       create channel of found artist from id (maybe local or remote)
+    // onResume: start receiving events on the UI (reopen channels)
+    // onPause: stop receiving events to the UI (cancel channels)
+    // onResume: resume receiving events on the UI (reopen channels)
+    // onDestroy: get rid of any trace of channels, we don't care anymore
+
+    // Restoration:
+    // onCreate: load artistId from bundle and find it via a channel
+    private lateinit var artist: BroadcastChannel<Artist>
+
+//    @Arg lateinit var artistId: ArtistId
+    @Arg(optional = true) var initialMode = Mode.LIBRARY
+
     private val currentMode by lazy { ConflatedBroadcastChannel(initialMode) }
-    private lateinit var albums: AlbumsFragment
 
     companion object {
         fun fromId(id: ArtistId): ArtistDetailsFragment? {
-            val frag = ArtistDetailsFragmentStarter.newInstance(id).apply {
-                setupArtist(id)
-            }
+            val frag = ArtistDetailsFragmentStarter.newInstance(id)
             return frag
         }
 
         fun fromArtist(artist: Artist, mode: Mode = Mode.LIBRARY): ArtistDetailsFragment {
-            return ArtistDetailsFragmentStarter.newInstance(artist.id, mode).also {
-                it.artist = produceSingle(artist)
+            return ArtistDetailsFragment().also {
+                it.initialMode = mode
+                it.artistId = artist.id
+                it.artist = ConflatedBroadcastChannel(artist)
             }
         }
     }
 
-    // TODO: Generalize this some more
-    private fun setupArtist(id: ArtistId) {
-        artist = Library.instance.findArtist(id).map {
-            it ?: SearchApi.find(id)!!
-        }
-    }
 
     override fun onCreate() {
         super.onCreate()
 
-        val transDur = 250L
-        onApi(21) {
-            val trans = TransitionSet().setDuration(transDur)
-                .addTransition(ChangeBounds().setDuration(transDur))
-//                    .addTransition(ChangeImageTransform().setDuration(1500))
-                .addTransition(ChangeTransform().setDuration(transDur))
-                .addTransition(ChangeClipBounds().setDuration(transDur))
-
-            sharedElementEnterTransition = trans
-            sharedElementReturnTransition = trans
+        // TODO: Generalize this some more
+        if (!::artist.isInitialized) {
+            artist = Library.instance.findArtist(artistId).map {
+                it ?: SearchApi.find(artistId)!!
+            }.broadcast()
         }
 
-        enterTransition = Fade().setDuration(transDur)
+        val trans = TransitionSet()
+            .addTransition(ChangeBounds())
+            .addTransition(ChangeTransform())
+            .addTransition(ChangeClipBounds())
+
+        sharedElementEnterTransition = trans
+        sharedElementReturnTransition = trans
+
+        enterTransition = Fade()
 //        exitTransition = Fade().setDuration(transDur / 3)
     }
 
-    override fun makeView(ui: ViewManager): View = ui.coordinatorLayout {
+    override fun ViewManager.createView(): View = coordinatorLayout {
 //        val artist = if (artist != null) {
 //            produceSingle(artist!!)
 //        } else {
@@ -105,7 +112,7 @@ class ArtistDetailsFragment: BaseFragment() {
 //        }
 
         lateinit var tabs: TabLayout
-        themedAppBarLayout(R.style.AppTheme_AppBarOverlay) {
+        appBarLayout {
             backgroundColor = Color.TRANSPARENT
 
             lateinit var image: ImageView
@@ -144,24 +151,18 @@ class ArtistDetailsFragment: BaseFragment() {
                             Mode.LIBRARY_AND_REMOTE to "All"
                         )
 
-                        task(UI) {
-                            currentMode.consumeEach { mode ->
-                                text = getString(
-                                    R.string.artist_content_source,
-                                    choices.find { it.first == mode }!!.second
-                                )
-//                                albums.category.send(
-//                                    AlbumsFragment.Category.ByArtist(artist.copy(albums = listOf()), mode)
-//                                )
-                            }
+                        currentMode.consumeEach(UI) { mode ->
+                            text = getString(
+                                R.string.artist_content_source,
+                                choices.find { it.first == mode }!!.second
+                            )
                         }
 
-                        onClick {
-                            selector("Choose Display Mode", choices.map { it.second }) { dialog, idx ->
-                                val (choice, _) = choices[idx]
-                                currentMode puts choice
-                            }
-                        }
+//                        onClick(UI) {
+//                            it!!.context.selector("Choose Display Mode", choices) { dialog, choice ->
+//                                currentMode puts choice
+//                            }
+//                        }
                     }
 
                     generateChildrenIds()
@@ -206,30 +207,71 @@ class ArtistDetailsFragment: BaseFragment() {
                 standardStyle(UI)
                 title = artistId.displayName
                 transitionName = artistId.nameTransition
-//                artist.optionsMenu(menu)
-            }.lparams {
+                artist.consumeEach(UI) {
+                    menu.clear()
+                    it.optionsMenu(ctx, menu)
+                }
+            }.lparams(width = matchParent) {
                 scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL and AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
             }
 
-//            artist.loadArtwork(Glide.with(image)).consumeEach(UI) {
-//                it?.listener(artist.loadPalette(toolbar))
-//                    ?.into(image) ?: run {
-//                        image.imageResource = R.drawable.ic_default_album
-//                    }
-//            }
+            artist.openSubscription().switchMap { artist ->
+                artist.loadArtwork(Glide.with(image)).map {
+                    it?.listener(artist.loadPalette(toolbar))
+                }
+            }.consumeEach(UI) {
+                it?.into(image) ?: run {
+                    image.imageResource = R.drawable.ic_default_album
+                }
+            }
+
 
         }.lparams(width = matchParent, height = wrapContent)
 
 
         frameLayout {
             id = View.generateViewId()
-            fragment(fragmentManager, AlbumsFragmentStarter.newInstance(
+//            fragment(fragmentManager, AlbumsFragment.fromArtist(artist, currentMode.value) Starter.newInstance(
+//                AlbumsFragment.Category.ByArtist(artistId, currentMode.value),
+//                AlbumsFragment.SortBy.YEAR,
+//                3
+//            ).also {
+//                it.albums =
+//            })
+            fragment(AlbumsFragmentStarter.newInstance(
                 AlbumsFragment.Category.ByArtist(artistId, currentMode.value),
                 AlbumsFragment.SortBy.YEAR,
                 3
-            ).also {
-                it.albums = 
+            ).apply {
+                albums = artist.openSubscription()
+                    .combineLatest(currentMode.openSubscription())
+                    .switchMap(BG_POOL) { (artist, mode) ->
+                        val isLocal = artist is LocalArtist
+                        when (mode) {
+                            Mode.LIBRARY -> if (isLocal) {
+                                produceSingle(artist)
+                            } else Library.instance.findArtist(artist.id)
+                            Mode.LIBRARY_AND_REMOTE -> if (isLocal) {
+                                produceSingle(given(SearchApi.find(artist.id)) {
+                                    MergedArtist(artist, it)
+                                } ?: artist)
+                            } else {
+                                Library.instance.findArtist(artist.id).map {
+                                    if (it != null) {
+                                        MergedArtist(artist, it)
+                                    } else artist
+                                }
+                            }
+                            Mode.REMOTE -> if (isLocal) {
+                                produceSingle(SearchApi.find(artist.id) ?: artist)
+                            } else {
+                                produceSingle(artist)
+                            }
+                        }
+                    }.map { it!!.albums }
+                    .replayOne()
             })
+
         }.lparams(width = matchParent) {
             behavior = AppBarLayout.ScrollingViewBehavior()
         }

@@ -8,6 +8,7 @@ import android.text.InputType
 import android.view.View
 import android.view.ViewManager
 import android.widget.ArrayAdapter
+import android.widget.Spinner
 import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import com.loafofpiecrust.turntable.R
@@ -16,7 +17,7 @@ import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.service.library
-import com.loafofpiecrust.turntable.song.Music
+import com.loafofpiecrust.turntable.song.MusicId
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseActivity
@@ -33,7 +34,7 @@ import java.util.*
 class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
 
     @Parcelize
-    data class TrackList(val tracks: List<Music> = listOf()): Parcelable
+    data class TrackList(val tracks: List<MusicId> = listOf()): Parcelable
 
     @Arg(optional=true)
     var startingTracks = TrackList()
@@ -41,12 +42,14 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
     private var playlistName: String = ""
     private var playlistType: String = "Playlist"
     private var playlistColor: Int = UserPrefs.accentColor.value
+    private var mixTapeType = MixTape.Type.C60
 
     private lateinit var toolbar: Toolbar
 
-    override fun makeView(ui: ViewManager): View = ui.verticalLayout {
+    override fun ViewManager.createView(): View = verticalLayout {
         toolbar = toolbar {
             standardStyle(UI)
+            topPadding = dimen(R.dimen.statusbar_height)
             title = "New Collection"
         }.lparams(width=matchParent)
 
@@ -76,6 +79,7 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
                 }
             }
 
+            lateinit var mixTapeSpinner: Spinner
             spinner {
                 val choices = listOf(
                     "Playlist",
@@ -88,9 +92,24 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
                     onItemSelected { adapter, view, pos, id ->
                         val choice = choices[pos]
                         playlistType = choice
+                        mixTapeSpinner.visibility = if (choice == "Mixtape") {
+                            // Show different mixtape types.
+                            View.VISIBLE
+                        } else View.GONE
                     }
                 }
+            }
 
+            // Mixtape types
+            mixTapeSpinner = spinner {
+                visibility = View.GONE
+                val choices = MixTape.Type.values().toList()
+                adapter = ChoiceAdapter(ctx, choices)
+                onItemSelectedListener {
+                    onItemSelected { adapter, view, pos, id ->
+                        mixTapeType = choices[pos]
+                    }
+                }
             }
 
             linearLayout {
@@ -99,10 +118,10 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
                 }
                 button("Add Playlist").onClick {
                     val pl = when (playlistType) {
-                    // TODO: Use the actual user id string.
+                        // TODO: Use the actual user id string.
                         "Mixtape" -> MixTape(
-                            SyncService.selfUser.username,
-                            MixTape.Type.C60,
+                            SyncService.selfUser,
+                            mixTapeType,
                             playlistName,
                             playlistColor,
                             UUID.randomUUID()
@@ -112,7 +131,7 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
                             }
                         }
                         "Playlist" -> CollaborativePlaylist(
-                            SyncService.selfUser.username,
+                            SyncService.selfUser,
                             playlistName,
                             playlistColor,
                             UUID.randomUUID()
@@ -122,7 +141,7 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
                             }
                         }
                         "Album Collection" -> AlbumCollection(
-                            SyncService.selfUser.username,
+                            SyncService.selfUser,
                             playlistName,
                             playlistColor,
                             UUID.randomUUID()

@@ -1,7 +1,6 @@
 package com.loafofpiecrust.turntable.player
 
 import android.content.Context
-import android.os.Parcelable
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory
 import com.google.android.exoplayer2.source.ConcatenatingMediaSource
@@ -18,6 +17,7 @@ import com.loafofpiecrust.turntable.radio.CombinedQueue
 import com.loafofpiecrust.turntable.song.HistoryEntry
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.util.BG_POOL
+import com.loafofpiecrust.turntable.util.cancelSafely
 import com.loafofpiecrust.turntable.util.distinctSeq
 import com.loafofpiecrust.turntable.util.task
 import kotlinx.coroutines.experimental.Deferred
@@ -42,7 +42,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         IMMEDIATELY_NEXT // Will play _immediately_ after the current song
     }
 
-    interface Queue: Parcelable {
+    interface Queue {
         val list: List<Song>
         val position: Int
         val current: Song?
@@ -117,11 +117,13 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         .distinctSeq()
 
 
-    val bufferState: ReceiveChannel<BufferState> = produce(BG_POOL + subs) {
+    val bufferState: ReceiveChannel<BufferState> = produce(BG_POOL, parent = subs) {
         while (isActive) {
-            if (player.currentTimeline != null && player.currentTimeline.windowCount > 0) {
-                send(BufferState(player.duration, player.currentPosition, player.bufferedPosition))
-            }
+            try {
+                if (player.currentTimeline != null && player.currentTimeline.windowCount > 0) {
+                    send(BufferState(player.duration, player.currentPosition, player.bufferedPosition))
+                }
+            } finally {}
             delay(350)
         }
     }.distinctSeq()
@@ -146,7 +148,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
 
 
     fun release() {
-        subs.cancel()
+        subs.cancelSafely()
         player.release()
     }
 
@@ -277,12 +279,16 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         }
 
         val q = _queue.value
+        mediaSource?.clear()
         mediaSource = ConcatenatingMediaSource().apply {
-            addMediaSources(q.list.map {
-                StreamMediaSource(it, sourceFactory, extractorsFactory) { loaded ->
-                    if (loaded && !isPrepared) play()
-                    isPrepared = loaded
-                }
+            addMediaSources(q.list.mapIndexed { index, song ->
+                val cb: ((Boolean) -> Unit)? = if (index == q.position) {
+                    { loaded ->
+                        isPrepared = loaded
+                        if (loaded) play()
+                    }
+                } else null
+                StreamMediaSource(song, sourceFactory, extractorsFactory, cb)
             })
         }
         player.seekTo(q.position, 0)
@@ -360,6 +366,22 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
             pos == q.position + 1 -> playNext()
             else -> {
                 val q = _queue.value.shiftedPosition(pos)
+                _queue puts q as CombinedQueue
+
+                if (player.currentWindowIndex != q.position) {
+                    player.seekToDefaultPosition(q.position)
+                }
+            }
+        }
+    }
+
+    fun shiftQueuePositionRelative(diff: Int) {
+        val q = _queue.value
+        when (diff) {
+            -1 -> playPrevious()
+            1 -> playNext()
+            else -> {
+                val q = _queue.value.shiftedPosition(q.position + diff)
                 _queue puts q as CombinedQueue
 
                 if (player.currentWindowIndex != q.position) {

@@ -1,10 +1,9 @@
 package com.loafofpiecrust.turntable.util
 
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.Unconfined
-import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.*
 import kotlin.coroutines.experimental.CoroutineContext
+import kotlin.coroutines.experimental.coroutineContext
 
 
 fun <T, R> ReceiveChannel<T>.switchMap(
@@ -14,15 +13,16 @@ fun <T, R> ReceiveChannel<T>.switchMap(
     var lastJob: Job? = null
     consumeEach {
         lastJob?.cancel()
-        lastJob = async(context) {
+        lastJob = launch(coroutineContext) {
             f(it).consumeEach { send(it) }
         }
     }
 }
 
 fun <T> ReceiveChannel<T>.replayOne(context: CoroutineContext = BG_POOL): ConflatedBroadcastChannel<T> {
+//    return broadcast(Channel.CONFLATED) as ConflatedBroadcastChannel<T>
     val chan = ConflatedBroadcastChannel<T>()
-    task(context) {
+    launch(context) {
         consumeEach {
             chan.offer(it)
         }
@@ -31,12 +31,12 @@ fun <T> ReceiveChannel<T>.replayOne(context: CoroutineContext = BG_POOL): Confla
 }
 
 
-inline fun <E, R> ReceiveChannel<E>.combineLatest(
+fun <E, R> ReceiveChannel<E>.combineLatest(
     other: ReceiveChannel<R>,
     context: CoroutineContext = Unconfined
 ): ReceiveChannel<Pair<E, R>> = combineLatest(other, context) { a, b -> a to b }
 
-inline fun <A, B, C> ReceiveChannel<A>.combineLatest(
+fun <A, B, C> ReceiveChannel<A>.combineLatest(
     b: ReceiveChannel<B>,
     c: ReceiveChannel<B>,
     context: CoroutineContext = Unconfined
@@ -69,12 +69,12 @@ fun <A, B, R> ReceiveChannel<A>.combineLatest(
 
     var job: Job? = null
     sourceB.consumeEach {
-        job?.cancel()
+        job?.cancelSafely()
         latestB = it
         if (latestA != null) {
             send(combineFunction(latestA!!, it))
         }
-        job = async(context) {
+        job = launch(coroutineContext) {
             sourceA.consumeEach {
                 latestA = it
                 send(combineFunction(it, latestB))
@@ -107,13 +107,13 @@ fun <A, B, C, R> ReceiveChannel<A>.combineLatest(
         return@produce
     }
 
-    val atask = async(context) {
+    val atask = launch(coroutineContext) {
         sourceA.consumeEach {
             a = it
             send(combineFunction(it, b, c))
         }
     }
-    val ctask = async(context) {
+    val ctask = launch(coroutineContext) {
         sourceC.consumeEach {
             c = it
             send(combineFunction(a, b, it))
@@ -123,8 +123,7 @@ fun <A, B, C, R> ReceiveChannel<A>.combineLatest(
         b = it
         send(combineFunction(a, it, c))
     }
-    atask.await()
-    ctask.await()
+    joinAll(atask, ctask)
 }
 
 
@@ -148,7 +147,7 @@ fun <T> ReceiveChannel<T>.interrupt(context: CoroutineContext = Unconfined): Rec
         consume {
             for (e in this) {
                 job?.cancel()
-                job = task(context) { receive() }
+                job = launch(coroutineContext) { send(e) }
             }
         }
     }
@@ -166,25 +165,25 @@ fun <T> ReceiveChannel<T>.distinctSeq(context: CoroutineContext = Unconfined): R
 
 val <T> ConflatedBroadcastChannel<T>.hasValue inline get() = (valueOrNull != null)
 
-fun <E> BroadcastChannel<E>.consumeEach(
+inline fun <E> BroadcastChannel<E>.consumeEach(
     ctx: CoroutineContext,
-    action: suspend (E) -> Unit
-) = task(ctx) { consumeEach {
+    crossinline action: suspend (E) -> Unit
+) = async(ctx) { consumeEach {
     try { action(it) } catch (e: Throwable) {
         e.printStackTrace()
     }
 } }
+//
+//inline fun <E, R> BroadcastChannel<E>.consume(
+//    ctx: CoroutineContext,
+//    noinline action: suspend ReceiveChannel<E>.() -> R
+//) = task(ctx) { consume { action(this) } }
 
-inline fun <E, R> BroadcastChannel<E>.consume(
+
+inline fun <E> ReceiveChannel<E>.consumeEach(
     ctx: CoroutineContext,
-    noinline action: suspend SubscriptionReceiveChannel<E>.() -> R
-) = task(ctx) { consume { action(this) } }
-
-
-fun <E> ReceiveChannel<E>.consumeEach(
-    ctx: CoroutineContext,
-    action: suspend (E) -> Unit
-) = task(ctx) { consumeEach {
+    crossinline action: suspend (E) -> Unit
+) = async(ctx) { consumeEach {
     try {
         action(it)
     } catch (e: Throwable) {
@@ -194,5 +193,8 @@ fun <E> ReceiveChannel<E>.consumeEach(
 
 inline fun <E, R> ReceiveChannel<E>.consume(
     ctx: CoroutineContext,
-    noinline action: suspend ReceiveChannel<E>.() -> R
-) = task(ctx) { consume { action(this) } }
+    crossinline action: suspend ReceiveChannel<E>.() -> R
+) = async(ctx) { consume { action(this) } }
+
+
+fun <T> Deferred<T>.toChannel() = produce(Unconfined) { send(await()) }

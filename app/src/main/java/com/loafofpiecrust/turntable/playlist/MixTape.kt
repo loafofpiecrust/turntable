@@ -6,19 +6,22 @@ package com.loafofpiecrust.turntable.playlist
 //import org.bson.Document
 //import org.bson.types.Binary
 //import org.bson.types.ObjectId
+import android.content.Context
+import com.google.firebase.firestore.Blob
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.util.suspendedTask
-import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.map
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.AnkoLogger
+import org.jetbrains.anko.selector
+import org.jetbrains.anko.toast
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -26,9 +29,8 @@ import java.util.concurrent.TimeUnit
  * Playlist with a time limit and (possibly) multiple sides (eg. A Side, B Side, C Side)
  * Question: How should users browse mixtapes? By tag? popularity? recent?
  */
-@Parcelize
 class MixTape(
-    override val owner: String,
+    override val owner: SyncService.User,
     var type: Type,
     override var name: String,
     override var color: Int?,
@@ -38,7 +40,7 @@ class MixTape(
         get() = "Mix Tape"
 
     /// For serialization
-    constructor(): this("", Type.C60, "", null, UUID.randomUUID())
+    constructor(): this(SyncService.User(), Type.C60, "", null, UUID.randomUUID())
 
     enum class Type(
         val sideCount: Int,
@@ -50,78 +52,26 @@ class MixTape(
         C120(2, 60);
 
         val totalLength get() = sideCount * sideLength
+        fun sideName(index: Int): String = ('A' + index) + " Side"
+        val sideNames: List<String> get() = (0 until sideCount).map(::sideName)
     }
 
     companion object: AnkoLogger {
         fun fromDocument(doc: DocumentSnapshot): MixTape = run {
             MixTape(
-                doc.getString("owner")!!,
+                App.kryo.concreteFromBytes(doc.getBlob("owner")!!.toBytes()),
                 Type.valueOf(doc.getString("type")!!),
                 doc.getString("name")!!,
                 doc.getLong("color")?.toInt(),
                 UUID.fromString(doc.id)
             ).apply {
                 _tracks puts App.kryo.objectFromBytes(
-                    doc.getString("tracks")!!.toByteArray(Charsets.ISO_8859_1)
+                    doc.getBlob("tracks")!!.toBytes()
                 )
                 lastModified = doc.getDate("lastModified")!!
                 isPublished = true
             }
         }
-
-//        private val stitchClient by lazy {
-//            StitchClient(App.instance, "turntable-akvca")
-//        }
-//        private val databaseClient by lazy {
-//            MongoClient(stitchClient, "mongodb-atlas")
-//        }
-//        private val database by lazy {
-//            databaseClient
-//                .getDatabase("TurntableMixTapes")
-//                .getCollection("mixtapes")
-////                .apply {
-////                    // 1 = ascending, -1 = descending
-////                    createIndex(Indexes.text("id"))
-////                    createIndex(Document(mapOf("type" to 1)))
-////                    createIndex(Document(mapOf("lastModified" to -1)))
-////                }
-//        }
-//        private val databaseUser by lazy {
-//            stitchClient.logInWithProvider(AnonymousAuthProvider())
-//        }
-//
-//        private fun fromBson(doc: Document): MixTape {
-//            val mix = MixTape(
-//                App.kryo.concreteFromBytes((doc["type"] as Binary).data),
-//                doc.getString("id"),
-//                tryOrNull { doc.getInteger("color") },
-//                doc.getObjectId("_id"),
-//                tryOrNull { doc.getString("userId") }
-//            )
-//            mix.lastModified = doc.getLong("lastModified")
-//            mix._tracks puts App.kryo.objectFromBytes((doc["tracks"] as Binary).data, decompress=true)
-//            return mix
-//        }
-
-//        fun queryMostRecent(asOldAs: Long, limit: Int = 100): Deferred<List<MixTape>> {
-//            return promise { cont ->
-//                databaseUser.continueWith {
-//                    val now = System.currentTimeMillis()
-//                    database.find(Document(mapOf(
-//                        "lastModified" to mapOf("\$gt" to (now - asOldAs))
-//                    )), limit).addOnCompleteListener {
-//                        cont.resume(
-//                            try {
-//                                it.result.mapNotNull { tryOrNull { fromBson(it) } }
-//                            } catch (e: Throwable) {
-//                                warn("Failed to load recent mixtapes from MongoDB", e)
-//                                listOf<MixTape>()
-//                            }
-//                        )
-//                    }
-//                }
-//            }
-//        }
 
         suspend fun queryMostRecent(daysOld: Long, limit: Int = 100): List<MixTape> {
             return suspendedTask<List<MixTape>> { cont ->
@@ -133,20 +83,7 @@ class MixTape(
                     .get()
                     .addOnCompleteListener {
                         if (it.isSuccessful) {
-                           cont.resume(it.result.mapNotNull {
-                               val mt = MixTape(
-                                   it.getString("owner")!!,
-                                   Type.valueOf(it.getString("type")!!),
-                                   it.getString("name")!!,
-                                   it.getLong("color")?.toInt(),
-                                   UUID.fromString(it.id)
-                               )
-                               mt._tracks puts App.kryo.objectFromBytes(
-                                   it.getString("tracks")!!.toByteArray(Charsets.ISO_8859_1)
-                               )
-                               mt.lastModified = it.getDate("lastModified")!!
-                               mt
-                           })
+                            cont.resume(it.result.map(::fromDocument))
                         } else {
                             cont.resume(listOf())
                         }
@@ -164,20 +101,7 @@ class MixTape(
                     .get()
                     .addOnCompleteListener {
                         if (it.isSuccessful) {
-                           cont.resume(it.result.mapNotNull {
-                               val mt = MixTape(
-                                   it.getString("owner")!!,
-                                   Type.valueOf(it.getString("type")!!),
-                                   it.getString("name")!!,
-                                   it.getLong("color")?.toInt(),
-                                   UUID.fromString(it.id)
-                               )
-                               mt._tracks puts App.kryo.objectFromBytes(
-                                   it.getString("tracks")!!.toByteArray(Charsets.ISO_8859_1)
-                               )
-                               mt.lastModified = it.getDate("lastModified")!!
-                               mt
-                           })
+                           cont.resume(it.result.map(::fromDocument))
                         } else {
                             cont.resume(listOf())
                         }
@@ -213,7 +137,7 @@ class MixTape(
         runBlocking { tracksOnSide(sideIdx).first() }.sumBy { it.duration }.toLong()
     )
 
-    private fun sideIsFull(sideIdx: Int) =
+    fun sideIsFull(sideIdx: Int) =
         durationOfSide(sideIdx) >= type.sideLength
 
     /**
@@ -275,8 +199,8 @@ class MixTape(
                 "color" to color,
                 "lastModified" to lastModified,
                 "createdTime" to createdTime,
-                "tracks" to App.kryo.objectToBytes(_tracks.value).toString(Charsets.ISO_8859_1),
-                "owner" to owner
+                "tracks" to Blob.fromBytes(App.kryo.objectToBytes(_tracks.value)),
+                "owner" to Blob.fromBytes(App.kryo.concreteToBytes(owner))
             ))
         isPublished = true
 //        databaseUser.continueWith {
@@ -296,5 +220,16 @@ class MixTape(
 //                debug { "success? ${it.isSuccessful}. result: ${it.result}" }
 //            }
 //        }
+    }
+}
+
+// Extensions!!
+fun MixTape.add(ctx: Context, song: Song) {
+    ctx.selector(ctx.getString(R.string.mixtape_pick_side), type.sideNames) { dialog, idx ->
+        val wasAdded = add(idx, song)
+        ctx.toast(
+            if (wasAdded) ctx.getString(R.string.playlist_added_track, name)
+            else ctx.getString(R.string.playlist_is_full, name)
+        )
     }
 }

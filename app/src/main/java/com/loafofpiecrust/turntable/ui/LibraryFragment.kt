@@ -7,60 +7,55 @@ import android.view.View
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumsFragment
-import com.loafofpiecrust.turntable.album.AlbumsFragmentStarter
 import com.loafofpiecrust.turntable.artist.ArtistsFragment
 import com.loafofpiecrust.turntable.artist.ArtistsFragmentStarter
-import com.loafofpiecrust.turntable.bindCurrentPage
 import com.loafofpiecrust.turntable.browse.BrowseFragment
 import com.loafofpiecrust.turntable.playlist.PlaylistsFragment
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.song.SongsFragment
-import com.loafofpiecrust.turntable.song.SongsFragmentStarter
 import com.loafofpiecrust.turntable.sync.SyncTabFragment
 import com.loafofpiecrust.turntable.util.combineLatest
 import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.replayOne
+import com.loafofpiecrust.turntable.util.task
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.map
-import kotlinx.coroutines.experimental.channels.zip
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.design.tabLayout
 import org.jetbrains.anko.design.themedAppBarLayout
+import org.jetbrains.anko.support.v4.onPageChangeListener
 import org.jetbrains.anko.support.v4.viewPager
+import java.lang.ref.WeakReference
 
 @MakeActivityStarter
 class LibraryFragment: BaseFragment() {
     private val tabs = UserPrefs.libraryTabs.openSubscription()
         .map { it.toList() }.replayOne()
+//    private val tabs = ConflatedBroadcastChannel(listOf("Artists", "Albums"))
 
-    private val tabFragments = tabs.openSubscription().map { it.map { when (it) {
-        "Albums" -> AlbumsFragmentStarter.newInstance(AlbumsFragment.Category.All(), AlbumsFragment.SortBy.TITLE) // albums
-        "Songs" -> SongsFragmentStarter.newInstance(SongsFragment.Category.All()) // all songs yo
-        "Artists" -> ArtistsFragmentStarter.newInstance(ArtistsFragment.Category.All()) // artists
-        "Playlists" -> PlaylistsFragment() // playlists!
-        "Friends" -> SyncTabFragment()
-        "Recommendations" -> BrowseFragment()
-        else -> throw IllegalStateException()
-    } } }.replayOne()
     lateinit var tabsAdapter: TabsPager
 
+//    private lateinit var currentTabIdx: ReceiveChannel<Int>
     private val currentTabIdx = ConflatedBroadcastChannel<Int>()
 
     val currentTab get() = currentTabIdx.openSubscription()
         .combineLatest(tabs.openSubscription()) { idx, tabs -> tabs[idx] }
 
-    private val currentTabFragment get() = currentTabIdx.openSubscription()
-        .combineLatest(tabFragments.openSubscription()) { idx, tabs -> tabs[idx] }
+    val fragments = mutableMapOf<String, WeakReference<BaseFragment>>()
+
+//    private val currentTabFragment get() = currentTabIdx.openSubscription()
+//        .combineLatest(tabFragments.openSubscription()) { idx, tabs -> tabs[idx] }
 
     inner class TabsPager(
         private val tabs: List<String>,
-        private val fragments: List<BaseFragment>
+        private val fragments: (String) -> BaseFragment
     ) : FragmentPagerAdapter(childFragmentManager) {
-        override fun getCount() = maxOf(tabs.size, fragments.size)
+        override fun getCount() = tabs.size
 
         // TODO: Map the index to the correct tab. For now, hardcode.
-        override fun getItem(position: Int) = fragments.getOrNull(position)
+        override fun getItem(position: Int) = fragments.invoke(tabs[position])
 //
 //        override fun getPageTitle(position: Int) = when(position) {
 //            0 -> "Albums"
@@ -74,7 +69,17 @@ class LibraryFragment: BaseFragment() {
     }
 
 
-    override fun makeView(ui: ViewManager): View = ui.verticalLayout {
+    override fun ViewManager.createView(): View = verticalLayout {
+        val tabFragments = { key: String -> when (key) {
+            "Albums" -> AlbumsFragment.all()
+            "Songs" -> SongsFragment.all() // all songs yo
+            "Artists" -> ArtistsFragmentStarter.newInstance(ArtistsFragment.Category.All()) // artists
+            "Playlists" -> PlaylistsFragment() // playlists!
+            "Friends" -> SyncTabFragment()
+            "Recommendations" -> BrowseFragment()
+            else -> throw IllegalStateException()
+        }.also { fragments[key] = WeakReference(it) } }
+
         var tabs: TabLayout? = null
 
         themedAppBarLayout(R.style.AppTheme_AppBarOverlay) {
@@ -84,7 +89,7 @@ class LibraryFragment: BaseFragment() {
                 backgroundColor = it
             }
             toolbar {
-                MainActivity.latest.setSupportActionBar(this)
+                //                MainActivity.latest.setSupportActionBar(this)
 //                fitsSystemWindows = true
                 UserPrefs.primaryColor.consumeEach(UI) {
                     backgroundColor = it
@@ -92,10 +97,11 @@ class LibraryFragment: BaseFragment() {
 
                 title = "Turntable"
                 popupTheme = R.style.AppTheme_PopupOverlay
-                currentTabFragment.consumeEach(UI) {
-                    menu.clear()
-                    it.onCreateOptionsMenu(menu, null)
-                    Unit
+                task(UI) {
+                    currentTab.consumeEach {
+                        menu.clear()
+                        fragments[it]?.get()?.onCreateOptionsMenu(menu, null)
+                    }
                 }
 
 //                menuItem("Search", R.drawable.ic_search, showIcon = true) {
@@ -163,18 +169,20 @@ class LibraryFragment: BaseFragment() {
 
             tabs = tabLayout {
                 tabMode = TabLayout.MODE_SCROLLABLE
+//                onTabSelectedListener {
+//                    onTabSelected { it?. }
+//                }
             }
         }.lparams(width=matchParent, height=wrapContent)
 
 
         val pager = viewPager {
             id = R.id.container
-            tabFragments.openSubscription().zip(
-                this@LibraryFragment.tabs.openSubscription()
-            ).consumeEach(UI) { (frags, tabs) ->
-                adapter = TabsPager(tabs, frags)
+            this@LibraryFragment.tabs.openSubscription().consumeEach(UI) { tabs ->
+                adapter = TabsPager(tabs, tabFragments)
                 invalidate()
                 requestLayout()
+                currentTabIdx.offer(currentItem)
             }
 //            adapter = TabsPager(childFragmentManager).also { adapter ->
 //                tabsAdapter = adapter
@@ -184,8 +192,11 @@ class LibraryFragment: BaseFragment() {
 //                    requestLayout()
 //                }
 //            }
-
-            bindCurrentPage(currentTabIdx, jobs)
+            onPageChangeListener {
+                onPageSelected {
+                    currentTabIdx.offer(it)
+                }
+            }
             offscreenPageLimit = 3
         }.lparams {
             width = matchParent

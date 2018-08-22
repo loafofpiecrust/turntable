@@ -1,8 +1,10 @@
 package com.loafofpiecrust.turntable.album
 
 //import com.loafofpiecrust.turntable.model.PaperParcelAlbum
+import android.content.Context
 import android.graphics.drawable.Drawable
 import android.os.Parcelable
+import android.support.design.widget.CollapsingToolbarLayout
 import android.support.v7.graphics.Palette
 import android.support.v7.widget.CardView
 import android.support.v7.widget.Toolbar
@@ -21,22 +23,19 @@ import com.loafofpiecrust.turntable.menuItem
 import com.loafofpiecrust.turntable.onClick
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.playlist.PlaylistPickerDialogStarter
+import com.loafofpiecrust.turntable.playlist.PlaylistPickerDialog
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.*
-import com.loafofpiecrust.turntable.sync.FriendPickerDialog
-import com.loafofpiecrust.turntable.ui.MainActivity
-import com.loafofpiecrust.turntable.util.compareValuesByIgnoreCase
-import com.loafofpiecrust.turntable.util.success
+import com.loafofpiecrust.turntable.sync.FriendPickerDialogStarter
 import com.loafofpiecrust.turntable.util.task
+import com.loafofpiecrust.turntable.util.then
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.backgroundColor
-import org.jetbrains.anko.ctx
 import org.jetbrains.anko.textColor
 import java.io.Serializable
 import java.util.*
@@ -135,11 +134,8 @@ data class AlbumId(
         res
     }
 
-    override fun compareTo(other: AlbumId): Int {
-        return compareValuesByIgnoreCase(this, other, arrayOf(
-            { it -> it.sortTitle }, { it -> it.artist.sortName }
-        ))
-    }
+    override fun compareTo(other: AlbumId): Int
+        = Library.ALBUM_COMPARATOR.compare(this, other)
 }
 
 //@PaperParcel
@@ -319,13 +315,12 @@ data class AlbumId(
 
 fun loadPalette(id: MusicId, views: Array<out View>) =
     loadPalette(id) { palette, swatch ->
-        val color = if (swatch == null) {
+        val color = if (palette == null || swatch == null) {
             val textColor = views[0].resources.getColor(R.color.text)
             views.forEach {
-                if (it is Toolbar) {
-                    it.setTitleTextColor(textColor)
-                } else if (it is TextView) {
-                    it.textColor = textColor
+                when (it) {
+                    is Toolbar -> it.setTitleTextColor(textColor)
+                    is TextView -> it.textColor = textColor
                 }
             }
 //            view.resources.getColor(R.color.primary)
@@ -342,10 +337,10 @@ fun loadPalette(id: MusicId, views: Array<out View>) =
             swatch.rgb
         }
         views.forEach {
-            if (it is CardView) {
-                it.setCardBackgroundColor(color)
-            } else if (it !is TextView) {
-                it.backgroundColor = color
+            when (it) {
+                is CardView -> it.setCardBackgroundColor(color)
+                is CollapsingToolbarLayout -> it.setContentScrimColor(color)
+                !is TextView -> it.backgroundColor = color
             }
         }
     }
@@ -415,13 +410,11 @@ interface Album: Music {
     fun mergeWith(other: Album): Album
 
     override val simpleName: String get() = id.displayName
-    override fun optionsMenu(menu: Menu) {
-        val ctx = MainActivity.latest.ctx
-
+    override fun optionsMenu(ctx: Context, menu: Menu) {
         menu.menuItem("Shuffle", R.drawable.ic_shuffle, showIcon=false).onClick {
             task {
                 Library.instance.songsOnAlbum(id).first()
-            }.success { tracks ->
+            }.then { tracks ->
                 given(tracks) {
                     if (it.isNotEmpty()) {
                         MusicService.enact(SyncService.Message.PlaySongs(it, mode = MusicPlayer.OrderMode.SHUFFLE))
@@ -431,30 +424,24 @@ interface Album: Music {
         }
 
         menu.menuItem("Recommend").onClick {
-            FriendPickerDialog().apply {
-                onAccept = {
-                    SyncService.send(
-                        SyncService.Message.Recommendation(this@Album),
-                        SyncService.Mode.OneOnOne(it)
-                    )
-                }
-            }.show()
+            FriendPickerDialogStarter.newInstance(
+                SyncService.Message.Recommendation(this@Album.id),
+                "Send Recommendation"
+            ).show(ctx)
         }
 
         menu.menuItem("Add to Collection").onClick {
-            PlaylistPickerDialogStarter.newInstance(this@Album).show()
+            PlaylistPickerDialog(this@Album).show(ctx)
         }
     }
 
 
     fun loadCover(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?>
         = Library.instance.loadAlbumCover(req, id).map {
-            (
-                it ?: given(SearchApi.fullArtwork(this, true)) {
-                    req.load(it)
+            (it ?: given(SearchApi.fullArtwork(this, true)) {
+                req.load(it)
 //                    .thumbnail(req.load(remote?.thumbnailUrl).apply(Library.ARTWORK_OPTIONS))
-                }
-            )?.apply(Library.ARTWORK_OPTIONS
+            })?.apply(Library.ARTWORK_OPTIONS
                 .signature(ObjectKey("${id}full"))
             )
         }
@@ -462,5 +449,5 @@ interface Album: Music {
     fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> = loadCover(req)
 
     fun loadPalette(vararg views: View)
-        = loadPalette(id, views = views)
+        = loadPalette(id, views)
 }

@@ -1,7 +1,7 @@
 package com.loafofpiecrust.turntable.util
 
 
-fun <T: Any> compareByIgnoreCase(vararg selectors: (T) -> String): Comparator<T> {
+inline fun <T: Any> compareByIgnoreCase(vararg selectors: (T) -> String): Comparator<T> {
     require(selectors.isNotEmpty())
     return Comparator { a, b -> compareValuesByIgnoreCase(a, b, selectors) }
 //    return compareBy(selectors)

@@ -6,9 +6,7 @@ import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.with
 import com.loafofpiecrust.turntable.without
-import kotlinx.android.parcel.Parcelize
 
-@Parcelize
 data class CombinedQueue(
     val primary: MusicPlayer.Queue,
     val nextUp: List<Song>,

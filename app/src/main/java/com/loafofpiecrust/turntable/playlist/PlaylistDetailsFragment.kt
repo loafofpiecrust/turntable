@@ -12,15 +12,17 @@ import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.song.SongsFragmentStarter
-import com.loafofpiecrust.turntable.sync.FriendPickerDialog
+import com.loafofpiecrust.turntable.style.standardStyle
+import com.loafofpiecrust.turntable.sync.FriendPickerDialogStarter
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.popMainContent
 import com.loafofpiecrust.turntable.util.BG_POOL
+import com.loafofpiecrust.turntable.util.replayOne
 import com.loafofpiecrust.turntable.util.task
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.*
-import org.jetbrains.anko.appcompat.v7.themedToolbar
+import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.support.v4.alert
 import org.jetbrains.anko.support.v4.ctx
@@ -56,7 +58,7 @@ class PlaylistDetailsFragment: BaseFragment() {
         exitTransition = Slide()
     }
 
-    override fun makeView(ui: ViewManager): View = ui.verticalLayout {
+    override fun ViewManager.createView(): View = verticalLayout {
 //        fitsSystemWindows = true
 
         playlist = runBlocking {
@@ -69,11 +71,12 @@ class PlaylistDetailsFragment: BaseFragment() {
         }
 
             appBarLayout {
-//                fitsSystemWindows = true
+                //                fitsSystemWindows = true
                 given(playlist.color) { backgroundColor = it }
                 topPadding = dimen(R.dimen.statusbar_height)
 
-                themedToolbar(R.style.AppTheme_DetailsToolbar) {
+                toolbar {
+                    standardStyle(UI)
 //                    fitsSystemWindows = true
                     title = playlistTitle
                     transitionName = playlistId.toString()
@@ -84,24 +87,42 @@ class PlaylistDetailsFragment: BaseFragment() {
                             lateinit var editor: EditText
                             customView {
                                 editor = editText(playlist.name) {
+                                    lines = 1
                                     maxLines = 1
                                 }
                             }
                             positiveButton("Rename") {
                                 val name = editor.text.toString()
                                 playlist.rename(name)
-                                this@themedToolbar.title = name
+                                this@toolbar.title = name
                             }
                             negativeButton("Cancel") {}
                         }.show()
                     }
 
+//                    menuItem("Change Color", showIcon = false).onClick {
+//                        ColorPickerDialog().apply {
+//                            setColorPickerDialogListener(object: ColorPickerDialogListener {
+//                                override fun onDialogDismissed(dialogId: Int) {
+//
+//                                }
+//
+//                                override fun onColorSelected(dialogId: Int, color: Int) {
+//                                    playlist.color = color
+//                                    this@appBarLayout.backgroundColor = color
+//                                }
+//                            })
+//                        }.show(activity!!.supportFragmentManager, "colors")
+//                    }
+
                     menuItem("Delete", showIcon = false).onClick {
                         alert("Delete playlist '${playlist.name}'") {
                             positiveButton("Delete") {
-                                task { UserPrefs.playlists putsMapped {
-                                    it.withoutFirst { it.id == playlistId }
-                                } }
+                                task {
+                                    UserPrefs.playlists putsMapped {
+                                        it.withoutFirst { it.id == playlistId }
+                                    }
+                                }
                                 ctx.popMainContent()
                             }
                             negativeButton("Cancel") {}
@@ -125,14 +146,10 @@ class PlaylistDetailsFragment: BaseFragment() {
                     }
 
                     menuItem("Share", showIcon = false).onClick {
-                        FriendPickerDialog().apply {
-                            onAccept = {
-                                SyncService.send(
-                                    SyncService.Message.Playlist(playlistId),
-                                    SyncService.Mode.OneOnOne(it)
-                                )
-                            }
-                        }.show()
+                        FriendPickerDialogStarter.newInstance(
+                            SyncService.Message.Playlist(playlistId),
+                            "Share"
+                        ).show(ctx)
                     }
 
                     // TODO: Only show if playlist isn't already saved.
@@ -144,18 +161,19 @@ class PlaylistDetailsFragment: BaseFragment() {
                         playlist.isCompletable = true
                     }
 
-                }.lparams(width=matchParent, height=dimen(R.dimen.toolbar_height)) {
-//                    scrollFlags = SCROLL_FLAG_SCROLL and SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
+                }.lparams(width = matchParent, height = dimen(R.dimen.toolbar_height)) {
+                    //                    scrollFlags = SCROLL_FLAG_SCROLL and SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
                 }
             }.lparams(width= matchParent)
 
             frameLayout {
-                id = R.id.container
                 fragment(
-                    childFragmentManager,
                     SongsFragmentStarter.newInstance(
                         SongsFragment.Category.Playlist(playlistId)
-                    )
+                    ).apply {
+                        songs = playlist.tracks.replayOne()
+                    },
+                    childFragmentManager
                 )
             }.lparams(width = matchParent, height = matchParent) {
 //                behavior = AppBarLayout.ScrollingViewBehavior()

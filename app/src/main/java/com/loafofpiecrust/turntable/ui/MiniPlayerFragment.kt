@@ -22,12 +22,7 @@ import org.jetbrains.anko.sdk25.coroutines.onClick
 
 class MiniPlayerFragment: BaseFragment() {
 
-    override fun makeView(ui: ViewManager) = ui.linearLayout {
-//        lparams {
-//            height = dimen(R.dimen.mini_player_height)
-//            width = matchParent
-//            onApi(21) { elevation = 1f }
-//        }
+    override fun ViewManager.createView() = linearLayout {
         gravity = Gravity.CENTER_VERTICAL
         backgroundColor = Color.TRANSPARENT
 
@@ -55,7 +50,8 @@ class MiniPlayerFragment: BaseFragment() {
         imageButton(R.drawable.ic_play_arrow) {
             backgroundResource = R.drawable.round_selector_dark
             padding = dip(16)
-            MusicService.instance.filterNotNull().switchMap {
+
+            MusicService.instance.switchMap {
                 it.player.isPlaying
             }.consumeEach(UI) {
                 imageResource = if (it) {
@@ -68,7 +64,7 @@ class MiniPlayerFragment: BaseFragment() {
             }
         }.lparams(height = matchParent)
 
-        MusicService.instance.filterNotNull().switchMap {
+        MusicService.instance.switchMap {
             it.player.currentSong.filterNotNull()
         }.consumeEach(UI) { song ->
             mainLine.text = song.id.displayName
@@ -82,8 +78,8 @@ class MiniPlayerFragment: BaseFragment() {
                     }
                     backgroundColor = swatch?.rgb ?: Color.TRANSPARENT
                 })?.into(cover) ?: run {
-                cover.imageResource = R.drawable.ic_default_album
-            }
+                    cover.imageResource = R.drawable.ic_default_album
+                }
         }
     }
 

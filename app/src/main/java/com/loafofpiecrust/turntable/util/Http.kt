@@ -79,7 +79,8 @@ object Http {
             .headers(Headers.of(headers))
             .build()
         return suspendCoroutine { cont ->
-            client.newCall(req).enqueue(object: Callback {
+            val call = client.newCall(req)
+            call.enqueue(object: Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     cont.resumeWithException(e)
                 }

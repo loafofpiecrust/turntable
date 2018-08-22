@@ -1,26 +1,26 @@
 package com.loafofpiecrust.turntable.playlist
 
+import com.google.firebase.firestore.Blob
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.album.Album
+import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
-import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.map
 import java.util.*
 
 
-@Parcelize
 class AlbumCollection(
-    override val owner: String,
+    override val owner: SyncService.User,
     override var name: String,
     override var color: Int?,
     override val id: UUID
 ) : Playlist(owner, name, color) {
     /// For serialization
-    private constructor(): this("", "", null, UUID.randomUUID())
+    private constructor(): this(SyncService.User(), "", null, UUID.randomUUID())
 
     private val _albums = ConflatedBroadcastChannel(listOf<Album>())
 
@@ -35,14 +35,14 @@ class AlbumCollection(
     companion object {
         fun fromDocument(doc: DocumentSnapshot): AlbumCollection {
             return AlbumCollection(
-                doc.getString("owner")!!,
+                App.kryo.concreteFromBytes(doc.getBlob("owner")!!.toBytes()),
                 doc.getString("name")!!,
                 doc.getLong("color")?.toInt(),
                 UUID.fromString(doc.id)
             ).apply {
                 isPublished = true
                 _albums puts App.kryo.objectFromBytes(
-                    doc.getString("albums")!!.toByteArray(Charsets.ISO_8859_1),
+                    doc.getBlob("albums")!!.toBytes(),
                     decompress = true
                 )
             }
@@ -89,11 +89,11 @@ class AlbumCollection(
             .document(id.toString())
             .set(mapOf(
                 "format" to "albums",
-                "owner" to owner,
+                "owner" to Blob.fromBytes(App.kryo.concreteToBytes(owner)),
                 "name" to name,
                 "color" to color,
                 "lastModified" to lastModified,
-                "albums" to App.kryo.objectToBytes(_albums.value, compress=true).toString(Charsets.ISO_8859_1)
+                "albums" to Blob.fromBytes(App.kryo.objectToBytes(_albums.value, compress=true))
             ))
         isPublished = true
     }

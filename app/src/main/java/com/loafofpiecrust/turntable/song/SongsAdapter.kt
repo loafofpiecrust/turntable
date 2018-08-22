@@ -69,14 +69,14 @@ open class SongsAdapter(
         val ctx = holder.card.context
 
         val subs = Job()
-        progressSubs.put(holder, subs)?.cancel()
+        progressSubs.put(holder, subs)?.cancelSafely()
 
 //        holder.item = song
         holder.mainLine.text = song.id.displayName
         when (category) {
             is SongsFragment.Category.All -> {
                 holder.subLine.text = song.id.artist.displayName
-                holder.track.visibility = View.GONE
+                holder.track.visibility = View.INVISIBLE
             }
             is SongsFragment.Category.ByArtist -> {
                 holder.subLine.text = song.id.album.toString()
@@ -188,7 +188,7 @@ open class SongsAdapter(
                     MusicService.enact(SyncService.Message.Enqueue(listOf(song), MusicPlayer.EnqueueMode.IMMEDIATELY_NEXT))
                 }
             }
-            song.optionsMenu(popup.menu)
+            song.optionsMenu(holder.itemView.context, popup.menu)
             popup.show()
         }
 

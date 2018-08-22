@@ -12,8 +12,6 @@ import com.loafofpiecrust.turntable.provided
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.launch
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
@@ -273,7 +271,7 @@ data class YouTubeSong(
                     (matchRatio to YouTubeSong(song, title, videoId, duration))
                         .provided { matchRatio >= 84 }
                 } catch (e: Exception) {
-                    launch(UI) { e.printStackTrace() }
+                    debug { e.stackTrace }
                     null
                 }
             }.mapNotNull { it.await() }.sortedByDescending { (match, _) -> match }

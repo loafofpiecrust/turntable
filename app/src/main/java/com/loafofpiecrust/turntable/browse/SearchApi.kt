@@ -1,11 +1,14 @@
 package com.loafofpiecrust.turntable.browse
 
 import com.loafofpiecrust.turntable.album.Album
+import com.loafofpiecrust.turntable.album.AlbumId
 import com.loafofpiecrust.turntable.album.RemoteAlbum
 import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistId
+import com.loafofpiecrust.turntable.artist.RemoteArtist
 import com.loafofpiecrust.turntable.provided
 import com.loafofpiecrust.turntable.song.Song
+import com.loafofpiecrust.turntable.song.SongId
 
 interface SearchApi {
     interface Id {
@@ -16,11 +19,14 @@ interface SearchApi {
     suspend fun searchAlbums(query: String): List<Album>
     suspend fun searchSongs(query: String): List<Song>
 
-    suspend fun find(album: Album): Album.RemoteDetails?
+    suspend fun find(album: AlbumId): Album?
     suspend fun find(artist: ArtistId): Artist?
+    suspend fun find(song: SongId): Song? =
+        find(song.album)?.tracks?.find { it.id.fuzzyEquals(song) }
 //    suspend fun find(song: Song): Song.RemoteDetails?
 
     suspend fun fullArtwork(album: Album, search: Boolean = false): String?
+    suspend fun fullArtwork(artist: Artist, search: Boolean = false): String?
 
     companion object: SearchApi {
 
@@ -41,7 +47,7 @@ interface SearchApi {
             return null
         }
 
-        override suspend fun find(album: Album): Album.RemoteDetails?
+        override suspend fun find(album: AlbumId): Album?
             = overApis { find(album) }
 
         override suspend fun find(artist: ArtistId): Artist?
@@ -77,6 +83,21 @@ interface SearchApi {
                 }
             } else overApis {
                 fullArtwork(album, search)
+            }
+        }
+
+        override suspend fun fullArtwork(artist: Artist, search: Boolean): String? {
+            return if (artist is RemoteArtist) {
+                return when (artist.details) {
+                    is Discogs.ArtistDetails -> Discogs.fullArtwork(artist, search)
+                    is Spotify.ArtistDetails -> Spotify.fullArtwork(artist, search)
+                    is MusicBrainz.ArtistDetails -> MusicBrainz.fullArtwork(artist, search)
+                    else -> null
+                } ?: overApis {
+                    fullArtwork(artist, search)
+                }
+            } else overApis {
+                fullArtwork(artist, search)
             }
         }
     }

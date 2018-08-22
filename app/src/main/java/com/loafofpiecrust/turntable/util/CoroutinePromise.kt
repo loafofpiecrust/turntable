@@ -6,31 +6,39 @@ import kotlinx.coroutines.experimental.channels.produce
 import kotlin.coroutines.experimental.Continuation
 import kotlin.coroutines.experimental.CoroutineContext
 import kotlin.coroutines.experimental.suspendCoroutine
-import kotlin.reflect.KProperty
 
-//val BG_POOL = newFixedThreadPoolContext(2 * Runtime.getRuntime().availableProcessors(), "bg")
-val BG_POOL = CommonPool
+val BG_POOL: CoroutineDispatcher = if (Runtime.getRuntime().availableProcessors() <= 2) {
+    newFixedThreadPoolContext(2 * Runtime.getRuntime().availableProcessors(), "bg")
+} else CommonPool
 val ALT_BG_POOL = newSingleThreadContext("alt-bg")
 
-fun <T> task(ctx: CoroutineContext = BG_POOL, block: suspend () -> T): Deferred<T> {
+
+class CoroutineSafelyEndedException: RuntimeException() {
+    override val message: String?
+        get() = "This coroutine was safely cancelled"
+}
+
+fun Job.cancelSafely() = try {
+    cancel()
+} catch (e: Throwable) {}
+
+inline fun <T> task(ctx: CoroutineContext = BG_POOL, noinline block: suspend CoroutineScope.() -> T): Deferred<T> {
 //    val cont = deferred<T, Throwable>()
-    return async(ctx) {
-        block()
-    }
+    return async(ctx, block = block)
 //    return cont.promise
 }
 
-fun <T> produceTask(ctx: CoroutineContext = Unconfined, block: suspend () -> T): ReceiveChannel<T> {
+fun <T> produceTask(ctx: CoroutineContext = BG_POOL, block: suspend () -> T): ReceiveChannel<T> {
 //    val cont = deferred<T, Throwable>()
     return produce(ctx) {
-        send(block())
+        offer(block())
     }
 //    return cont.promise
 }
 fun <T> produceSingle(v: T): ReceiveChannel<T> {
 //    val cont = deferred<T, Throwable>()
     return produce(Unconfined) {
-        send(v)
+        offer(v)
     }
 //    return cont.promise
 }
@@ -51,22 +59,26 @@ fun <T, R> Deferred<T>.then(ctx: CoroutineContext = Unconfined, block: suspend (
 }
 
 fun <T> Deferred<T>.always(ctx: CoroutineContext = Unconfined, block: suspend (T?) -> Unit): Deferred<T> {
-    launch(ctx) {
-        val v = try { await() } catch (e: Throwable) { null }
-        block(v)
+    async(ctx) {
+        var v: T? = null
+        try {
+            v = await()
+        } finally {
+            block(v)
+        }
     }
     return this
 }
 
 fun <T> Deferred<T>.success(ctx: CoroutineContext = Unconfined, block: suspend (T) -> Unit): Deferred<T> {
-    launch(ctx) {
+    async(ctx) {
         block(await())
     }
     return this
 }
 
 fun <T> Deferred<T>.fail(ctx: CoroutineContext = Unconfined, block: suspend (Throwable) -> Unit): Deferred<T> {
-    launch(ctx) {
+    async(ctx) {
         try {
             await()
         } catch (e: Throwable) {
@@ -77,17 +89,3 @@ fun <T> Deferred<T>.fail(ctx: CoroutineContext = Unconfined, block: suspend (Thr
 }
 
 fun <T> Deferred<T>.get() = runBlocking { await() }
-
-
-fun <T> asyncLazy(block: suspend () -> T) = CoroutineLazyImpl(block)
-class CoroutineLazyImpl<T>(
-    val block: suspend () -> T
-) {
-    var value: T? = null
-    suspend operator fun getValue(thisRef: Any, property: KProperty<*>): T {
-        if (value == null) {
-            value = block.invoke()
-        }
-        return value!!
-    }
-}

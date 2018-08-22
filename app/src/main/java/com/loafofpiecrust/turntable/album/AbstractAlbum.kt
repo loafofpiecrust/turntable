@@ -1,5 +1,6 @@
 package com.loafofpiecrust.turntable.album
 
+import android.content.Context
 import android.graphics.drawable.Drawable
 import android.view.Menu
 import com.bumptech.glide.RequestBuilder
@@ -10,26 +11,19 @@ import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.ui.AlbumEditorActivityStarter
-import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.util.ALT_BG_POOL
 import com.loafofpiecrust.turntable.util.BG_POOL
-import kotlinx.android.parcel.Parcelize
+import com.loafofpiecrust.turntable.util.consumeEach
+import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.map
 import kotlinx.coroutines.experimental.channels.produce
 import kotlinx.coroutines.experimental.runBlocking
-import org.jetbrains.anko.ctx
 import org.jetbrains.anko.toast
 
 data class Genre(val name: String)
 
-//interface Song {
-//   val year: Int?
-//}
-
-
-@Parcelize
 data class LocalAlbum(
     override val id: AlbumId,
     override val tracks: List<Song>
@@ -62,17 +56,15 @@ data class LocalAlbum(
         }
     }
 
-    override fun optionsMenu(menu: Menu) {
-        super.optionsMenu(menu)
+    override fun optionsMenu(ctx: Context, menu: Menu) {
+        super.optionsMenu(ctx, menu)
 
-        val ctx = MainActivity.latest.ctx
         menu.menuItem("Edit Tags").onClick {
-            AlbumEditorActivityStarter.start(ctx, this@LocalAlbum)
+            AlbumEditorActivityStarter.start(ctx, id)
         }
     }
 }
 
-@Parcelize
 open class RemoteAlbum(
     override val id: AlbumId,
     open val remoteId: Album.RemoteDetails, // Discogs, Spotify, or MusicBrainz ID
@@ -127,10 +119,9 @@ open class RemoteAlbum(
             ?: Library.instance.loadAlbumCover(req, id)
     }
 
-    override fun optionsMenu(menu: Menu) {
-        super.optionsMenu(menu)
+    override fun optionsMenu(ctx: Context, menu: Menu) {
+        super.optionsMenu(ctx, menu)
 
-        val ctx = MainActivity.latest.ctx
         menu.menuItem("Download", R.drawable.ic_cloud_download, showIcon=false).onClick(ALT_BG_POOL) {
             if (App.instance.hasInternet) {
                 given(ctx.library.findCachedAlbum(id).first()?.tracks) { tracks ->
@@ -142,10 +133,28 @@ open class RemoteAlbum(
                 ctx.toast("No internet connection")
             }
         }
+
+        menu.menuItem("Add to Library", R.drawable.ic_turned_in_not, showIcon = true) {
+            ctx.library.findAlbum(id).consumeEach(UI) { existing ->
+                if (existing != null) {
+                    icon = ctx.getDrawable(R.drawable.ic_turned_in)
+                    onClick {
+                        // Remove remote album from library
+                        ctx.library.removeRemoteAlbum(existing)
+                        ctx.toast("Removed album to library")
+                    }
+                } else {
+                    icon = ctx.getDrawable(R.drawable.ic_turned_in_not)
+                    onClick {
+                        ctx.library.addRemoteAlbum(this@RemoteAlbum)
+                        ctx.toast("Added album to library")
+                    }
+                }
+            }
+        }
     }
 }
 
-@Parcelize
 data class MergedAlbum(
     override val id: AlbumId,
     override val remoteId: Album.RemoteDetails,

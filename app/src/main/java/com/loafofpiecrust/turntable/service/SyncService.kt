@@ -6,7 +6,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Parcelable
 import android.support.v4.app.NotificationCompat
-import android.support.v4.app.NotificationCompat.*
+import android.support.v4.app.NotificationCompat.PRIORITY_DEFAULT
+import android.support.v4.app.NotificationCompat.PRIORITY_HIGH
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBAttribute
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBIgnore
@@ -22,12 +23,16 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.App.Companion.kryo
+import com.loafofpiecrust.turntable.album.AlbumId
+import com.loafofpiecrust.turntable.artist.ArtistId
+import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.song.Music
+import com.loafofpiecrust.turntable.song.MusicId
 import com.loafofpiecrust.turntable.song.Song
+import com.loafofpiecrust.turntable.song.SongId
 import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.ui.MainActivityStarter
 import com.loafofpiecrust.turntable.util.*
@@ -63,9 +68,9 @@ class SyncService : FirebaseMessagingService() {
         private var googleAccount: FirebaseUser? = null
             set(value) {
                 field = value
-                given(value) {
+                given (value) {
                     selfUser.displayName = it.displayName
-                    given(it.email) {
+                    given (it.email) {
                         if (it.isNotEmpty()) selfUser.username = it
                     }
                 }
@@ -110,10 +115,10 @@ class SyncService : FirebaseMessagingService() {
         fun send(msg: Message) {
             val now = System.currentTimeMillis()
             val mode = this.mode.value
-            if (lastSentTime > lastDeliveredTime && now - lastSentTime > TimeUnit.MINUTES.toMillis(3)) {
+            if (lastSentTime > 0 && lastSentTime > lastDeliveredTime && now - lastSentTime > TimeUnit.MINUTES.toMillis(3)) {
                 if (mode is Mode.OneOnOne) {
                     task(UI) {
-                        MainActivity.latest.toast("Connection with ${mode.other.name} lost")
+                        App.instance.toast("Connection with ${mode.other.name} lost")
                     }
                 }
                 SyncService.mode puts Mode.None()
@@ -155,7 +160,7 @@ class SyncService : FirebaseMessagingService() {
                     "time_to_live" to ttl,
                     "data" to jsonObject(
                         "sender" to kryo.objectToBytes(selfUser).toString(Charsets.ISO_8859_1),
-                        "action" to kryo.objectToBytes(msg).toString(Charsets.ISO_8859_1)
+                        "action" to kryo.objectToBytes(msg.minimize()).toString(Charsets.ISO_8859_1)
                     )
                 )
             )
@@ -279,7 +284,7 @@ class SyncService : FirebaseMessagingService() {
                         .build()
                 putExtra(Intent.EXTRA_TEXT, uri.toString())
             }
-            MainActivity.latest.startActivity(Intent.createChooser(intent, "Request friendship via"))
+            App.instance.startActivity(Intent.createChooser(intent, "Request friendship via"))
         }
 
 
@@ -305,28 +310,35 @@ class SyncService : FirebaseMessagingService() {
     }
 
     sealed class Message: Parcelable {
+        internal open fun minimize(): Message = this
+
         @Parcelize class Play: Message()
         @Parcelize class Pause: Message()
         @Parcelize class TogglePause: Message()
         @Parcelize class Stop: Message()
         @Parcelize data class QueuePosition(val pos: Int): Message()
         @Parcelize data class RelativePosition(val diff: Int): Message()
-//        class Queue(val q: MusicService.Queue): Message()
-        @Parcelize data class ReplaceQueue(val q: MusicPlayer.Queue): Message()
-        @Parcelize data class Enqueue(val songs: List<Song>, val mode: MusicPlayer.EnqueueMode): Message()
+        @Parcelize data class Enqueue(
+            val songs: List<Song>,
+            val mode: MusicPlayer.EnqueueMode
+        ): Message() {
+            override fun minimize() = copy(songs = songs.map { it.minimizeForSync() })
+        }
         @Parcelize data class RemoveFromQueue(val pos: Int): Message()
         @Parcelize data class PlaySongs(
             val songs: List<Song>,
             val pos: Int = 0,
             val mode: MusicPlayer.OrderMode = MusicPlayer.OrderMode.SEQUENTIAL
-        ): Message()
+        ): Message() {
+            override fun minimize() = copy(songs = songs.map { it.minimizeForSync() })
+        }
         @Parcelize data class SeekTo(val pos: Long): Message()
         @Parcelize class SyncRequest: Message()
         @Parcelize class EndSync: Message()
         @Parcelize data class SyncResponse(val accept: Boolean): Message()
         @Parcelize class FriendRequest: Message()
         @Parcelize data class FriendResponse(val accept: Boolean): Message()
-        @Parcelize data class Recommendation(val content: Music): Message()
+        @Parcelize data class Recommendation(val content: MusicId): Message()
         @Parcelize data class Playlist(val id: UUID): Message()
         @Parcelize class Ping: Message()
         @Parcelize class ClearQueue: Message()
@@ -378,7 +390,7 @@ class SyncService : FirebaseMessagingService() {
             val remote = db.load(User::class.java, username)
             deviceId = remote.deviceId
             displayName = remote.displayName
-            this
+            this@User
         }
     }
 
@@ -410,6 +422,9 @@ class SyncService : FirebaseMessagingService() {
                         } else it
                     }
                 }
+            } else if (status == Status.CONFIRMED) {
+                send(Message.FriendResponse(accept), Mode.OneOnOne(user))
+                UserPrefs.friends putsMapped { it.withoutFirst { it.user == user } }
             }
         }
     }
@@ -462,6 +477,10 @@ class SyncService : FirebaseMessagingService() {
 
         when (message) {
             is Message.SyncRequest -> task(UI) {
+                val sender = if (sender.displayName == null) {
+                    sender.refresh().await()
+                } else sender
+
                 notificationManager.notify(12349, NotificationCompat.Builder(ctx, "turntable").apply {
                     priority = PRIORITY_HIGH
                     setSmallIcon(R.drawable.ic_circle)
@@ -528,22 +547,30 @@ class SyncService : FirebaseMessagingService() {
             }
 
             is Message.FriendResponse -> task {
-                if (message.accept) {
-                    val sender = if (sender.displayName == null) {
-                        sender.refresh().await()
-                    } else sender
+                val sender = if (sender.displayName == null) {
+                    sender.refresh().await()
+                } else sender
 
-                    val friends = UserPrefs.friends.value
-                    val existingIdx = friends.indexOfFirst { it.user == sender }
+                val friends = UserPrefs.friends.value
+                val existingIdx = friends.indexOfFirst { it.user == sender }
+                if (message.accept) {
                     UserPrefs.friends puts friends.withReplaced(existingIdx, Friend(sender, Friend.Status.CONFIRMED))
                     task(UI) { toast("Friendship fostered with ${sender.name}") }
                 } else {
+                    UserPrefs.friends puts friends.without(existingIdx)
                     task(UI) { toast("${sender.name} declined friendship :(") }
                 }
             }
 
             is Message.Recommendation -> task {
-                UserPrefs.recommendations appends message.content
+                given(when (message.content) {
+                    is SongId -> Song.justForSearch(message.content)
+                    is AlbumId -> SearchApi.find(message.content)
+                    is ArtistId -> SearchApi.find(message.content)
+                    else -> TODO("Cover other cases")
+                }) {
+                    UserPrefs.recommendations appends it
+                }
             }
 
             is Message.Ping -> {

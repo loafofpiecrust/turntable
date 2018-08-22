@@ -5,6 +5,7 @@ import android.support.constraint.ConstraintSet.PARENT_ID
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -168,7 +169,7 @@ class RecyclerListItem(
     }.lparams(height= matchParent, width= matchParent)
 }) {
     val track: TextView = itemView.findViewById(R.id.track)
-    val menu: View = itemView.findViewById(R.id.itemMenuDots)
+    val menu: ImageButton = itemView.findViewById(R.id.itemMenuDots)
     val progress: View = itemView.findViewById(R.id.progressBg)
     val playingIcon: ImageView = itemView.findViewById(R.id.playing_icon)
     val statusIcon: View = itemView.findViewById(R.id.status_icon)

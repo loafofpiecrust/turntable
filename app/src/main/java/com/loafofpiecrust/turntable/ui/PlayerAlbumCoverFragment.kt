@@ -16,13 +16,11 @@ import com.loafofpiecrust.turntable.recyclerViewPager
 import com.loafofpiecrust.turntable.screenSize
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
-import com.loafofpiecrust.turntable.util.consumeEach
-import com.loafofpiecrust.turntable.util.success
-import com.loafofpiecrust.turntable.util.switchMap
-import com.loafofpiecrust.turntable.util.task
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.channels.filterNotNull
+import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.channels.consumeEach
 import org.jetbrains.anko.*
 import org.jetbrains.anko.cardview.v7.cardView
 
@@ -31,8 +29,8 @@ class PlayerAlbumCoverFragment : BaseFragment() {
     //    private val subs = ArrayList<Disposable>()
 //    var slidingPanel: SlidingUpPanelLayout? = null
 
-    override fun makeView(ui: ViewManager): View {
-        return ui.recyclerViewPager {
+    override fun ViewManager.createView(): View {
+        return recyclerViewPager {
             layoutManager = LinearLayoutManager(activity, LinearLayoutManager.HORIZONTAL, false)
             adapter = Adapter()
             triggerOffset = 0.2f
@@ -49,7 +47,7 @@ class PlayerAlbumCoverFragment : BaseFragment() {
             }
 
             var prev = 0
-            MusicService.instance.filterNotNull().switchMap {
+            MusicService.instance.switchMap {
                 it.player.queue
             }.consumeEach(UI) { q ->
                 (adapter as Adapter).updateData(q.list, q.position)
@@ -77,10 +75,12 @@ class PlayerAlbumCoverFragment : BaseFragment() {
             val song = q[position]
 
             val job = Job()
-            subs.put(holder, job)?.cancel()
-            song.loadCover(Glide.with(holder.view)).consumeEach(UI + job) {
-                it?.into(holder.image) ?: run {
-                    holder.image.imageResource = R.drawable.ic_default_album
+            subs.put(holder, job)?.cancelSafely()
+            async(UI + job) {
+                song.loadCover(Glide.with(holder.view)).consumeEach {
+                    it?.into(holder.image) ?: run {
+                        holder.image.imageResource = R.drawable.ic_default_album
+                    }
                 }
             }
         }
@@ -113,7 +113,7 @@ class PlayerAlbumCoverFragment : BaseFragment() {
             // Run diff in background thread
             task {
                 DiffUtil.calculateDiff(Differ(q, newSongs))
-            }.success(UI) { diff ->
+            }.then(UI) { diff ->
                 // go back to UI thread to update the view
                 list = newSongs
                 this.position = position

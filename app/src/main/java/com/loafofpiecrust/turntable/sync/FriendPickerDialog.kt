@@ -1,6 +1,9 @@
 package com.loafofpiecrust.turntable.sync
 
+import activitystarter.Arg
+import android.app.Dialog
 import android.graphics.Color
+import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.view.View
 import android.view.ViewGroup
@@ -15,8 +18,7 @@ import com.loafofpiecrust.turntable.ui.RecyclerListItem
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-import org.jetbrains.anko.sdk25.coroutines.onClick
-import org.jetbrains.anko.support.v4.ctx
+import org.jetbrains.anko.support.v4.alert
 import org.jetbrains.anko.support.v4.toast
 
 private class FriendAdapter(
@@ -42,32 +44,30 @@ private class FriendAdapter(
 }
 
 class FriendPickerDialog: BaseDialogFragment() {
-    lateinit var onAccept: (SyncService.User) -> Unit
+    @Arg lateinit var message: SyncService.Message
+    @Arg(optional = true) var acceptText: String = "Send"
     private var selected: SyncService.User? = null
-    override fun makeView(parent: ViewGroup?, manager: ViewManager): View
-        = manager.verticalLayout {
+
+    override fun ViewManager.createView(): View? = null
+    override fun onCreateDialog(savedInstanceState: Bundle?) = alert {
+        customView {
             recyclerView {
+                minimumHeight = dimen(R.dimen.song_item_height) * 5
                 layoutManager = LinearLayoutManager(ctx)
                 adapter = FriendAdapter {
                     selected = it
                 }.apply {
                     subscribeData(UserPrefs.friends.openSubscription().map { it.map { it.user } })
                 }
-            }.lparams(width = dip(250), height = dimen(R.dimen.song_item_height)*5)
-
-            linearLayout {
-                button("Cancel").onClick {
-                    dismiss()
-                }
-                button("Send").onClick {
-                    given(selected) {
-                        onAccept.invoke(it)
-                        dismiss()
-                    } ?: toast("Must choose a friend.")
-                }
-                applyRecursively {
-                    backgroundColor = Color.TRANSPARENT
-                }
-            }.lparams(width = matchParent)
+            }
         }
+        positiveButton("Send") {
+            given(selected) {
+                SyncService.send(this@FriendPickerDialog.message, it)
+                dismiss()
+            } ?: toast("Must choose a friend.")
+        }
+        cancelButton { dismiss() }
+    }.build() as Dialog
+
 }

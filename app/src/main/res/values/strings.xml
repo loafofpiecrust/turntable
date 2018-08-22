@@ -29,6 +29,15 @@
 
     <string name="song_title_ft">%1$s ft. %2$s</string>
 
+
+    <!-- Playlists -->
     <string name="playlist_sender">from %1$s</string>
     <string name="playlist_author">%2$s by %1$s</string>
+    <string name="playlist_is_full">\'%1$s\' is full or already has that song</string>
+    <string name="playlist_added_track">Added to \'%1$s\'</string>
+    <string name="mixtape_pick_side">Add to which side?</string>
+
+    <!-- Sync -->
+    <string name="sync_details">Sync Details</string>
+    <string name="sync_latency">%1$dms</string>
 </resources>

@@ -11,7 +11,7 @@ import com.google.android.exoplayer2.upstream.DataSource
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.fail
-import com.loafofpiecrust.turntable.util.success
+import com.loafofpiecrust.turntable.util.then
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.async
@@ -106,7 +106,7 @@ class DeferredMediaSource(
                 } else C.TIME_END_OF_SOURCE
                 ClippingMediaSource(innerSource, start, end)
             } else innerSource
-        }.success(UI) {
+        }.then(UI) {
             onMediaSourceReceived(it)
         }.fail(UI) {
             onStreamInfoError(it)

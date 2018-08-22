@@ -4,7 +4,6 @@ import android.preference.*
 import com.jaredrummler.android.colorpicker.ColorPreference
 import com.loafofpiecrust.turntable.util.hasValue
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.ctx
 
 
@@ -45,7 +44,7 @@ fun <T: Preference, R: Any> PreferenceGroup.basicPref(inst: T, pref: ConflatedBr
     inst.setOnPreferenceChangeListener { _, valueObj ->
         @Suppress("UNCHECKED_CAST") // I know what I'm doing
         val value = valueObj as R
-        runBlocking { pref.send(valueObj) }
+        pref.offer(valueObj)
         true
     }
     addPreference(inst)
@@ -62,9 +61,7 @@ fun <T: Preference, R: Any, P: Any> PreferenceGroup.basicPref(inst: T, pref: Con
     inst.setOnPreferenceChangeListener { _, valueObj ->
         @Suppress("UNCHECKED_CAST") // I know what I'm doing
         val value = valueObj as P
-        runBlocking {
-            pref.send(transform(valueObj))
-        }
+        pref.offer(transform(valueObj))
         true
     }
     addPreference(inst)

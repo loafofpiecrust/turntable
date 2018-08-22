@@ -17,12 +17,12 @@ import android.os.Parcelable
 import android.provider.MediaStore
 import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentManager
+import android.support.v4.widget.DrawerLayout
 import android.view.Gravity
 import android.view.View
 import android.view.ViewManager
+import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.IdpResponse
-import com.github.javiersantos.appupdater.AppUpdater
-import com.github.javiersantos.appupdater.enums.UpdateFrom
 import com.google.android.gms.common.api.GoogleApiClient
 import com.google.firebase.auth.FirebaseAuth
 import com.karumi.dexter.Dexter
@@ -43,7 +43,6 @@ import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.switchMap
 import com.loafofpiecrust.turntable.util.task
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.channels.produce
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.*
 import org.jetbrains.anko.design.navigationView
@@ -51,28 +50,10 @@ import org.jetbrains.anko.support.v4.drawerLayout
 
 @MakeActivityStarter
 class MainActivity : BaseActivity(), MultiplePermissionsListener {
-
-    companion object {
-        lateinit var latest: MainActivity private set
-
-        fun replaceContent(
-            fragment: Fragment,
-            allowBackNav: Boolean = true,
-            sharedElems: List<View>? = null
-        ) {
-            latest.supportFragmentManager.replaceMainContent(
-                fragment, allowBackNav, sharedElems
-            )
-        }
-        fun popContent() {
-            latest.supportFragmentManager.popBackStack()
-        }
-    }
-
     sealed class Action: Parcelable {
         @Parcelize class OpenNowPlaying: Action()
-        @Parcelize class SyncRequest(val sender: SyncService.User): Action()
-        @Parcelize class FriendRequest(val sender: SyncService.User): Action()
+        @Parcelize data class SyncRequest(val sender: SyncService.User): Action()
+        @Parcelize data class FriendRequest(val sender: SyncService.User): Action()
     }
 
     @Arg(optional=true) var action: Action? = null
@@ -82,19 +63,17 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
     }
 
     override fun onPermissionsChecked(report: MultiplePermissionsReport) {
-        Library.with(ctx) {
-            it.initData()
-        }
+        Library.instance.initData()
     }
 
     private lateinit var sheets: MultiSheetView
+    private var drawers: DrawerLayout? = null
 
-    override fun makeView(ui: ViewManager) = MultiSheetView(ctx) {
+    override fun ViewManager.createView() = MultiSheetView(ctx) {
         backgroundResource = R.color.background
 
-        lateinit var queueSheet: QueueFragment
         mainContent {
-            drawerLayout {
+            drawers = drawerLayout {
                 // main content
                 frameLayout {
                     id = R.id.mainContentContainer
@@ -111,30 +90,35 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                     }
                     menu.group(1, true, true) {
                         menuItem("Library").onClick {
-                            while (supportFragmentManager.popBackStackImmediate()) {}
+                            this@drawerLayout.closeDrawers()
+                            while (supportFragmentManager.popBackStackImmediate()) {
+                            }
                         }
                         menuItem("Settings").onClick {
+                            this@drawerLayout.closeDrawers()
                             SettingsActivityStarter.start(ctx)
                         }
                     }
-                }.lparams(width = dimen(R.dimen.material_drawer_width), height = matchParent) {
+                }.lparams(width = dip(100), height = matchParent) {
                     gravity = Gravity.START
                 }
             }
         }
         firstSheet {
             backgroundResource = R.color.background
-            fragment(supportFragmentManager, NowPlayingFragment())
+            fragment(NowPlayingFragment())
         }
         firstSheetPeek {
             backgroundResource = R.color.background
-            fragment(supportFragmentManager, MiniPlayerFragment())
+            fragment(MiniPlayerFragment())
         }
+
+        lateinit var queueSheet: QueueFragment
         secondSheet {
             horizontalPadding = dip(16)
             bottomPadding = dip(16)
             clipToPadding = false
-            queueSheet = fragment(supportFragmentManager, QueueFragment())
+            queueSheet = fragment(QueueFragment())
         }
 
         onSheetStateChanged { sheet, state ->
@@ -142,18 +126,20 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                 queueSheet.onSheetStateChanged(state)
             }
         }
-    }.also { sheets = it }
+    }.also {
+        it.hide(true, false)
+        sheets = it
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        latest = this
 
         // Check for updates to the app
         // Annoying, but since we host on GH, convenient.
-        AppUpdater(this)
-            .setUpdateFrom(UpdateFrom.GITHUB)
-            .setGitHubUserAndRepo("loafofpiecrust", "turntable")
-            .start()
+//        AppUpdater(this)
+//            .setUpdateFrom(UpdateFrom.GITHUB)
+//            .setGitHubUserAndRepo("loafofpiecrust", "turntable")
+//            .start()
 
 //        window.statusBarColor = UserPrefs.primaryColor.value.darken(0.2f)
         window.statusBarColor = Color.TRANSPARENT
@@ -175,11 +161,12 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
         }
 
         // Start out with collapsed sheets
-        sheets.hide(true, false)
+//        sheets.hide(true, false)
+
         MusicService.instance.switchMap {
-            it?.player?.queue ?: produce { send(null) }
+            it.player.queue
         }.consumeEach(UI) { q ->
-            if (q?.current == null) {
+            if (q.current == null) {
                 if (!sheets.isHidden) {
                     sheets.hide(true, true)
                 }
@@ -252,32 +239,23 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
         // TODO: Check if already logged in or something so we don't get the dark flash every startup
 
 //        val lastAcc = GoogleSignIn.getLastSignedInAccount(ctx)
-//        val lastAcc = FirebaseAuth.getInstance().currentUser
-//        if (lastAcc != null) {
-//            SyncService.login(lastAcc)
-//        } else {
-////            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-////                .requestIdToken("460820546584-r03c9k3p83jse5e627us8r90ra51kqbh.apps.googleusercontent.com")
-////                .requestEmail()
-////                .requestId()
-////                .requestProfile()
-////                .build()
-////
-////            val client = GoogleSignIn.getClient(ctx, gso)
-////            startActivityForResult(client.signInIntent, 69)
-//            val providers = listOf(
-//                AuthUI.IdpConfig.GoogleBuilder().build()
-//            )
-//
-//            // Create and launch sign-in intent
-//            startActivityForResult(
-//                AuthUI.getInstance()
-//                    .createSignInIntentBuilder()
-//                    .setAvailableProviders(providers)
-//                    .build(),
-//                69
-//            )
-//        }
+        val lastAcc = FirebaseAuth.getInstance().currentUser
+        if (lastAcc != null) {
+            SyncService.login(lastAcc)
+        } else {
+            val providers = listOf(
+                AuthUI.IdpConfig.GoogleBuilder().build()
+            )
+
+            // Create and launch sign-in intent
+            startActivityForResult(
+                AuthUI.getInstance()
+                    .createSignInIntentBuilder()
+                    .setAvailableProviders(providers)
+                    .build(),
+                69
+            )
+        }
     }
 
     lateinit var gclient: GoogleApiClient
@@ -368,6 +346,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                 SyncService.login(FirebaseAuth.getInstance().currentUser!!)
             } else {
                 // Login failed!
+                result?.error?.printStackTrace()
             }
         } else if (requestCode == 42) {
             val uri = data!!.data
@@ -381,11 +360,17 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
 
     override fun onBackPressed() {
         if (!sheets.consumeBackPress()) {
-            super.onBackPressed()
+            val drawers = drawers
+            if (drawers != null && drawers.isDrawerOpen(Gravity.START)) {
+                drawers.closeDrawers()
+            } else {
+                super.onBackPressed()
+            }
         }
     }
 
     fun collapseDrawers() {
+        drawers?.closeDrawers()
         if (sheets.consumeBackPress()) {
             sheets.consumeBackPress()
         }
@@ -414,7 +399,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
             "album" -> {
                 val title = url.getQueryParameter("name")
                 val artist = url.getQueryParameter("artist")
-                ctx.replaceMainContent(
+                replaceMainContent(
                     DetailsFragmentStarter.newInstance(ArtistId(artist).forAlbum(title)),
                     true
                 )
@@ -422,7 +407,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
             "artist" -> {
                 val name = url.getQueryParameter("id")
                 given(ArtistDetailsFragment.fromId(ArtistId(name))) {
-                    ctx.replaceMainContent(it, true)
+                    replaceMainContent(it, true)
                 }
             }
             "sync-request" -> {
@@ -449,15 +434,15 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
     }
 
 
-    override fun onPause() {
-        super.onPause()
+    override fun onSaveInstanceState(outState: Bundle?) {
+        super.onSaveInstanceState(outState)
         // Save preference files here!
         runBlocking { UserPrefs.saveFiles() }
     }
 }
 
 fun FragmentManager.replaceMainContent(fragment: Fragment, allowBackNav: Boolean, sharedElems: List<View>? = null) {
-    val trans = beginTransaction()
+    val trans = beginTransaction().setReorderingAllowed(true)
 //    trans.setCustomAnimations(R.anim.fade_in, R.anim.fade_out, R.anim.fade_in, R.anim.fade_out)
 //        fragment.sharedElementEnterTransition = ChangeBounds()
     doFromSdk(21) {
@@ -470,14 +455,18 @@ fun FragmentManager.replaceMainContent(fragment: Fragment, allowBackNav: Boolean
         trans.addToBackStack(null)
     }
     trans.commit()
-    MainActivity.latest.collapseDrawers()
 }
 
 fun Context.replaceMainContent(fragment: Fragment, allowBackNav: Boolean = true, sharedElems: List<View>? = null) {
-    MainActivity.latest.supportFragmentManager.replaceMainContent(
-        fragment, allowBackNav, sharedElems
-    )
+    if (this is BaseActivity) {
+        supportFragmentManager.replaceMainContent(
+            fragment, allowBackNav, sharedElems
+        )
+        (this as? MainActivity)?.collapseDrawers()
+    }
 }
 fun Context.popMainContent() {
-    MainActivity.latest.supportFragmentManager.popBackStack()
+    if (this is BaseActivity) {
+        supportFragmentManager.popBackStack()
+    }
 }

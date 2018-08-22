@@ -11,34 +11,37 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.View
 import android.view.ViewManager
-import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.album.AlbumId
 import com.loafofpiecrust.turntable.artist.ArtistId
+import com.loafofpiecrust.turntable.fastScrollRecycler
+import com.loafofpiecrust.turntable.menuItem
+import com.loafofpiecrust.turntable.onClick
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.CollaborativePlaylist
-import com.loafofpiecrust.turntable.playlist.MixTape
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.style.turntableStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.ui.MainActivity
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.ui.replaceMainContent
+import com.loafofpiecrust.turntable.util.BG_POOL
+import com.loafofpiecrust.turntable.util.replayOne
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.Deferred
-import kotlinx.coroutines.experimental.channels.consumeEach
+import kotlinx.coroutines.experimental.channels.BroadcastChannel
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.map
-import kotlinx.coroutines.experimental.channels.produce
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.ctx
 import java.util.*
-import kotlin.coroutines.experimental.coroutineContext
 
-//@EFragment
 open class SongsFragment: BaseFragment() {
+    /// TODO: Separate display type from category!
     sealed class Category: Parcelable {
         @Parcelize class All: Category()
         @Parcelize data class History(val limit: Int? = null): Category()
@@ -52,9 +55,38 @@ open class SongsFragment: BaseFragment() {
 
     private var retrieveTask: Deferred<List<Song>>? = null
 
+    lateinit var songs: BroadcastChannel<List<Song>>
+
+    companion object {
+        fun all(): SongsFragment {
+            return SongsFragmentStarter.newInstance(Category.All()).apply {
+                category = Category.All()
+            }
+        }
+        fun onAlbum(id: AlbumId, album: ReceiveChannel<Album>): SongsFragment {
+            return SongsFragmentStarter.newInstance(Category.OnAlbum(id)).apply {
+                songs = album.map(BG_POOL) { it.tracks }.replayOne()
+            }
+        }
+//        fun onPlaylist(id: UUID, playlist: Playlist, sideIdx: Int): SongsFragment {
+//            return SongsFragmentStarter.newInstance(Category.Playlist(id, sideIdx)).apply {
+//                songs = playlist.tracks
+//            }
+//        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        if (!::songs.isInitialized) {
+            if (category is Category.All) {
+                songs = Library.instance.songs
+            }
+        }
+    }
+
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
         menu.menuItem("History").onClick {
-            MainActivity.replaceContent(
+            ctx.replaceMainContent(
                 SongsFragmentStarter.newInstance(
                     Category.Custom(UserPrefs.history.value.asReversed().map { it.song })
                 )
@@ -62,7 +94,7 @@ open class SongsFragment: BaseFragment() {
         }
     }
 
-    override fun makeView(ui: ViewManager): View = with(ui) {
+    override fun ViewManager.createView(): View = with(this) {
         val cat = category
         val adapter = SongsAdapter(cat) { songs, idx ->
             MusicService.enact(SyncService.Message.PlaySongs(songs, idx))
@@ -118,7 +150,7 @@ open class SongsFragment: BaseFragment() {
                     override fun isLongPressDragEnabled() = true
                     override fun isItemViewSwipeEnabled() = true
                 })
-                helper.attachToRecyclerView(this@apply)
+                helper.attachToRecyclerView(this)
             }
 
 
@@ -127,65 +159,67 @@ open class SongsFragment: BaseFragment() {
             })
 
             println("songs cat: $cat")
-            task(BG_POOL + jobs) {
-                when (cat) {
-                    is Category.All -> Library.instance.songs.openSubscription()
-                    is Category.History -> UserPrefs.history.openSubscription().map {
-                        val rev = it.asReversed()
-                        if (cat.limit != null) {
-                            rev.take(cat.limit)
-                        } else {
-                            rev
-                        }.map { it.song }
-                    }
-                    is Category.ByArtist -> Library.instance.songsByArtist(cat.artist)
-                    is Category.OnAlbum -> {
-                        Library.instance.findAlbum(cat.album).combineLatest(
-//                                App.instance.internetStatus,
-                            Library.instance.findCachedRemoteAlbum(cat.album)
-                        ).switchMap { (local/*, internet*/, cached) ->
-                            if (local != null) {
-                                val localTracks = local.tracks
-                                if (!local.hasTrackGaps /*|| internet == App.InternetStatus.OFFLINE*/) {
-                                    produceTask { localTracks }
-                                } else {
-                                    if (cached != null) {
-                                        produceTask { localTracks + cached.tracks }
-                                    } else {
-                                        produce(BG_POOL) {
-                                            send(localTracks)
-                                        }
-                                    }.map {
-                                        it.sortedBy { it.disc * 1000 + it.track }.dedupMerge(
-                                            { a, b -> a.disc == b.disc && (a.id == b.id ||
-                                                (a.track == b.track)) /*&& FuzzySearch.ratio(a.id.name.toLowerCase(), b.id.name.toLowerCase()) > 90)*/
-                                            },
-                                            { a, b -> if (a.local != null) a else b }
-                                        )
-                                    }
-                                }
-                            } else if (cached != null) {
-                                produceTask { cached.tracks }
-                            } else /*if (internet != App.InternetStatus.OFFLINE)*/ {
-                                produceTask { listOf<Song>() }
-                            }
-                        }
-                    }
-                    is Category.Custom -> produceTask { cat.songs }
-//                is SongsFragment.Category.Playlist -> Library.instance.findPlaylist(cat.name)!!.tracks
-                    is Category.Playlist -> {
-                        given(ctx.library.findPlaylist(cat.id).first() ?: ctx.library.findCachedPlaylist(cat.id).first()) { pl ->
-                            if (pl is MixTape) {
-                                pl.tracksOnSide(cat.sideIdx)
-                            } else {
-                                pl.tracks
-                            }
-                        } ?: produce(coroutineContext) {}
-                    }
-                }.consumeEach {
-                    adapter.updateData(it)
-                }
-            }
+            adapter.subscribeData(songs.openSubscription())
+//            task(BG_POOL + jobs) {
+//                when (cat) {
+//                    is Category.All -> Library.instance.songs.openSubscription()
+//                    is Category.History -> UserPrefs.history.openSubscription().map {
+//                        val rev = it.asReversed()
+//                        if (cat.limit != null) {
+//                            rev.take(cat.limit)
+//                        } else {
+//                            rev
+//                        }.map { it.song }
+//                    }
+//                    is Category.ByArtist -> Library.instance.songsByArtist(cat.artist)
+//                    is Category.OnAlbum -> {
+//                        Library.instance.findAlbum(cat.album).combineLatest(
+////                                App.instance.internetStatus,
+//                            Library.instance.findCachedRemoteAlbum(cat.album)
+//                        ).switchMap { (local/*, internet*/, cached) ->
+//                            if (local != null) {
+//                                val localTracks = local.tracks
+//                                if (!local.hasTrackGaps /*|| internet == App.InternetStatus.OFFLINE*/) {
+//                                    produceTask { localTracks }
+//                                } else {
+//                                    if (cached != null) {
+//                                        produceTask { localTracks + cached.tracks }
+//                                    } else {
+//                                        produce(BG_POOL) {
+//                                            send(localTracks)
+//                                        }
+//                                    }.map {
+//                                        it.sortedBy { it.disc * 1000 + it.track }.dedupMerge(
+//                                            { a, b -> a.disc == b.disc && (a.id == b.id ||
+//                                                (a.track == b.track)) /*&& FuzzySearch.ratio(a.id.name.toLowerCase(), b.id.name.toLowerCase()) > 90)*/
+//                                            },
+//                                            { a, b -> if (a.local != null) a else b }
+//                                        )
+//                                    }
+//                                }
+//                            } else if (cached != null) {
+//                                produceTask { cached.tracks }
+//                            } else /*if (internet != App.InternetStatus.OFFLINE)*/ {
+//                                produceTask { listOf<Song>() }
+//                            }
+//                        }
+//                    }
+//                    is Category.Custom -> produceTask { cat.songs }
+////                is SongsFragment.Category.Playlist -> Library.instance.findPlaylist(cat.name)!!.tracks
+//                    is Category.Playlist -> {
+//                        given(ctx.library.findPlaylist(cat.id).first() ?: ctx.library.findCachedPlaylist(cat.id).first()) { pl ->
+//                            if (pl is MixTape) {
+//                                pl.tracksOnSide(cat.sideIdx)
+//                            } else {
+//                                pl.tracks
+//                            }
+//                        } ?: produce(coroutineContext) {}
+//                    }
+//                }.consumeEach {
+//                songs.consumeEach {
+//                    adapter.updateData(it)
+//                }
+//            }
         }
     }
 }

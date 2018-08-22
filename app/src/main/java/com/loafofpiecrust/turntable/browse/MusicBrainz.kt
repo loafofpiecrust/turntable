@@ -8,6 +8,7 @@ import com.loafofpiecrust.turntable.album.AlbumId
 import com.loafofpiecrust.turntable.album.RemoteAlbum
 import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistId
+import com.loafofpiecrust.turntable.artist.RemoteArtist
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
@@ -17,6 +18,7 @@ import com.loafofpiecrust.turntable.util.task
 import com.loafofpiecrust.turntable.util.text
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
 import org.jetbrains.anko.info
@@ -24,7 +26,6 @@ import org.jsoup.Jsoup
 import java.util.regex.Pattern
 
 object MusicBrainz: SearchApi, AnkoLogger {
-
     @Parcelize
     data class AlbumDetails(
         val id: String,
@@ -40,8 +41,10 @@ object MusicBrainz: SearchApi, AnkoLogger {
     data class ArtistDetails(
         val id: String
     ): Artist.RemoteDetails {
-        override suspend fun resolveAlbums(): List<Album>
-            = resolveAlbums(id) // TODO: implement
+        override val albums: List<Album> by lazy {
+            runBlocking { resolveAlbums(id) } // TODO: implement
+        }
+        override val biography: String get() = ""
     }
 
 
@@ -242,12 +245,10 @@ object MusicBrainz: SearchApi, AnkoLogger {
             val score = it["score"].string.toInt()
 
             if (score > 0) {
-                Artist(
+                RemoteArtist(
                     ArtistId(name, sortName.provided { !it.equals(name, true) }),
                     ArtistDetails(mbid),
-                    listOf(),
-                    thumbnail,
-                    disambiguation = disamb,
+//                    thumbnail,
                     startYear = lifeSpan["begin"].nullString?.take(4)?.toInt(),
                     endYear = lifeSpan["end"].nullString?.take(4)?.toInt()
                 ) //to score
@@ -290,8 +291,8 @@ object MusicBrainz: SearchApi, AnkoLogger {
 
         val discography = res.getElementById("content").getElementsByAttributeValue("method", "post")[0]
         val sections = discography.children()
-        val remoteAlbums = mutableListOf<Album>()
-        (0 until sections.size step 2).parMap { idx ->
+//        val remoteAlbums = mutableListOf<Album>()
+        val remoteAlbums = (0 until sections.size step 2).parMap { idx ->
             //                task {
             val typeStr = sections[idx].text()
             val type = when {
@@ -355,28 +356,26 @@ object MusicBrainz: SearchApi, AnkoLogger {
 
                 info { "album: added '$title'!!" }
 
-                synchronized(remoteAlbums) {
-                    remoteAlbums.add(album)
-                }
+                album
             }
-        }.awaitAll()
+        }.awaitAll().flatMap { it!! }
 
-        Library.instance.cacheRemoteArtist(
-            Artist(
-                ArtistId(artistName),
-                ArtistDetails(artistId),
-                remoteAlbums
-            )
-        )
+//        Library.instance.cacheRemoteArtist(
+//            RemoteArtist(
+//                ArtistId(artistName),
+//                ArtistDetails(artistId),
+//                remoteAlbums
+//            )
+//        )
 
         return remoteAlbums
     }
 
 
-    override suspend fun find(album: Album): Album.RemoteDetails? = try {
+    override suspend fun find(album: AlbumId): Album? = try {
         val res = Http.get("https://musicbrainz.org/ws/2/release-group", params = mapOf(
             "fmt" to "json",
-            "query" to "releasegroup:\"${album.id.displayName}\" AND artist:\"${album.id.artist.name}\"",
+            "query" to "releasegroup:\"${album.displayName}\" AND artist:\"${album.artist.name}\"",
             "limit" to "2"
         )).gson.obj
 
@@ -384,7 +383,7 @@ object MusicBrainz: SearchApi, AnkoLogger {
             val rg = res["release-groups"][0]
             val score = rg["score"].string.toInt()
             if (score >= 95) {
-                MusicBrainz.AlbumDetails(rg["id"].string)
+                RemoteAlbum(album, MusicBrainz.AlbumDetails(rg["id"].string))
             } else null
         } else null
     } catch (e: Exception) {
@@ -399,5 +398,9 @@ object MusicBrainz: SearchApi, AnkoLogger {
 
     override suspend fun fullArtwork(album: Album, search: Boolean): String? {
         return null
+    }
+
+    override suspend fun fullArtwork(artist: Artist, search: Boolean): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }

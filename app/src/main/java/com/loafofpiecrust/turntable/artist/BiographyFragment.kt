@@ -1,38 +1,46 @@
 package com.loafofpiecrust.turntable.artist
 
-import activitystarter.Arg
 import android.view.ViewManager
+import android.widget.TextView
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.browse.SearchApi
-import com.loafofpiecrust.turntable.provided
 import com.loafofpiecrust.turntable.style.standardStyle
-import com.loafofpiecrust.turntable.ui.BaseFragment
-import kotlinx.coroutines.experimental.runBlocking
+import com.loafofpiecrust.turntable.ui.BaseDialogFragment
+import com.loafofpiecrust.turntable.util.consumeEach
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 
-class BiographyFragment: BaseFragment() {
-    @Arg lateinit var artist: Artist
+class BiographyFragment: BaseDialogFragment() {
+    //    @Arg(optional = true) lateinit var artistId: ArtistId
+    lateinit var artist: ReceiveChannel<Artist>
 
-    override fun makeView(ui: ViewManager) = ui.verticalLayout {
+    companion object {
+        fun fromChan(channel: ReceiveChannel<Artist>): BiographyFragment {
+            return BiographyFragment().apply {
+                artist = channel
+            }
+        }
+    }
+
+    override fun ViewManager.createView() = verticalLayout {
         fitsSystemWindows = true
-
-        val remote = artist.remote.provided {
-            it?.description != null
-        } ?: runBlocking { SearchApi.find(artist.id)?.remote }
-
 
         // TODO: Add full-res artist image, as not-cropped as possible.
         // TODO: Multiple artist images?
-        toolbar {
-            standardStyle(UI)
-            title = artist.id.displayName
+        val toolbar = toolbar {
+            standardStyle(UI, true)
+            setNavigationOnClickListener { dismiss() }
         }
 
+        lateinit var bioText: TextView
         scrollView {
-            textView(remote?.description)
-        }.lparams(matchParent, matchParent) {
             padding = dimen(R.dimen.text_content_margin)
+            bioText = textView()
+        }.lparams(matchParent, matchParent)
+
+        artist.consumeEach(UI) { artist ->
+            toolbar.title = artist.id.displayName
+            bioText.text = artist.biography
         }
     }
 }

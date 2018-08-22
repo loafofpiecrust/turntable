@@ -28,6 +28,7 @@ import com.loafofpiecrust.turntable.album.LocalAlbum
 import com.loafofpiecrust.turntable.album.MergedAlbum
 import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistId
+import com.loafofpiecrust.turntable.artist.LocalArtist
 import com.loafofpiecrust.turntable.playlist.Playlist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.song.Song
@@ -78,15 +79,15 @@ class Library : Service() {
             context.bindService(intent, conn, Context.BIND_AUTO_CREATE)
         }
 
-        val ARTIST_COMPARATOR = compareByIgnoreCase<Artist>({ it.id.sortName })
+        val ARTIST_COMPARATOR = compareByIgnoreCase<ArtistId>({ it.sortName })
         val ARTIST_META_COMPARATOR = compareByIgnoreCase<ArtistMetadata>({ it.id.sortName })
 
         /**
          * Sorting and searching comparator for albums.
          * TODO: Maybe re-order to allow finding albums by an artist by binary searching within albums, then going backwards and forwards
          */
-        val ALBUM_COMPARATOR = compareByIgnoreCase<Album>(
-            { it.id.sortTitle }, { it.id.artist.sortName }, { it.type.name }
+        val ALBUM_COMPARATOR = compareByIgnoreCase<AlbumId>(
+            { it.sortTitle }, { it.artist.sortName }//, { it.type.name }
         )
 //        val ALBUM_ARTIST_COMPARATOR = compareBy<Album>({ it.artist })
 
@@ -162,12 +163,12 @@ class Library : Service() {
 
     private val _cachedAlbums = ConflatedBroadcastChannel(listOf<Album>())
     private val cachedAlbums = _cachedAlbums.openSubscription().map {
-        it.sortedWith(ALBUM_COMPARATOR)
+        it.sortedBy { it.id }
     }.replayOne()
 
     private val _cachedArtists = ConflatedBroadcastChannel(listOf<Artist>())
     private val cachedArtists = _cachedArtists.openSubscription().map {
-        it.sortedWith(ARTIST_COMPARATOR)
+        it.sortedBy { it.id }
     }.replayOne()
 
     private val cachedPlaylists = ConflatedBroadcastChannel(listOf<Playlist>())
@@ -180,7 +181,7 @@ class Library : Service() {
 //            (songs + remotes.flatMap { it.tracks }).sortedBy { it.searchKey }
 //        }
 
-    private val localAlbums: ReceiveChannel<List<Album>> = _songs.openSubscription().map {
+    val localAlbums/*: ReceiveChannel<List<Album>>*/ = _songs.openSubscription().map {
         it.groupBy {
             val local = it.local as Song.LocalDetails.Downloaded
 //            if (local is Song.LocalDetails.Downloaded) {
@@ -211,7 +212,7 @@ class Library : Service() {
      * Song sort key: name + album + artist
      */
     val albums: ConflatedBroadcastChannel<List<Album>> = localAlbums.combineLatest(remoteAlbums.openSubscription()).map { (a, b) ->
-        (a + b).sortedWith(ALBUM_COMPARATOR).dedupMergeSorted(
+        (a + b).sortedBy { it.id }.dedupMergeSorted(
             { a, b -> a.id == b.id },
             { a, b -> a.mergeWith(b) }
         )
@@ -242,12 +243,11 @@ class Library : Service() {
 //                else -> 0
 //            }
             // TODO: Use a dynamic sorting method: eg. sort by id, etc.
-            Artist(
+            LocalArtist(
                 firstAlbum.id.artist,
-                null,
                 it.sortedByDescending { it.year }
             )
-        }.sortedWith(ARTIST_COMPARATOR)
+        }.sortedBy { it.id }
     }.replayOne()
 
 
@@ -258,9 +258,9 @@ class Library : Service() {
 //    }
 //    val playlists = BehaviorSubject.createDefault(listOf<Playlist>())
 
-    fun albumsByArtist(id: ArtistId): ReceiveChannel<List<Album>> = artists.openSubscription().map {
-        val key = Artist.justForSearch(id.name)
-        val artist = it.binarySearchElem(key, ARTIST_COMPARATOR)
+    fun albumsByArtist(id: ArtistId): ReceiveChannel<List<Album>> = artists.openSubscription().map { artists ->
+//        val key = Artist.justForSearch(id.name)
+        val artist = artists.binarySearchElem(id) { it.id }
 //        val artist = it.binarySearchElem(Artist.sortKey(artistName).toLowerCase()) { it.searchKey }
         artist?.albums ?: listOf()
     }
@@ -302,7 +302,7 @@ class Library : Service() {
             libAlbums.binarySearchElem(key) { it.id }
         }
 
-    suspend fun findCachedAlbumNow(album: AlbumId): ReceiveChannel<Album?> = findAlbum(album).switchMap {
+    fun findCachedAlbumNow(album: AlbumId): ReceiveChannel<Album?> = findAlbum(album).switchMap {
         if (it == null) {
             cachedAlbums.openSubscription().map { it.binarySearchElem(album) { it.id } }
         } else produceTask { it }
@@ -318,7 +318,7 @@ class Library : Service() {
         }
 
 
-    suspend fun findAlbumOfSong(song: Song): ReceiveChannel<Album?> = run {
+    fun findAlbumOfSong(song: Song): ReceiveChannel<Album?> = run {
         // First, look for one with matching artist id, that'll catch the majority of cases
         // So, most searches are as fast as binary search and Various Artists albums only do a few more comparisons
 //        val maybeAlbum = findCachedAlbum(song.album, song.artist)
@@ -358,8 +358,8 @@ class Library : Service() {
     }
 
     fun findArtist(id: ArtistId): ReceiveChannel<Artist?> = artists.openSubscription().map {
-        val key = Artist(id, null, listOf())
-        it.binarySearchElem(key, ARTIST_COMPARATOR)
+//        val key = Artist(id, null, listOf())
+        it.binarySearchElem(id) { artist: Artist -> artist.id }
 //        it.binarySearchElem(Artist.sortKey(id).toLowerCase()) { it.searchKey }
     }
 
@@ -397,6 +397,10 @@ class Library : Service() {
         UserPrefs.albumMeta appends meta
     }
 
+    fun addArtistExtras(meta: ArtistMetadata) {
+        UserPrefs.artistMeta appends meta
+    }
+
 //    fun addPlaylist(pl: Playlist) {
 //        UserPrefs.playlists appends pl
 ////        async(CommonPool) {
@@ -426,8 +430,8 @@ class Library : Service() {
 //    }
 
     private fun fillMissingArtwork() = task {
-        val albums = albums.value
-        val cache = albumCovers.value
+        val albums = albums.openSubscription().first()
+        val cache = albumCovers.openSubscription().first()
 //        val addedCache = listOf<AlbumMetadata>()
         albums/*.filter {
             val cover = it.artworkUrl
@@ -510,8 +514,8 @@ class Library : Service() {
     }
 
     private fun fillArtistArtwork() = task {
-        val cache = artistMeta.value
-        artists.value.forEach { artist ->
+        val cache = artistMeta.openSubscription().first()
+        artists.openSubscription().first().forEach { artist ->
             val key = ArtistMetadata(artist.id, null)
             val cached = cache.binarySearchElem(key, ARTIST_META_COMPARATOR)
 
@@ -545,7 +549,7 @@ class Library : Service() {
                         synchronized(UserPrefs.artistMeta) {
                             UserPrefs.artistMeta appends key.copy(artworkUri = uri)
                         }
-                    }.success(UI) {
+                    }.then(UI) {
                         Glide.with(App.instance)
                             .load(uri)
 //                                .apply(Library.ARTWORK_OPTIONS.signature(ObjectKey(key)))
@@ -615,13 +619,13 @@ class Library : Service() {
         _cachedArtists puts cache
     }
 
-    fun findCachedRemoteArtist(artist: Artist): ReceiveChannel<Artist?>
+    fun findCachedRemoteArtist(artist: ArtistId): ReceiveChannel<Artist?>
         = cachedArtists.openSubscription().map {
-            it.binarySearchElem(artist, ARTIST_COMPARATOR)
+            it.binarySearchElem(artist) { it.id }
         }
 
     fun findPlaylist(id: UUID): ReceiveChannel<Playlist?>
-        = UserPrefs.playlists.openSubscription().flatMap {
+        = UserPrefs.playlists.openSubscription().switchMap {
             val r = it.find { it.id == id }
                 ?: UserPrefs.recommendations.value.mapNotNull { it as? Playlist }.find { it.id == id }
 
@@ -661,14 +665,14 @@ class Library : Service() {
 
             // Change events for mediaStore
             // On change, empty _all and refill with songs
-            contentResolver.registerContentObserver(android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, true,
+            App.instance.contentResolver.registerContentObserver(android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, true,
                 object : ContentObserver(Handler()) {
                     override fun onChange(selfChange: Boolean) {
                         println("songs: External Media has been added")
                         // Update the song library, but to accomodate rapid changes, wait 2 seconds
                         // before re-querying the MediaStore.
                         given(updateTask) {
-                            if (it.isActive) it.cancel()
+                            if (it.isActive) it.cancelSafely()
                         }
                         updateTask = task {
                             delay(1500)
@@ -678,7 +682,7 @@ class Library : Service() {
                     }
                 }
             )
-            contentResolver.registerContentObserver(android.provider.MediaStore.Audio.Media.INTERNAL_CONTENT_URI, true,
+            App.instance.contentResolver.registerContentObserver(android.provider.MediaStore.Audio.Media.INTERNAL_CONTENT_URI, true,
                 object : ContentObserver(Handler()) {
                     override fun onChange(selfChange: Boolean) {
                         println("songs: Internal Media has been added")
@@ -811,11 +815,11 @@ class Library : Service() {
     /// It caches for speed at ~300x300, so the quality is ass.
     /// Let's go find the files ourselves!
     private suspend fun updateLocalArtwork() {
-        val albums = albums.value
+        val albums = albums.openSubscription().first()
 
         val imageExts = arrayOf("jpg", "jpeg", "gif", "png")
         val frontReg = Regex("\\b(front|cover|folder|album|booklet)\\b", RegexOption.IGNORE_CASE)
-        val existingCovers = albumCovers.value
+        val existingCovers = albumCovers.valueOrNull ?: listOf()
         albums.parMap {
             if (it !is LocalAlbum && it !is MergedAlbum) return@parMap
 

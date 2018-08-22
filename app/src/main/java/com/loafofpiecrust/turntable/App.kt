@@ -4,7 +4,6 @@ import android.app.Application
 import android.arch.lifecycle.ViewModelProvider
 import android.arch.lifecycle.ViewModelStore
 import android.content.Context
-import android.content.Intent
 import android.net.*
 import android.support.annotation.MainThread
 import android.support.v4.app.Fragment
@@ -12,6 +11,7 @@ import android.util.DisplayMetrics
 import com.chibatching.kotpref.Kotpref
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.serializers.FieldSerializer
+import com.evernote.android.state.StateSaver
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.service.SyncService
@@ -19,6 +19,7 @@ import com.loafofpiecrust.turntable.util.CBCSerializer
 import com.loafofpiecrust.turntable.util.distinctSeq
 import com.loafofpiecrust.turntable.util.task
 import com.loafofpiecrust.turntable.util.threadLocalLazy
+import com.squareup.leakcanary.LeakCanary
 import de.javakaffee.kryoserializers.ArraysAsListSerializer
 import de.javakaffee.kryoserializers.SubListSerializers
 import de.javakaffee.kryoserializers.UUIDSerializer
@@ -84,8 +85,19 @@ class App: Application() {
         super.onCreate()
         _instance = WeakReference(this)
 
+        if (LeakCanary.isInAnalyzerProcess(this)) {
+            // This process is dedicated to LeakCanary for heap analysis.
+            // You should not init your app in this process.
+            return
+        }
+        LeakCanary.install(this)
+
+        StateSaver.setEnabledForAllActivitiesAndSupportFragments(this, true)
+
         Kotpref.init(this)
-//        library = Library()
+        library = Library().apply {
+            onCreate()
+        }
         search = OnlineSearchService()
 
         search.onCreate()
@@ -94,7 +106,7 @@ class App: Application() {
 
         // Start the MusicService
 //        startService(Intent(this, MusicService::class.java))
-        startService(Intent(this, Library::class.java))
+//        startService(Intent(this, Library::class.java))
         SyncService.initDeviceId()
 //        startService(Intent(this, OnlineSearchService::class.java))
 //        startService(Intent(this, FileSyncService::class.java))

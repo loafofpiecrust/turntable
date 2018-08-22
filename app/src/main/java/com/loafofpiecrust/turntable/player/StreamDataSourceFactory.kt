@@ -12,7 +12,7 @@ import com.google.android.exoplayer2.upstream.Allocator
 import com.google.android.exoplayer2.upstream.DataSource
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.util.BG_POOL
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.experimental.async
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -124,7 +124,7 @@ class StreamMediaPeriod(
         val local = song.localMedia
         if (local != null) {
             setupMedia(local)
-        } else launch(BG_POOL) {
+        } else async(BG_POOL) {
             val remote = song.remoteMedia()
             if (remote == null) {
                 maybeThrowPrepareError()

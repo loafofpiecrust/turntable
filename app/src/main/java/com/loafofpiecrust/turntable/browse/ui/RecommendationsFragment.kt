@@ -12,7 +12,7 @@ import org.jetbrains.anko.support.v4.ctx
  * Created by snead on 12/10/17.
  */
 class RecommendationsFragment: BaseFragment() {
-    override fun makeView(ui: ViewManager) = ui.recyclerView {
+    override fun ViewManager.createView() = recyclerView {
         layoutManager = LinearLayoutManager(ctx)
         adapter = MusicAdapter(UserPrefs.recommendations.openSubscription())
     }

@@ -16,12 +16,15 @@ import android.widget.TextView
 import com.afollestad.sectionedrecyclerview.SectionedViewHolder
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.consumeEach
-import com.loafofpiecrust.turntable.util.success
+import com.loafofpiecrust.turntable.util.cancelSafely
 import com.loafofpiecrust.turntable.util.task
+import com.loafofpiecrust.turntable.util.then
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
+import kotlinx.coroutines.experimental.channels.consumeEach
+import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.experimental.withContext
 import org.jetbrains.anko.*
 import org.jetbrains.anko.cardview.v7.cardView
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
@@ -37,10 +40,9 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
     val contentsSame: RecyclerAdapter<T, VH>.(T, T, Int, Int) -> Boolean = { a, b, aIdx, bIdx -> a == b }
 ): RecyclerView.Adapter<VH>() {
     protected var data: List<T> = listOf()
-        private set
 //    private var diffTask: Job? = null
     private val pendingUpdates = ArrayDeque<List<T>>()
-    private var _subscription: Job? = null
+    protected var _subscription: Job? = null
 
     override fun getItemCount(): Int = data.size
 
@@ -52,7 +54,7 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
         } + item)
     }
 
-    private inner class Differ(val old: List<T>, val new: List<T>) : DiffUtil.Callback() {
+    protected inner class Differ(val old: List<T>, val new: List<T>) : DiffUtil.Callback() {
         override fun getOldListSize() = old.size
         override fun getNewListSize() = new.size
 
@@ -81,7 +83,7 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
                 synchronized(this) {
                     DiffUtil.calculateDiff(Differ(data, newData))
                 }
-            }.success(UI) { diff ->
+            }.then(UI) { diff ->
                 data = newData
                 diff.dispatchUpdatesTo(this@RecyclerAdapter)
                 pendingUpdates.removeFirst()
@@ -94,14 +96,12 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
                     internalUpdate()
                 }
             }
-        } else {
-            task(UI) {
-                data = newData
-                notifyItemRangeInserted(0, newData.size)
-                pendingUpdates.removeFirst()
-                if (pendingUpdates.isNotEmpty()) {
-                    internalUpdate()
-                }
+        } else runBlocking(UI) {
+            data = newData
+            notifyItemRangeInserted(0, newData.size)
+            pendingUpdates.removeFirst()
+            if (pendingUpdates.isNotEmpty()) {
+                internalUpdate()
             }
         }
     }
@@ -132,15 +132,25 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
     }
 
     fun subscribeData(obs: ReceiveChannel<List<T>>) {
-        _subscription?.cancel()
-        _subscription = obs.consumeEach(BG_POOL) {
-            updateData(it)
+        _subscription?.cancelSafely()
+//        if (!obs.isEmpty) {
+//            data = runBlocking { obs.receive() }
+//        }
+        _subscription = task(BG_POOL) {
+            obs.consumeEach { newData ->
+                val diff = DiffUtil.calculateDiff(Differ(data, newData))
+                withContext(UI) {
+                    data = newData
+                    diff.dispatchUpdatesTo(this@RecyclerAdapter)
+                }
+            }
         }
     }
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
         super.onDetachedFromRecyclerView(recyclerView)
-        _subscription?.cancel()
+        _subscription?.cancelSafely()
+        _subscription = null
     }
 
     fun onItemMove(fromIdx: Int, toIdx: Int) {

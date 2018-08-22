@@ -9,8 +9,7 @@ import com.loafofpiecrust.turntable.playlist.MixTape
 import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragmentStarter
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.ui.*
-import com.loafofpiecrust.turntable.util.success
-import com.loafofpiecrust.turntable.util.task
+import com.loafofpiecrust.turntable.util.produceTask
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.frameLayout
 import org.jetbrains.anko.recyclerview.v7.recyclerView
@@ -19,15 +18,15 @@ import java.util.concurrent.TimeUnit
 
 
 class RecentMixTapesFragment: BaseFragment() {
-    override fun makeView(ui: ViewManager): View = with(ui) {
-        val mixtapes = task {
+    override fun ViewManager.createView(): View = with(this) {
+        val mixtapes = produceTask {
             MixTape.queryMostRecent(TimeUnit.DAYS.toMillis(10))
         }
 
         frameLayout {
             recyclerView {
                 layoutManager = LinearLayoutManager(ctx)
-                adapter = object: RecyclerAdapter<MixTape, RecyclerItem>() {
+                adapter = object : RecyclerAdapter<MixTape, RecyclerItem>() {
                     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerItem =
                         RecyclerListItem(parent, 3, true)
 
@@ -35,7 +34,7 @@ class RecentMixTapesFragment: BaseFragment() {
                         val mt = data[position]
                         holder.mainLine.text = mt.name
                         holder.subLine.text = mt.type.name
-                        given (mt.color) { holder.card.backgroundColor = it }
+                        given(mt.color) { holder.card.backgroundColor = it }
 
                         holder.card.setOnClickListener {
                             ctx.library.cachePlaylist(mt)
@@ -44,9 +43,7 @@ class RecentMixTapesFragment: BaseFragment() {
                         }
                     }
                 }.apply {
-                    mixtapes.success(UI) {
-                        updateData(it)
-                    }
+                    subscribeData(mixtapes)
                 }
             }
         }

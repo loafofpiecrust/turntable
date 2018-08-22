@@ -9,7 +9,8 @@ import android.support.v7.widget.PopupMenu
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.helper.ItemTouchHelper
 import android.view.Gravity
-import android.view.Gravity.*
+import android.view.Gravity.CENTER
+import android.view.Gravity.CENTER_VERTICAL
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewManager
@@ -26,10 +27,12 @@ import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.switchMap
-import kotlinx.coroutines.experimental.channels.filterNotNull
+import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
+import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.cardview.v7.cardView
 import org.jetbrains.anko.recyclerview.v7.recyclerView
@@ -42,8 +45,8 @@ class QueueFragment : BaseFragment() {
     private lateinit var queueAdapter: QueueAdapter
     private var songList: RecyclerView? = null
 
-    override fun makeView(ui: ViewManager): View {
-        return ui.cardView {
+    override fun ViewManager.createView(): View {
+        return cardView {
             cardElevation = dimen(R.dimen.medium_elevation).toFloat()
 
             verticalLayout {
@@ -55,11 +58,11 @@ class QueueFragment : BaseFragment() {
 
                     lateinit var playIcon: ImageView
                     linearLayout {
-                        gravity = Gravity.CENTER
+                        gravity = CENTER
                         playIcon = imageView(R.drawable.ic_play_circle_outline) {
 
                         }.lparams(dimen(R.dimen.icon_size), dimen(R.dimen.icon_size))
-                    }.lparams(width=dimen(R.dimen.overflow_icon_space))
+                    }.lparams(width = dimen(R.dimen.overflow_icon_space))
 
                     verticalLayout {
                         nowPlayingMainLine = textView {
@@ -75,7 +78,7 @@ class QueueFragment : BaseFragment() {
                         nowPlayingSubLine.textColor = it
                         playIcon.setColorFilter(it)
                     }
-                }.lparams(width=matchParent, height=dimen(R.dimen.song_item_height))
+                }.lparams(width = matchParent, height = dimen(R.dimen.song_item_height))
 
                 textView("Up Next") {
                     textSizeDimen = R.dimen.small_text_size
@@ -84,12 +87,12 @@ class QueueFragment : BaseFragment() {
                     bottomMargin = dip(4)
                 }
 
+                val linear = LinearLayoutManager(context)
                 songList = recyclerView {
-                    val linear = LinearLayoutManager(context)
                     layoutManager = linear
                     queueAdapter = QueueAdapter()
                     adapter = queueAdapter.also { adapter ->
-                        val helper = ItemTouchHelper(object: ItemTouchHelper.SimpleCallback(
+                        val helper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
                             ItemTouchHelper.UP or ItemTouchHelper.DOWN,
                             ItemTouchHelper.START or ItemTouchHelper.END
                         ) {
@@ -107,7 +110,7 @@ class QueueFragment : BaseFragment() {
                             override fun isLongPressDragEnabled() = true
                             override fun isItemViewSwipeEnabled() = true
                         })
-                        helper.attachToRecyclerView(this)
+                        helper.attachToRecyclerView(this@recyclerView)
                     }
 
                     addItemDecoration(DividerItemDecoration(context, linear.orientation).apply {
@@ -118,30 +121,19 @@ class QueueFragment : BaseFragment() {
                     height = matchParent
                 )
 
-                MusicService.instance.filterNotNull()
-                    .switchMap { it.player.queue }
-                    .consumeEach(UI) { q ->
-                        val song = q.current
-                        nowPlayingMainLine.text = song?.id?.displayName ?: ""
-                        nowPlayingSubLine.text = song?.id?.artist?.displayName ?: ""
-                        queueAdapter.updateData(q.list, q.position)
-                        if (queueAdapter.overscroll) { // collapsed
-                            delay(100) // Let the queue update itself.
-                            val layout = songList?.layoutManager as LinearLayoutManager
-                            layout.scrollToPositionWithOffset(q.position + 1, 0)
-                        }
+                // Hook up our UI to the queue!
+                val queue = { MusicService.instance.switchMap { it.player.queue } }
+                queueAdapter.subscribeData(queue().map { it.list })
+                queueAdapter.subscribePos(queue().map { it.position })
+                queue().consumeEach(UI) { q ->
+                    val song = q.current
+                    nowPlayingMainLine.text = song?.id?.displayName ?: ""
+                    nowPlayingSubLine.text = song?.id?.artist?.displayName ?: ""
+                    if (queueAdapter.overscroll) { // collapsed
+                        delay(100) // Let the queue update itself.
+                        linear.scrollToPositionWithOffset(q.position + 1, 0)
                     }
-
-//                verticalLayout {
-//                    lparams {
-//                        width = matchParent
-//                        height = matchParent
-//                    }
-//                    textView {
-//                        text = "Currently Playing song"
-//                        backgroundColor = Color.BLACK
-//                    }.lparams(height=dip(60), width=matchParent)
-//                }
+                }
             }
         }
     }
@@ -238,7 +230,7 @@ class QueueAdapter : RecyclerAdapter<Song, RecyclerListItemOptimized>(
                         }
                     }
                 }
-                song.optionsMenu(popup.menu)
+                song.optionsMenu(holder.itemView.context, popup.menu)
                 popup.show()
             }
         }
@@ -247,11 +239,25 @@ class QueueAdapter : RecyclerAdapter<Song, RecyclerListItemOptimized>(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerListItemOptimized
         = RecyclerListItemOptimized(parent, 3)
 
-    fun updateData(newSongs: List<Song>, pos: Int = currentPosition) {
-        if (currentPosition != pos) {
-            currentPosition = pos
-            notifyItemRangeChanged(0, data.size)
+    private val posJob = Job()
+    fun subscribePos(channel: ReceiveChannel<Int>) {
+        posJob.cancelChildren()
+//        if (!channel.isEmpty) {
+//            currentPosition = runBlocking { channel.receive() }
+//        }
+        launch(UI, parent = posJob) {
+            channel.consumeEach { pos ->
+                currentPosition = pos
+                notifyItemRangeChanged(0, data.size)
+            }
         }
-        super.updateData(newSongs) {}
     }
+
+//    fun updateData(newSongs: List<Song>, pos: Int = currentPosition) {
+//        if (currentPosition != pos) {
+//            currentPosition = pos
+//            notifyItemRangeChanged(0, data.size)
+//        }
+//        super.updateData(newSongs) {}
+//    }
 }

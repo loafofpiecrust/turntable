@@ -16,8 +16,8 @@ import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItem
-import com.loafofpiecrust.turntable.util.success
 import com.loafofpiecrust.turntable.util.task
+import com.loafofpiecrust.turntable.util.then
 import com.mcxiaoke.koi.ext.closeQuietly
 import com.mcxiaoke.koi.ext.stringValue
 import kotlinx.coroutines.experimental.channels.map
@@ -59,7 +59,7 @@ class SyncTabFragment: BaseFragment() {
                                 val key = textBox!!.text.toString()
                                 task {
                                     SyncService.User.resolve(key)
-                                }.success(UI) { user ->
+                                }.then(UI) { user ->
                                     if (user != null) {
                                         toast("Befriending ${user.displayName}")
                                         SyncService.requestFriendship(user)
@@ -102,7 +102,7 @@ class SyncTabFragment: BaseFragment() {
             cursor.closeQuietly()
             task {
                 SyncService.User.resolve(email)
-            }.success(UI) {
+            }.then(UI) {
                 if (it != null) {
                     toast("Befriending ${it.name}")
                     SyncService.requestFriendship(it)
@@ -113,13 +113,13 @@ class SyncTabFragment: BaseFragment() {
         }
     }
 
-    override fun makeView(ui: ViewManager) = with(ui) {
+    override fun ViewManager.createView() = with(this) {
         // 'New Friend!' button
 
         // list of friends
         recyclerView {
             layoutManager = LinearLayoutManager(ctx)
-            adapter = object: RecyclerAdapter<SyncService.Friend, RecyclerListItem>() {
+            adapter = object : RecyclerAdapter<SyncService.Friend, RecyclerListItem>() {
                 override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
                     RecyclerListItem(parent, useIcon = true)
 
@@ -128,22 +128,22 @@ class SyncTabFragment: BaseFragment() {
                     holder.apply {
                         mainLine.text = friend.user.name
                         subLine.text = friend.user.deviceId
-                        val choices = sortedMapOf(
+                        val choices = listOf(
                             "Request Sync" to {
-                                friend.user.refresh().success {
+                                friend.user.refresh().then {
                                     SyncService.requestSync(it)
                                 }
                                 toast("Requested sync with ${friend.user.name}")
-                            }//,
-//                            "Playlists" to {
-//
-//                            }
+                            },
+                            "Cancel Friendship" to {
+                                friend.respondToRequest(false)
+                            }
                         )
                         card.onClick {
-                            val keys = choices.keys.toList()
+                            val keys = choices.map { it.first }
 
                             selector("Do what with friend?", keys) { dialog, idx ->
-                                choices[keys[idx]]!!.invoke()
+                                choices[idx].second.invoke()
                             }
                         }
 //                        menu.onClick {

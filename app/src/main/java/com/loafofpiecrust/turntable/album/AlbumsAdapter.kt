@@ -18,11 +18,14 @@ import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerGridItem
 import com.loafofpiecrust.turntable.ui.RecyclerItem
 import com.loafofpiecrust.turntable.ui.SectionedRecyclerAdapter
-import com.loafofpiecrust.turntable.util.task
+import com.loafofpiecrust.turntable.util.BG_POOL
+import com.loafofpiecrust.turntable.util.cancelSafely
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.consumeEach
+import kotlinx.coroutines.experimental.withContext
 import org.jetbrains.anko.*
 
 // Album categories: All, ByArtist
@@ -81,24 +84,27 @@ class AlbumsAdapter(
 
         if (holder.coverImage != null) {
             holder.coverImage.imageResource = R.drawable.ic_default_album
-            val job = task(UI) {
+            val job = async(BG_POOL) {
                 album.loadThumbnail(Glide.with(holder.card.context)).consumeEach {
-                    given(it) {
+                    val req = given(it) {
                         it.apply(opts)
                             .transition(DrawableTransitionOptions().crossFade(200))
                             .listener(album.loadPalette(holder.card, holder.mainLine, holder.subLine))
-                            .into(holder.coverImage)
-                    } ?: run {
-                        holder.coverImage.imageResource = R.drawable.ic_default_album
+                    }
+
+                    withContext(UI) {
+                        req?.into(holder.coverImage) ?: run {
+                            holder.coverImage.imageResource = R.drawable.ic_default_album
+                        }
                     }
                 }
             }
-            imageJobs.put(holder, job)?.cancel()
+            imageJobs.put(holder, job)?.cancelSafely()
         }
     }
 
     override fun onViewRecycled(holder: RecyclerItem) {
-        imageJobs.remove(holder)?.cancel()
+        imageJobs.remove(holder)?.cancelSafely()
         if (holder.coverImage != null) {
             Glide.with(holder.card.context)
                 .clear(holder.coverImage)
@@ -153,7 +159,7 @@ class AlbumSectionAdapter(
                 .placeholder(R.drawable.ic_default_album)
                 .signature(ObjectKey(album.id.displayName))
 
-            imageJobs.put(holder, task(UI) {
+            imageJobs.put(holder, async(UI) {
                 album.loadThumbnail(Glide.with(holder.card.context)).consumeEach {
                     given(it) {
                         it.apply(opts)
@@ -164,7 +170,7 @@ class AlbumSectionAdapter(
                         holder.coverImage.imageResource = R.drawable.ic_default_album
                     }
                 }
-            })?.cancel()
+            })?.cancelSafely()
         }
     }
 

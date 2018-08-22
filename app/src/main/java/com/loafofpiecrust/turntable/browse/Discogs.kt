@@ -2,18 +2,16 @@ package com.loafofpiecrust.turntable.browse
 
 import com.github.salomonbrys.kotson.*
 import com.google.gson.JsonObject
+import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.album.AlbumId
 import com.loafofpiecrust.turntable.album.RemoteAlbum
 import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistId
-import com.loafofpiecrust.turntable.awaitAllNotNull
-import com.loafofpiecrust.turntable.given
-import com.loafofpiecrust.turntable.parMap
+import com.loafofpiecrust.turntable.artist.RemoteArtist
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
-import com.loafofpiecrust.turntable.tryOr
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.task
@@ -21,6 +19,7 @@ import com.loafofpiecrust.turntable.util.text
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.experimental.runBlocking
 import okhttp3.Response
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.info
@@ -43,16 +42,27 @@ object Discogs: SearchApi, AnkoLogger {
     @Parcelize
     data class ArtistDetails(
         val id: Int,
-        override val description: String? = null,
+        override val biography: String = "",
         val artworkUrl: String? = null//,
 //        val members:
     ): Artist.RemoteDetails {
-        override suspend fun resolveAlbums() = discographyHtml(id)
+        override val albums: List<Album> by lazy {
+            runBlocking { discographyHtml(id) }
+//            runBlocking { discography(id) }
+        }
     }
 
 
-    private const val key = "IkcHFvQhLxHVLqgyZbLw"
-    private const val secret = "EYvAdLqDPejAslLuXEYsJdSWkOgADRQp"
+    private val ARTIST_OF_MANY by lazy { Regex("\\(\\d+\\)$") }
+    private val ARTIST_ALT_NAME by lazy { Regex("\\*$") }
+    private fun cleanArtistName(artist: String) = ArtistId(
+        artist.replace(ARTIST_OF_MANY, "")
+            .replace(ARTIST_ALT_NAME, "")
+    )
+
+
+    private const val key = BuildConfig.DISCOGS_KEY
+    private const val secret = BuildConfig.DISCOGS_SECRET
 
     private suspend fun apiRequest(url: String, params: Map<String, String> = mapOf()): JsonObject =
         try {
@@ -90,14 +100,18 @@ object Discogs: SearchApi, AnkoLogger {
         }
     }
 
-    private suspend fun searchFor(album: Album): List<String> {
-        return doSearch(album.id.displayName, mapOf(
+    private suspend fun searchFor(album: AlbumId): List<RemoteAlbum> {
+        return doSearch(album.displayName, mapOf(
             "type" to "release",
-            "artist" to album.id.artist.name,
-            "year" to album.year.toString(),
+            "artist" to album.artist.name,
+//            "year" to album.year.toString(),
             "per_page" to "5"
         )).map {
-            it["type"].string + "s/" + it["id"].string
+            val artist = cleanArtistName(it["artists"][0]["name"].string)
+            RemoteAlbum(
+                AlbumId(it["name"].string, artist),
+                AlbumDetails(it["type"].string + "s/" + it["id"].string)
+            )
         }
     }
 
@@ -108,17 +122,14 @@ object Discogs: SearchApi, AnkoLogger {
         ))["results"].array.map { it.obj }
     }
 
-    private val disambPattern by lazy { Regex("\\s*\\(\\d+\\)$") }
     override suspend fun searchArtists(query: String): List<Artist> {
         return doSearch(query, mapOf(
             "type" to "artist"
         )).mapNotNull {
             tryOr(null) {
-                Artist(
-                    ArtistId(disambPattern.replace(it["title"].string, "")),
-                    ArtistDetails(it["id"].int),
-                    listOf(),
-                    artworkUrl = it["thumb"].nullString
+                RemoteArtist(
+                    cleanArtistName(it["title"].string),
+                    ArtistDetails(it["id"].int, "", it["thumb"].nullString)
                 )
             }
         }
@@ -132,7 +143,7 @@ object Discogs: SearchApi, AnkoLogger {
             RemoteAlbum(
                 AlbumId(
                     titleParts[1],
-                    ArtistId(disambPattern.replace(titleParts[0], ""))
+                    cleanArtistName(titleParts[0])
                 ),
                 AlbumDetails(
                     it["id"].int.toString(),
@@ -146,24 +157,23 @@ object Discogs: SearchApi, AnkoLogger {
     /// Song search is not supported by Discogs.
     override suspend fun searchSongs(query: String): List<Song> = listOf()
 
-    override suspend fun find(album: Album): Album.RemoteDetails? {
+    override suspend fun find(album: AlbumId): Album? {
         // TODO: ensure that the result is identical or fuzzy match of >=98
         return given(searchFor(album).firstOrNull()) {
-            AlbumDetails(it)
+            it
         }
     }
 
     override suspend fun find(artist: ArtistId): Artist? {
         return given(searchFor(artist).firstOrNull()) {
             val res = apiRequest("https://api.discogs.com/artists/$it").obj
-            Artist(
+            RemoteArtist(
                 artist,
                 ArtistDetails(
                     it,
-                    res["profile"].nullString,
+                    res["profile"].nullString ?: "",
                     res["images"]?.get(0)?.get("uri")?.nullString
-                ),
-                listOf()
+                )
             )
         }
     }
@@ -223,13 +233,13 @@ object Discogs: SearchApi, AnkoLogger {
             }
 
             val artistName = given(it["artist"].nullString) {
-                disambPattern.replace(it, "")
+                cleanArtistName(it)
             }
 
             // TODO: Include featured albums as well, somewhere
             if (role == null || role == "Main") {
                 RemoteAlbum(
-                    AlbumId(title, given(artistName) { ArtistId(it) } ?: artist ?: ArtistId("")),
+                    AlbumId(title, artistName ?: artist ?: ArtistId("")),
                     AlbumDetails(
                         remoteId,
                         thumbnailUrl = it["thumb"].nullString,
@@ -252,9 +262,9 @@ object Discogs: SearchApi, AnkoLogger {
                 val remote = album.remoteId
                 if (remote is Discogs.AlbumDetails) {
                     remote.id
-                } else searchFor(album).firstOrNull()
+                } else searchFor(album.id).firstOrNull()
             }
-            search -> searchFor(album).firstOrNull() ?: return null
+            search -> searchFor(album.id).firstOrNull() ?: return null
             else -> return null
         }
 //        if (album.remote !is Discogs.AlbumDetails) {
@@ -267,6 +277,29 @@ object Discogs: SearchApi, AnkoLogger {
         if (url != null) {
             Library.instance.addAlbumExtras(
                 Library.AlbumMetadata(album.id, url)
+            )
+        }
+        return url
+    }
+
+    override suspend fun fullArtwork(artist: Artist, search: Boolean): String? {
+        val id = when {
+            artist is RemoteArtist -> {
+                if (artist.details is ArtistDetails) {
+                    artist.details.id
+                } else searchFor(artist.id).firstOrNull()
+            }
+            search -> searchFor(artist.id).firstOrNull() ?: return null
+            else -> return null
+        }
+
+        val res = apiRequest("https://api.discogs.com/artists/$id").obj
+        val imgs = res["images"].nullArray
+        val url = (imgs?.firstOrNull { it["type"].nullString == "primary" } ?: imgs?.first())?.get("uri")?.string
+
+        if (url != null) {
+            Library.instance.addArtistExtras(
+                Library.ArtistMetadata(artist.id, url)
             )
         }
         return url
@@ -385,10 +418,15 @@ object Discogs: SearchApi, AnkoLogger {
         } ?: listOf()
 
     suspend fun discographyHtml(id: Int): List<Album> {
+        var start = System.nanoTime()
         val txt = Http.get("https://www.discogs.com/artist/$id", mapOf(
-            "limit" to "500"
+            "limit" to "100"
         )).text
+        info { "discography request took ${System.nanoTime() - start}ns" }
+        start = System.nanoTime()
         val res = Jsoup.parse(txt).body()
+        info { "discography parse took ${System.nanoTime() - start}ns" }
+        start = System.nanoTime()
         val profile = res.getElementsByClass("profile").first()
         val artist = ArtistId(profile.child(0).text())
         val table = res.getElementById("artist").child(0)
@@ -442,7 +480,9 @@ object Discogs: SearchApi, AnkoLogger {
                 )
             }
             else -> null
-        } }
+        } }.also {
+            info { "discography process took ${System.nanoTime() - start}ns" }
+        }
     }
 
     suspend fun tracksOnAlbum(id: String): List<Song> {
@@ -457,7 +497,7 @@ object Discogs: SearchApi, AnkoLogger {
         info { "getting tracks of album '$id'" }
         val res = apiRequest("https://api.discogs.com/$id")
         val albumTitle = res["title"].string
-        val artistName = disambPattern.replace(res["artists"][0]["name"].string, "")
+        val artistName = cleanArtistName(res["artists"][0]["name"].string)
         return res["tracklist"].array.map { it.obj }.mapIndexed { idx, it ->
             val title = it["title"].string
             val durationParts = it["duration"].nullString?.split(':')
@@ -470,7 +510,7 @@ object Discogs: SearchApi, AnkoLogger {
                 null, null,
                 SongId(
                     title,
-                    AlbumId(albumTitle, ArtistId(artistName)),
+                    AlbumId(albumTitle, artistName),
                     features = if (it.has("extraartists")) {
                         it["extraartists"].array.map {
                             ArtistId(it["name"].string, it["anv"].nullString)

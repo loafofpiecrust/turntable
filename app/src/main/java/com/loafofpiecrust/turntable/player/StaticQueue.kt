@@ -5,7 +5,6 @@ import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.song.Song
 import kotlinx.android.parcel.Parcelize
 
-@Parcelize
 data class StaticQueue(
     override val list: List<Song>,
     override val position: Int

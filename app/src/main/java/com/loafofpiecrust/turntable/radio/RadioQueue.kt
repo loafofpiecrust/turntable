@@ -11,7 +11,6 @@ import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.runBlocking
 import kotlin.math.max
 
-@Parcelize
 class RadioQueue private constructor(
     private val seed: MutableList<Music>,
     private val recommendations: MutableList<Song>,

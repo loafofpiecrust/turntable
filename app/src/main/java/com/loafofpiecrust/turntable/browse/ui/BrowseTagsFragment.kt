@@ -42,7 +42,7 @@ class BrowseTagsFragment: BaseFragment() {
         }
     }
 
-    override fun makeView(ui: ViewManager): View = ui.verticalLayout {
+    override fun ViewManager.createView(): View = verticalLayout {
         recyclerView {
             layoutManager = LinearLayoutManager(ctx)
             adapter = TagAdapter(popularTags)

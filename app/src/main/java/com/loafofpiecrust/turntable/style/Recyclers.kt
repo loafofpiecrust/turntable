@@ -6,11 +6,10 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.consumeEach
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import com.simplecityapps.recyclerview_fastscroll.views.FastScroller
-import jp.wasabeef.recyclerview.animators.SlideInUpAnimator
 import kotlin.coroutines.experimental.CoroutineContext
 
 
-fun FastScrollRecyclerView.turntableStyle(uiContext: CoroutineContext) {
+inline fun FastScrollRecyclerView.turntableStyle(uiContext: CoroutineContext) {
     (RecyclerView::turntableStyle)(this, uiContext)
 
     UserPrefs.secondaryColor.consumeEach(uiContext) {
@@ -23,6 +22,6 @@ fun FastScrollRecyclerView.turntableStyle(uiContext: CoroutineContext) {
     addOnItemTouchListener(this)
 }
 
-fun RecyclerView.turntableStyle(uiContext: CoroutineContext) {
-    itemAnimator = SlideInUpAnimator()
+inline fun RecyclerView.turntableStyle(uiContext: CoroutineContext) {
+//    itemAnimator = SlideInUpAnimator()
 }

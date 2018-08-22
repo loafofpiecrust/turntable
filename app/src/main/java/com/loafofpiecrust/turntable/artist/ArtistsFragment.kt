@@ -7,37 +7,64 @@ import android.view.*
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions
+import com.evernote.android.state.State
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.album.loadPalette
+import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.turntableStyle
 import com.loafofpiecrust.turntable.ui.*
-import com.loafofpiecrust.turntable.util.produceTask
+import com.loafofpiecrust.turntable.util.cancelSafely
 import com.loafofpiecrust.turntable.util.task
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.channels.consumeEach
+import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.channels.*
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-import org.jetbrains.anko.support.v4.ctx
+import org.jetbrains.anko.support.v4.act
 
 class ArtistsFragment : BaseFragment() {
     sealed class Category: Parcelable {
         @Parcelize class All: Category()
-        @Parcelize class Custom(val artists: List<Artist>): Category()
+        @Parcelize data class RelatedTo(val id: ArtistId): Category()
+//        @Parcelize class Custom(val artists: List<Artist>): Category()
     }
 
     @Arg lateinit var category: Category
     @Arg(optional=true) var columnCount: Int? = null
+    @State var listState: Parcelable? = null
+
+    lateinit var artists: BroadcastChannel<List<Artist>>
+
+    // TODO: Use Category!!
+    companion object {
+        fun relatedTo(artist: Artist): ArtistsFragment {
+            return ArtistsFragmentStarter.newInstance(Category.RelatedTo(artist.id)).apply {
+                artists = broadcast(capacity = Channel.CONFLATED) { send(Spotify.similarTo(artist.id)) }
+            }
+        }
+        fun fromChan(channel: ReceiveChannel<List<Artist>>): ArtistsFragment {
+            return ArtistsFragmentStarter.newInstance(Category.All()).apply {
+                artists = channel.broadcast(Channel.CONFLATED)
+            }
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        if (!::artists.isInitialized) {
+            artists = Library.instance.artists
+        }
+    }
 
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
         menu.menuItem("Search", R.drawable.ic_search, showIcon = true) {
             onClick {
-                MainActivity.replaceContent(
+                act.replaceMainContent(
                     SearchFragmentStarter.newInstance(SearchFragment.Category.ARTISTS),
                     true
                 )
@@ -62,36 +89,33 @@ class ArtistsFragment : BaseFragment() {
         }
     }
 
-    override fun makeView(ui: ViewManager): View = with(ui) {
+    override fun ViewManager.createView(): View = with(this) {
         val cat = category
 
         val recycler = if (cat is Category.All) {
             fastScrollRecycler {
-                turntableStyle(jobs)
+                turntableStyle(UI)
             }
         } else {
             recyclerView {
-                lparams(height=matchParent, width=matchParent)
-                turntableStyle(jobs)
+                lparams(height = matchParent, width = matchParent)
+                turntableStyle(UI)
             }
         }
 
         recycler.apply {
-            this.adapter = ArtistsAdapter { holder, artists, idx ->
+            adapter = ArtistsAdapter { holder, artists, idx ->
+                listState = layoutManager.onSaveInstanceState()
                 // smoothly transition the cover image!
-                ctx.replaceMainContent(
+                holder.itemView.context.replaceMainContent(
                     ArtistDetailsFragment.fromArtist(artists[idx]), true,
                     holder.transitionViews
                 )
             }.apply {
-                task(UI) {
-                    when (cat) {
-                        is Category.All -> Library.instance.artists.openSubscription()
-                        is Category.Custom -> produceTask { cat.artists }
-                    }.consumeEach {
-                        updateData(it)
-                    }
-                }
+                subscribeData(artists.openSubscription())
+//                artists.consumeEach(UI) {
+//                    updateData(it)
+//                }
             }
 
             layoutManager = GridLayoutManager(context, 3).also { grid ->
@@ -101,7 +125,7 @@ class ArtistsFragment : BaseFragment() {
                     UserPrefs.artistGridColumns.consumeEach {
                         (adapter as ArtistsAdapter).apply {
                             gridSize = it
-                            notifyDataSetChanged()
+//                            notifyDataSetChanged()
                         }
                         grid.spanCount = it
                     }
@@ -119,7 +143,7 @@ class ArtistsAdapter(
     private val listener: (RecyclerItem, List<Artist>, Int) -> Unit
 ) : RecyclerAdapter<Artist, RecyclerItem>(
     itemsSame = { a, b, aIdx, bIdx -> a.id == b.id },
-    contentsSame = { a, b, aIdx, bIdx -> a.id == b.id && a.artworkUrl == b.artworkUrl && a.remote == b.remote }
+    contentsSame = { a, b, aIdx, bIdx -> a.id == b.id /*&& a.artworkUrl == b.artworkUrl && a.remote == b.remote*/ }
 ),
     FastScrollRecyclerView.SectionedAdapter
 {
@@ -141,7 +165,7 @@ class ArtistsAdapter(
         holder.header.transitionName = item.id.nameTransition
 
         holder.mainLine.text = item.id.displayName
-        given(item.disambiguation) {
+        given(item.id.altName) {
             holder.subLine.text = it
         }
 
@@ -152,21 +176,19 @@ class ArtistsAdapter(
         holder.card.backgroundColor = UserPrefs.primaryColor.value
 
         if (holder.coverImage != null) {
-            val job = task(UI) {
-                item.loadArtwork(Glide.with(holder.card.context)).consumeEach {
-                    given(it) {
+            val job = async(UI) {
+                item.loadThumbnail(Glide.with(holder.card.context)).consumeEach {
+                    if (it != null) {
                         it.apply(RequestOptions().placeholder(R.drawable.ic_default_album))
-                            .listener(loadPalette(item.id, arrayOf(holder.card)))
+                            .listener(item.loadPalette(holder.card, holder.mainLine, holder.subLine))
                             .transition(DrawableTransitionOptions().crossFade(200))
-//                withContext(UI) {
                             .into(holder.coverImage)
-//                }
-                    } ?: run {
+                    } else {
                         holder.coverImage.imageResource = R.drawable.ic_default_album
                     }
                 }
             }
-            imageJobs.put(holder, job)?.cancel()
+            imageJobs.put(holder, job)?.cancelSafely()
         }
 
     }

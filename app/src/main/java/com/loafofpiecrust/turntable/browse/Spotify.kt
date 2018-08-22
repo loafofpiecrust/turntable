@@ -8,6 +8,7 @@ import com.loafofpiecrust.turntable.album.AlbumId
 import com.loafofpiecrust.turntable.album.RemoteAlbum
 import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistId
+import com.loafofpiecrust.turntable.artist.RemoteArtist
 import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragmentStarter
@@ -26,7 +27,6 @@ import kotlinx.coroutines.experimental.runBlocking
 
 
 object Spotify: SearchApi {
-
     @Parcelize
     data class AlbumDetails(
         val id: String,
@@ -71,8 +71,8 @@ object Spotify: SearchApi {
         val artworkUrl: String? = null
     ): Artist.RemoteDetails {
         /// TODO: Pagination
-        override suspend fun resolveAlbums(): List<Album> {
-            return apiRequest(
+        override val albums: List<Album> by lazy { runBlocking {
+            apiRequest(
                 "https://api.spotify.com/v1/artists/$id/albums",
                 mapOf("limit" to "50")
             ).gson["items"].array.map {
@@ -96,6 +96,18 @@ object Spotify: SearchApi {
                     }
                 )
             }
+        } }
+        override val biography: String
+            get() = ""
+
+        suspend fun fullArtwork(search: Boolean): String? {
+            if (artworkUrl != null) return artworkUrl
+
+            val res = Http.get("https://api.spotify.com/v1/artists/$id", headers = mapOf(
+                "Authorization" to "Bearer $accessToken"
+            )).gson
+
+            return res["images"][0]["url"].nullString
         }
     }
 
@@ -159,22 +171,20 @@ object Spotify: SearchApi {
 
         return res["artists"]["items"].array.map {
             val imgs = it["images"].array
-            Artist(
+            RemoteArtist(
                 ArtistId(it["name"].string),
                 ArtistDetails(
                     it["id"].string,
                     imgs.last()["url"].string,
                     imgs.first()["url"].string
-                ),
-                albums = listOf(),
-                artworkUrl = imgs.last()["url"].string
+                )
             )
         }
     }
 
     override suspend fun find(artist: ArtistId): Artist? {
         return given(searchFor(artist).firstOrNull()) {
-            Artist(artist, ArtistDetails(it), listOf())
+            RemoteArtist(artist, ArtistDetails(it))
         }
     }
 
@@ -190,7 +200,7 @@ object Spotify: SearchApi {
         return res["tracks"]["items"].array.map { it["id"].string }
     }
 
-    private suspend fun searchFor(album: AlbumId): List<String> {
+    private suspend fun searchFor(album: AlbumId): List<RemoteAlbum> {
         val res = Http.get("https://api.spotify.com/v1/search", headers = mapOf(
             "Authorization" to "Bearer $accessToken"
         ), params = mapOf(
@@ -199,12 +209,19 @@ object Spotify: SearchApi {
             "limit" to "3"
         )).gson
 
-        return res["albums"]["items"].nullArray?.map { it["id"].string } ?: listOf()
+        return res["albums"]["items"].nullArray?.map {
+            val artists = it["artists"].array
+            val primaryArtist = artists.first()["name"].string
+            RemoteAlbum(
+                AlbumId(it["name"].string, ArtistId(primaryArtist)),
+                AlbumDetails(it["id"].string)
+            )
+        } ?: listOf()
     }
 
-    override suspend fun find(album: Album): Album.RemoteDetails? {
-        return given(searchFor(album.id).firstOrNull()) {
-            AlbumDetails(it)
+    override suspend fun find(album: AlbumId): Album? {
+        return given(searchFor(album).firstOrNull()) {
+            it
         }
     }
 
@@ -349,11 +366,9 @@ object Spotify: SearchApi {
         val res = apiRequest("https://api.spotify.com/v1/artists/$a/related-artists").gson
 
         return res["artists"].array.map { it.obj }.map {
-            Artist(
+            RemoteArtist(
                 ArtistId(it["name"].string),
-                null,
-                albums = listOf(),
-                artworkUrl = it["images"][1]["url"].nullString
+                ArtistDetails(it["id"].string, it["images"][1]["url"].nullString)
             )
         }
     }
@@ -400,5 +415,9 @@ object Spotify: SearchApi {
         )).gson
 
         return res["albums"]["items"].nullArray?.map { it["images"][0]["url"].nullString }?.first()
+    }
+
+    override suspend fun fullArtwork(artist: Artist, search: Boolean): String? {
+        return ((artist as? RemoteArtist)?.details as? ArtistDetails)?.fullArtwork(search)
     }
 }

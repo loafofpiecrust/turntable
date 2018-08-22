@@ -7,11 +7,9 @@ import android.arch.lifecycle.ViewModel
 import com.loafofpiecrust.turntable.song.Song
 import kotlinx.coroutines.experimental.Unconfined
 import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.channels.produce
-import kotlinx.coroutines.experimental.channels.sendBlocking
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.experimental.channels.*
+import kotlinx.coroutines.experimental.withContext
+import java.lang.ref.WeakReference
 import kotlin.coroutines.experimental.CoroutineContext
 
 /**
@@ -37,34 +35,46 @@ class SongsModel: ViewModel() {
  * onDestroy: cancel all running tasks and channels.
  */
 
-fun <T> ReceiveChannel<T>.connect(
-    lifecycle: Lifecycle,
-    context: CoroutineContext = Unconfined
-): ReceiveChannel<T> = produce(context) {
+class LifeObserver<T>(val chan: SendChannel<T>): LifecycleObserver {
     var lastValue: T? = null
+    var paused: Boolean = false
 
-    class Observer: LifecycleObserver {
-        @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
-        fun onResume() {
-            val v = lastValue
-            if (v != null) {
-                sendBlocking(v)
-            }
-        }
-
-        @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-        fun onDestroy() {
-            cancel()
+    @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    fun onResume() {
+        paused = false
+        val v = lastValue
+        if (v != null) {
+            chan.offer(v)
         }
     }
 
-    launch(UI) { lifecycle.addObserver(Observer()) }
+    @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    fun onPause() {
+        paused = true
+    }
+
+    @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+    fun onDestroy() {
+        chan.close()
+    }
+}
+inline fun <T> ReceiveChannel<T>.connect(
+    lifecycle: WeakReference<Lifecycle>,
+    context: CoroutineContext = Unconfined
+): ReceiveChannel<T> = produce(context) {
+    val obs = LifeObserver(this)
+    withContext(UI) { lifecycle.get()?.addObserver(obs) }
 
     consumeEach {
-        if (lifecycle.currentState == Lifecycle.State.RESUMED) {
+        if (!obs.paused) {
             send(it)
         } else {
-            lastValue = it
+            obs.lastValue = it
         }
     }
 }
+
+fun <T> BroadcastChannel<T>.connect(
+    lifecycle: WeakReference<Lifecycle>,
+    context: CoroutineContext = Unconfined
+) = openSubscription().connect(lifecycle, context)

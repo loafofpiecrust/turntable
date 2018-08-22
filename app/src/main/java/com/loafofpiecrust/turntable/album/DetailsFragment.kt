@@ -2,10 +2,11 @@ package com.loafofpiecrust.turntable.album
 
 import activitystarter.Arg
 import android.arch.lifecycle.ViewModel
-import android.graphics.Color.*
-import android.graphics.Typeface.*
+import android.graphics.Color.TRANSPARENT
+import android.graphics.Typeface.BOLD
+import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.AppBarLayout
-import android.support.design.widget.CollapsingToolbarLayout.LayoutParams.*
+import android.support.design.widget.CollapsingToolbarLayout.LayoutParams.COLLAPSE_MODE_PIN
 import android.transition.*
 import android.view.Gravity
 import android.view.View
@@ -15,17 +16,13 @@ import android.widget.TextView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.service.library
+import com.loafofpiecrust.turntable.browse.SearchApi
+import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.SongsFragment
-import com.loafofpiecrust.turntable.song.SongsFragmentStarter
 import com.loafofpiecrust.turntable.style.detailsStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.consumeEach
-import com.loafofpiecrust.turntable.util.produceSingle
-import com.loafofpiecrust.turntable.util.replayOne
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
+import kotlinx.coroutines.experimental.channels.*
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
@@ -36,7 +33,6 @@ import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.design.collapsingToolbarLayout
 import org.jetbrains.anko.design.coordinatorLayout
 import org.jetbrains.anko.support.v4.ctx
-import org.jetbrains.anko.support.v4.toast
 
 
 class AlbumsViewModel: ViewModel() {
@@ -70,12 +66,12 @@ class DetailsFragment: BaseFragment() {
     @Arg lateinit var albumId: AlbumId
     @Arg(optional=true) var isPartial = false
 
-    lateinit var album: ReceiveChannel<Album>
+    lateinit var album: BroadcastChannel<Album>
 
     companion object {
         fun fromAlbum(album: Album, isPartial: Boolean = false): DetailsFragment {
             return DetailsFragmentStarter.newInstance(album.id, isPartial).also {
-                it.album = produceSingle(album)
+                it.album = ConflatedBroadcastChannel(album)
             }
         }
     }
@@ -83,13 +79,19 @@ class DetailsFragment: BaseFragment() {
     override fun onCreate() {
         super.onCreate()
 
-        val transDur = 200L
+        if (!::album.isInitialized) {
+            album = Library.instance.findAlbum(albumId).map {
+                it ?: SearchApi.find(albumId)!!
+            }.broadcast(-1)
+        }
 
-        val trans = TransitionSet().setDuration(transDur)
-            .addTransition(ChangeBounds().setDuration(transDur))
-//                    .addTransition(ChangeImageTransform().setDuration(1500))
-            .addTransition(ChangeTransform().setDuration(transDur))
-            .addTransition(ChangeClipBounds().setDuration(transDur))
+        val transDur = 400L
+
+        val trans = TransitionSet()
+            .addTransition(ChangeBounds())
+            .addTransition(ChangeImageTransform())
+            .addTransition(ChangeTransform())
+//            .addTransition(ChangeClipBounds())
 
         sharedElementEnterTransition = trans
         sharedElementReturnTransition = trans
@@ -98,11 +100,10 @@ class DetailsFragment: BaseFragment() {
         exitTransition = Fade().setDuration(1) // Just dissappear
 //        exitTransition = Fade().setDuration(transDur / 3)
 //        postponeEnterTransition()
-//        vm = MusicModelProviders.of(this, album.id.toString(), true).get(AlbumsViewModel::class.java)
-//        System.out.println("vm: ${vm.category.valueOrNull}")
     }
 
-    override fun makeView(ui: ViewManager): View = ui.coordinatorLayout {
+    override fun ViewManager.createView(): View = coordinatorLayout {
+        backgroundColor = TRANSPARENT
 //        fitsSystemWindows = true
 
 //        val album = if (album.local !is Album.LocalDetails.Downloaded) {
@@ -110,7 +111,7 @@ class DetailsFragment: BaseFragment() {
 //            existing.blockingFirst().toNullable() ?: album
 //        } else album
 
-        val album = ctx.library.findCachedAlbum(albumId).replayOne()
+//        val album = ctx.library.findCachedAlbum(albumId).replayOne()
 
 
         val coloredText = mutableListOf<TextView>()
@@ -120,9 +121,8 @@ class DetailsFragment: BaseFragment() {
             backgroundColor = TRANSPARENT
 
             lateinit var image: ImageView
-            collapsingToolbarLayout {
+            val collapser = collapsingToolbarLayout {
                 fitsSystemWindows = false
-                setContentScrimColor(UserPrefs.primaryColor.value)
                 collapsedTitleGravity = Gravity.BOTTOM
                 expandedTitleGravity = Gravity.BOTTOM
                 title = " "
@@ -177,10 +177,10 @@ class DetailsFragment: BaseFragment() {
                         val padBy = dimen(R.dimen.details_image_padding)
                         image {
                             connect(
-                                TOP to TOP of this@constraintLayout,
-                                START to START of this@constraintLayout,
-                                BOTTOM to BOTTOM of this@constraintLayout,
-                                END to END of this@constraintLayout
+                                TOP to TOP of PARENT_ID,
+                                START to START of PARENT_ID,
+                                BOTTOM to BOTTOM of PARENT_ID,
+                                END to END of PARENT_ID
                             )
                             width = matchConstraint
                             height = matchConstraint
@@ -188,14 +188,14 @@ class DetailsFragment: BaseFragment() {
                         }
                         status {
                             connect(
-                                BOTTOM to BOTTOM of this@constraintLayout margin padBy,
-                                END to END of this@constraintLayout margin padBy
+                                BOTTOM to BOTTOM of PARENT_ID margin padBy,
+                                END to END of PARENT_ID margin padBy
                             )
                         }
                         year {
                             connect(
-                                BOTTOM to BOTTOM of this@constraintLayout margin padBy,
-                                START to START of this@constraintLayout margin padBy
+                                BOTTOM to BOTTOM of PARENT_ID margin padBy,
+                                START to START of PARENT_ID margin padBy
                             )
                         }
                     }
@@ -235,40 +235,44 @@ class DetailsFragment: BaseFragment() {
                     }
 
                     album.consumeEach(UI) { album ->
-                        album?.loadCover(Glide.with(image))?.consumeEach(UI) {
+                        album.loadCover(Glide.with(image))?.consumeEach {
                             it?.transition(DrawableTransitionOptions().crossFade(200))
-                                ?.listener(album.loadPalette(this@toolbar, mainLine, subLine))
+                                ?.listener(album.loadPalette(this@toolbar, mainLine, subLine, collapser))
                                 ?.into(image)
                                 ?: run { image.imageResource = R.drawable.ic_default_album }
                         }
                     }
                 }.lparams(height = matchParent)
 
-
-                if (album is RemoteAlbum) { // is remote album
-                    // Option to mark the album for offline listening
-                    // First, see if it's already marked
-                    menuItem("Favorite", R.drawable.ic_turned_in_not, showIcon=true) {
-                        ctx.library.findAlbum(album.id).consumeEach(UI) { existing ->
-                            if (existing != null) {
-                                icon = ctx.getDrawable(R.drawable.ic_turned_in)
-                                setOnMenuItemClickListener {
-                                    // Remove remote album from library
-                                    ctx.library.removeRemoteAlbum(existing)
-                                    toast("Removed album to library")
-                                    true
-                                }
-                            } else {
-                                icon = ctx.getDrawable(R.drawable.ic_turned_in_not)
-                                setOnMenuItemClickListener {
-                                    ctx.library.addRemoteAlbum(album)
-                                    toast("Added album to library")
-                                    true
-                                }
-                            }
-                        }
-                    }
+                album.consumeEach(UI) {
+                    menu.clear()
+                    it.optionsMenu(ctx, menu)
                 }
+
+//                if (album is RemoteAlbum) { // is remote album
+//                    // Option to mark the album for offline listening
+//                    // First, see if it's already marked
+//                    menuItem("Favorite", R.drawable.ic_turned_in_not, showIcon=true) {
+//                        ctx.library.findAlbum(album.id).consumeEach(UI) { existing ->
+//                            if (existing != null) {
+//                                icon = ctx.getDrawable(R.drawable.ic_turned_in)
+//                                setOnMenuItemClickListener {
+//                                    // Remove remote album from library
+//                                    ctx.library.removeRemoteAlbum(existing)
+//                                    toast("Removed album to library")
+//                                    true
+//                                }
+//                            } else {
+//                                icon = ctx.getDrawable(R.drawable.ic_turned_in_not)
+//                                setOnMenuItemClickListener {
+//                                    ctx.library.addRemoteAlbum(album)
+//                                    toast("Added album to library")
+//                                    true
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
 
 //                album.optionsMenu(menu)
 
@@ -283,12 +287,8 @@ class DetailsFragment: BaseFragment() {
 
 
 
-        verticalLayout {
-            id = R.id.container
-            val fragment = SongsFragmentStarter.newInstance(SongsFragment.Category.OnAlbum(albumId))
-            fragment(
-                childFragmentManager, fragment
-            )
+        frameLayout {
+            fragment(SongsFragment.onAlbum(albumId, album.openSubscription()))
         }.lparams(width = matchParent, height = wrapContent) {
             behavior = AppBarLayout.ScrollingViewBehavior()
         }

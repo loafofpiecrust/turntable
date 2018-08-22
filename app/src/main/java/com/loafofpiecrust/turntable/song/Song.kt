@@ -4,6 +4,7 @@ package com.loafofpiecrust.turntable.song
 //import com.devbrackets.android.playlistcore.manager.ListPlaylistManager
 //import com.loafofpiecrust.turntable.service.PlaylistManager
 import android.app.DownloadManager
+import android.content.Context
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Environment
@@ -23,13 +24,13 @@ import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.menuItem
 import com.loafofpiecrust.turntable.onClick
-import com.loafofpiecrust.turntable.playlist.PlaylistPickerDialogStarter
+import com.loafofpiecrust.turntable.playlist.PlaylistPickerDialog
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.service.SyncService
-import com.loafofpiecrust.turntable.sync.FriendPickerDialog
-import com.loafofpiecrust.turntable.ui.MainActivity
+import com.loafofpiecrust.turntable.sync.FriendPickerDialogStarter
+import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.produceTask
 import com.loafofpiecrust.turntable.util.switchMap
@@ -41,7 +42,6 @@ import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.map
 import kotlinx.coroutines.experimental.withContext
 import me.xdrop.fuzzywuzzy.FuzzySearch
-import org.jetbrains.anko.ctx
 import org.jetbrains.anko.downloadManager
 import org.jetbrains.anko.toast
 import java.io.Serializable
@@ -57,9 +57,9 @@ import java.util.regex.Pattern
 // - Not local, downloading from p2p/udp (queued in sync)
 // - Not local, downloading from larger collection torrent (song from album, song/album from artist)
 
-interface Music: Parcelable {
+interface Music {
     val simpleName: String
-    fun optionsMenu(menu: Menu)
+    fun optionsMenu(ctx: Context, menu: Menu)
 }
 
 
@@ -76,7 +76,7 @@ fun String.withoutArticle(): String = when {
 }
 
 
-interface MusicId {
+interface MusicId: Parcelable {
     val name: String
     val displayName: String
 
@@ -163,19 +163,17 @@ data class Song(
     val duration: Int, // milliseconds
     val year: Int? = null,
     var artworkUrl: String? = null
-) : Music {
-    override fun optionsMenu(menu: Menu) = with(menu) {
-        val ctx = MainActivity.latest.ctx
-
+) : Music, Parcelable {
+    override fun optionsMenu(ctx: Context, menu: Menu) = with(menu) {
         menuItem("Add to playlist").onClick {
-            PlaylistPickerDialogStarter.newInstance(this@Song).show()
+            PlaylistPickerDialog(this@Song).show(ctx)
         }
 
         menuItem("Go to album").onClick(BG_POOL) {
             val album = Library.instance.findAlbumOfSong(this@Song).first()
             withContext(UI) {
                 if (album != null) {
-                    MainActivity.replaceContent(
+                    ctx.replaceMainContent(
                         DetailsFragmentStarter.newInstance(album.id), true
                     )
                 }
@@ -205,21 +203,17 @@ data class Song(
             }
 
             if (artist != null) {
-                MainActivity.replaceContent(
+                ctx.replaceMainContent(
                     ArtistDetailsFragment.fromArtist(artist), true
                 )
             }
         }
 
         menuItem("Recommend").onClick {
-            FriendPickerDialog().apply {
-                onAccept = {
-                    SyncService.send(
-                        SyncService.Message.Recommendation(minimizeForSync()),
-                        SyncService.Mode.OneOnOne(it)
-                    )
-                }
-            }.show(MainActivity.latest.supportFragmentManager, "friends")
+            FriendPickerDialogStarter.newInstance(
+                SyncService.Message.Recommendation(this@Song.id),
+                "Send Recommendation"
+            ).show(ctx)
         }
 
         menuItem("Clear Streams").onClick {
@@ -241,6 +235,10 @@ data class Song(
         fun justForSearch(title: String, album: String, artist: String, duration: Int = 0) = Song(
             null, null,
             SongId(title, AlbumId(album, ArtistId(artist))),
+            0, 0, duration
+        )
+        fun justForSearch(id: SongId, duration: Int = 0) = Song(
+            null, null, id,
             0, 0, duration
         )
     }

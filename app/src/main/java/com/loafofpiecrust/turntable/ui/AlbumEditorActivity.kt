@@ -14,12 +14,16 @@ import android.widget.EditText
 import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.album.Album
+import com.loafofpiecrust.turntable.album.AlbumId
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.util.always
 import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.fail
 import com.loafofpiecrust.turntable.util.task
+import kotlinx.coroutines.experimental.channels.first
+import kotlinx.coroutines.experimental.runBlocking
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import org.jetbrains.anko.*
@@ -33,13 +37,15 @@ import org.jetbrains.anko.sdk25.coroutines.onClick
 import java.io.File
 
 class AlbumEditorActivity : BaseActivity() {
-    @Arg lateinit var album: Album
+    @Arg lateinit var albumId: AlbumId
 
     private lateinit var titleEdit: EditText
     private lateinit var artistEdit: EditText
     private lateinit var yearEdit: EditText
 
-    override fun makeView(ui: ViewManager) = ui.constraintLayout {
+    override fun ViewManager.createView() = constraintLayout {
+        val album = runBlocking { Library.instance.findAlbum(albumId).first() }!!
+
         val artwork = imageView {
             album.loadCover(Glide.with(this)).consumeEach(UI) {
                 it?.into(this) ?: run {
@@ -81,8 +87,8 @@ class AlbumEditorActivity : BaseActivity() {
                 }.apply { show() }
 
                 task {
-                    saveTags(dialog)
-                }.fail(UI) { e ->
+                    saveTags(album, dialog)
+                }.fail(UI) { e: Throwable ->
                     e.printStackTrace()
                     toast("Failed to save tags")
                 }.always(UI) {
@@ -131,7 +137,7 @@ class AlbumEditorActivity : BaseActivity() {
         }
     }
 
-    private suspend fun saveTags(dialog: ProgressDialog) = run {
+    private suspend fun saveTags(album: Album, dialog: ProgressDialog) = run {
         val title = titleEdit.text.toString()
         val artist = artistEdit.text.toString()
         val year = yearEdit.text.toString()

@@ -1,23 +1,11 @@
+package com.loafofpiecrust.turntable.artist
 
 import com.loafofpiecrust.turntable.album.Album
-import com.loafofpiecrust.turntable.artist.ArtistId
-import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.browse.SearchApi
+import com.loafofpiecrust.turntable.dedupMerge
+import com.loafofpiecrust.turntable.given
+import kotlinx.coroutines.experimental.runBlocking
 
-
-interface Artist {
-    val id: ArtistId
-    val albums: List<Album>
-    val startYear: Int?
-    val endYear: Int?
-   
-    
-    data class Member(
-        val name: String,
-        val id: String,
-        val active: Boolean
-    )
-}
 
 interface AlbumArtist {
     val albums: List<Album>
@@ -27,6 +15,12 @@ interface AlbumArtist {
 // class RemoteAlbumArtist: AlbumArtist {
 // }
 
+// loadArtwork(req):
+//if (artworkUrl != null) {
+//    produce(BG_POOL) { send(req.load(artworkUrl).apply(Library.ARTWORK_OPTIONS)) }
+//} else {
+//    Library.instance.loadArtistImage(req, id)
+//}
 
 class LocalArtist(
     override val id: ArtistId,
@@ -34,25 +28,20 @@ class LocalArtist(
 ): Artist {
     override val startYear get() = albums.minBy { it.year ?: Int.MAX_VALUE }?.year
     override val endYear get() = albums.maxBy { it.year ?: 0 }?.year
+
+    private val remote get() = runBlocking { SearchApi.find(id) as RemoteArtist? }
+    override val biography: String? get() = remote?.biography
 }
 
 class RemoteArtist(
     override val id: ArtistId,
-    val details: RemoteDetails,
+    val details: Artist.RemoteDetails,
     override val startYear: Int? = null,
     override val endYear: Int? = null
 ): Artist {
-    // Each API implements whether they have any of this info already 
-    // or if it's all lazy or exists at all or what
-    interface RemoteDetails: Parcelable {
-        val albums: List<Album>
-        val biography: String
-        val members: List<Artist.Member>
-    }
+    override val albums get() = details.albums
+    override val biography get() = details.biography
 
-    override val albums: List<Album> by lazy {
-        details.albums
-    }
     // Properties only obtained with details:
     // - albums
     // - members
@@ -74,6 +63,7 @@ class MergedArtist(val a: Artist, val b: Artist): Artist {
             { a, b -> a.mergeWith(b) }
         )
     }
+    override val biography get() = a.biography ?: b.biography
 }
 
 /*

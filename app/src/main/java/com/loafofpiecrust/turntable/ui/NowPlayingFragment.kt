@@ -3,24 +3,24 @@ package com.loafofpiecrust.turntable.ui
 //import com.loafofpiecrust.turntable.service.MusicService2
 //import me.angrybyte.circularslider.CircularSlider
 import android.graphics.Color
-import android.support.design.widget.FloatingActionButton
-import android.support.v7.widget.Toolbar
+import android.support.constraint.ConstraintSet.PARENT_ID
 import android.view.ViewManager
+import android.widget.ImageButton
 import android.widget.SeekBar
 import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.loadPalette
-import com.loafofpiecrust.turntable.fragment
 import com.loafofpiecrust.turntable.generateChildrenIds
-import com.loafofpiecrust.turntable.given
-import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.radio.RadioQueue
+import com.loafofpiecrust.turntable.selector
 import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.FriendPickerDialogStarter
+import com.loafofpiecrust.turntable.sync.SyncDetailsDialog
 import com.loafofpiecrust.turntable.util.consumeEach
+import com.loafofpiecrust.turntable.util.produceSingle
 import com.loafofpiecrust.turntable.util.switchMap
-import com.loafofpiecrust.turntable.util.task
-import kotlinx.coroutines.experimental.channels.filterNotNull
+import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
@@ -29,45 +29,50 @@ import org.jetbrains.anko.constraint.layout.constraintLayout
 import org.jetbrains.anko.constraint.layout.matchConstraint
 import org.jetbrains.anko.design.floatingActionButton
 import org.jetbrains.anko.sdk25.coroutines.onClick
+import org.jetbrains.anko.support.v4.ctx
 
 open class NowPlayingFragment : BaseFragment() {
 
-    // Ui elements
-    lateinit var toolbar: Toolbar
-    private lateinit var seekBar: SeekBar
-    private lateinit var playButton: FloatingActionButton
+    override fun ViewManager.createView() = constraintLayout {
+        lateinit var playButton: ImageButton
 
-    override fun makeView(ui: ViewManager) = ui.constraintLayout {
-
-        MusicService.instance.filterNotNull().consumeEach(UI) { music ->
-            music.player.isPlaying.consumeEach(UI) {
-                if (it) {
-                    playButton.imageResource = R.drawable.ic_pause
-                    playButton.onClick {
-                        MusicService.enact(SyncService.Message.Pause())
-                    }
-                } else {
-                    playButton.imageResource = R.drawable.ic_play_arrow
-                    playButton.onClick {
-                        MusicService.enact(SyncService.Message.Play())
-                    }
+        MusicService.instance.switchMap {
+            it.player.isPlaying
+        }.consumeEach(UI) {
+            if (it) {
+                playButton.imageResource = R.drawable.ic_pause
+                playButton.onClick {
+                    MusicService.enact(SyncService.Message.Pause())
+                }
+            } else {
+                playButton.imageResource = R.drawable.ic_play_arrow
+                playButton.onClick {
+                    MusicService.enact(SyncService.Message.Play())
                 }
             }
+        }
 
-            music.player.currentSong.switchMap { song ->
-                song!!.loadCover(Glide.with(this)).map {
-                    song to it
+        async(UI) {
+            MusicService.instance.switchMap {
+                it.player.currentSong
+            }.switchMap { song ->
+                song?.loadCover(Glide.with(this@constraintLayout))?.map { req ->
+                    song to req
+                } ?: produceSingle(null to null)
+            }.consumeEach { (song, req) ->
+                if (song != null && req != null) {
+                    req.listener(loadPalette(song.id.album) { palette, swatch ->
+                        backgroundColor = swatch?.rgb ?: context.resources.getColor(R.color.background)
+                        val c =
+                            (palette?.mutedSwatch
+                                ?: palette?.darkMutedSwatch
+                                ?: palette?.darkVibrantSwatch)?.rgb
+                                ?: Color.BLACK
+                        playButton.backgroundColor = c
+                    }).preload()
+                } else {
+                    // reset playButton color.
                 }
-            }.consumeEach(UI) { (song, req) ->
-                req?.listener(loadPalette(song.id.album) { palette, swatch ->
-                    backgroundColor = swatch?.rgb ?: context.resources.getColor(R.color.background)
-                    val c =
-                        (palette?.mutedSwatch
-                            ?: palette?.darkMutedSwatch
-                            ?: palette?.darkVibrantSwatch)?.rgb
-                            ?: Color.BLACK
-                    playButton.backgroundColor = c
-                })?.preload()
             }
         }
 
@@ -79,17 +84,16 @@ open class NowPlayingFragment : BaseFragment() {
 
 
         val songCarousel = frameLayout {
-            id = R.id.mainContent
             clipToOutline = false
             clipToPadding = false
-            fragment(fragmentManager, PlayerAlbumCoverFragment())
+            fragment(PlayerAlbumCoverFragment())
         }
 
         val seeker = seekBar {
             id = R.id.seekBar
 
             var isSeeking = false
-            setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 var value = 0
                 override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
                     if (fromUser) {
@@ -107,7 +111,7 @@ open class NowPlayingFragment : BaseFragment() {
                 }
             })
 
-            MusicService.instance.filterNotNull().switchMap {
+            MusicService.instance.switchMap {
                 it.player.bufferState
             }.consumeEach(UI) {
                 max = it.duration.toInt()
@@ -117,7 +121,6 @@ open class NowPlayingFragment : BaseFragment() {
                     progress = it.position.toInt()
                 }
                 secondaryProgress = it.bufferedPosition.toInt()
-
             }
         }
 
@@ -127,13 +130,22 @@ open class NowPlayingFragment : BaseFragment() {
             setColorFilter(Color.WHITE)
             SyncService.mode.consumeEach(UI) {
                 imageResource = if (it is SyncService.Mode.None) {
-                    onClick {
+                    onClick { v ->
                         // Open sync options: contact choice
+                        v!!.context.selector("Sync options", listOf(
+                            "Sync with Friend" to { dialog, item ->
+                                FriendPickerDialogStarter.newInstance(
+                                    SyncService.Message.SyncRequest(),
+                                    "Request Sync"
+                                ).show(ctx)
+                            }
+                        ))
                     }
                     R.drawable.ic_cast
                 } else {
-                    onClick {
+                    onClick { v ->
                         // Open sync details dialog!
+                        SyncDetailsDialog().show(ctx)
                     }
                     R.drawable.ic_cast_connected
                 }
@@ -168,43 +180,43 @@ open class NowPlayingFragment : BaseFragment() {
             setColorFilter(Color.DKGRAY)
             padding = dip(16)
 
-            MusicService.instance.filterNotNull().consumeEach(UI) { music ->
-                music.player.queue.consumeEach(UI) {
-                    val q = it.primary
-                    if (q is RadioQueue) {
-                        // Option 1: Toggle playing only songs not in your library (or recent history?)
-                        // Option 2: Thumbs up that adds the current song to the radio seed.
-                        imageResource = R.drawable.ic_thumb_up
-                        setColorFilter(Color.DKGRAY)
-                        onClick {
-                            given(q.current) { q.addSeed(it) }
-                            onClick {}
-                            setColorFilter(Color.WHITE)
-                        }
-                    } else {
-                        imageResource = R.drawable.ic_shuffle
-                        onClick {
-                            val mode = music.player.orderMode
-                            if (mode == MusicPlayer.OrderMode.SEQUENTIAL) {
-                                task { music.player.orderMode = MusicPlayer.OrderMode.SHUFFLE }
-                                setColorFilter(Color.WHITE)
-                            } else {
-                                task { music.player.orderMode = MusicPlayer.OrderMode.SEQUENTIAL }
-                                setColorFilter(Color.DKGRAY)
-                            }
-                        }
-                    }
-                }
-            }
+//            MusicService.instance.combineLatest(
+//                MusicService.instance.switchMap { it.player.queue }
+//            ).consumeEach(UI) { (music, q) ->
+//                val q = q.primary
+//                if (q is RadioQueue) {
+//                    // Option 1: Toggle playing only songs not in your library (or recent history?)
+//                    // Option 2: Thumbs up that adds the current song to the radio seed.
+//                    imageResource = R.drawable.ic_thumb_up
+//                    setColorFilter(Color.DKGRAY)
+//                    onClick {
+//                        given(q.current) { q.addSeed(it) }
+//                        onClick {}
+//                        setColorFilter(Color.WHITE)
+//                    }
+//                } else {
+//                    imageResource = R.drawable.ic_shuffle
+//                    onClick {
+//                        val mode = music.player.orderMode
+//                        if (mode == MusicPlayer.OrderMode.SEQUENTIAL) {
+//                            task { music.player.orderMode = MusicPlayer.OrderMode.SHUFFLE }
+//                            setColorFilter(Color.WHITE)
+//                        } else {
+//                            task { music.player.orderMode = MusicPlayer.OrderMode.SEQUENTIAL }
+//                            setColorFilter(Color.DKGRAY)
+//                        }
+//                    }
+//                }
+//            }
         }
 
         generateChildrenIds()
         applyConstraintSet {
             songCarousel {
                 connect(
-                    TOP to TOP of this@constraintLayout,
-                    START to START of this@constraintLayout,
-                    END to END of this@constraintLayout
+                    TOP to TOP of PARENT_ID,
+                    START to START of PARENT_ID,
+                    END to END of PARENT_ID
                 )
                 width = matchConstraint
                 height = matchConstraint
@@ -213,14 +225,14 @@ open class NowPlayingFragment : BaseFragment() {
             seeker {
                 connect(
                     TOP to BOTTOM of songCarousel margin dip(8),
-                    START to START of this@constraintLayout,
-                    END to END of this@constraintLayout
+                    START to START of PARENT_ID,
+                    END to END of PARENT_ID
                 )
                 width = matchConstraint
             }
             syncBtn {
                 connect(
-                    START to START of this@constraintLayout margin dip(8),
+                    START to START of PARENT_ID margin dip(8),
                     TOP to TOP of playButton,
                     BOTTOM to BOTTOM of playButton
                 )
@@ -234,8 +246,8 @@ open class NowPlayingFragment : BaseFragment() {
             }
             playButton {
                 connect(
-                    START to START of this@constraintLayout,
-                    END to END of this@constraintLayout,
+                    START to START of PARENT_ID,
+                    END to END of PARENT_ID,
                     TOP to BOTTOM of seeker margin dip(8)
                 )
             }
@@ -248,7 +260,7 @@ open class NowPlayingFragment : BaseFragment() {
             }
             shuffleBtn {
                 connect(
-                    END to END of this@constraintLayout margin dip(8),
+                    END to END of PARENT_ID margin dip(8),
                     TOP to TOP of playButton,
                     BOTTOM to BOTTOM of playButton
                 )
