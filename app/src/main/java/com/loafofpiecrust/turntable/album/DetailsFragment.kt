@@ -24,6 +24,7 @@ import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.produceSingle
 import com.loafofpiecrust.turntable.util.replayOne
+import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import org.jetbrains.anko.*
@@ -37,6 +38,7 @@ import org.jetbrains.anko.design.collapsingToolbarLayout
 import org.jetbrains.anko.design.coordinatorLayout
 import org.jetbrains.anko.support.v4.ctx
 import org.jetbrains.anko.support.v4.toast
+import kotlin.coroutines.experimental.coroutineContext
 
 
 class AlbumsViewModel: ViewModel() {

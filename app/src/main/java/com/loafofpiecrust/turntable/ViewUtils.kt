@@ -666,25 +666,6 @@ var ImageView.tintResource: Int
     }
 
 
-fun <T> bindVal(obs: BroadcastChannel<T>, ctx: Job, initial: T, getter: ((T) -> Unit) -> Unit, setter: (T) -> Unit) = run {
-    getter.invoke { obs.offer(it) }
-    task(UI + ctx) { obs.consumeEach { setter.invoke(it) } }
-}
-
-fun ViewPager.bindCurrentPage(obs: BroadcastChannel<Int>, ctx: Job) = run {
-    bindVal(obs, ctx, currentItem, {
-        onPageChangeListener {
-            onPageSelected(it)
-        }
-    }, { setCurrentItem(it, true) })
-}
-
-
-val View.clicks: ReceiveChannel<Unit> get() = produce(UI) {
-    setOnClickListener {
-        offer(Unit)
-    }
-}
 
 fun ImageButton.menu(block: Menu.() -> Unit): ImageButton {
     backgroundColor = Color.TRANSPARENT

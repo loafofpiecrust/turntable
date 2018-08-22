@@ -17,8 +17,10 @@ import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.util.*
 import fr.castorflex.android.circularprogressbar.CircularProgressDrawable
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.channels.BroadcastChannel
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
+import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.withContext
 import org.jetbrains.anko.dimen
 import org.jetbrains.anko.dip
@@ -52,7 +54,7 @@ class AlbumsFragment : BaseFragment() {
     // This would be to prevent any filtering, resolution, and merging from happening while the view is invisible!
     // This also allows us to drop the channel entirely onDetach and make a new one in onAttach (if we want that??)
     // private lateinit var albums: ReceiveChannel<List<Album>>
-    private lateinit var albums: () -> ReceiveChannel<List<Album>>
+    lateinit var albums: BroadcastChannel<List<Album>>
     private val category by lazy { ConflatedBroadcastChannel(initialCategory) }
 
     companion object {
@@ -81,7 +83,7 @@ class AlbumsFragment : BaseFragment() {
                         }
                         // is Category.Custom -> produceSingle(cat.albums)
                     }
-                }
+                }.replayOne()
             }
         }
 
@@ -117,7 +119,7 @@ class AlbumsFragment : BaseFragment() {
 
         val adapter = if (cat is Category.ByArtist) {
             AlbumSectionAdapter { view, album ->
-                ctx.replaceMainContent(
+                view.itemView.context.replaceMainContent(
                     DetailsFragmentStarter.newInstance(album.id),
                     true,
                     view.transitionViews
@@ -127,7 +129,7 @@ class AlbumsFragment : BaseFragment() {
             }
         } else {
             AlbumsAdapter(false) { view, album ->
-                ctx.replaceMainContent(
+                view.itemView.context.replaceMainContent(
                     DetailsFragmentStarter.newInstance(album.id),
                     true,
                     view.transitionViews

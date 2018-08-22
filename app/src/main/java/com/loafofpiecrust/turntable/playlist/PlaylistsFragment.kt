@@ -49,18 +49,16 @@ class PlaylistsFragment: BaseFragment() {
             ctx.replaceMainContent(
                 when(playlist) {
                     is MixTape -> MixTapeDetailsFragmentStarter.newInstance(playlist.id, playlist.name)
-                    is AlbumCollection -> AlbumsFragmentStarter.newInstance(AlbumsFragment.Category.Custom(runBlocking { playlist.albums.first() }))
+//                    is AlbumCollection -> AlbumsFragmentStarter.newInstance(AlbumsFragment.Category.Custom(runBlocking { playlist.albums.first() }))
                     else -> PlaylistDetailsFragmentStarter.newInstance(playlist.id, playlist.name)
                 },
                 true
             )
-        }.also { adapter -> task {
-            (given(user) { user ->
+        }.also { adapter ->
+            adapter.subscribeData(given(user) { user ->
                 produce(BG_POOL) { send(MixTape.allFromUser(user)) }
-            } ?: UserPrefs.playlists.openSubscription()).consumeEach { pls ->
-                adapter.updateData(pls)
-            }
-        } }
+            } ?: UserPrefs.playlists.openSubscription())
+        }
     }
 
     class Adapter(

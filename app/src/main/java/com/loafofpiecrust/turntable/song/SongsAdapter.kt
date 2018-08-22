@@ -2,6 +2,7 @@ package com.loafofpiecrust.turntable.song
 
 //import com.loafofpiecrust.turntable.service.MusicService2
 import android.support.v7.widget.PopupMenu
+import android.support.v7.widget.RecyclerView
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup

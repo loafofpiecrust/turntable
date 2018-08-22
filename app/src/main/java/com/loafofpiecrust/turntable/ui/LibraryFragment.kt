@@ -10,7 +10,7 @@ import com.loafofpiecrust.turntable.album.AlbumsFragment
 import com.loafofpiecrust.turntable.album.AlbumsFragmentStarter
 import com.loafofpiecrust.turntable.artist.ArtistsFragment
 import com.loafofpiecrust.turntable.artist.ArtistsFragmentStarter
-import com.loafofpiecrust.turntable.bindCurrentPage
+import com.loafofpiecrust.turntable.util.bindCurrentPage
 import com.loafofpiecrust.turntable.browse.BrowseFragment
 import com.loafofpiecrust.turntable.playlist.PlaylistsFragment
 import com.loafofpiecrust.turntable.prefs.UserPrefs

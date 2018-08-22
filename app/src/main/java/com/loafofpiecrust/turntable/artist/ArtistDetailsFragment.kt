@@ -17,12 +17,10 @@ import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.util.produceSingle
-import com.loafofpiecrust.turntable.util.task
+import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.onClick
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
@@ -35,6 +33,7 @@ import org.jetbrains.anko.design.coordinatorLayout
 import org.jetbrains.anko.design.themedAppBarLayout
 import org.jetbrains.anko.support.v4.selector
 
+
 /**
  * We want to be able to open Artist details with either:
  * 1. full artist
@@ -42,18 +41,16 @@ import org.jetbrains.anko.support.v4.selector
  * 3. artist id (from saved state)
  */
 class ArtistDetailsFragment: BaseFragment() {
-
     @Arg lateinit var artistId: ArtistId
     private lateinit var artist: ReceiveChannel<Artist>
 
-//    @Arg lateinit var artistId: ArtistId
     @Arg(optional = true) var initialMode = Mode.LIBRARY
 
     enum class Mode {
         LIBRARY, REMOTE, LIBRARY_AND_REMOTE
     }
 
-    private val currentMode by lazy { ConflatedBroadcastChannel(initialMode) }
+    private val currentMode = ConflatedBroadcastChannel<Mode>()
     private lateinit var albums: AlbumsFragment
 
     companion object {
@@ -80,6 +77,8 @@ class ArtistDetailsFragment: BaseFragment() {
 
     override fun onCreate() {
         super.onCreate()
+
+        currentMode.offer(initialMode)
 
         val transDur = 250L
         onApi(21) {
@@ -144,16 +143,11 @@ class ArtistDetailsFragment: BaseFragment() {
                             Mode.LIBRARY_AND_REMOTE to "All"
                         )
 
-                        task(UI) {
-                            currentMode.consumeEach { mode ->
-                                text = getString(
-                                    R.string.artist_content_source,
-                                    choices.find { it.first == mode }!!.second
-                                )
-//                                albums.category.send(
-//                                    AlbumsFragment.Category.ByArtist(artist.copy(albums = listOf()), mode)
-//                                )
-                            }
+                        currentMode.consumeEach(UI) { mode ->
+                            text = getString(
+                                R.string.artist_content_source,
+                                choices.find { it.first == mode }!!.second
+                            )
                         }
 
                         onClick {
@@ -228,7 +222,18 @@ class ArtistDetailsFragment: BaseFragment() {
                 AlbumsFragment.SortBy.YEAR,
                 3
             ).also {
-                it.albums = 
+                it.albums = artist.combineLatest(currentMode.openSubscription())
+                    .switchMap { (artist, mode) ->
+                        when (mode) {
+                            ArtistDetailsFragment.Mode.REMOTE -> produceTask(BG_POOL) {
+                                artist.resolveAlbums(false)
+                            }
+                            ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE -> produceTask(BG_POOL) {
+                                artist.resolveAlbums(true)
+                            }
+                            else -> Library.instance.albumsByArtist(artist.id)
+                        }
+                    }.replayOne()
             })
         }.lparams(width = matchParent) {
             behavior = AppBarLayout.ScrollingViewBehavior()

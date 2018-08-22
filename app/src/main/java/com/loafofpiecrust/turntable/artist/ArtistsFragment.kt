@@ -3,6 +3,7 @@ package com.loafofpiecrust.turntable.artist
 import activitystarter.Arg
 import android.os.Parcelable
 import android.support.v7.widget.GridLayoutManager
+import android.support.v7.widget.RecyclerView
 import android.view.*
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
@@ -13,6 +14,7 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.turntableStyle
 import com.loafofpiecrust.turntable.ui.*
+import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.produceTask
 import com.loafofpiecrust.turntable.util.task
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
@@ -52,11 +54,9 @@ class ArtistsFragment : BaseFragment() {
                     }
                 }
 
-                task(UI) {
-                    UserPrefs.artistGridColumns.consumeEach { cols ->
-                        items.forEach { it.isChecked = false }
-                        items[cols - 1].isChecked = true
-                    }
+                UserPrefs.artistGridColumns.consumeEach(UI) { cols ->
+                    items.forEach { it.isChecked = false }
+                    items[cols - 1].isChecked = true
                 }
             }
         }
@@ -84,21 +84,19 @@ class ArtistsFragment : BaseFragment() {
                     holder.transitionViews
                 )
             }.apply {
-                task(UI) {
-                    when (cat) {
-                        is Category.All -> Library.instance.artists.openSubscription()
-                        is Category.Custom -> produceTask { cat.artists }
-                    }.consumeEach {
-                        updateData(it)
-                    }
+                when (cat) {
+                    is Category.All -> Library.instance.artists.openSubscription()
+                    is Category.Custom -> produceTask { cat.artists }
+                }.consumeEach(UI) {
+                    updateData(it)
                 }
             }
 
             layoutManager = GridLayoutManager(context, 3).also { grid ->
                 if (columnCount != null) {
                     grid.spanCount = columnCount!!
-                } else task(UI) {
-                    UserPrefs.artistGridColumns.consumeEach {
+                } else {
+                    UserPrefs.artistGridColumns.consumeEach(UI) {
                         (adapter as ArtistsAdapter).apply {
                             gridSize = it
                             notifyDataSetChanged()
