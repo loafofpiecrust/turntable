@@ -1,4 +1,5 @@
 
+import android.os.Parcelable
 import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.given
