@@ -8,19 +8,20 @@ import android.view.MenuInflater
 import android.view.ViewGroup
 import android.view.ViewManager
 import android.widget.EditText
-import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.menuItem
-import com.loafofpiecrust.turntable.onClick
+import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItem
+import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.task
 import com.loafofpiecrust.turntable.util.then
 import com.mcxiaoke.koi.ext.closeQuietly
 import com.mcxiaoke.koi.ext.stringValue
+import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.map
+import kotlinx.coroutines.experimental.withContext
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.sdk25.coroutines.onClick
@@ -45,7 +46,7 @@ class SyncTabFragment: BaseFragment() {
                         pickContact()
                     } else {
                         alert("Add friend") {
-                            var textBox: EditText? = null
+                            lateinit var textBox: EditText
                             customView {
                                 verticalLayout {
                                     padding = dip(16)
@@ -57,15 +58,18 @@ class SyncTabFragment: BaseFragment() {
                             }
                             positiveButton("Befriend") {
                                 val key = textBox!!.text.toString()
-                                task {
-                                    SyncService.User.resolve(key)
-                                }.then(UI) { user ->
-                                    if (user != null) {
-                                        toast("Befriending ${user.displayName}")
-                                        SyncService.requestFriendship(user)
+                                async(UI) {
+                                    val user = withContext(BG_POOL) { SyncService.User.resolve(key) }
+                                    // TODO: Use localized strings in xml
+                                    toast(if (user != null) {
+                                        if (SyncService.requestFriendship(user)) {
+                                            "Befriending ${user.displayName}"
+                                        } else {
+                                            "${user.displayName} is already a friend"
+                                        }
                                     } else {
-                                        toast("User '$key' doesn't exist.")
-                                    }
+                                        "User '$key' doesn't exist"
+                                    })
                                 }
                             }
                             negativeButton("Cancel") {}
@@ -102,10 +106,13 @@ class SyncTabFragment: BaseFragment() {
             cursor.closeQuietly()
             task {
                 SyncService.User.resolve(email)
-            }.then(UI) {
-                if (it != null) {
-                    toast("Befriending ${it.name}")
-                    SyncService.requestFriendship(it)
+            }.then(UI) { user ->
+                if (user != null) {
+                    if (SyncService.requestFriendship(user)) {
+                        "Befriending ${user.name}"
+                    } else {
+                        "${user.name} is already a friend"
+                    }
                 } else {
                     toast("$name isn't on Turntable yet")
                 }
@@ -127,44 +134,39 @@ class SyncTabFragment: BaseFragment() {
                     val friend = data[position]
                     holder.apply {
                         mainLine.text = friend.user.name
-                        subLine.text = friend.user.deviceId
-                        val choices = listOf(
-                            "Request Sync" to {
-                                friend.user.refresh().then {
-                                    SyncService.requestSync(it)
+                        subLine.text = when (friend.status) {
+                            SyncService.Friend.Status.CONFIRMED -> friend.user.deviceId
+                            SyncService.Friend.Status.RECEIVED_REQUEST -> "Wants to be friends"
+                            SyncService.Friend.Status.SENT_REQUEST -> "Friendship request sent"
+                        }
+                        val choices = when (friend.status) {
+                            SyncService.Friend.Status.CONFIRMED -> sortedMapOf(
+                                "Request Sync" to {
+                                    friend.user.refresh().then {
+                                        SyncService.requestSync(it)
+                                    }
+                                    toast("Requested sync with ${friend.user.name}")
                                 }
-                                toast("Requested sync with ${friend.user.name}")
-                            },
-                            "Cancel Friendship" to {
-                                friend.respondToRequest(false)
-                            }
-                        )
+                            )
+                            SyncService.Friend.Status.RECEIVED_REQUEST -> sortedMapOf(
+                                "Confirm Friendship" to {
+                                    friend.respondToRequest(true)
+                                },
+                                "Reject Friendship" to {
+                                    friend.respondToRequest(false)
+                                }
+                            )
+                            SyncService.Friend.Status.SENT_REQUEST -> sortedMapOf(
+                                "Rescind Request" to {
+                                    UserPrefs.friends putsMapped { it.without(position) }
+                                }
+                            )
+                        }.toList()
                         card.onClick {
-                            val keys = choices.map { it.first }
-
-                            selector("Do what with friend?", keys) { dialog, idx ->
+                            selector("Do what with friend?", choices.map { it.first }) { dialog, idx ->
                                 choices[idx].second.invoke()
                             }
                         }
-//                        menu.onClick {
-//                            val popup = PopupMenu(
-//                                menu.context, menu, Gravity.CENTER,
-//                                0, R.style.AppTheme_PopupOverlay
-//                            )
-//                            popup.menu.apply {
-//                                when (friend.status) {
-//                                    SyncService.Friend.Status.RECEIVED_REQUEST -> {
-//                                        menuItem("Accept").onClick {
-//                                            friend.respondToRequest(true)
-//                                        }
-//                                        menuItem("Reject").onClick {
-//                                            friend.respondToRequest(false)
-//                                        }
-//                                    }
-//                                }
-//                            }
-//                            popup.show()
-//                        }
                     }
                 }
             }.apply {

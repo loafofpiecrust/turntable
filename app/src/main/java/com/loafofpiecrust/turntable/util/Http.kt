@@ -14,11 +14,18 @@ object Http {
         }.build()!!
     }
 
+    enum class CacheLevel {
+        // 0 = no cache (?), 1 = few minutes (artists), 2 = hours (albums)
+        MINIMAL,
+        PAGE,
+        SESSION
+    }
+    
     suspend fun get(
         url: String,
         params: Map<String, String> = mapOf(),
         headers: Map<String, String> = mapOf(),
-        cacheLevel: Int = 1 // 0 = no cache (?), 1 = few minutes (artists), 2 = hours (albums)
+        cacheLevel: CacheLevel = CacheLevel.MINIMAL
     ): Response {
         val url = HttpUrl.parse(url)?.newBuilder()?.apply {
             params.forEach { k, v ->
@@ -30,21 +37,23 @@ object Http {
             .url(url!!)
             .get()
             .headers(Headers.of(headers))
-            .cacheControl(when (cacheLevel) {
-                0 -> CacheControl.Builder()
-                    .maxAge(10, TimeUnit.SECONDS)
-                2 -> CacheControl.Builder()
-                    .maxAge(1, TimeUnit.HOURS)
-                    .maxStale(1, TimeUnit.DAYS)
-                else -> CacheControl.Builder()
-                    .maxAge(10, TimeUnit.MINUTES) // when we have internet
-                    .maxStale(6, TimeUnit.HOURS) // if we can't get online
-            }.build())
-            .build()
+            .cacheControl(
+                when (cacheLevel) {
+                    CacheLevel.MINIMAL -> CacheControl.Builder()
+                        .maxAge(10, TimeUnit.SECONDS)
+                    CacheLevel.SESSION -> CacheControl.Builder()
+                        .maxAge(1, TimeUnit.HOURS)
+                        .maxStale(1, TimeUnit.DAYS)
+                    CacheLevel.PAGE -> CacheControl.Builder()
+                        .maxAge(10, TimeUnit.MINUTES) // when we have internet
+                        .maxStale(6, TimeUnit.HOURS) // if we can't get online
+                }.build()
+            ).build()
+
         return suspendCoroutine { cont ->
-            client.newCall(req).enqueue(object: Callback {
+            val call = client.newCall(req)
+            call.enqueue(object: Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    e.printStackTrace()
                     cont.resumeWithException(e)
                 }
                 override fun onResponse(call: Call, response: Response) {
@@ -78,6 +87,7 @@ object Http {
             })
             .headers(Headers.of(headers))
             .build()
+
         return suspendCoroutine { cont ->
             val call = client.newCall(req)
             call.enqueue(object: Callback {
@@ -93,4 +103,4 @@ object Http {
 }
 
 val Response.text: String get() = body()!!.string()!!
-val Response.gson: JsonElement get() = JsonParser().parse(body()!!.string()!!)
+val Response.gson: JsonElement get() = JsonParser().parse(body()!!.charStream()!!)

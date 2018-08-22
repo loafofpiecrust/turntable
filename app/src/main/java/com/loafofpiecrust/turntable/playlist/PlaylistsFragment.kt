@@ -54,13 +54,11 @@ class PlaylistsFragment: BaseFragment() {
                 },
                 true
             )
-        }.also { adapter -> task {
-            (given(user) { user ->
+        }.also { adapter ->
+            adapter.subscribeData(given(user) { user ->
                 produce(BG_POOL) { send(MixTape.allFromUser(user)) }
-            } ?: UserPrefs.playlists.openSubscription()).consumeEach { pls ->
-                adapter.updateData(pls)
-            }
-        } }
+            } ?: UserPrefs.playlists.openSubscription())
+        }
     }
 
     class Adapter(

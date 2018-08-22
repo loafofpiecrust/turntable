@@ -37,6 +37,7 @@ import org.jetbrains.anko.design.collapsingToolbarLayout
 import org.jetbrains.anko.design.coordinatorLayout
 import org.jetbrains.anko.support.v4.ctx
 
+
 /**
  * We want to be able to open Artist details with either:
  * 1. full artist
@@ -61,7 +62,6 @@ class ArtistDetailsFragment: BaseFragment() {
     // onCreate: load artistId from bundle and find it via a channel
     private lateinit var artist: BroadcastChannel<Artist>
 
-//    @Arg lateinit var artistId: ArtistId
     @Arg(optional = true) var initialMode = Mode.LIBRARY
 
     private val currentMode by lazy { ConflatedBroadcastChannel(initialMode) }

@@ -8,7 +8,6 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.support.annotation.ColorInt
-import android.support.v4.view.ViewPager
 import android.support.v7.widget.PopupMenu
 import android.support.v7.widget.Toolbar
 import android.view.*
@@ -35,15 +34,14 @@ import com.mcxiaoke.koi.ext.closeQuietly
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import fr.castorflex.android.circularprogressbar.CircularProgressBar
 import kotlinx.coroutines.experimental.Deferred
-import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.Runnable
 import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.channels.*
+import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.experimental.channels.SendChannel
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.custom.ankoView
 import org.jetbrains.anko.sdk25.coroutines.onClick
-import org.jetbrains.anko.support.v4.onPageChangeListener
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.*
@@ -645,25 +643,6 @@ var ImageView.tintResource: Int
     }
 
 
-fun <T> bindVal(obs: BroadcastChannel<T>, ctx: Job, initial: T, getter: ((T) -> Unit) -> Unit, setter: (T) -> Unit) = run {
-    getter.invoke { obs.offer(it) }
-    task(UI + ctx) { obs.consumeEach { setter.invoke(it) } }
-}
-
-fun ViewPager.bindCurrentPage(obs: BroadcastChannel<Int>, ctx: Job) = run {
-    bindVal(obs, ctx, currentItem, {
-        onPageChangeListener {
-            onPageSelected(it)
-        }
-    }, { setCurrentItem(it, true) })
-}
-
-
-val View.clicks: ReceiveChannel<Unit> get() = produce(UI) {
-    setOnClickListener {
-        offer(Unit)
-    }
-}
 
 fun ImageButton.menu(block: Menu.() -> Unit): ImageButton {
     backgroundColor = Color.TRANSPARENT

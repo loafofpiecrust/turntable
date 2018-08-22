@@ -172,8 +172,7 @@ class PlaylistDetailsFragment: BaseFragment() {
                         SongsFragment.Category.Playlist(playlistId)
                     ).apply {
                         songs = playlist.tracks.replayOne()
-                    },
-                    childFragmentManager
+                    }
                 )
             }.lparams(width = matchParent, height = matchParent) {
 //                behavior = AppBarLayout.ScrollingViewBehavior()

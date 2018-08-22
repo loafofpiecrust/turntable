@@ -14,22 +14,24 @@ import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.radio.CombinedQueue
+import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.song.HistoryEntry
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.cancelSafely
 import com.loafofpiecrust.turntable.util.distinctSeq
 import com.loafofpiecrust.turntable.util.task
-import kotlinx.coroutines.experimental.Deferred
-import kotlinx.coroutines.experimental.Job
+import com.loafofpiecrust.turntable.util.then
+import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.map
 import kotlinx.coroutines.experimental.channels.produce
-import kotlinx.coroutines.experimental.delay
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
 import org.jetbrains.anko.info
+import java.util.concurrent.Future
 
 class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
     enum class OrderMode {
@@ -159,11 +161,28 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
 
     }
 
-    override fun onPlayerError(error: ExoPlaybackException?) {
+    private var errorCount = 0
+    override fun onPlayerError(error: ExoPlaybackException) {
         // This means the current song couldn't be loaded.
         // In this case, delete the DB entry for the current song.
         // Then, try again to play it.
         info { "player err: $error" }
+
+        // if the error is a SOURCE error 404 or 403,
+        // clear streams and try again
+        // if that fails the 2nd time, skip to the next track in the MediaSource.
+        if (error.type == ExoPlaybackException.TYPE_SOURCE) {
+            errorCount++
+            if (errorCount < 2) launch {
+                OnlineSearchService.instance.reloadSongStreams(_queue.value.current!!.id)
+
+                // TODO: Ensure this works vs resetting the media source entirely.
+                player.seekToDefaultPosition(player.currentWindowIndex)
+            } else {
+                errorCount = 0
+                playNext()
+            }
+        }
 
 //        if (currentSong.value.remote != null) {
 //        errorCount++
@@ -203,7 +222,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
             }
             Player.STATE_IDLE -> pause()
             Player.STATE_READY -> {
-                // TODO: reset error count
+                errorCount = 0
             }
         }
     }
@@ -277,7 +296,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
                 }
             }
         }
-
+    }.then(UI) {
         val q = _queue.value
         mediaSource?.clear()
         mediaSource = ConcatenatingMediaSource().apply {
@@ -305,7 +324,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
     }
 
     /// By default enqueues at the end, passing 1 will queue next.
-    fun enqueue(songs: List<Song>, mode: EnqueueMode = EnqueueMode.NEXT) = task {
+    fun enqueue(songs: List<Song>, mode: EnqueueMode = EnqueueMode.NEXT) {
         if (mediaSource == null) {
             mediaSource = ConcatenatingMediaSource()
             player.prepare(mediaSource)
@@ -335,7 +354,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         enqueue(listOf(song), mode)
     }
 
-    fun removeFromQueue(position: Int) = task {
+    fun removeFromQueue(position: Int) {
         // TODO: Start with removing from nextUp, then from anywhere else if from StaticQueue (new interface method?)
 
 //        _queue putsMapped { q -> StaticQueue(q.list.without(position), q.position) }
@@ -345,6 +364,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         addCurrentToHistory()
         val q = _queue.value.next()
         _queue puts q as CombinedQueue
+        q
+    }.then(UI) { q ->
         if (q.position != player.currentWindowIndex) {
             player.seekToDefaultPosition(q.position)
         }
@@ -354,6 +375,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         addCurrentToHistory()
         val q = _queue.value.prev()
         _queue puts q as CombinedQueue
+        q
+    }.then(UI) { q ->
         if (q.position != player.currentWindowIndex) {
             player.seekToDefaultPosition(q.position)
         }
@@ -395,7 +418,10 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         _queue putsMapped { q ->
             q.shifted(from, to) as CombinedQueue
         }
-        mediaSource?.moveMediaSource(from, to)
+
+        launch(UI) {
+            mediaSource?.moveMediaSource(from, to)
+        }
     }
 
     fun replaceQueue(q: Queue) {

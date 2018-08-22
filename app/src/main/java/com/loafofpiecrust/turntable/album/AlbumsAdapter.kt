@@ -110,6 +110,11 @@ class AlbumsAdapter(
                 .clear(holder.coverImage)
         }
     }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        imageJobs.forEach { (holder, job) -> job.cancel() }
+        imageJobs.clear()
+    }
 }
 
 class AlbumSectionAdapter(

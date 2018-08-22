@@ -138,7 +138,7 @@ class AlbumsFragment : BaseFragment() {
 
         val adapter = if (cat is Category.ByArtist) {
             AlbumSectionAdapter { view, album ->
-                act.replaceMainContent(
+                view.itemView.context.replaceMainContent(
                     DetailsFragment.fromAlbum(album),
                     true,
                     view.transitionViews
@@ -148,7 +148,7 @@ class AlbumsFragment : BaseFragment() {
             }
         } else {
             AlbumsAdapter(false) { view, album ->
-                act.replaceMainContent(
+                view.itemView.context.replaceMainContent(
                     DetailsFragment.fromAlbum(album),
                     true,
                     view.transitionViews

@@ -22,6 +22,7 @@ import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.runBlocking
 import okhttp3.Response
 import org.jetbrains.anko.AnkoLogger
+import org.jetbrains.anko.debug
 import org.jetbrains.anko.info
 import org.jsoup.Jsoup
 
@@ -87,7 +88,7 @@ object Discogs: SearchApi, AnkoLogger {
 
             res.gson.obj
         } catch (e: Exception) {
-            task(UI) { e.printStackTrace() }
+            debug { e.stackTrace }
             throw e
 //            error(e)
         }

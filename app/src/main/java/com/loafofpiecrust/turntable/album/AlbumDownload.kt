@@ -627,7 +627,7 @@ data class YouTubeFullAlbum(
 
         private suspend fun grabFromVideo(album: Album, videoId: String): YouTubeFullAlbum? = run {
             // Unfortunately, to grab the description we have to parse the video page :(
-            val pageRes = Http.get("https://youtube.com/watch?v=$videoId", cacheLevel = 2).text
+            val pageRes = Http.get("https://youtube.com/watch?v=$videoId", cacheLevel = Http.CacheLevel.PAGE).text
             val descStart = "<p id=\"eow-description\" class=\"\" >"
             val descStartIdx = pageRes.indexOf(descStart) + descStart.length
             val descEndIdx = pageRes.indexOf("</p>", startIndex=descStartIdx)
