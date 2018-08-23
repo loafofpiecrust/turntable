@@ -130,8 +130,4 @@ abstract class BaseActivity: AppCompatActivity(), AnkoLogger {
             ?.commit()
         return fragment
     }
-
-//    fun <T> task(ctx: CoroutineContext = BG_POOL, block: suspend () -> T): Deferred<T> {
-//        return async(ctx, parent = jobs) { block() }
-//    }
 }

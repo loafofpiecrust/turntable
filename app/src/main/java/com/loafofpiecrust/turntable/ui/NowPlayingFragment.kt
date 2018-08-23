@@ -2,6 +2,7 @@ package com.loafofpiecrust.turntable.ui
 
 //import com.loafofpiecrust.turntable.service.MusicService2
 //import me.angrybyte.circularslider.CircularSlider
+import android.content.DialogInterface
 import android.graphics.Color
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.view.ViewManager
@@ -133,7 +134,7 @@ open class NowPlayingFragment : BaseFragment() {
                     onClick { v ->
                         // Open sync options: contact choice
                         v!!.context.selector("Sync options", listOf(
-                            "Sync with Friend" to { dialog, item ->
+                            "Sync with Friend" to { dialog: DialogInterface, item: String ->
                                 FriendPickerDialogStarter.newInstance(
                                     SyncService.Message.SyncRequest(),
                                     "Request Sync"

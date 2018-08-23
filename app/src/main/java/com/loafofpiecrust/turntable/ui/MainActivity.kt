@@ -141,7 +141,6 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
 //            .setGitHubUserAndRepo("loafofpiecrust", "turntable")
 //            .start()
 
-//        window.statusBarColor = UserPrefs.primaryColor.value.darken(0.2f)
         window.statusBarColor = Color.TRANSPARENT
 
         Dexter.withActivity(this)
@@ -376,18 +375,6 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
         }
     }
 
-//    var queueSlider: SlidingUpPanelLayout? = null
-
-//    override fun onBackPressed() {
-//        if (queueSlider != null && queueSlider?.panelState != SlidingUpPanelLayout.PanelState.COLLAPSED) {
-//            queueSlider?.panelState = SlidingUpPanelLayout.PanelState.COLLAPSED
-//        } else if (slider != null && slider?.panelState != SlidingUpPanelLayout.PanelState.COLLAPSED) {
-//            slider?.panelState = SlidingUpPanelLayout.PanelState.COLLAPSED
-//        } else {
-//            super.onBackPressed()
-//        }
-//    }
-
     private fun handleLink(url: Uri) = task {
         // Possible urls (recommendations, sync)
         // turntable://album?name=*&artist=*
@@ -442,19 +429,16 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
 }
 
 fun FragmentManager.replaceMainContent(fragment: Fragment, allowBackNav: Boolean, sharedElems: List<View>? = null) {
-    val trans = beginTransaction().setReorderingAllowed(true)
-//    trans.setCustomAnimations(R.anim.fade_in, R.anim.fade_out, R.anim.fade_in, R.anim.fade_out)
-//        fragment.sharedElementEnterTransition = ChangeBounds()
-    doFromSdk(21) {
+    beginTransaction().setReorderingAllowed(true).apply {
         sharedElems?.forEach {
-            trans.addSharedElement(it, it.transitionName)
+            addSharedElement(it, it.transitionName)
         }
+        replace(R.id.mainContentContainer, fragment)
+        if (allowBackNav) {
+            addToBackStack(null)
+        }
+        commit()
     }
-    trans.replace(R.id.mainContentContainer, fragment)
-    if (allowBackNav) {
-        trans.addToBackStack(null)
-    }
-    trans.commit()
 }
 
 fun Context.replaceMainContent(fragment: Fragment, allowBackNav: Boolean = true, sharedElems: List<View>? = null) {

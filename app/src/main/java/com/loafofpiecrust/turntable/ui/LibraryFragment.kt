@@ -35,9 +35,6 @@ class LibraryFragment: BaseFragment() {
         .map { it.toList() }.replayOne()
 //    private val tabs = ConflatedBroadcastChannel(listOf("Artists", "Albums"))
 
-    lateinit var tabsAdapter: TabsPager
-
-//    private lateinit var currentTabIdx: ReceiveChannel<Int>
     private val currentTabIdx = ConflatedBroadcastChannel<Int>()
 
     val currentTab get() = currentTabIdx.openSubscription()
@@ -56,15 +53,7 @@ class LibraryFragment: BaseFragment() {
 
         // TODO: Map the index to the correct tab. For now, hardcode.
         override fun getItem(position: Int) = fragments.invoke(tabs[position])
-//
-//        override fun getPageTitle(position: Int) = when(position) {
-//            0 -> "Albums"
-//            1 -> "Songs"
-//            2 -> "Artists"
-//            3 -> "Playlists"
-//            4 -> "Friends"
-//            else -> "Recommendations"
-//        }
+
         override fun getPageTitle(position: Int) = tabs.getOrNull(position) ?: ""
     }
 
@@ -89,8 +78,6 @@ class LibraryFragment: BaseFragment() {
                 backgroundColor = it
             }
             toolbar {
-                //                MainActivity.latest.setSupportActionBar(this)
-//                fitsSystemWindows = true
                 UserPrefs.primaryColor.consumeEach(UI) {
                     backgroundColor = it
                 }
@@ -103,23 +90,6 @@ class LibraryFragment: BaseFragment() {
                         fragments[it]?.get()?.onCreateOptionsMenu(menu, null)
                     }
                 }
-
-//                menuItem("Search", R.drawable.ic_search, showIcon = true) {
-//                    onClick {
-//                        val cat = when (this@LibraryFragment.tabs.blockingFirst()[pager?.currentItem!!]) {
-//                            "Albums" -> SearchFragment.Category.ALBUMS
-//                            "Songs" -> SearchFragment.Category.SONGS
-//                            "Artists" -> SearchFragment.Category.ARTISTS
-//                            else -> null
-//                        }
-//                        if (cat != null) {
-//                            activity?.supportFragmentManager?.replaceMainContent(
-//                                SearchFragmentStarter.newInstance(cat),
-//                                true
-//                            )
-//                        }
-//                    }
-//                }
 //
 //                subMenu("Grid size") {
 //                    setOnMenuItemClickListener {
@@ -184,14 +154,6 @@ class LibraryFragment: BaseFragment() {
                 requestLayout()
                 currentTabIdx.offer(currentItem)
             }
-//            adapter = TabsPager(childFragmentManager).also { adapter ->
-//                tabsAdapter = adapter
-//                tabFragments.consumeEach(UI) {
-//                    adapter.notifyDataSetChanged()
-//                    invalidate()
-//                    requestLayout()
-//                }
-//            }
             onPageChangeListener {
                 onPageSelected {
                     currentTabIdx.offer(it)

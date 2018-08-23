@@ -153,73 +153,12 @@ open class SongsFragment: BaseFragment() {
                 helper.attachToRecyclerView(this)
             }
 
-
             addItemDecoration(DividerItemDecoration(context, linear.orientation).apply {
                 setDrawable(resources.getDrawable(R.drawable.song_divider))
             })
 
-            println("songs cat: $cat")
+
             adapter.subscribeData(songs.openSubscription())
-//            task(BG_POOL + jobs) {
-//                when (cat) {
-//                    is Category.All -> Library.instance.songs.openSubscription()
-//                    is Category.History -> UserPrefs.history.openSubscription().map {
-//                        val rev = it.asReversed()
-//                        if (cat.limit != null) {
-//                            rev.take(cat.limit)
-//                        } else {
-//                            rev
-//                        }.map { it.song }
-//                    }
-//                    is Category.ByArtist -> Library.instance.songsByArtist(cat.artist)
-//                    is Category.OnAlbum -> {
-//                        Library.instance.findAlbum(cat.album).combineLatest(
-////                                App.instance.internetStatus,
-//                            Library.instance.findCachedRemoteAlbum(cat.album)
-//                        ).switchMap { (local/*, internet*/, cached) ->
-//                            if (local != null) {
-//                                val localTracks = local.tracks
-//                                if (!local.hasTrackGaps /*|| internet == App.InternetStatus.OFFLINE*/) {
-//                                    produceTask { localTracks }
-//                                } else {
-//                                    if (cached != null) {
-//                                        produceTask { localTracks + cached.tracks }
-//                                    } else {
-//                                        produce(BG_POOL) {
-//                                            send(localTracks)
-//                                        }
-//                                    }.map {
-//                                        it.sortedBy { it.disc * 1000 + it.track }.dedupMerge(
-//                                            { a, b -> a.disc == b.disc && (a.id == b.id ||
-//                                                (a.track == b.track)) /*&& FuzzySearch.ratio(a.id.name.toLowerCase(), b.id.name.toLowerCase()) > 90)*/
-//                                            },
-//                                            { a, b -> if (a.local != null) a else b }
-//                                        )
-//                                    }
-//                                }
-//                            } else if (cached != null) {
-//                                produceTask { cached.tracks }
-//                            } else /*if (internet != App.InternetStatus.OFFLINE)*/ {
-//                                produceTask { listOf<Song>() }
-//                            }
-//                        }
-//                    }
-//                    is Category.Custom -> produceTask { cat.songs }
-////                is SongsFragment.Category.Playlist -> Library.instance.findPlaylist(cat.name)!!.tracks
-//                    is Category.Playlist -> {
-//                        given(ctx.library.findPlaylist(cat.id).first() ?: ctx.library.findCachedPlaylist(cat.id).first()) { pl ->
-//                            if (pl is MixTape) {
-//                                pl.tracksOnSide(cat.sideIdx)
-//                            } else {
-//                                pl.tracks
-//                            }
-//                        } ?: produce(coroutineContext) {}
-//                    }
-//                }.consumeEach {
-//                songs.consumeEach {
-//                    adapter.updateData(it)
-//                }
-//            }
         }
     }
 }

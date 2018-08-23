@@ -29,46 +29,6 @@ class RelatedArtistsFragment: BaseFragment() {
             )
         }.apply {
             subscribeData(produceTask(BG_POOL + jobs) { Spotify.similarTo(artistId) })
-//            task {
-//                Spotify.similarTo(artistId)
-
-                // Load the related artists from last.fm
-
-//                        val remote = artist.remote
-//                        val query = if (remote is MusicBrainz.ArtistDetails && artist.id.displayName.length <= 5) {
-//                            "mbid" to remote.id
-//                        } else {
-//                            "artist" to artist.id.name
-//                        }
-//                        val res = Http.get(
-//                            "https://ws.audioscrobbler.com/2.0/",
-//                            params = mapOf(
-//                                "api_key" to BuildConfig.LASTFM_API_KEY,
-//                                "method" to "artist.getsimilar",
-//                                "format" to "json",
-//                                "autocorrect" to "1",
-//                                query
-//                            )
-//                        ).gson.obj
-//
-//                        res["similarartists"]["artist"].array.map { it.obj }.map {
-//                            val img = it["image"][2]["#text"].string
-//                            val mbid = it["mbid"].nullString
-//                            val name = it["name"].string
-//                            // Use Last.FM data directly if the id is real short,
-//                            // because the mapping to MusicBrainz is quite likely wrong
-//                            Artist(
-//                                ArtistId(name),
-//                                given(mbid.provided(name.length > 3)) {
-//                                    MusicBrainz.ArtistDetails(it)
-//                                },
-//                                listOf(),
-//                                img
-//                            )
-//                        }
-//            }.success(UI) {
-//                updateData(it)
-//            }
         }
     }
 }

@@ -689,14 +689,14 @@ inline fun <T: Any> Context.selector(
     cb(dialog, choice.first)
 }
 
-inline fun <T: Any> Context.selector(
-    prompt: String,
-    options: List<Pair<T, String>>,
-    crossinline cb: (DialogInterface, T) -> Unit
-): Unit = selector(prompt, options.map { it.second }) { dialog, idx ->
-    val (choice, name) = options[idx]
-    cb(dialog, choice)
-}
+//inline fun <T: Any> Context.selector(
+//    prompt: String,
+//    options: List<Pair<T, String>>,
+//    crossinline cb: (DialogInterface, T) -> Unit
+//): Unit = selector(prompt, options.map { it.second }) { dialog, idx ->
+//    val (choice, name) = options[idx]
+//    cb(dialog, choice)
+//}
 
 suspend fun <T: Any> Context.selector(
     prompt: String,
