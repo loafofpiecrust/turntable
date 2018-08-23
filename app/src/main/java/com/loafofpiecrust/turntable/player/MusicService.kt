@@ -21,11 +21,8 @@ import android.support.v4.media.MediaMetadataCompat.*
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import com.bumptech.glide.Glide
-import com.loafofpiecrust.turntable.App
-import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.given
+import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.ui.MainActivity
@@ -34,16 +31,14 @@ import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.*
-import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.*
 import java.lang.ref.WeakReference
 
 /// Plays the music to the speakers and manages the _queue, that's it.
 @MakeActivityStarter
-class MusicService : Service(), OnAudioFocusChangeListener {
-
-    companion object: AnkoLogger {
+class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
+    companion object {
         private val actions = actor<Pair<SyncService.Message, Boolean>>(capacity = Channel.UNLIMITED) {
             for ((action, synced) in channel) {
                 val service = _instance.valueOrNull?.get() ?: run {
@@ -56,8 +51,6 @@ class MusicService : Service(), OnAudioFocusChangeListener {
 
         private val _instance = ConflatedBroadcastChannel<WeakReference<MusicService>>()
         val instance get() = _instance.openSubscription().map { it.get() }.filterNotNull()
-
-        const val INTENT_ACTION = "com.loafofpiecrust.turntable.MUSIC_ACTION"
 
         fun enact(msg: SyncService.Message, shouldSync: Boolean = true) {
             actions.offer(msg to shouldSync)
@@ -76,12 +69,8 @@ class MusicService : Service(), OnAudioFocusChangeListener {
     var shouldSync: Boolean? = null
 
 
-//    private val trackSelector = DefaultTrackSelector(AdaptiveTrackSelection.Factory(bandwidthMeter))
-
     lateinit var player: MusicPlayer
 
-
-    private var stopped: Boolean = false
     private val subs = Job()
     // TODO: Release wakelock when playback is stopped for a bit, then re-acquire when playback resumes.
     private val wakeLock: PowerManager.WakeLock by lazy {
@@ -90,12 +79,12 @@ class MusicService : Service(), OnAudioFocusChangeListener {
     private val wifiLock: WifiManager.WifiLock by lazy {
         wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL, "com.loafofpiecrust.turntable")
     }
-    private val session by lazy {
+    val mediaSession by lazy {
         MediaSessionCompat(
-            App.instance,
+            this,
             "com.loafofpiecrust.turntable",
             null,
-            notifyIntent(SyncService.Message.Play(), App.instance)
+            notifyIntent(SyncService.Message.Play())
         ).apply {
             setCallback(object : MediaSessionCompat.Callback() {
                 override fun onPlay() {
@@ -114,16 +103,7 @@ class MusicService : Service(), OnAudioFocusChangeListener {
     }
 //    private var sessionConnector: MediaSessionConnector? = null
 
-    private var inForeground = false
     private var isFocused = false
-
-
-    /**
-     * Sync shit
-     */
-    var canControl: Boolean = true
-        private set
-//    var syncMode: SyncService.Mode = SyncService.Mode.None()
 
     fun notifyIntent(msg: SyncService.Message, context: Context? = this): PendingIntent = PendingIntent.getService(
         context ?: App.instance, 69 + msg.hashCode(),
@@ -132,25 +112,23 @@ class MusicService : Service(), OnAudioFocusChangeListener {
     )
 
 
-    private val plugReceiver = object: BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val state = intent.getIntExtra("state", 0)
-            when (state) {
-                0 -> if (UserPrefs.pauseOnUnplug.valueOrNull == true) {
-                    player.pause()
-                }
-                1 -> if (UserPrefs.resumeOnPlug.valueOrNull == true && !player.queue.isEmpty && player.shouldAutoplay) {
-                    player.play()
-                }
+    private val plugReceiver = broadcastReceiver { context, intent ->
+        val state = intent.getIntExtra("state", 0)
+        when (state) {
+            0 -> if (UserPrefs.pauseOnUnplug.valueOrNull == true) {
+                player.pause()
+            }
+            1 -> if (UserPrefs.resumeOnPlug.valueOrNull == true && !player.queue.isEmpty && player.shouldAutoplay) {
+                player.play()
             }
         }
     }
 
-    private val noisyReceiver = object: BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            if (UserPrefs.pauseOnUnplug.value) {
-                player.pause()
-            }
+    private val noisyReceiver = broadcastReceiver { context, intent ->
+        // Pause when the device is about to become "noisy"
+        // This usually means: headphones unplugged
+        if (UserPrefs.pauseOnUnplug.value) {
+            player.pause()
         }
     }
 
@@ -163,20 +141,9 @@ class MusicService : Service(), OnAudioFocusChangeListener {
                 showNotification(song, playing)
             }
 
-
-//        player.currentSong.consumeEach(BG_POOL + subs) { song ->
-//            if (song != null) {
-//                showNotification(song, player.isPlaying.first())
-//            }
-//        }
-
         player.isPlaying.skip(1)
             .distinctSeq()
             .consumeEach(BG_POOL + subs) { isPlaying ->
-//                given (player.currentSong.firstOrNull()) { song ->
-//                    showNotification(song, isPlaying)
-//                }
-
                 if (player.isStreaming) {
                     // Playing remote song
                     if (isPlaying) {
@@ -197,10 +164,6 @@ class MusicService : Service(), OnAudioFocusChangeListener {
                 }
             }
 
-//        player.queue.consumeEach(BG_POOL + subs) {
-//            SyncService.send(SyncService.Message.QueuePosition(it.position))
-//        }
-
         registerReceiver(noisyReceiver, IntentFilter(ACTION_AUDIO_BECOMING_NOISY))
         registerReceiver(plugReceiver, IntentFilter(ACTION_HEADSET_PLUG))
 
@@ -209,21 +172,17 @@ class MusicService : Service(), OnAudioFocusChangeListener {
     }
 
     override fun onDestroy() {
-//        _instance puts WeakReference<MusicService>(null)
-//        given (queue.blockingFirst().current) {
-//            buildNotification(it, false)
-//        }
         stopForeground(true)
         audioManager.abandonAudioFocus(this)
         player.release()
-        subs.cancelSafely()
+        subs.cancel()
         if (wakeLock.isHeld) {
             wakeLock.release()
         }
         if (wifiLock.isHeld) {
             wifiLock.release()
         }
-        session.release()
+        mediaSession.release()
         unregisterReceiver(noisyReceiver)
         unregisterReceiver(plugReceiver)
     }
@@ -302,165 +261,9 @@ class MusicService : Service(), OnAudioFocusChangeListener {
         return result
     }
 
-    private fun updateSessionMeta(song: Song?, playing: Boolean) {
-        if (song != null) {
-            session.setMetadata(MediaMetadataCompat.Builder()
-                .putString(METADATA_KEY_ALBUM, song.id.album.displayName)
-                .putString(METADATA_KEY_ARTIST, song.id.artist.displayName)
-                .putString(METADATA_KEY_ALBUM_ARTIST, song.id.album.artist.displayName)
-                .putString(METADATA_KEY_ALBUM_ART_URI, song.artworkUrl)
-                .putLong(METADATA_KEY_YEAR, song.year?.toLong() ?: 0)
-                .putLong(METADATA_KEY_DISC_NUMBER, song.disc.toLong())
-                .build())
-        }
-
-        // TODO: Get more detailed with our state here
-        val state = if (playing) {
-            PlaybackStateCompat.STATE_PLAYING
-        } else PlaybackStateCompat.STATE_PAUSED
-
-//        session.setPlaybackState(PlaybackStateCompat.Builder()
-//            .setState(state, player.currentPosition, 1f)
-//            .setBufferedPosition(player.bufferedPosition)
-//            .build())
-
-        session.isActive = playing
-    }
-
-    var lastSongColor: Int? = null
-
     private fun showNotification(song: Song?, playing: Boolean) {
-        updateSessionMeta(song, playing)
-        buildNotification(song, playing, lastSongColor)
-        if (song != null && playing) {
-            // Load color
-            song.loadCover(Glide.with(ctx)) { palette, swatch ->
-                if (swatch != null) {
-                    lastSongColor = swatch.rgb
-                    buildNotification(song, playing, swatch.rgb)
-                }
-            }.consume(UI + subs) {
-                first()?.preload()
-            }
-        }
+        PlayingNotification(this).show(song, playing)
     }
 
-    private fun buildNotification(song: Song?, playing: Boolean, paletteColor: Int? = null) {
-        if (song == null) {
-            stopForeground(true)
-            return
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel("turntable", "Music Playback", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "Playback controls and info"
-                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-                setShowBadge(true)
-                notificationManager.createNotificationChannel(this)
-            }
-        }
-//        val chan = NotificationChannel(100, "Playback", NotificationManager.IMPORTANCE_HIGH)
-        val n = NotificationCompat.Builder(ctx, "turntable").apply {
-            setStyle(android.support.v4.media.app.NotificationCompat.MediaStyle().run {
-                setMediaSession(session.sessionToken)
-                setShowCancelButton(true)
-                setCancelButtonIntent(notifyIntent(
-                        SyncService.Message.Stop()
-                ))
-            })
-
-            priority = if (playing) {
-                NotificationCompat.PRIORITY_MAX
-            } else NotificationCompat.PRIORITY_HIGH
-
-            setSmallIcon(R.drawable.ic_album)
-            setContentTitle(song.id.displayName)
-            setContentText(song.id.artist.displayName)
-            setContentInfo(song.id.album.displayName)
-            setAutoCancel(false)
-//            setOngoing(playing)
-            setColorized(true)
-            given(paletteColor) { color = it }
-//            setBadgeIconType(R.drawable.ic_cake)
-            // Colors the name only
-
-            // Previous
-            if (player.hasPrev) {
-                addAction(R.drawable.ic_skip_previous, "Previous", notifyIntent(
-                        SyncService.Message.RelativePosition(-1)
-                ))
-            }
-
-            // Toggle pause
-            if (playing) {
-                addAction(R.drawable.ic_pause, "Pause", notifyIntent(SyncService.Message.Pause()))
-            } else {
-                addAction(R.drawable.ic_play_arrow, "Play", notifyIntent(SyncService.Message.Play()))
-            }
-
-            // Next
-            if (player.hasNext) {
-                addAction(R.drawable.ic_skip_next, "Next", notifyIntent(
-                        SyncService.Message.RelativePosition(1)
-                ))
-            }
-
-            setContentIntent(PendingIntent.getActivity(
-                ctx, 6977,
-                MainActivityStarter.getIntent(ctx, MainActivity.Action.OpenNowPlaying()),
-                0
-            ))
-        }.build()
-
-
-//        task(UI) {
-            inForeground = if (inForeground && !playing) {
-                stopForeground(false)
-                notificationManager.notify(69, n)
-                false
-            } else if (playing) {
-                if (inForeground) {
-                    notificationManager.notify(69, n)
-                } else {
-                    startForeground(69, n)
-                }
-                true
-            } else {
-                false
-            }
-//        }
-    }
-
-    class Binder(val music: MusicService) : android.os.Binder()
-    override fun onBind(intent: Intent): IBinder? = Binder(this)
-
-    /// Song has ended. Move on to the next song, or stop if at the end of the queue.
-//    override fun onCompletion(player: MediaPlayer?) {
-//        println("song ended")
-//        val q = _queue.value
-//        desynced { // Don't sync this, other users will have the same listener.
-//            if (q.position >= q.list.size) {
-//                stop()
-//            } else {
-//                runBlocking { playNext().await() }
-//            }
-//        }
-//    }
-
-//    private fun broadcast(a: Action) {
-////        sendBroadcast(Intent(INTENT_ACTION).putExtra("action", a))
-//        events.onNext(a)
-//        // TODO: We can also do our networked messages here!!!
-//    }
-
-    /// @return Whether the song could successfully be loaded for playback
-//    @Synchronized
-
-
-//    @Synchronized
-
-
-
-
-
+    override fun onBind(intent: Intent): IBinder? = null
 }

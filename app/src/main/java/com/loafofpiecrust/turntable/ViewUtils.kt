@@ -191,11 +191,9 @@ fun msToTimeString(ms: Int): String {
     return String.format(Locale.US, "%02d:%02d", min, subsec)
 }
 
-inline fun broadcastReceiver(crossinline init: (Context, Intent?) -> Unit): BroadcastReceiver {
-    return object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent?) {
-            init(context, intent)
-        }
+class broadcastReceiver(val init: (Context, Intent) -> Unit): BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        init(context, intent)
     }
 }
 
