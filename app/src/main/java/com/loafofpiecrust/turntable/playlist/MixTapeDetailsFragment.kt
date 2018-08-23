@@ -43,63 +43,61 @@ class MixTapeDetailsFragment: BaseFragment() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
     }
 
-    override fun ViewManager.createView(): View  = with(this) {
+    override fun ViewManager.createView(): View = verticalLayout {
         playlist = runBlocking {
             Library.instance.findPlaylist(playlistId).first()
                 ?: ctx.library.findCachedPlaylist(playlistId).first()
         } as MixTape
 
-        verticalLayout {
-            appBarLayout {
-                backgroundColor = playlist.color ?: UserPrefs.primaryColor.value
-                topPadding = dimen(R.dimen.statusbar_height)
+        appBarLayout {
+            backgroundColor = playlist.color ?: UserPrefs.primaryColor.value
+            topPadding = dimen(R.dimen.statusbar_height)
 
-                toolbar {
-                    standardStyle(UI)
-                    title = playlistTitle
-                    transitionName = playlistId.toString()
+            toolbar {
+                standardStyle(UI)
+                title = playlistTitle
+                transitionName = playlistId.toString()
 
-                    menuItem("Download", R.drawable.ic_cloud_download, showIcon = true).onClick(ALT_BG_POOL) {
-                        playlist.tracks.first()
-                            .filter { ctx.library.findSong(it.id).first()?.local == null }
-                            .forEach { it.download() }
-                    }
-
-                    menuItem("Share").onClick {
-                        FriendPickerDialogStarter.newInstance(
-                            SyncService.Message.Playlist(playlistId),
-                            "Share"
-                        ).show(ctx)
-                    }
-
-                    menuItem("Publish").onClick {
-                        alert("Publish this mixtape?") {
-                            positiveButton("Publish") {
-                                playlist.publish()
-                            }
-                            negativeButton("Cancel") {}
-                        }.show()
-                    }
-                }.lparams(width = matchParent)
-
-                tabs = tabLayout()
-            }.lparams(width = matchParent, height = wrapContent)
-
-            val pager = viewPager {
-                id = R.id.container
-                adapter = object : FragmentPagerAdapter(childFragmentManager) {
-                    override fun getPageTitle(position: Int) = ('A' + position) + " Side"
-
-                    override fun getItem(idx: Int) = SongsFragmentStarter.newInstance(
-                        SongsFragment.Category.Playlist(playlist.id, idx)
-                    ).apply {
-                        songs = playlist.tracksOnSide(idx).replayOne()
-                    }
-
-                    override fun getCount(): Int = playlist.type.sideCount
+                menuItem("Download", R.drawable.ic_cloud_download, showIcon = true).onClick(ALT_BG_POOL) {
+                    playlist.tracks.first()
+                        .filter { ctx.library.findSong(it.id).first()?.local == null }
+                        .forEach { it.download() }
                 }
+
+                menuItem("Share").onClick {
+                    FriendPickerDialogStarter.newInstance(
+                        SyncService.Message.Playlist(playlistId),
+                        "Share"
+                    ).show(ctx)
+                }
+
+                menuItem("Publish").onClick {
+                    alert("Publish this mixtape?") {
+                        positiveButton("Publish") {
+                            playlist.publish()
+                        }
+                        negativeButton("Cancel") {}
+                    }.show()
+                }
+            }.lparams(width = matchParent)
+
+            tabs = tabLayout()
+        }.lparams(width = matchParent, height = wrapContent)
+
+        val pager = viewPager {
+            id = R.id.container
+            adapter = object : FragmentPagerAdapter(childFragmentManager) {
+                override fun getPageTitle(position: Int) = ('A' + position) + " Side"
+
+                override fun getItem(idx: Int) = SongsFragmentStarter.newInstance(
+                    SongsFragment.Category.Playlist(playlist.id, idx)
+                ).apply {
+                    songs = playlist.tracksOnSide(idx).replayOne()
+                }
+
+                override fun getCount(): Int = playlist.type.sideCount
             }
-            tabs.setupWithViewPager(pager)
         }
+        tabs.setupWithViewPager(pager)
     }
 }

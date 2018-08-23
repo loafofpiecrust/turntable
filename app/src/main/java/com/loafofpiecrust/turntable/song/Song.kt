@@ -166,7 +166,7 @@ data class Song(
 ) : Music, Parcelable {
     override fun optionsMenu(ctx: Context, menu: Menu) = with(menu) {
         menuItem("Add to playlist").onClick {
-            PlaylistPickerDialog(this@Song).show(ctx)
+            PlaylistPickerDialog.forItem(this@Song).show(ctx)
         }
 
         menuItem("Go to album").onClick(BG_POOL) {

@@ -3,7 +3,6 @@ package com.loafofpiecrust.turntable.player
 import com.loafofpiecrust.turntable.clamp
 import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.song.Song
-import kotlinx.android.parcel.Parcelize
 
 data class StaticQueue(
     override val list: List<Song>,

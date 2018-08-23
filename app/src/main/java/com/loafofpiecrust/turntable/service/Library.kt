@@ -265,7 +265,7 @@ class Library : Service() {
         artist?.albums ?: listOf()
     }
 
-    suspend fun songsOnAlbum(id: AlbumId)
+    fun songsOnAlbum(id: AlbumId)
         = findCachedAlbum(id).map { it?.tracks }
 
 //    fun songsOnAlbum(unresolved: Album): Observable<List<Song>> = albums.map {
@@ -275,7 +275,7 @@ class Library : Service() {
 ////            cache.getOrNull(cache.binarySearch(unresolved, ALBUM_COMPARATOR))?.tracks
 ////        } ?: listOf()
 //    }
-    suspend fun songsOnAlbum(unresolved: Album): ReceiveChannel<List<Song>?>
+    fun songsOnAlbum(unresolved: Album): ReceiveChannel<List<Song>?>
         = findCachedAlbum(unresolved.id).map { it?.tracks }
 
 //    fun songsOnAlbum(unresolved: Album): Observable<List<Song>> = songs.map { songs ->

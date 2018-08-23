@@ -20,12 +20,12 @@ import kotlin.coroutines.experimental.CoroutineContext
  * (tap artist) -> AlbumsFragment =(idx)> ArtistsViewModel (2) =(artist)> AlbumsViewModel (3) <=
  * (tap album) -> SongsFragment =(idx)> AlbumsViewModel (3) =(album)> SongsViewModel (4) <=
  */
-class SongsModel: ViewModel() {
-    lateinit var songs: ReceiveChannel<List<Song>>
-    override fun onCleared() {
-        super.onCleared()
-    }
-}
+//class SongsModel: ViewModel() {
+//    lateinit var songs: ReceiveChannel<List<Song>>
+//    override fun onCleared() {
+//        super.onCleared()
+//    }
+//}
 
 /**
  * Ideal data connection inside Fragment view:
@@ -58,7 +58,7 @@ class LifeObserver<T>(val chan: SendChannel<T>): LifecycleObserver {
         chan.close()
     }
 }
-inline fun <T> ReceiveChannel<T>.connect(
+fun <T> ReceiveChannel<T>.connect(
     lifecycle: WeakReference<Lifecycle>,
     context: CoroutineContext = Unconfined
 ): ReceiveChannel<T> = produce(context) {

@@ -149,8 +149,8 @@ class DetailsFragment: BaseFragment() {
 
                         album.consumeEach(UI) {
                             text = given(it) {
-                                when {
-                                    it is LocalAlbum -> if (it.hasTrackGaps) {
+                                when (it) {
+                                    is LocalAlbum -> if (it.hasTrackGaps) {
                                         getString(R.string.album_partial)
                                     } else getString(R.string.album_local)
                                     else -> getString(R.string.album_remote)

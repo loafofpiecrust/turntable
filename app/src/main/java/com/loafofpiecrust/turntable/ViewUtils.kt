@@ -86,7 +86,7 @@ inline fun ViewManager.circularProgressBar(theme: Int = 0, init: @AnkoViewDslMar
 //fun ViewManager.playbackControlView(theme: Int = 0, init: PlaybackControlView.() -> Unit = {}): FloatingSearchView =
 //    ankoView({ FloatingSearchView(it) }, theme = theme, init = init)
 
-fun Toolbar.menuItem(
+inline fun Toolbar.menuItem(
     title: String,
     iconId: Int? = null,
     color: Int? = null,
@@ -96,7 +96,7 @@ fun Toolbar.menuItem(
     return menu.menuItem(title, iconId, color, showIcon, init)
 }
 
-fun Menu.menuItem(title: String, iconId: Int? = null, color: Int? = null, showIcon: Boolean = false, init: MenuItem.() -> Unit = {}): MenuItem {
+inline fun Menu.menuItem(title: String, iconId: Int? = null, color: Int? = null, showIcon: Boolean = false, init: MenuItem.() -> Unit = {}): MenuItem {
     val item = add(title)
     if (iconId != null) {
         item.icon = App.instance.resources.getDrawable(iconId)
@@ -115,12 +115,12 @@ fun Menu.menuItem(title: String, iconId: Int? = null, color: Int? = null, showIc
     return item
 }
 
-fun Toolbar.subMenu(title: String, init: SubMenu.() -> Unit) {
+inline fun Toolbar.subMenu(title: String, init: SubMenu.() -> Unit) {
     val sub = menu.addSubMenu(title)
     init(sub)
 //    return sub
 }
-fun Menu.subMenu(title: String, init: SubMenu.() -> Unit) {
+inline fun Menu.subMenu(title: String, init: SubMenu.() -> Unit) {
     val sub = this.addSubMenu(title)
     init(sub)
 //    return sub
@@ -138,16 +138,12 @@ data class MenuGroup(val menu: Menu, val id: Int) {
             field = value
         }
 
-    fun menuItem(title: String, iconId: Int? = null, color: Int? = null, showIcon: Boolean = false, init: MenuItem.() -> Unit = {}): MenuItem {
+    inline fun menuItem(title: String, iconId: Int? = null, color: Int? = null, showIcon: Boolean = false, init: MenuItem.() -> Unit = {}): MenuItem {
         val showType = if (showIcon) {
             MenuItem.SHOW_AS_ACTION_IF_ROOM
         } else {
             MenuItem.SHOW_AS_ACTION_NEVER
         }
-        return menuItem(title, iconId, color, showType, init)
-    }
-
-    private fun menuItem(title: String, iconId: Int? = null, color: Int? = null, showType: Int = MenuItem.SHOW_AS_ACTION_NEVER, init: MenuItem.() -> Unit = {}): MenuItem {
         val item = menu.add(id, Menu.NONE, Menu.NONE, title)
         if (iconId != null) {
             item.icon = App.instance.resources.getDrawable(iconId)
@@ -180,7 +176,7 @@ fun MenuItem.onClick(
 ) {
     setOnMenuItemClickListener { v ->
         launch(context) {
-            handler.invoke(v)
+            handler(v)
         }
         true
     }

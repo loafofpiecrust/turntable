@@ -17,8 +17,6 @@ import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItem
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.task
-import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.produce
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.imageResource

@@ -40,19 +40,18 @@ import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.zip
-import org.jetbrains.anko.ctx
-import org.jetbrains.anko.notificationManager
-import org.jetbrains.anko.toast
+import org.jetbrains.anko.*
+import java.lang.ref.WeakReference
 import java.util.*
 import java.util.concurrent.TimeUnit
 
 
 class SyncService : FirebaseMessagingService() {
-    companion object {
-        private var instance: SyncService? = null
-        private val API_KEY = BuildConfig.FIREBASE_API_KEY
-        private val PROJECT_ID = BuildConfig.FIREBASE_PROJECT_ID
-        private val SERVER_KEY = BuildConfig.FIREBASE_SERVER_KEY
+    companion object: AnkoLogger by AnkoLogger<SyncService>() {
+        private var instance: WeakReference<SyncService>? = null
+        private const val API_KEY = BuildConfig.FIREBASE_API_KEY
+        private const val PROJECT_ID = BuildConfig.FIREBASE_PROJECT_ID
+        private const val SERVER_KEY = BuildConfig.FIREBASE_SERVER_KEY
 
         val selfUser = User()
 
@@ -76,7 +75,6 @@ class SyncService : FirebaseMessagingService() {
                 }
             }
 
-        // TODO: transition to using device groups and stuff
         val mode: ConflatedBroadcastChannel<Mode> by lazy {
             val res = ConflatedBroadcastChannel<Mode>(Mode.None())
 
@@ -92,22 +90,21 @@ class SyncService : FirebaseMessagingService() {
                     if (value is Mode.Topic) {
                         FirebaseMessaging.getInstance().subscribeToTopic(value.topic)
                     }
-                    instance?.updateNotification()
+                    instance?.get()?.updateNotification()
                 }
 
             res
         }
 
-        var lastSentTime = 0L
-        var lastDeliveredTime = 0L
+        private var lastSentTime = 0L
+        private var lastDeliveredTime = 0L
         val latency = ConflatedBroadcastChannel(0L)
 
 
         fun login(acc: FirebaseUser) {
             println("login: ${acc.email}")
             googleAccount = acc
-            // TODO: Make sure the upload is unneccessary (eg. user gets uploaded upon first login)
-//            selfUser.upload()
+            // TODO: Make sure an upload is unneccessary here (eg. user gets uploaded upon first login)
         }
 
         fun send(msg: Message, to: User) = send(msg, Mode.OneOnOne(to))
@@ -165,8 +162,7 @@ class SyncService : FirebaseMessagingService() {
                 )
             )
 
-
-            println("sync: send response $res")
+            debug { "Send response $res" }
             // TODO: Process messages that fail to send to part of a group.
         }
 
@@ -194,7 +190,7 @@ class SyncService : FirebaseMessagingService() {
                 mode puts Mode.InGroup(g)
                 g
             } else {
-                println("sync: failed to create group '$name'")
+                error { "Failed to create group '$name'" }
                 null
             }
         }
@@ -215,7 +211,7 @@ class SyncService : FirebaseMessagingService() {
             ).gson.obj
 
             return if (!res.has("notification_key")) {
-                println("sync: failed to join group '${group.name}'")
+                error { "Failed to join group '${group.name}'" }
 //                MusicService.instance.shouldSync = false
                 false
             } else {
@@ -260,14 +256,11 @@ class SyncService : FirebaseMessagingService() {
 
 
         fun requestSync(other: User) {
-            send(
-                    Message.SyncRequest(),
-                    Mode.OneOnOne(other)
-            )
+            send(Message.SyncRequest(), other)
         }
         fun confirmSync(other: User) {
             SyncService.mode puts Mode.OneOnOne(other)
-            send(Message.SyncResponse(true))
+            send(Message.SyncResponse(true), other)
         }
 
         /**
@@ -305,7 +298,7 @@ class SyncService : FirebaseMessagingService() {
     }
 
     init {
-        instance = this
+        instance = WeakReference(this)
     }
 
     @Parcelize
@@ -436,11 +429,6 @@ class SyncService : FirebaseMessagingService() {
                 UserPrefs.friends putsMapped { it.withoutFirst { it.user == user } }
             }
         }
-    }
-
-    override fun onCreate() {
-        super.onCreate()
-        instance = this
     }
 
     fun shareSyncLink() = task(UI) {

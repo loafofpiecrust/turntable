@@ -45,13 +45,7 @@ abstract class BaseFragment: Fragment(), AnkoLogger {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ActivityStarter.fill(this)
-//        StateSaver.restoreInstanceState(this, savedInstanceState)
         onCreate()
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-//        StateSaver.saveInstanceState(this, outState)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {

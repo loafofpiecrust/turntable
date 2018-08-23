@@ -17,21 +17,19 @@ import com.loafofpiecrust.turntable.radio.CombinedQueue
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.song.HistoryEntry
 import com.loafofpiecrust.turntable.song.Song
-import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.cancelSafely
-import com.loafofpiecrust.turntable.util.distinctSeq
-import com.loafofpiecrust.turntable.util.task
-import com.loafofpiecrust.turntable.util.then
-import kotlinx.coroutines.experimental.*
+import com.loafofpiecrust.turntable.util.*
+import kotlinx.coroutines.experimental.Deferred
+import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.map
 import kotlinx.coroutines.experimental.channels.produce
+import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
 import org.jetbrains.anko.info
-import java.util.concurrent.Future
 
 class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
     enum class OrderMode {
@@ -384,9 +382,9 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
 
     fun shiftQueuePosition(pos: Int) {
         val q = _queue.value
-        when {
-            pos == q.position - 1 -> playPrevious()
-            pos == q.position + 1 -> playNext()
+        when (pos) {
+            q.position - 1 -> playPrevious()
+            q.position + 1 -> playNext()
             else -> {
                 val q = _queue.value.shiftedPosition(pos)
                 _queue puts q as CombinedQueue

@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.artist
 
-import android.os.Parcelable
 import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.dedupMerge

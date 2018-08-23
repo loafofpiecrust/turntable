@@ -292,7 +292,16 @@ object MusicBrainz: SearchApi, AnkoLogger {
         val discography = res.getElementById("content").getElementsByAttributeValue("method", "post")[0]
         val sections = discography.children()
 //        val remoteAlbums = mutableListOf<Album>()
-        val remoteAlbums = (0 until sections.size step 2).parMap { idx ->
+
+//        Library.instance.cacheRemoteArtist(
+//            RemoteArtist(
+//                ArtistId(artistName),
+//                ArtistDetails(artistId),
+//                remoteAlbums
+//            )
+//        )
+
+        return (0 until sections.size step 2).parMap { idx ->
             //                task {
             val typeStr = sections[idx].text()
             val type = when {
@@ -324,14 +333,14 @@ object MusicBrainz: SearchApi, AnkoLogger {
                         "artist" to artistName//this.id.name
                     )).gson["album"]
                     val images = res["image"].nullArray
-                    MusicBrainz.AlbumDetails(
+                    AlbumDetails(
                         albumId,
                         artistId,
                         thumbnailUrl = images?.get(2)?.get("#text").nullString,
                         listeners = res["listeners"].string.toInt()
                     ) to images?.last()?.get("#text").nullString
                 } catch (e: Throwable) {
-                    MusicBrainz.AlbumDetails(albumId, artistId) to null
+                    AlbumDetails(albumId, artistId) to null
                 }
 
 //                        val (remote, cover) = Album.coverArtFor(albumId).let { imgUrls ->
@@ -359,16 +368,6 @@ object MusicBrainz: SearchApi, AnkoLogger {
                 album
             }
         }.awaitAll().flatMap { it!! }
-
-//        Library.instance.cacheRemoteArtist(
-//            RemoteArtist(
-//                ArtistId(artistName),
-//                ArtistDetails(artistId),
-//                remoteAlbums
-//            )
-//        )
-
-        return remoteAlbums
     }
 
 

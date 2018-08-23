@@ -6,7 +6,6 @@ import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.song.Music
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.util.task
-import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.runBlocking
 import kotlin.math.max

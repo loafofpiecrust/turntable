@@ -82,7 +82,7 @@ class PlaylistDetailsFragment: BaseFragment() {
                     transitionName = playlistId.toString()
 
                     // TODO: can't find local playlist _or_ I'm not the owner
-                    menuItem("Rename", showIcon = false).onClick {
+                    menuItem("Rename", showIcon = false).setOnMenuItemClickListener {
                         alert("Rename playlist '${playlist.name}'") {
                             lateinit var editor: EditText
                             customView {
@@ -98,6 +98,7 @@ class PlaylistDetailsFragment: BaseFragment() {
                             }
                             negativeButton("Cancel") {}
                         }.show()
+                        true
                     }
 
 //                    menuItem("Change Color", showIcon = false).onClick {

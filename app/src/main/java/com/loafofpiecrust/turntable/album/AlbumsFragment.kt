@@ -7,7 +7,6 @@ import android.os.Parcelable
 import android.support.v7.widget.GridLayoutManager
 import android.view.*
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
 import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.prefs.UserPrefs
@@ -20,7 +19,6 @@ import com.loafofpiecrust.turntable.util.replayOne
 import fr.castorflex.android.circularprogressbar.CircularProgressDrawable
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.CoroutineStart
-import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.BroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.consume

@@ -67,9 +67,8 @@ class ArtistDetailsFragment: BaseFragment() {
     private val currentMode by lazy { ConflatedBroadcastChannel(initialMode) }
 
     companion object {
-        fun fromId(id: ArtistId): ArtistDetailsFragment? {
-            val frag = ArtistDetailsFragmentStarter.newInstance(id)
-            return frag
+        fun fromId(id: ArtistId): ArtistDetailsFragment {
+            return ArtistDetailsFragmentStarter.newInstance(id)
         }
 
         fun fromArtist(artist: Artist, mode: Mode = Mode.LIBRARY): ArtistDetailsFragment {

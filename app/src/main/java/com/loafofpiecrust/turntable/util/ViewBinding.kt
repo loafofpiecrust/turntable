@@ -1,16 +1,13 @@
 package com.loafofpiecrust.turntable.util
 
 import android.support.v4.view.ViewPager
-import android.view.View
 import android.widget.TextView
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.BroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.channels.produce
 import org.jetbrains.anko.support.v4.onPageChangeListener
-import kotlin.coroutines.experimental.CoroutineContext
 import kotlin.reflect.KMutableProperty0
 
 

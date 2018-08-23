@@ -22,7 +22,15 @@ import org.jetbrains.anko.support.v4.toast
 import org.jetbrains.anko.wrapContent
 
 
-class PlaylistPickerDialog(val item: Music): BaseDialogFragment() {
+class PlaylistPickerDialog: BaseDialogFragment() {
+    companion object {
+        fun forItem(item: Music) = PlaylistPickerDialog().apply {
+            this.item = item
+        }
+    }
+
+    lateinit var item: Music
+
     override fun onStart() {
         super.onStart()
         dialog.window.setLayout(matchParent, wrapContent)
@@ -32,7 +40,8 @@ class PlaylistPickerDialog(val item: Music): BaseDialogFragment() {
         ActivityStarter.fill(this)
         val builder = AlertDialog.Builder(activity)
         builder.setMessage("Add to playlist")
-            .setPositiveButton("New Playlist") { dialog, id ->
+            .setPositiveButton("New Playlist") { _, _ ->
+                val item = this.item
                 val id = when (item) {
                     is Song -> item.id
                     is Album -> item.id

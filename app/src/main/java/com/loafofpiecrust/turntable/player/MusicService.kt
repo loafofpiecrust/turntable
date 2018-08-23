@@ -158,12 +158,10 @@ class MusicService : Service(), OnAudioFocusChangeListener {
         super.onCreate()
         player = MusicPlayer(ctx)
 
-        launch(UI, parent = subs) {
-            player.currentSong.combineLatest(player.isPlaying)
-                .consumeEach { (song, playing) ->
-                    showNotification(song, playing)
-                }
-        }
+        player.currentSong.combineLatest(player.isPlaying)
+            .consumeEach(UI + subs) { (song, playing) ->
+                showNotification(song, playing)
+            }
 
 
 //        player.currentSong.consumeEach(BG_POOL + subs) { song ->

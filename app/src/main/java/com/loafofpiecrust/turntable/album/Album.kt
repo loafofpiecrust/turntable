@@ -431,7 +431,7 @@ interface Album: Music {
         }
 
         menu.menuItem("Add to Collection").onClick {
-            PlaylistPickerDialog(this@Album).show(ctx)
+            PlaylistPickerDialog.forItem(this@Album).show(ctx)
         }
     }
 
