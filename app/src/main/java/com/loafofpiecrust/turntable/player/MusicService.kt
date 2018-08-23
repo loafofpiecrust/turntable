@@ -173,7 +173,7 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
 
     override fun onDestroy() {
         stopForeground(true)
-        audioManager.abandonAudioFocus(this)
+        abandonFocus()
         player.release()
         subs.cancel()
         if (wakeLock.isHeld) {
@@ -208,15 +208,14 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
         } else msg
         when (msg) {
             is SyncService.Message.Play -> {
-                if (isFocused || requestFocus()) {
+                if (requestFocus()) {
                     success = player.play()
                 }
             }
             is SyncService.Message.Pause -> {
                 success = player.pause()
                 if (success) {
-                    audioManager.abandonAudioFocus(this)
-                    isFocused = false
+                    abandonFocus()
                 }
             }
             is SyncService.Message.QueuePosition -> player.shiftQueuePosition(msg.pos)
@@ -231,7 +230,6 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
     }
 
     override fun onAudioFocusChange(change: Int) {
-        println("Audio focus changed to $change")
         isFocused = (change == AUDIOFOCUS_GAIN || change == AUDIOFOCUS_GAIN_TRANSIENT || change == AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
         when (change) {
             AUDIOFOCUS_GAIN -> player.play()
@@ -252,17 +250,23 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
     }
 
     private fun requestFocus(): Boolean {
-        val result = audioManager.requestAudioFocus(
-            this,
-            AudioManager.STREAM_MUSIC,
-            AUDIOFOCUS_GAIN
-        ) == AUDIOFOCUS_REQUEST_GRANTED
-        isFocused = result
-        return result
+        return isFocused || (
+            audioManager.requestAudioFocus(
+                this,
+                AudioManager.STREAM_MUSIC,
+                AUDIOFOCUS_GAIN
+            ) == AUDIOFOCUS_REQUEST_GRANTED
+        ).also { isFocused = it }
     }
 
+    private fun abandonFocus() {
+        audioManager.abandonAudioFocus(this)
+        isFocused = false
+    }
+
+    private val notification by lazy { PlayingNotification(this) }
     private fun showNotification(song: Song?, playing: Boolean) {
-        PlayingNotification(this).show(song, playing)
+        notification.show(song, playing)
     }
 
     override fun onBind(intent: Intent): IBinder? = null

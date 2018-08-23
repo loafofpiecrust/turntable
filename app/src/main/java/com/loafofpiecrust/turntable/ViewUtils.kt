@@ -51,6 +51,7 @@ import java.util.zip.Inflater
 import java.util.zip.InflaterInputStream
 import kotlin.collections.ArrayList
 import kotlin.coroutines.experimental.CoroutineContext
+import kotlin.coroutines.experimental.suspendCoroutine
 
 
 //inline fun ViewManager.slidingUpPanelLayout(init: @AnkoViewDslMarker SlidingUpPanelLayout.() -> Unit = {}): SlidingUpPanelLayout =
@@ -695,4 +696,14 @@ inline fun <T: Any> Context.selector(
 ): Unit = selector(prompt, options.map { it.second }) { dialog, idx ->
     val (choice, name) = options[idx]
     cb(dialog, choice)
+}
+
+suspend fun <T: Any> Context.selector(
+    prompt: String,
+    options: List<Pair<T, String>>
+): T = suspendCoroutine { cont ->
+    selector(prompt, options.map { it.second }) { _, idx ->
+        val (choice, name) = options[idx]
+        cont.resume(choice)
+    }
 }

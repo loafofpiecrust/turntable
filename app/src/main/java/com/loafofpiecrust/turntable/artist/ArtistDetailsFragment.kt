@@ -2,6 +2,7 @@ package com.loafofpiecrust.turntable.artist
 
 import activitystarter.Arg
 import android.graphics.Color
+import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.AppBarLayout
 import android.support.design.widget.CollapsingToolbarLayout
 import android.support.design.widget.TabLayout
@@ -11,13 +12,10 @@ import android.view.View
 import android.view.ViewManager
 import android.widget.ImageView
 import com.bumptech.glide.Glide
-import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.album.AlbumsFragment
 import com.loafofpiecrust.turntable.album.AlbumsFragmentStarter
 import com.loafofpiecrust.turntable.browse.SearchApi
-import com.loafofpiecrust.turntable.collapsingToolbarlparams
-import com.loafofpiecrust.turntable.generateChildrenIds
-import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
@@ -35,6 +33,7 @@ import org.jetbrains.anko.constraint.layout.matchConstraint
 import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.design.collapsingToolbarLayout
 import org.jetbrains.anko.design.coordinatorLayout
+import org.jetbrains.anko.sdk25.coroutines.onClick
 import org.jetbrains.anko.support.v4.ctx
 
 
@@ -103,20 +102,12 @@ class ArtistDetailsFragment: BaseFragment() {
 //        exitTransition = Fade().setDuration(transDur / 3)
     }
 
-    override fun ViewManager.createView(): View = coordinatorLayout {
-//        val artist = if (artist != null) {
-//            produceSingle(artist!!)
-//        } else {
-//            ctx.library.findArtist(artistId)
-//        }
-
-        lateinit var tabs: TabLayout
+    override fun ViewManager.createView() = coordinatorLayout {
         appBarLayout {
             backgroundColor = Color.TRANSPARENT
 
             lateinit var image: ImageView
             collapsingToolbarLayout {
-                // setContentScrimColor(resources.getColor(R.color.colorPrimary))
                 collapsedTitleGravity = Gravity.BOTTOM
                 expandedTitleGravity = Gravity.BOTTOM
 
@@ -126,18 +117,23 @@ class ArtistDetailsFragment: BaseFragment() {
                         transitionName = artistId.imageTransition
                     }
 
-                    // Years of the artist
-//                    val year = if (artist.startYear != null) {
-//                        textView {
-//                            backgroundResource = R.drawable.rounded_rect
-//                            textSizeDimen = R.dimen.small_text_size
-//                            text = getString(
-//                                R.string.artist_date_range,
-//                                artist.startYear.toString(),
-//                                artist.endYear ?: "Now"
-//                            )
-//                        }
-//                    } else null
+                    // Active year range of the artist
+                    val year = textView {
+                        backgroundResource = R.drawable.rounded_rect
+                        textSizeDimen = R.dimen.small_text_size
+                        artist.consumeEach(UI) { artist ->
+                            if (artist.startYear != null) {
+                                visibility = View.VISIBLE
+                                text = getString(
+                                    R.string.artist_date_range,
+                                    artist.startYear.toString(),
+                                    artist.endYear ?: "Now"
+                                )
+                            } else {
+                                visibility = View.GONE
+                            }
+                        }
+                    }
 
                     // Current display mode
                     val mode = textView {
@@ -157,11 +153,9 @@ class ArtistDetailsFragment: BaseFragment() {
                             )
                         }
 
-//                        onClick(UI) {
-//                            it!!.context.selector("Choose Display Mode", choices) { dialog, choice ->
-//                                currentMode puts choice
-//                            }
-//                        }
+                        onClick(UI) {
+                            currentMode puts ctx.selector("Choose Display Mode", choices)
+                        }
                     }
 
                     generateChildrenIds()
@@ -169,27 +163,25 @@ class ArtistDetailsFragment: BaseFragment() {
                         val padBy = dimen(R.dimen.details_image_padding)
                         image {
                             connect(
-                                TOP to TOP of this@constraintLayout,
-                                BOTTOM to BOTTOM of this@constraintLayout,
-                                START to START of this@constraintLayout,
-                                END to END of this@constraintLayout
+                                TOP to TOP of PARENT_ID,
+                                BOTTOM to BOTTOM of PARENT_ID,
+                                START to START of PARENT_ID,
+                                END to END of PARENT_ID
                             )
                             width = matchConstraint
                             height = matchConstraint
                             dimensionRation = "H,2:1"
                         }
-//                        if (year != null) {
-//                            year {
-//                                connect(
-//                                    BOTTOM to BOTTOM of this@constraintLayout margin padBy,
-//                                    START to START of this@constraintLayout margin padBy
-//                                )
-//                            }
-//                        }
+                        year {
+                            connect(
+                                BOTTOM to BOTTOM of PARENT_ID margin padBy,
+                                START to START of PARENT_ID margin padBy
+                            )
+                        }
                         mode {
                             connect(
-                                BOTTOM to BOTTOM of this@constraintLayout margin padBy,
-                                END to END of this@constraintLayout margin padBy
+                                BOTTOM to BOTTOM of PARENT_ID margin padBy,
+                                END to END of PARENT_ID margin padBy
                             )
                         }
                     }
@@ -229,14 +221,6 @@ class ArtistDetailsFragment: BaseFragment() {
 
 
         frameLayout {
-            id = View.generateViewId()
-//            fragment(fragmentManager, AlbumsFragment.fromArtist(artist, currentMode.value) Starter.newInstance(
-//                AlbumsFragment.Category.ByArtist(artistId, currentMode.value),
-//                AlbumsFragment.SortBy.YEAR,
-//                3
-//            ).also {
-//                it.albums =
-//            })
             fragment(AlbumsFragmentStarter.newInstance(
                 AlbumsFragment.Category.ByArtist(artistId, currentMode.value),
                 AlbumsFragment.SortBy.YEAR,
@@ -270,7 +254,6 @@ class ArtistDetailsFragment: BaseFragment() {
                     }.map { it!!.albums }
                     .replayOne()
             })
-
         }.lparams(width = matchParent) {
             behavior = AppBarLayout.ScrollingViewBehavior()
         }

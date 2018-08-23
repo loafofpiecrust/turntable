@@ -19,12 +19,17 @@ import com.loafofpiecrust.turntable.ui.MainActivityStarter
 import com.loafofpiecrust.turntable.util.consume
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.first
-import org.jetbrains.anko.ctx
 import org.jetbrains.anko.notificationManager
 
 class PlayingNotification(private val service: MusicService) {
     private var lastSongColor: Int? = null
     private var inForeground = false
+
+    init {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            createChannel()
+        }
+    }
 
     fun show(song: Song?, playing: Boolean) {
         updateSessionMeta(song, playing)
@@ -43,12 +48,14 @@ class PlayingNotification(private val service: MusicService) {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun buildChannel() =
+    private fun createChannel() = service.notificationManager.createNotificationChannel(
         NotificationChannel("turntable", "Music Playback", NotificationManager.IMPORTANCE_HIGH).apply {
             description = "Playback controls and info"
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             setShowBadge(true)
+            enableVibration(false)
         }
+    )
 
     private fun build(song: Song?, playing: Boolean, paletteColor: Int? = null) {
         if (song == null) {
@@ -56,9 +63,6 @@ class PlayingNotification(private val service: MusicService) {
             return
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            service.notificationManager.createNotificationChannel(buildChannel())
-        }
 //        val chan = NotificationChannel(100, "Playback", NotificationManager.IMPORTANCE_HIGH)
         val n = NotificationCompat.Builder(service, "turntable").apply {
             setStyle(android.support.v4.media.app.NotificationCompat.MediaStyle().run {
