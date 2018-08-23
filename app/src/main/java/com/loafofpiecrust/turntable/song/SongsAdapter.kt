@@ -163,10 +163,9 @@ open class SongsAdapter(
         }
 
 
-
-        holder.menu.setOnClickListener { v ->
+        val openOverflow = { v: View ->
             val popup = PopupMenu(
-                v.context, v, Gravity.CENTER,
+                v.context, holder.menu, Gravity.CENTER,
                 0, R.style.AppTheme_PopupOverlay
             )
 
@@ -191,6 +190,11 @@ open class SongsAdapter(
             }
             song.optionsMenu(holder.itemView.context, popup.menu)
             popup.show()
+        }
+        holder.menu.setOnClickListener(openOverflow)
+        holder.card.setOnLongClickListener {
+            openOverflow(it)
+            true
         }
 
         holder.card.onClick(BG_POOL) {
