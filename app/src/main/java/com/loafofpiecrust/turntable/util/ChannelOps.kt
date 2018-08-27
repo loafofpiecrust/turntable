@@ -1,7 +1,12 @@
 package com.loafofpiecrust.turntable.util
 
+import android.support.annotation.MainThread
+import android.support.annotation.UiThread
+import android.view.View
 import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.*
+import org.jetbrains.anko.sdk25.coroutines.onAttachStateChangeListener
 import kotlin.coroutines.experimental.CoroutineContext
 import kotlin.coroutines.experimental.coroutineContext
 
@@ -168,7 +173,7 @@ val <T> ConflatedBroadcastChannel<T>.hasValue inline get() = (valueOrNull != nul
 inline fun <E> BroadcastChannel<E>.consumeEach(
     ctx: CoroutineContext,
     crossinline action: suspend (E) -> Unit
-) = async(ctx) { consumeEach {
+): Job = async(ctx) { consumeEach {
     try { action(it) } catch (e: Throwable) {
         e.printStackTrace()
     }
@@ -183,7 +188,7 @@ inline fun <E> BroadcastChannel<E>.consumeEach(
 inline fun <E> ReceiveChannel<E>.consumeEach(
     ctx: CoroutineContext,
     crossinline action: suspend (E) -> Unit
-) = async(ctx) { consumeEach {
+): Job = async(ctx) { consumeEach {
     try {
         action(it)
     } catch (e: Throwable) {
@@ -194,7 +199,21 @@ inline fun <E> ReceiveChannel<E>.consumeEach(
 inline fun <E, R> ReceiveChannel<E>.consume(
     ctx: CoroutineContext,
     crossinline action: suspend ReceiveChannel<E>.() -> R
-) = async(ctx) { consume { action(this) } }
+): Job = async(ctx) { consume { action(this) } }
 
 
 fun <T> Deferred<T>.toChannel() = produce(Unconfined) { send(await()) }
+
+
+/// Subscribe to the broadcast channel and close it when the given view is destroyed.
+@UiThread
+fun <T> BroadcastChannel<T>.bind(view: View) = openSubscription().bind(view)
+
+@UiThread
+fun <T> ReceiveChannel<T>.bind(view: View) = apply {
+    view.onAttachStateChangeListener {
+        onViewDetachedFromWindow {
+            cancel()
+        }
+    }
+}

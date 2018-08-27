@@ -54,7 +54,7 @@ class MixTapeDetailsFragment: BaseFragment() {
             topPadding = dimen(R.dimen.statusbar_height)
 
             toolbar {
-                standardStyle(UI)
+                standardStyle()
                 title = playlistTitle
                 transitionName = playlistId.toString()
 

@@ -134,13 +134,13 @@ open class NowPlayingFragment : BaseFragment() {
                     onClick { v ->
                         // Open sync options: contact choice
                         v!!.context.selector("Sync options", listOf(
-                            "Sync with Friend" to { dialog: DialogInterface, item: String ->
+                            "Sync with Friend" to {
                                 FriendPickerDialogStarter.newInstance(
                                     SyncService.Message.SyncRequest(),
                                     "Request Sync"
                                 ).show(ctx)
                             }
-                        ))
+                        ))()
                     }
                     R.drawable.ic_cast
                 } else {

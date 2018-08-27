@@ -7,21 +7,6 @@ import com.loafofpiecrust.turntable.given
 import kotlinx.coroutines.experimental.runBlocking
 
 
-interface AlbumArtist {
-    val albums: List<Album>
-    val members: List<Artist.Member>? get() = null
-}
-
-// class RemoteAlbumArtist: AlbumArtist {
-// }
-
-// loadArtwork(req):
-//if (artworkUrl != null) {
-//    produce(BG_POOL) { send(req.load(artworkUrl).apply(Library.ARTWORK_OPTIONS)) }
-//} else {
-//    Library.instance.loadArtistImage(req, id)
-//}
-
 class LocalArtist(
     override val id: ArtistId,
     override val albums: List<Album>

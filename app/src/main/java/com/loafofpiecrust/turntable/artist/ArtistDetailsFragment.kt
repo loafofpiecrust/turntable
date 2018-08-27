@@ -2,10 +2,10 @@ package com.loafofpiecrust.turntable.artist
 
 import activitystarter.Arg
 import android.graphics.Color
+import android.support.annotation.StringRes
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.AppBarLayout
 import android.support.design.widget.CollapsingToolbarLayout
-import android.support.design.widget.TabLayout
 import android.transition.*
 import android.view.Gravity
 import android.view.View
@@ -13,17 +13,15 @@ import android.view.ViewManager
 import android.widget.ImageView
 import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.album.AlbumsFragment
-import com.loafofpiecrust.turntable.album.AlbumsFragmentStarter
+import com.loafofpiecrust.turntable.album.albumList
 import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.channels.BroadcastChannel
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.broadcast
-import kotlinx.coroutines.experimental.channels.map
+import kotlinx.coroutines.experimental.channels.*
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
@@ -44,8 +42,10 @@ import org.jetbrains.anko.support.v4.ctx
  * 3. artist id (from saved state)
  */
 class ArtistDetailsFragment: BaseFragment() {
-    enum class Mode {
-        LIBRARY, REMOTE, LIBRARY_AND_REMOTE
+    enum class Mode(@StringRes val titleRes: Int) {
+        LIBRARY_AND_REMOTE(R.string.artist_content_all),
+        LIBRARY(R.string.artist_content_library),
+        REMOTE(R.string.artist_content_remote),
     }
 
     @Arg lateinit var artistId: ArtistId
@@ -60,6 +60,7 @@ class ArtistDetailsFragment: BaseFragment() {
     // Restoration:
     // onCreate: load artistId from bundle and find it via a channel
     private lateinit var artist: BroadcastChannel<Artist>
+    private lateinit var albums: BroadcastChannel<List<Album>>
 
     @Arg(optional = true) var initialMode = Mode.LIBRARY
 
@@ -87,7 +88,13 @@ class ArtistDetailsFragment: BaseFragment() {
         if (!::artist.isInitialized) {
             artist = Library.instance.findArtist(artistId).map {
                 it ?: SearchApi.find(artistId)!!
-            }.broadcast()
+            }.broadcast(Channel.CONFLATED)
+        }
+
+        if (!::albums.isInitialized) {
+            albums = artist.openSubscription()
+                .map { it.albums }
+                .broadcast(Channel.CONFLATED)
         }
 
         val trans = TransitionSet()
@@ -126,8 +133,8 @@ class ArtistDetailsFragment: BaseFragment() {
                                 visibility = View.VISIBLE
                                 text = getString(
                                     R.string.artist_date_range,
-                                    artist.startYear.toString(),
-                                    artist.endYear ?: "Now"
+                                    artist.startYear,
+                                    artist.endYear ?: getString(R.string.artist_active_now)
                                 )
                             } else {
                                 visibility = View.GONE
@@ -140,21 +147,19 @@ class ArtistDetailsFragment: BaseFragment() {
                         backgroundResource = R.drawable.rounded_rect
                         textSizeDimen = R.dimen.small_text_size
 
-                        val choices = listOf(
-                            Mode.LIBRARY to "Only in Library",
-                            Mode.REMOTE to "Only Not in Library",
-                            Mode.LIBRARY_AND_REMOTE to "All"
-                        )
-
                         currentMode.consumeEach(UI) { mode ->
                             text = getString(
                                 R.string.artist_content_source,
-                                choices.find { it.first == mode }!!.second
+                                getString(mode.titleRes)
                             )
                         }
 
                         onClick(UI) {
-                            currentMode puts ctx.selector("Choose Display Mode", choices)
+                            currentMode puts context.selector(
+                                getString(R.string.artist_pick_source),
+                                Mode.values().toList(),
+                                format = { getString(it.titleRes) }
+                            )
                         }
                     }
 
@@ -195,7 +200,7 @@ class ArtistDetailsFragment: BaseFragment() {
             }
 
             val toolbar = toolbar {
-                standardStyle(UI)
+                standardStyle()
                 title = artistId.displayName
                 transitionName = artistId.nameTransition
                 artist.consumeEach(UI) {
@@ -216,76 +221,18 @@ class ArtistDetailsFragment: BaseFragment() {
                 }
             }
 
-
         }.lparams(width = matchParent, height = wrapContent)
 
 
-        frameLayout {
-            fragment(AlbumsFragmentStarter.newInstance(
-                AlbumsFragment.Category.ByArtist(artistId, currentMode.value),
-                AlbumsFragment.SortBy.YEAR,
-                3
-            ).apply {
-                albums = artist.openSubscription()
-                    .combineLatest(currentMode.openSubscription())
-                    .switchMap(BG_POOL) { (artist, mode) ->
-                        val isLocal = artist is LocalArtist
-                        when (mode) {
-                            Mode.LIBRARY -> if (isLocal) {
-                                produceSingle(artist)
-                            } else Library.instance.findArtist(artist.id)
-                            Mode.LIBRARY_AND_REMOTE -> if (isLocal) {
-                                produceSingle(given(SearchApi.find(artist.id)) {
-                                    MergedArtist(artist, it)
-                                } ?: artist)
-                            } else {
-                                Library.instance.findArtist(artist.id).map {
-                                    if (it != null) {
-                                        MergedArtist(artist, it)
-                                    } else artist
-                                }
-                            }
-                            Mode.REMOTE -> if (isLocal) {
-                                produceSingle(SearchApi.find(artist.id) ?: artist)
-                            } else {
-                                produceSingle(artist)
-                            }
-                        }
-                    }.map { it!!.albums }
-                    .replayOne()
-            })
+        albumList(
+            albums,
+            AlbumsFragment.Category.ByArtist(artistId, currentMode.value),
+            AlbumsFragment.SortBy.YEAR,
+            3
+        ) {
+            id = R.id.gridRecycler
         }.lparams(width = matchParent) {
             behavior = AppBarLayout.ScrollingViewBehavior()
         }
-//        viewPager {
-//            id = View.generateViewId()
-//            offscreenPageLimit = 1
-//
-//            adapter = object: FragmentPagerAdapter(childFragmentManager) {
-//                override fun getCount() = 2
-//                override fun getItem(pos: Int) = when(pos) {
-//                    0 -> AlbumsFragmentStarter.newInstance(
-//                        AlbumsFragment.Category.ByArtist(artist.copy(albums = listOf()), currentMode.value),
-//                        AlbumsFragment.SortBy.YEAR,
-//                        3
-//                    ).also { albums = it }
-//                    1 -> RelatedArtistsFragmentStarter.newInstance(artist)
-//                    // TODO: Add artist biography
-//                    // TODO: Add songs tab?
-//                    else -> kotlin.error("Shouldn't be able to go past page 2.")
-//                }
-//
-//                override fun getPageTitle(pos: Int) = when(pos) {
-//                    0 -> "Albums"
-//                    1 -> "Similar"
-//                    else -> kotlin.error("Shouldn't be able to go past page 2.")
-//                }
-//            }
-//        }.lparams(width = matchParent) {
-//            behavior = AppBarLayout.ScrollingViewBehavior()
-//        }
-//        }.also {
-//            tabs.setupWithViewPager(it)
-//        }
     }
 }

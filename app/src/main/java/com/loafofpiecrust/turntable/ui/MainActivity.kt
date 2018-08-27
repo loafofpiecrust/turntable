@@ -155,7 +155,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
 
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
-                .add(R.id.mainContentContainer, LibraryFragmentStarter.newInstance())
+                .replace(R.id.mainContentContainer, LibraryFragmentStarter.newInstance())
                 .commit()
         }
 

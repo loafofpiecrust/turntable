@@ -1,18 +1,23 @@
 package com.loafofpiecrust.turntable.style
 
 import android.support.v7.widget.RecyclerView
+import android.view.View
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.util.bind
 import com.loafofpiecrust.turntable.util.consumeEach
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import com.simplecityapps.recyclerview_fastscroll.views.FastScroller
+import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.channels.BroadcastChannel
+import org.jetbrains.anko.sdk25.coroutines.onAttachStateChangeListener
 import kotlin.coroutines.experimental.CoroutineContext
 
 
-inline fun FastScrollRecyclerView.turntableStyle(uiContext: CoroutineContext) {
-    (RecyclerView::turntableStyle)(this, uiContext)
+inline fun FastScrollRecyclerView.turntableStyle() {
+    (RecyclerView::turntableStyle)(this)
 
-    UserPrefs.secondaryColor.consumeEach(uiContext) {
+    UserPrefs.secondaryColor.bind(this).consumeEach(UI) {
         setThumbColor(it)
         setPopupBgColor(it)
     }
@@ -22,6 +27,6 @@ inline fun FastScrollRecyclerView.turntableStyle(uiContext: CoroutineContext) {
     addOnItemTouchListener(this)
 }
 
-inline fun RecyclerView.turntableStyle(uiContext: CoroutineContext) {
+inline fun RecyclerView.turntableStyle() {
 //    itemAnimator = SlideInUpAnimator()
 }

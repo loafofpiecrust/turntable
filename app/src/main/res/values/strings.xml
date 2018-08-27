@@ -18,10 +18,6 @@
     <string name="menu_dots">&#8942;</string>
     <string name="shuffle_all">Shuffle All</string>
     <string name="separator">&#8226;</string>
-    <string name="artist_subline">%1$d Albums &#8226; %2$d Songs</string>
-
-    <string name="artist_date_range">%1$s – %2$s</string>
-    <string name="artist_content_source">Show: %1$s</string>
 
     <string name="album_remote">Not Downloaded</string>
     <string name="album_local">Downloaded</string>
@@ -40,4 +36,19 @@
     <!-- Sync -->
     <string name="sync_details">Sync Details</string>
     <string name="sync_latency">%1$dms</string>
+
+    <!-- Artists -->
+    <string name="artist_subline">%1$d Albums &#8226; %2$d Songs</string>
+    <string name="artist_date_range">%1$d – %2$s</string>
+    <string name="artist_pick_source">Choose Display Mode</string>
+    <string name="artist_content_source">Show: %1$s</string>
+    <string name="artist_content_library">Library</string>
+    <string name="artist_content_remote">Remote Only</string>
+    <string name="artist_content_all">All</string>
+    <string name="artist_active_now">Now</string>
+
+    <!-- Albums/General -->
+    <string name="download">Download</string>
+    <string name="add_to_library">Add To Library</string>
+    <string name="no_internet">No Internet Connection</string>
 </resources>
