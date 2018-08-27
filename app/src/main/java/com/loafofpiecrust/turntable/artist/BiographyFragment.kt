@@ -28,7 +28,7 @@ class BiographyFragment: BaseDialogFragment() {
         // TODO: Add full-res artist image, as not-cropped as possible.
         // TODO: Multiple artist images?
         val toolbar = toolbar {
-            standardStyle(UI, true)
+            standardStyle(true)
             setNavigationOnClickListener { dismiss() }
         }
 

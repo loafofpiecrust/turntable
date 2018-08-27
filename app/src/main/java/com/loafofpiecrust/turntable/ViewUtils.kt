@@ -33,6 +33,7 @@ import com.lsjwzh.widget.recyclerviewpager.RecyclerViewPager
 import com.mcxiaoke.koi.ext.closeQuietly
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import fr.castorflex.android.circularprogressbar.CircularProgressBar
+import kotlinx.coroutines.experimental.CancellationException
 import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.Runnable
 import kotlinx.coroutines.experimental.android.UI
@@ -674,38 +675,37 @@ val Int.complementaryColor: Int get() {
     return Color.HSVToColor(hsv)
 }
 
-inline fun <T: Any> Context.selector(
-    prompt: String,
-    options: List<Pair<T, (DialogInterface, T) -> Unit>>,
-    format: (T) -> String = { it.toString() }
-): Unit = selector(prompt, options.map { format(it.first) }) { dialog, idx ->
-    val (choice, cb) = options[idx]
-    cb(dialog, choice)
-}
 
-inline fun <T: Any> Context.selector(
-    prompt: String,
-    options: List<Pair<Pair<T, String>, (DialogInterface, T) -> Unit>>
-): Unit = selector(prompt, options.map { it.first.second }) { dialog, idx ->
-    val (choice, cb) = options[idx]
-    cb(dialog, choice.first)
-}
 
-//inline fun <T: Any> Context.selector(
-//    prompt: String,
-//    options: List<Pair<T, String>>,
-//    crossinline cb: (DialogInterface, T) -> Unit
-//): Unit = selector(prompt, options.map { it.second }) { dialog, idx ->
-//    val (choice, name) = options[idx]
-//    cb(dialog, choice)
-//}
+suspend fun <T: Any> Context.selector(
+    prompt: CharSequence,
+    options: List<Pair<CharSequence, T>>
+): T = suspendCoroutine { cont ->
+    alert {
+        this.title = prompt
+        items(options.map { it.first }) { _, idx ->
+            cont.resume(options[idx].second)
+        }
+        onCancelled {
+            cont.resumeWithException(CancellationException())
+        }
+        show()
+    }
+}
 
 suspend fun <T: Any> Context.selector(
     prompt: String,
-    options: List<Pair<T, String>>
+    options: List<T>,
+    format: (T) -> CharSequence
 ): T = suspendCoroutine { cont ->
-    selector(prompt, options.map { it.second }) { _, idx ->
-        val (choice, name) = options[idx]
-        cont.resume(choice)
+    alert {
+        this.title = prompt
+        items(options.map { format(it) }) { _, idx ->
+            cont.resume(options[idx])
+        }
+        onCancelled {
+            cont.resumeWithException(CancellationException())
+        }
+        show()
     }
 }

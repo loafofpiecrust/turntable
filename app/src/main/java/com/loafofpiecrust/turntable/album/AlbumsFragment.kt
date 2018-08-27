@@ -4,6 +4,7 @@ package com.loafofpiecrust.turntable.album
 
 import android.os.Parcelable
 import android.support.v7.widget.GridLayoutManager
+import android.support.v7.widget.RecyclerView
 import android.view.*
 import com.evernote.android.state.State
 import com.loafofpiecrust.turntable.*
@@ -175,80 +176,108 @@ class AlbumsFragment : BaseFragment() {
         vm.createView()
     }
 
-    override fun ViewManager.createView() = frameLayout {
-        id = R.id.container
-        val cat = category
-        val grid = GridLayoutManager(context, 3)
+    // override fun ViewManager.createView() = frameLayout {
+    //     id = R.id.container
+    //     val cat = category
+    //     val grid = GridLayoutManager(context, 3)
 
-        val adapter = /*if (cat is Category.ByArtist) {
-            AlbumSectionAdapter { view, album ->
-                listState = grid.onSaveInstanceState()
-                view.itemView.context.replaceMainContent(
-                    DetailsFragment.fromAlbum(album),
-                    true,
-                    view.transitionViews
-                )
-            }.apply {
-                setLayoutManager(grid)
-            }
-        } else {*/
-            AlbumsAdapter(false) { view, album ->
-                listState = grid.onSaveInstanceState()
-                view.itemView.context.replaceMainContent(
-                    DetailsFragment.fromAlbum(album),
-                    true,
-                    view.transitionViews
-                )
-            }
-        //}
-
-        val recycler = if (cat is Category.All) {
-            fastScrollRecycler().apply {
-                turntableStyle(UI)
-            }
-        } else recyclerView().apply {
-            turntableStyle(UI)
-        }
-
-        val loadCircle = CircularProgressDrawable.Builder(context)
-            .color(UserPrefs.primaryColor.value)
-            .rotationSpeed(3f)
-            .strokeWidth(dip(8).toFloat())
-            .build()
-            .apply { start() }
-
-        val circleProgress = circularProgressBar {
-            visibility = View.VISIBLE
-            isIndeterminate = true
-            indeterminateDrawable = loadCircle
-        }.lparams(dip(64), dip(64)) {
-            topMargin = dip(16)
-            gravity = Gravity.CENTER_HORIZONTAL
-        }
-
-
-        recycler.apply {
+    //     val adapter = /*if (cat is Category.ByArtist) {
+    //         AlbumSectionAdapter { view, album ->
+    //             listState = grid.onSaveInstanceState()
+    //             view.itemView.context.replaceMainContent(
+    //                 DetailsFragment.fromAlbum(album),
+    //                 true,
+    //                 view.transitionViews
+    //             )
+    //         }.apply {
+    //             setLayoutManager(grid)
+    //         }
+    //     } else {*/
+    //         AlbumsAdapter(false) { view, album ->
+    //             listState = grid.onSaveInstanceState()
+    //             view.itemView.context.replaceMainContent(
+    //                 DetailsFragment.fromAlbum(album),
+    //                 true,
+    //                 view.transitionViews
+    //             )
+    //         }
+    //     //}
+    override fun ViewManager.createView() =
+        albumList(albums, category, sortBy, columnCount) {
             id = R.id.gridRecycler
-            this.adapter = adapter
+        }
+}
 
-            layoutManager = grid
-            padding = dimen(R.dimen.grid_gutter)
+inline fun ViewManager.albumList(
+    albums: BroadcastChannel<List<Album>>,
+    category: AlbumsFragment.Category,
+    sortBy: AlbumsFragment.SortBy,
+    columnCount: Int,
+    block: RecyclerView.() -> Unit = {}
+) = frameLayout {
+    val grid = GridLayoutManager(context, 3)
 
-            if (listState != null) {
-                grid.onRestoreInstanceState(listState)
-            }
+    val goToAlbum = { item: RecyclerItem, album: Album ->
+        item.itemView.context.replaceMainContent(
+            DetailsFragment.fromAlbum(album),
+            true,
+            item.transitionViews
+        )
+    }
+    val adapter = if (category is AlbumsFragment.Category.ByArtist) {
+        AlbumSectionAdapter(goToAlbum).apply {
+            setLayoutManager(grid)
+        }
+    } else {
+        AlbumsAdapter(false, goToAlbum)
+    }
 
-            if (columnCount > 0) {
-                grid.spanCount = columnCount
-            } else launch(UI) {
-                UserPrefs.albumGridColumns.openSubscription()
-                    .distinctSeq()
-                    .consumeEach { grid.spanCount = it }
-            }
+    val recycler = if (category is AlbumsFragment.Category.All) {
+        fastScrollRecycler {
+            turntableStyle()
+        }
+    } else recyclerView {
+        turntableStyle()
+    }
 
-            addItemDecoration(ItemOffsetDecoration(dimen(R.dimen.grid_gutter)))
+    val loadCircle = CircularProgressDrawable.Builder(context)
+        .color(UserPrefs.primaryColor.value)
+        .rotationSpeed(3f)
+        .strokeWidth(dip(8).toFloat())
+        .build()
+        .apply { start() }
 
-            val sub = albums.openSubscription()//.map {
+    val circleProgress = circularProgressBar {
+        visibility = View.VISIBLE
+        isIndeterminate = true
+        indeterminateDrawable = loadCircle
+    }.lparams(dip(64), dip(64)) {
+        topMargin = dip(16)
+        gravity = Gravity.CENTER_HORIZONTAL
+    }
+
+
+    recycler.apply {
+        this.adapter = adapter
+
+        // if (listState != null) {
+        //     grid.onRestoreInstanceState(listState)
+        // }
+
+        layoutManager = grid
+        padding = dimen(R.dimen.grid_gutter)
+
+        if (columnCount > 0) {
+            grid.spanCount = columnCount
+        } else {
+            UserPrefs.albumGridColumns.bind(this)
+                .distinctSeq()
+                .consumeEach(UI) { grid.spanCount = it }
+        }
+
+        addItemDecoration(ItemOffsetDecoration(dimen(R.dimen.grid_gutter)))
+
+        val sub = albums.openSubscription()//.map {
 //                if (cat !is Category.All) {
 //                    when (sortBy) {
 //                        SortBy.NONE -> it
@@ -260,21 +289,20 @@ class AlbumsFragment : BaseFragment() {
 //                } else it
 //            }
 
-//            if (adapter is AlbumsAdapter) {
-                adapter.subscribeData(sub)
-//            } else if (adapter is AlbumSectionAdapter) {
-//                sub.consumeEach(UI) {
-//                    adapter.replaceData(it)
-//                }
-//            }
-
-            launch(UI, CoroutineStart.UNDISPATCHED) {
-                albums.consume {
-                    while(receive().isEmpty()) {}
-                    loadCircle.progressiveStop()
-                    circleProgress.visibility = View.INVISIBLE
-                }
+        if (adapter is AlbumsAdapter) {
+            adapter.subscribeData(sub)
+        } else if (adapter is AlbumSectionAdapter) {
+            sub.bind(this).consumeEach(UI) {
+                adapter.replaceData(it)
             }
         }
+
+        block()
+    }
+
+    albums.bind(recycler).consume(UI) {
+        while(receive().isEmpty()) {}
+        loadCircle.progressiveStop()
+        circleProgress.visibility = View.INVISIBLE
     }
 }

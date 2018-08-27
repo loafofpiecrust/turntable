@@ -102,11 +102,11 @@ open class SongsFragment: BaseFragment() {
 
         val recycler = if (cat is Category.All) {
             fastScrollRecycler {
-                turntableStyle(jobs)
+                turntableStyle()
             }
         } else {
             recyclerView {
-                turntableStyle(jobs)
+                turntableStyle()
             }
         }
 

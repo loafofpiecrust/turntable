@@ -221,7 +221,7 @@ class DetailsFragment: BaseFragment() {
 
 
             toolbar {
-                detailsStyle(UI)
+                detailsStyle()
                 transitionName = albumId.nameTransition
 
                 verticalLayout {

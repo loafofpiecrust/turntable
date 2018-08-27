@@ -38,44 +38,46 @@ class SyncTabFragment: BaseFragment() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
-        val choices = listOf("From Contacts", "Email Address")
+        val choices = listOf(
+            "From Contacts" to {
+                pickContact()
+            },
+            "Email Address" to {
+                alert("Add friend") {
+                    lateinit var textBox: EditText
+                    customView {
+                        verticalLayout {
+                            padding = dip(16)
+                            textBox = editText {
+                                lines = 1
+                                hint = "User email address"
+                            }
+                        }
+                    }
+                    positiveButton("Befriend") {
+                        val key = textBox.text.toString()
+                        async(UI) {
+                            val user = withContext(BG_POOL) { SyncService.User.resolve(key) }
+                            // TODO: Use localized strings in xml
+                            toast(if (user != null) {
+                                if (SyncService.requestFriendship(user)) {
+                                    "Befriending ${user.displayName}"
+                                } else {
+                                    "${user.displayName} is already a friend"
+                                }
+                            } else {
+                                "User '$key' doesn't exist"
+                            })
+                        }
+                    }
+                    negativeButton("Cancel") {}
+                }.show()
+            }
+        )
+
         menu.menuItem("Add friend", R.drawable.ic_add, showIcon=true) {
             onClick {
-                selector("Add friend", choices) { dialog, idx ->
-                    if (idx == 0) {
-                        pickContact()
-                    } else {
-                        alert("Add friend") {
-                            lateinit var textBox: EditText
-                            customView {
-                                verticalLayout {
-                                    padding = dip(16)
-                                    textBox = editText {
-                                        lines = 1
-                                        hint = "User email address"
-                                    }
-                                }
-                            }
-                            positiveButton("Befriend") {
-                                val key = textBox!!.text.toString()
-                                async(UI) {
-                                    val user = withContext(BG_POOL) { SyncService.User.resolve(key) }
-                                    // TODO: Use localized strings in xml
-                                    toast(if (user != null) {
-                                        if (SyncService.requestFriendship(user)) {
-                                            "Befriending ${user.displayName}"
-                                        } else {
-                                            "${user.displayName} is already a friend"
-                                        }
-                                    } else {
-                                        "User '$key' doesn't exist"
-                                    })
-                                }
-                            }
-                            negativeButton("Cancel") {}
-                        }.show()
-                    }
-                }
+                ctx.selector("Add friend", choices)()
             }
         }
     }
@@ -140,7 +142,7 @@ class SyncTabFragment: BaseFragment() {
                             SyncService.Friend.Status.SENT_REQUEST -> "Friendship request sent"
                         }
                         val choices = when (friend.status) {
-                            SyncService.Friend.Status.CONFIRMED -> sortedMapOf(
+                            SyncService.Friend.Status.CONFIRMED -> listOf(
                                 "Request Sync" to {
                                     friend.user.refresh().then {
                                         SyncService.requestSync(it)
@@ -148,7 +150,7 @@ class SyncTabFragment: BaseFragment() {
                                     toast("Requested sync with ${friend.user.name}")
                                 }
                             )
-                            SyncService.Friend.Status.RECEIVED_REQUEST -> sortedMapOf(
+                            SyncService.Friend.Status.RECEIVED_REQUEST -> listOf(
                                 "Confirm Friendship" to {
                                     friend.respondToRequest(true)
                                 },
@@ -156,16 +158,14 @@ class SyncTabFragment: BaseFragment() {
                                     friend.respondToRequest(false)
                                 }
                             )
-                            SyncService.Friend.Status.SENT_REQUEST -> sortedMapOf(
+                            SyncService.Friend.Status.SENT_REQUEST -> listOf(
                                 "Rescind Request" to {
                                     UserPrefs.friends putsMapped { it.without(position) }
                                 }
                             )
-                        }.toList()
+                        }
                         card.onClick {
-                            selector("Do what with friend?", choices.map { it.first }) { dialog, idx ->
-                                choices[idx].second.invoke()
-                            }
+                            ctx.selector("Do what with friend?", choices)()
                         }
                     }
                 }

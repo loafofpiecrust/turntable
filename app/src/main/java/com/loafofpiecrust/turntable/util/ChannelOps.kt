@@ -187,7 +187,7 @@ val <T> ConflatedBroadcastChannel<T>.hasValue inline get() = (valueOrNull != nul
 inline fun <E> BroadcastChannel<E>.consumeEach(
     ctx: CoroutineContext,
     crossinline action: suspend (E) -> Unit
-) = async(ctx) { consumeEach {
+): Job = async(ctx) { consumeEach {
     try { action(it) } catch (e: Throwable) {
         e.printStackTrace()
     }
@@ -202,7 +202,7 @@ inline fun <E> BroadcastChannel<E>.consumeEach(
 inline fun <E> ReceiveChannel<E>.consumeEach(
     ctx: CoroutineContext,
     crossinline action: suspend (E) -> Unit
-) = async(ctx) { consumeEach {
+): Job = async(ctx) { consumeEach {
     try {
         action(it)
     } catch (e: Throwable) {
@@ -213,5 +213,19 @@ inline fun <E> ReceiveChannel<E>.consumeEach(
 inline fun <E, R> ReceiveChannel<E>.consume(
     ctx: CoroutineContext,
     crossinline action: suspend ReceiveChannel<E>.() -> R
-) = async(ctx) { consume { action(this) } }
+): Job = async(ctx) { consume { action(this) } }
 
+
+
+/// Subscribe to the broadcast channel and close it when the given view is destroyed.
+@UiThread
+fun <T> BroadcastChannel<T>.bind(view: View) = openSubscription().bind(view)
+
+@UiThread
+fun <T> ReceiveChannel<T>.bind(view: View) = apply {
+    view.onAttachStateChangeListener {
+        onViewDetachedFromWindow {
+            cancel()
+        }
+    }
+}

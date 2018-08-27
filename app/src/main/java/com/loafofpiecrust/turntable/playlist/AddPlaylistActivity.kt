@@ -48,7 +48,7 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
 
     override fun ViewManager.createView(): View = verticalLayout {
         toolbar = toolbar {
-            standardStyle(UI)
+            standardStyle()
             topPadding = dimen(R.dimen.statusbar_height)
             title = "New Collection"
         }.lparams(width=matchParent)

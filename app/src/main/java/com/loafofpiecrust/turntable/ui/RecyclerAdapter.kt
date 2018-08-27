@@ -180,11 +180,11 @@ class StaticRecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
 }
 
 open class RecyclerItem(view: View) : SectionedViewHolder(view) {
-    val mainLine: TextView = itemView.findViewById(R.id.mainLine)
-    val subLine: TextView = itemView.findViewById(R.id.subLine)
-    val card: View = itemView.findViewById(R.id.card)
-    val coverImage: ImageView? = itemView.findViewById(R.id.image)
-    val header: View = itemView.findViewById(R.id.title) ?: mainLine
+    val mainLine: TextView = itemView.find(R.id.mainLine)
+    val subLine: TextView = itemView.find(R.id.subLine)
+    val card: View = itemView.find(R.id.card)
+    val coverImage: ImageView? = itemView.findOptional(R.id.image)
+    val header: View = itemView.findOptional(R.id.title) ?: mainLine
 
     open val transitionViews: List<View> get() = if (coverImage != null) {
         listOf(coverImage, header)

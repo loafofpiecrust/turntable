@@ -73,16 +73,6 @@ open class RemoteAlbum(
 ): Album {
     override val tracks: List<Song> by lazy {
         runBlocking {
-//            val cached = Library.instance.findCachedRemoteAlbum(id).first()
-//            cached?.tracks ?: given(remoteId.resolveTracks(id)) { tracks ->
-//                tracks.forEach {
-//                    it.artworkUrl = it.artworkUrl
-//                        ?: Library.instance.findAlbumExtras(id).first()?.artworkUri
-//                }
-//                Library.instance.cacheRemoteAlbum(copy(tracks = tracks))
-//                tracks
-//            } ?: listOf()
-
             // grab tracks from online
             remoteId.resolveTracks(id)
         }
@@ -99,13 +89,6 @@ open class RemoteAlbum(
                     { a, b -> if (a.local != null) a else b }
                 ),
             type = minOf(type, other.type),
-            // type = when {
-            //     other.id.name.contains(Regex("\\bEP\\b", RegexOption.IGNORE_CASE)) -> Album.Type.EP
-            //     other.tracks.size <= 3 -> Album.Type.SINGLE // A-side, B-side, extra
-            //     other.tracks.size <= 7 -> Album.Type.EP
-            //     other.id.name.contains(Regex("\\b(Collection|Compilation|Best of|Greatest hits)\\b", RegexOption.IGNORE_CASE)) -> Album.Type.COMPILATION
-            //     else -> Album.Type.LP
-            // },
             year = if (year != null && other.year != null) {
                 minOf(year!!, other.year!!)
             } else year ?: other.year
@@ -122,7 +105,7 @@ open class RemoteAlbum(
     override fun optionsMenu(ctx: Context, menu: Menu) {
         super.optionsMenu(ctx, menu)
 
-        menu.menuItem("Download", R.drawable.ic_cloud_download, showIcon=false).onClick(ALT_BG_POOL) {
+        menu.menuItem(ctx.getString(R.string.download), R.drawable.ic_cloud_download, showIcon=false).onClick(ALT_BG_POOL) {
             if (App.instance.hasInternet) {
                 given(ctx.library.findCachedAlbum(id).first()?.tracks) { tracks ->
                     tracks.filter {
@@ -130,11 +113,11 @@ open class RemoteAlbum(
                     }.forEach { it.download() }
                 }
             } else {
-                ctx.toast("No internet connection")
+                ctx.toast(R.string.no_internet)
             }
         }
 
-        menu.menuItem("Add to Library", R.drawable.ic_turned_in_not, showIcon = true) {
+        menu.menuItem(ctx.getString(R.string.add_to_library), R.drawable.ic_turned_in_not, showIcon = true) {
             ctx.library.findAlbum(id).consumeEach(UI) { existing ->
                 if (existing != null) {
                     icon = ctx.getDrawable(R.drawable.ic_turned_in)

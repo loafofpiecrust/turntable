@@ -106,12 +106,12 @@ class ArtistsFragment : BaseFragment() {
 
         val recycler = if (cat is Category.All) {
             fastScrollRecycler {
-                turntableStyle(UI)
+                turntableStyle()
             }
         } else {
             recyclerView {
                 lparams(height = matchParent, width = matchParent)
-                turntableStyle(UI)
+                turntableStyle()
             }
         }
 
