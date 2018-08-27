@@ -82,7 +82,7 @@ class DetailsFragment: BaseFragment() {
         if (!::album.isInitialized) {
             album = Library.instance.findAlbum(albumId).map {
                 it ?: SearchApi.find(albumId)!!
-            }.broadcast(-1)
+            }.broadcast(Channel.CONFLATED)
         }
 
         val transDur = 400L
@@ -103,6 +103,7 @@ class DetailsFragment: BaseFragment() {
     }
 
     override fun ViewManager.createView(): View = coordinatorLayout {
+        id = R.id.container
         backgroundColor = TRANSPARENT
 //        fitsSystemWindows = true
 
@@ -122,6 +123,7 @@ class DetailsFragment: BaseFragment() {
 
             lateinit var image: ImageView
             val collapser = collapsingToolbarLayout {
+                id = R.id.collapser
                 fitsSystemWindows = false
                 collapsedTitleGravity = Gravity.BOTTOM
                 expandedTitleGravity = Gravity.BOTTOM
@@ -235,7 +237,7 @@ class DetailsFragment: BaseFragment() {
                     }
 
                     album.consumeEach(UI) { album ->
-                        album.loadCover(Glide.with(image))?.consumeEach {
+                        album.loadCover(Glide.with(image)).consumeEach {
                             it?.transition(DrawableTransitionOptions().crossFade(200))
                                 ?.listener(album.loadPalette(this@toolbar, mainLine, subLine, collapser))
                                 ?.into(image)
@@ -288,7 +290,10 @@ class DetailsFragment: BaseFragment() {
 
 
         frameLayout {
-            fragment(SongsFragment.onAlbum(albumId, album.openSubscription()))
+            id = R.id.songs
+            fragment {
+                SongsFragment.onAlbum(albumId, album.openSubscription())
+            }
         }.lparams(width = matchParent, height = wrapContent) {
             behavior = AppBarLayout.ScrollingViewBehavior()
         }

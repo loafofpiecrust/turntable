@@ -5,7 +5,6 @@ import android.graphics.Color
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.AppBarLayout
 import android.support.design.widget.CollapsingToolbarLayout
-import android.support.design.widget.TabLayout
 import android.transition.*
 import android.view.Gravity
 import android.view.View
@@ -14,12 +13,12 @@ import android.widget.ImageView
 import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.album.AlbumsFragment
-import com.loafofpiecrust.turntable.album.AlbumsFragmentStarter
 import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.util.consumeEach
+import com.loafofpiecrust.turntable.util.switchMap
 import kotlinx.coroutines.experimental.channels.BroadcastChannel
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.broadcast
@@ -103,11 +102,15 @@ class ArtistDetailsFragment: BaseFragment() {
     }
 
     override fun ViewManager.createView() = coordinatorLayout {
+        id = R.id.container
+
         appBarLayout {
+            id = R.id.app_bar
             backgroundColor = Color.TRANSPARENT
 
             lateinit var image: ImageView
             collapsingToolbarLayout {
+                id = R.id.collapser
                 collapsedTitleGravity = Gravity.BOTTOM
                 expandedTitleGravity = Gravity.BOTTOM
 
@@ -195,6 +198,7 @@ class ArtistDetailsFragment: BaseFragment() {
             }
 
             val toolbar = toolbar {
+                id = R.id.toolbar
                 standardStyle(UI)
                 title = artistId.displayName
                 transitionName = artistId.nameTransition
@@ -221,39 +225,48 @@ class ArtistDetailsFragment: BaseFragment() {
 
 
         frameLayout {
-            fragment(AlbumsFragmentStarter.newInstance(
-                AlbumsFragment.Category.ByArtist(artistId, currentMode.value),
-                AlbumsFragment.SortBy.YEAR,
-                3
-            ).apply {
-                albums = artist.openSubscription()
-                    .combineLatest(currentMode.openSubscription())
-                    .switchMap(BG_POOL) { (artist, mode) ->
-                        val isLocal = artist is LocalArtist
-                        when (mode) {
-                            Mode.LIBRARY -> if (isLocal) {
-                                produceSingle(artist)
-                            } else Library.instance.findArtist(artist.id)
-                            Mode.LIBRARY_AND_REMOTE -> if (isLocal) {
-                                produceSingle(given(SearchApi.find(artist.id)) {
-                                    MergedArtist(artist, it)
-                                } ?: artist)
-                            } else {
-                                Library.instance.findArtist(artist.id).map {
-                                    if (it != null) {
-                                        MergedArtist(artist, it)
-                                    } else artist
-                                }
-                            }
-                            Mode.REMOTE -> if (isLocal) {
-                                produceSingle(SearchApi.find(artist.id) ?: artist)
-                            } else {
-                                produceSingle(artist)
-                            }
-                        }
-                    }.map { it!!.albums }
-                    .replayOne()
-            })
+            id = R.id.albums
+
+            fragment {
+                AlbumsFragment.byArtist(artistId, artist.openSubscription())
+            }
+
+//            AlbumsFragment().byArtist(this, artistId, artist.openSubscription())
+//            fragment(true) { AlbumsFragment.newInstance(
+//                AlbumsFragment.Category.ByArtist(artistId, currentMode.value),
+//                AlbumsFragment.SortBy.YEAR,
+//                3
+//            ).apply {
+//                albums = artist.openSubscription()
+//                    .combineLatest(currentMode.openSubscription())
+//                    .switchMap(BG_POOL) { (artist, mode) ->
+//                        val isLocal = artist is LocalArtist
+//                        when (mode) {
+//                            Mode.LIBRARY -> if (isLocal) {
+//                                produceTask(coroutineContext) { artist }
+//                            } else Library.instance.findArtist(artist.id)
+//                            Mode.LIBRARY_AND_REMOTE -> if (isLocal) {
+//                                produceTask(coroutineContext) {
+//                                    given(SearchApi.find(artist.id)) {
+//                                        MergedArtist(artist, it)
+//                                    } ?: artist
+//                                }
+//                            } else {
+//                                Library.instance.findArtist(artist.id).map {
+//                                    if (it != null) {
+//                                        MergedArtist(artist, it)
+//                                    } else artist
+//                                }
+//                            }
+//                            Mode.REMOTE -> if (isLocal) {
+//                                produceTask(coroutineContext) { SearchApi.find(artist.id) ?: artist }
+//                            } else {
+//                                produceTask(coroutineContext) { artist }
+//                            }
+//                        }
+//                    }.map { it!!.albums }
+//                    .replayOne()
+//            } }
         }.lparams(width = matchParent) {
             behavior = AppBarLayout.ScrollingViewBehavior()
         }

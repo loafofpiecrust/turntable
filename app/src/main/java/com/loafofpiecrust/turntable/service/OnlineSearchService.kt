@@ -33,7 +33,6 @@ import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.addToMediaStore
 import com.mcxiaoke.koi.ext.intValue
 import com.mcxiaoke.koi.ext.stringValue
-import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.map
@@ -103,7 +102,7 @@ class OnlineSearchService : Service(), AnkoLogger {
         lateinit var instance: OnlineSearchService private set
         const val IDENTITY_POOL_ID = "us-east-2:4c4b30e2-1c0b-4802-83b2-32b232a7f4c4"
 //        private val DATE_FORMAT = SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.US)
-        val STALE_ENTRY_AGE = TimeUnit.HOURS.toMillis(24)
+        val STALE_ENTRY_AGE = TimeUnit.HOURS.toMillis(6)
         val STALE_UNAVAILABLE_AGE = TimeUnit.DAYS.toMillis(7)
     }
 
@@ -287,7 +286,6 @@ class OnlineSearchService : Service(), AnkoLogger {
         info { "youtube: ${song.id} existing entry? $existing" }
         return if (existing is StreamStatus.Available) {
             song to if (existing.isStale) {
-                task(UI) { println("youtube: entry stale!") }
                 createEntry(key, existing.youtubeId)
             } else existing
         } else if (existing is StreamStatus.Unavailable && !existing.isStale) {

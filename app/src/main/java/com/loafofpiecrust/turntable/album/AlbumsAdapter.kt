@@ -78,9 +78,7 @@ class AlbumsAdapter(
         holder.subLine.textColor = holder.card.resources.getColor(R.color.text)
 
         val opts = RequestOptions()
-//            .override(250)
             .placeholder(R.drawable.ic_default_album)
-//            .signature(ObjectKey(album.id))
 
         if (holder.coverImage != null) {
             holder.coverImage.imageResource = R.drawable.ic_default_album
@@ -112,6 +110,7 @@ class AlbumsAdapter(
     }
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView)
         imageJobs.forEach { (holder, job) -> job.cancel() }
         imageJobs.clear()
     }

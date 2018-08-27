@@ -1,7 +1,7 @@
 package com.loafofpiecrust.turntable.artist
 
-import activitystarter.Arg
 import android.os.Parcelable
+import android.support.v7.widget.CardView
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.*
@@ -15,49 +15,62 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.turntableStyle
 import com.loafofpiecrust.turntable.ui.*
-import com.loafofpiecrust.turntable.util.cancelSafely
+import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.consumeEach
+import com.loafofpiecrust.turntable.util.replayOne
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.*
-import org.jetbrains.anko.*
+import org.jetbrains.anko.dimen
+import org.jetbrains.anko.imageResource
+import org.jetbrains.anko.matchParent
+import org.jetbrains.anko.padding
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.act
 
 class ArtistsFragment : BaseFragment() {
-    sealed class Category: Parcelable {
+    private sealed class Category: Parcelable {
         @Parcelize class All: Category()
         @Parcelize data class RelatedTo(val id: ArtistId): Category()
-//        @Parcelize class Custom(val artists: List<Artist>): Category()
+        @Parcelize class Custom: Category()
     }
 
-    @Arg lateinit var category: Category
-    @Arg(optional=true) var columnCount: Int? = null
+    private var category: Category by arg(Category.Custom())
+    private var detailsMode by arg(ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE)
+    private var columnCount: Int by arg(0)
     @State var listState: Parcelable? = null
 
     lateinit var artists: BroadcastChannel<List<Artist>>
 
     // TODO: Use Category!!
     companion object {
-        fun relatedTo(artist: Artist): ArtistsFragment {
-            return ArtistsFragmentStarter.newInstance(Category.RelatedTo(artist.id)).apply {
-                artists = broadcast(capacity = Channel.CONFLATED) { send(Spotify.similarTo(artist.id)) }
-            }
+        fun all() = ArtistsFragment().apply {
+            category = Category.All()
+            detailsMode = ArtistDetailsFragment.Mode.LIBRARY
         }
-        fun fromChan(channel: ReceiveChannel<List<Artist>>): ArtistsFragment {
-            return ArtistsFragmentStarter.newInstance(Category.All()).apply {
-                artists = channel.broadcast(Channel.CONFLATED)
-            }
+        fun relatedTo(artistId: ArtistId) = ArtistsFragment().apply {
+            category = Category.RelatedTo(artistId)
+        }
+        fun fromChan(channel: ReceiveChannel<List<Artist>>) = ArtistsFragment().apply {
+            artists = channel.replayOne(BG_POOL)
         }
     }
 
     override fun onCreate() {
         super.onCreate()
         if (!::artists.isInitialized) {
-            artists = Library.instance.artists
+            val cat = category
+            artists = when (cat) {
+                is Category.All -> Library.instance.artists
+                is Category.RelatedTo -> produce(BG_POOL) {
+                    send(Spotify.similarTo(cat.id))
+                }.replayOne()
+                // Should be an unreachable case.
+                is Category.Custom -> broadcast { send(emptyList()) }
+            }
         }
     }
 
@@ -66,7 +79,7 @@ class ArtistsFragment : BaseFragment() {
         menu.menuItem("Search", R.drawable.ic_search, showIcon = true) {
             onClick {
                 act.replaceMainContent(
-                    SearchFragmentStarter.newInstance(SearchFragment.Category.ARTISTS),
+                    SearchFragmentStarter.newInstance(SearchFragment.Category.Artists()),
                     true
                 )
             }
@@ -107,7 +120,7 @@ class ArtistsFragment : BaseFragment() {
                 listState = layoutManager.onSaveInstanceState()
                 // smoothly transition the cover image!
                 holder.itemView.context.replaceMainContent(
-                    ArtistDetailsFragment.fromArtist(artists[idx]), true,
+                    ArtistDetailsFragment.fromArtist(artists[idx], ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE), true,
                     holder.transitionViews
                 )
             }.apply {
@@ -115,8 +128,11 @@ class ArtistsFragment : BaseFragment() {
             }
 
             layoutManager = GridLayoutManager(context, 3).also { grid ->
-                if (columnCount != null) {
-                    grid.spanCount = columnCount!!
+                if (listState != null) {
+                    grid.onRestoreInstanceState(listState)
+                }
+                if (columnCount > 0) {
+                    grid.spanCount = columnCount
                 } else {
                     UserPrefs.artistGridColumns.consumeEach(UI) {
                         (adapter as ArtistsAdapter).apply {
@@ -153,7 +169,7 @@ class ArtistsAdapter(
             RecyclerListItem(parent, 3)
         } else RecyclerGridItem(parent, 3)
 
-    private val imageJobs = hashMapOf<RecyclerItem, Job>()
+    private val imageJobs = mutableMapOf<RecyclerItem, Job>()
     override fun onBindViewHolder(holder: RecyclerItem, position: Int) {
         val item = data[position]
 
@@ -169,27 +185,31 @@ class ArtistsAdapter(
             listener.invoke(holder, data, position)
         }
 
-        holder.card.backgroundColor = UserPrefs.primaryColor.value
+        if (holder.card is CardView) {
+            holder.card.setCardBackgroundColor(UserPrefs.primaryColor.value)
+        }
+//        holder.card.backgroundColor = UserPrefs.primaryColor.value
 
         if (holder.coverImage != null) {
             val job = async(UI) {
                 item.loadThumbnail(Glide.with(holder.card.context)).consumeEach {
                     if (it != null) {
                         it.apply(RequestOptions().placeholder(R.drawable.ic_default_album))
-                            .listener(item.loadPalette(holder.card, holder.mainLine, holder.subLine))
                             .transition(DrawableTransitionOptions().crossFade(200))
+                            .listener(item.loadPalette(holder.card, holder.mainLine, holder.subLine))
                             .into(holder.coverImage)
                     } else {
                         holder.coverImage.imageResource = R.drawable.ic_default_album
                     }
                 }
             }
-            imageJobs.put(holder, job)?.cancelSafely()
+            imageJobs.put(holder, job)?.cancel()
         }
 
     }
     
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView)
         imageJobs.forEach { (holder, job) -> job.cancel() }
         imageJobs.clear()
     }

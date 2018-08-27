@@ -399,7 +399,5 @@ object MusicBrainz: SearchApi, AnkoLogger {
         return null
     }
 
-    override suspend fun fullArtwork(artist: Artist, search: Boolean): String? {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    override suspend fun fullArtwork(artist: Artist, search: Boolean): String? = null
 }

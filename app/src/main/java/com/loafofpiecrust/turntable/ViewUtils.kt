@@ -36,9 +36,9 @@ import fr.castorflex.android.circularprogressbar.CircularProgressBar
 import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.Runnable
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.SendChannel
-import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.custom.ankoView
 import org.jetbrains.anko.sdk25.coroutines.onClick
@@ -176,7 +176,7 @@ fun MenuItem.onClick(
     handler: suspend (v: MenuItem) -> Unit
 ) {
     setOnMenuItemClickListener { v ->
-        launch(context) {
+        async(context) {
             handler(v)
         }
         true
@@ -540,6 +540,8 @@ fun <T, R> Iterable<T>.parMap(context: CoroutineContext = BG_POOL, mapper: suspe
         task(context) { mapper(it) }
     }
 }
+
+inline fun <T, R: Any> Iterable<T>.tryMap(block: (T) -> R): List<R> = mapNotNull { tryOr(null) { block(it) } }
 
 suspend fun <T> List<Deferred<T>>.awaitAll(): List<T?> = run {
     this.map {

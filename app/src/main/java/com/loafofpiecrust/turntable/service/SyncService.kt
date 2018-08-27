@@ -380,7 +380,7 @@ class SyncService : FirebaseMessagingService() {
             task {
                 val db = OnlineSearchService.instance.dbMapper
                 try {
-                    db.save(this)
+                    db.save(this@User)
                 } catch (e: Exception) {
                     task(UI) { e.printStackTrace() }
                 }

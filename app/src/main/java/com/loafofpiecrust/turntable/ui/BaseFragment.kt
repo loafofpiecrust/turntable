@@ -13,9 +13,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.util.FragmentArgument
 import kotlinx.coroutines.experimental.Job
 import org.jetbrains.anko.AnkoContext
 import org.jetbrains.anko.AnkoLogger
+import org.jetbrains.anko.info
 import org.jetbrains.anko.support.v4.ctx
 
 abstract class BaseFragment: Fragment(), AnkoLogger {
@@ -48,9 +50,12 @@ abstract class BaseFragment: Fragment(), AnkoLogger {
         onCreate()
     }
 
+    private var isFirstInit = true
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        ActivityStarter.fill(this)
-        return AnkoContext.create(ctx, this).createView()
+        if (savedInstanceState != null) {
+            isFirstInit = false
+        }
+        return AnkoContext.create(ctx, this).createView().also { isFirstInit = false }
     }
 
     override fun onDestroy() {
@@ -58,15 +63,25 @@ abstract class BaseFragment: Fragment(), AnkoLogger {
         jobs.cancel()
     }
 
-    fun View.fragment(fragment: Fragment) {
-        if (this.id == View.NO_ID) {
-            this.id = View.generateViewId()
-        }
+    /**
+     * Fills a view with the given nested fragment.
+     * If the child fragment is being restored, we won't replace it :)
+     */
+    fun View.fragment(alwaysReplace: Boolean = false, createFragment: () -> Fragment) {
+        if (isFirstInit || alwaysReplace) {
+            info { "creating fragment" }
+            // BEWARE: This will crash if within a navigable fragment!!
+            if (this.id == View.NO_ID) {
+                this.id = View.generateViewId()
+            }
 
-        childFragmentManager.beginTransaction()
-            .add(this.id, fragment)
-            .commit()
+            childFragmentManager.beginTransaction()
+                .replace(this.id, createFragment())
+                .commit()
+        }
     }
+
+    protected fun <T: Any> arg(defaultValue: T? = null) = FragmentArgument(defaultValue)
 }
 
 abstract class BaseDialogFragment: DialogFragment(), AnkoLogger {

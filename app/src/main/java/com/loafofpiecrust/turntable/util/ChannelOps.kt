@@ -1,7 +1,11 @@
 package com.loafofpiecrust.turntable.util
 
-import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.Unconfined
+import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.*
+import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.experimental.selects.selectUnbiased
 import kotlin.coroutines.experimental.CoroutineContext
 import kotlin.coroutines.experimental.coroutineContext
 
@@ -13,7 +17,7 @@ fun <T, R> ReceiveChannel<T>.switchMap(
     var lastJob: Job? = null
     consumeEach {
         lastJob?.cancel()
-        lastJob = launch(coroutineContext) {
+        lastJob = async(coroutineContext) {
             f(it).consumeEach { send(it) }
         }
     }
@@ -51,36 +55,44 @@ fun <A, B, R> ReceiveChannel<A>.combineLatest(
     val sourceA = this@combineLatest
 
     var latestA: A? = null
-    var latestB: B
+    var latestB: B? = null
 
-//    try {
-//        latestA = sourceA.receive()
-//        latestB = sourceB.receive()
-//        send(combineFunction(latestA, latestB))
-//    } catch (e: Exception) {
-//        if (!sourceA.isClosedForReceive) {
-//            sourceA.cancel(e)
-//        }
-//        if (!sourceB.isClosedForReceive) {
-//            sourceB.cancel(e)
-//        }
-//        return@produce
-//    }
+//    var job: Job? = null
 
-    var job: Job? = null
-    sourceB.consumeEach {
-        job?.cancelSafely()
-        latestB = it
-        if (latestA != null) {
-            send(combineFunction(latestA!!, it))
-        }
-        job = launch(coroutineContext) {
-            sourceA.consumeEach {
-                latestA = it
-                send(combineFunction(it, latestB))
+    while (isActive && !sourceA.isClosedForReceive && !sourceB.isClosedForReceive) {
+        try {
+            selectUnbiased<Unit> {
+                sourceA.onReceiveOrNull { a ->
+                    latestA = a
+                    val b = latestB
+                    if (a != null && b != null) {
+                        send(combineFunction(a, b))
+                    }
+                }
+                sourceB.onReceiveOrNull { b ->
+                    latestB = b
+                    val a = latestA
+                    if (b != null && a != null) {
+                        send(combineFunction(a, b))
+                    }
+                }
             }
-        }
+        } catch (e: Throwable) {}
     }
+
+//    sourceB.consumeEach {
+//        job?.cancel()
+//        latestB = it
+//        if (latestA != null) {
+//            send(combineFunction(latestA!!, it))
+//        }
+//        job = async(coroutineContext) {
+//            sourceA.consumeEach {
+//                latestA = it
+//                send(combineFunction(it, latestB))
+//            }
+//        }
+//    }
 }
 
 fun <A, B, C, R> ReceiveChannel<A>.combineLatest(
@@ -107,23 +119,30 @@ fun <A, B, C, R> ReceiveChannel<A>.combineLatest(
         return@produce
     }
 
-    val atask = launch(coroutineContext) {
+    val atask = async(coroutineContext) {
         sourceA.consumeEach {
             a = it
             send(combineFunction(it, b, c))
         }
     }
-    val ctask = launch(coroutineContext) {
+    val ctask = async(coroutineContext) {
         sourceC.consumeEach {
             c = it
             send(combineFunction(a, b, it))
         }
     }
-    sourceB.consumeEach {
-        b = it
-        send(combineFunction(a, it, c))
+    val btask = async(coroutineContext) {
+        sourceB.consumeEach {
+            b = it
+            send(combineFunction(a, it, c))
+        }
     }
-    joinAll(atask, ctask)
+    // wait until *all* tasks are completed or cancelled.
+    arrayOf(atask, btask, ctask).forEach {
+        try {
+            it.join()
+        } catch (e: Throwable) {}
+    }
 }
 
 
@@ -196,5 +215,3 @@ inline fun <E, R> ReceiveChannel<E>.consume(
     crossinline action: suspend ReceiveChannel<E>.() -> R
 ) = async(ctx) { consume { action(this) } }
 
-
-fun <T> Deferred<T>.toChannel() = produce(Unconfined) { send(await()) }

@@ -103,20 +103,19 @@ class StreamMediaPeriod(
         this.callback = callback
 
         fun setupMedia(media: Song.Media) {
-            source = ExtractorMediaSource(
+            val start = TimeUnit.MILLISECONDS.toMicros(media.start.toLong())
+            val end = if (media.end > 0) {
+                TimeUnit.MILLISECONDS.toMicros(media.end.toLong())
+            } else C.TIME_END_OF_SOURCE
+
+            println("youtube: media loaded, $start-$end")
+
+            source = ClippingMediaSource(ExtractorMediaSource(
                 Uri.parse(media.url),
                 sourceFactory,
                 extractorsFactory,
                 null, null
-            )
-
-            if (media.start > 0 || media.end > 0) {
-                val start = TimeUnit.MILLISECONDS.toMicros(media.start.toLong())
-                val end = if (media.end > 0) {
-                    TimeUnit.MILLISECONDS.toMicros(media.end.toLong())
-                } else C.TIME_END_OF_SOURCE
-                source = ClippingMediaSource(source, start, end)
-            }
+            ), start, end)
 
             callback.onContinueLoadingRequested(this)
         }
@@ -128,7 +127,7 @@ class StreamMediaPeriod(
             val remote = song.remoteMedia()
             if (remote == null) {
                 maybeThrowPrepareError()
-                throw MissingResourceException("No stream to load!", Song.Media::class.simpleName, song.id.toString())
+                throw MissingResourceException("No stream to load!", Song.Media::class.java.simpleName, song.id.toString())
             }
             setupMedia(remote)
         }

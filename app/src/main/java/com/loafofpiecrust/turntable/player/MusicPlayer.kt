@@ -1,7 +1,6 @@
 package com.loafofpiecrust.turntable.player
 
 import android.content.Context
-import android.media.AudioManager
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory
 import com.google.android.exoplayer2.source.ConcatenatingMediaSource
@@ -18,16 +17,16 @@ import com.loafofpiecrust.turntable.radio.CombinedQueue
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.song.HistoryEntry
 import com.loafofpiecrust.turntable.song.Song
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.util.BG_POOL
+import com.loafofpiecrust.turntable.util.task
 import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.map
 import kotlinx.coroutines.experimental.channels.produce
 import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
 import org.jetbrains.anko.info
@@ -113,21 +112,21 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
     private val _queue = ConflatedBroadcastChannel(CombinedQueue(StaticQueue(listOf(), 0), listOf()))
     val queue: ReceiveChannel<CombinedQueue> get() = _queue.openSubscription()
 
-    val currentSong: ReceiveChannel<Song?> get() = _queue.openSubscription()
-        .map { it.current }
-        .distinctSeq()
+    val currentSong: ReceiveChannel<Song?> get() = queue.map { it.current }
 
 
-    val bufferState: ReceiveChannel<BufferState> = produce(BG_POOL, parent = subs) {
-        while (isActive) {
-            try {
-                if (player.currentTimeline != null && player.currentTimeline.windowCount > 0) {
-                    send(BufferState(player.duration, player.currentPosition, player.bufferedPosition))
+    val bufferState: ReceiveChannel<BufferState> get() =
+        produce(BG_POOL + subs) {
+            while (isActive) {
+                try {
+                    if (player.currentTimeline != null && player.currentTimeline.windowCount > 0) {
+                        send(BufferState(player.duration, player.currentPosition, player.bufferedPosition))
+                    }
+                } finally {
                 }
-            } finally {}
-            delay(350)
+                delay(350)
+            }
         }
-    }.distinctSeq()
 
     private val _isPlaying: ConflatedBroadcastChannel<Boolean> = ConflatedBroadcastChannel(false)
     val isPlaying get() = _isPlaying.openSubscription()
@@ -149,7 +148,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
 
 
     fun release() {
-        subs.cancelSafely()
+        subs.cancel()
         player.release()
     }
 
@@ -172,7 +171,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         // if that fails the 2nd time, skip to the next track in the MediaSource.
         if (error.type == ExoPlaybackException.TYPE_SOURCE) {
             errorCount++
-            if (errorCount < 2) launch {
+            if (errorCount < 2) async(BG_POOL) {
                 OnlineSearchService.instance.reloadSongStreams(_queue.value.current!!.id)
 
                 // TODO: Ensure this works vs resetting the media source entirely.
@@ -295,9 +294,9 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
                 }
             }
         }
-    }.then(UI) {
+//    }.then(UI) {
         val q = _queue.value
-        mediaSource?.clear()
+//        player.stop()
         mediaSource = ConcatenatingMediaSource().apply {
             addMediaSources(q.list.mapIndexed { index, song ->
                 val cb: ((Boolean) -> Unit)? = if (index == q.position) {
@@ -309,7 +308,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
                 StreamMediaSource(song, sourceFactory, extractorsFactory, cb)
             })
         }
-        player.seekTo(q.position, 0)
+        player.seekToDefaultPosition(q.position)
         player.prepare(mediaSource, false, true)
         player.playWhenReady = true
         player.shuffleModeEnabled = mode == OrderMode.SHUFFLE
@@ -363,8 +362,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         addCurrentToHistory()
         val q = _queue.value.next()
         _queue puts q as CombinedQueue
-        q
-    }.then(UI) { q ->
+//        q
+//    }.then(UI) { q ->
         if (q.position != player.currentWindowIndex) {
             player.seekToDefaultPosition(q.position)
         }
@@ -374,8 +373,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         addCurrentToHistory()
         val q = _queue.value.prev()
         _queue puts q as CombinedQueue
-        q
-    }.then(UI) { q ->
+//        q
+//    }.then(UI) { q ->
         if (q.position != player.currentWindowIndex) {
             player.seekToDefaultPosition(q.position)
         }
@@ -418,9 +417,9 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
             q.shifted(from, to) as CombinedQueue
         }
 
-        launch(UI) {
+//        launch(UI) {
             mediaSource?.moveMediaSource(from, to)
-        }
+//        }
     }
 
     fun replaceQueue(q: Queue) {

@@ -54,6 +54,8 @@ android {
         buildConfigField("String", "FIREBASE_PROJECT_ID", FirebaseProjectId)
         buildConfigField("String", "DISCOGS_KEY", DiscogsApiKey)
         buildConfigField("String", "DISCOGS_SECRET", DiscogsApiSecret)
+        buildConfigField("String", "SPOTIFY_ID", SpotifyId)
+        buildConfigField("String", "SPOTIFY_SECRET", SpotifySecret)
     }
     buildTypes {
         release {
@@ -112,10 +114,10 @@ dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation project(':exoplayer-flac')
 
-    debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.1'
-    releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.1'
-    // Optional, if you use support library fragments:
-    debugImplementation 'com.squareup.leakcanary:leakcanary-support-fragment:1.6.1'
+//    debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.1'
+//    releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.1'
+//    // Optional, if you use support library fragments:
+//    debugImplementation 'com.squareup.leakcanary:leakcanary-support-fragment:1.6.1'
 
 
     implementation "com.google.firebase:firebase-auth:16.0.2"

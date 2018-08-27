@@ -116,10 +116,7 @@ class QueueFragment : BaseFragment() {
                     addItemDecoration(DividerItemDecoration(context, linear.orientation).apply {
                         setDrawable(resources.getDrawable(R.drawable.song_divider))
                     })
-                }.lparams(
-                    width = matchParent,
-                    height = matchParent
-                )
+                }.lparams(matchParent, matchParent)
 
                 // Hook up our UI to the queue!
                 val queue = { MusicService.instance.switchMap { it.player.queue } }

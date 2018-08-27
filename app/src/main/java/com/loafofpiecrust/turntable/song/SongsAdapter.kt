@@ -194,7 +194,7 @@ open class SongsAdapter(
         holder.menu.setOnClickListener(openOverflow)
         holder.card.setOnLongClickListener {
             openOverflow(it)
-            true
+            false
         }
 
         holder.card.onClick(BG_POOL) {

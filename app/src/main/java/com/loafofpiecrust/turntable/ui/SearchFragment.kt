@@ -1,41 +1,51 @@
 package com.loafofpiecrust.turntable.ui
 
 import activitystarter.Arg
-import android.support.v7.widget.GridLayoutManager
-import android.view.View
+import android.os.Parcelable
 import android.view.ViewManager
 import com.lapism.searchview.Search
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.album.AlbumsAdapter
-import com.loafofpiecrust.turntable.album.DetailsFragment
-import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
+import com.loafofpiecrust.turntable.album.AlbumsFragment
+import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistsAdapter
+import com.loafofpiecrust.turntable.artist.ArtistsFragment
 import com.loafofpiecrust.turntable.browse.SearchApi
-import com.loafofpiecrust.turntable.player.MusicService
+import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.searchBar
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongsAdapter
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.produceTask
-import jp.wasabeef.recyclerview.animators.SlideInUpAnimator
+import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.cancelChildren
+import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import org.jetbrains.anko.*
-import org.jetbrains.anko.recyclerview.v7.recyclerView
 
 
 //@EActivity
 open class SearchFragment : BaseFragment() {
 
-    enum class Category {
-        ARTISTS,
-        ALBUMS,
-        SONGS,
+//    enum class Category {
+//        ARTISTS,
+//        ALBUMS,
+//        SONGS,
+//    }
+
+    sealed class Category<T>: Parcelable {
+        @Transient
+        val results = ConflatedBroadcastChannel<List<T>>()
+
+        @Parcelize class Artists: Category<Artist>()
+        @Parcelize class Albums: Category<Album>()
+        @Parcelize class Songs: Category<Song>()
     }
 
-    @Arg lateinit var category: Category
+    @Arg lateinit var category: Category<*>
 
     // TODO: Save the stream of results instead!
     private var albumsGrid : AlbumsAdapter? = null
@@ -67,61 +77,23 @@ open class SearchFragment : BaseFragment() {
     }
 
     override fun ViewManager.createView() = frameLayout {
-        id = View.generateViewId()
+        id = R.id.container
         topPadding = dimen(R.dimen.statusbar_height)
         clipToPadding = false
 
-        recyclerView {
-            itemAnimator = SlideInUpAnimator()
-            layoutManager = GridLayoutManager(context, 3)
+        frameLayout {
+            id = R.id.results
             topPadding = dip(64)
-            clipToPadding = false
-            when (category) {
-                Category.ALBUMS -> {
-                    if (albumsGrid == null) {
-                        albumsGrid = AlbumsAdapter(true) { view, album ->
 
-                            // go to details?
-                            // First, let's see if we already have the album.
-                            // Search _case-insensitively_ for the album name and artist
-//                        val allAlbums = Library.instance.albums.value
-//                        val existing = allAlbums.find { it.id == album.id }
-
-                            // Open the album!
-                            view.itemView.context.replaceMainContent(
-                                DetailsFragment.fromAlbum(album),
-                                true,
-                                view.transitionViews
-                            )
-                        }
-                    }
-
-                    adapter = albumsGrid
+            val cat = category
+            when (cat) {
+                is Category.Artists -> fragment {
+                    ArtistsFragment.fromChan(cat.results.openSubscription())
                 }
-                Category.ARTISTS -> {
-                    if (artistsGrid == null) {
-                        artistsGrid = ArtistsAdapter { view, artists, idx ->
-                            val artist = artists[idx]
-
-                            view.itemView.context.replaceMainContent(
-                                ArtistDetailsFragment.fromArtist(artist, ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE),
-                                true,
-                                view.transitionViews
-                            )
-                        }
-                    }
-
-                    adapter = artistsGrid
-                }
-                Category.SONGS -> {
-                    if (songsList == null) {
-                        songsList = SongsAdapter(SongsFragment.Category.All()) { songs, idx ->
-                            MusicService.enact(SyncService.Message.PlaySongs(songs, idx))
-                        }
-                    }
-                }
+                is Category.Albums -> fragment { AlbumsFragment.fromChan(cat.results.openSubscription()) }
+                is Category.Songs -> fragment { SongsFragment.all().apply { songs = cat.results } }
             }
-        }
+        }.lparams(matchParent, matchParent)
 
         searchBar {
             setHint("Search...")
@@ -145,12 +117,12 @@ open class SearchFragment : BaseFragment() {
     }
 
 
-    private fun doSearch(query: String, cat: Category): ReceiveChannel<*> {
+    private suspend fun doSearch(query: String, cat: Category<*>): ReceiveChannel<*> {
         lateinit var result: ReceiveChannel<*>
         when (cat) {
-            Category.ALBUMS -> albumsGrid?.subscribeData(produceTask(BG_POOL + searchJob) { SearchApi.searchAlbums(query) }.also { result = it })
-            Category.ARTISTS -> artistsGrid?.subscribeData(produceTask(BG_POOL + searchJob) { SearchApi.searchArtists(query) }.also { result = it })
-            else -> songsList?.subscribeData(produceTask(BG_POOL + searchJob) { SearchApi.searchSongs(query) }.also { result = it })
+            is Category.Albums -> cat.results puts SearchApi.searchAlbums(query)
+            is Category.Artists -> cat.results puts SearchApi.searchArtists(query)
+            is Category.Songs -> cat.results puts SearchApi.searchSongs(query)
         }
         return result
     }
@@ -159,11 +131,8 @@ open class SearchFragment : BaseFragment() {
         if (query != prevQuery) {
 //                        task(UI) { loadCircle.start() }
             prevQuery = query
-            try {
-                searchJob.cancelChildren()
-            } finally {
-                doSearch(query, category)
-            }
+            searchJob.cancelChildren()
+            async(BG_POOL, parent = searchJob) { doSearch(query, category) }
 //                            .always(UI) { loadCircle.progressiveStop() }
         }
     }

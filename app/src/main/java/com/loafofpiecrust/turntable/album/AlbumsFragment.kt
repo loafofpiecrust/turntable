@@ -2,27 +2,25 @@ package com.loafofpiecrust.turntable.album
 
 //import org.musicbrainz.controller.Controller
 
-import activitystarter.Arg
 import android.os.Parcelable
 import android.support.v7.widget.GridLayoutManager
 import android.view.*
+import com.evernote.android.state.State
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
-import com.loafofpiecrust.turntable.artist.ArtistId
+import com.loafofpiecrust.turntable.artist.*
+import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.turntableStyle
 import com.loafofpiecrust.turntable.ui.*
+import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.distinctSeq
 import com.loafofpiecrust.turntable.util.replayOne
 import fr.castorflex.android.circularprogressbar.CircularProgressDrawable
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.CoroutineStart
-import kotlinx.coroutines.experimental.channels.BroadcastChannel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.consume
-import kotlinx.coroutines.experimental.channels.consumeEach
+import kotlinx.coroutines.experimental.channels.*
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.dimen
 import org.jetbrains.anko.dip
@@ -30,16 +28,42 @@ import org.jetbrains.anko.frameLayout
 import org.jetbrains.anko.padding
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.act
-import org.jetbrains.anko.support.v4.ctx
 
 class AlbumsFragment : BaseFragment() {
     sealed class Category: Parcelable {
-        @Parcelize class All: Category()
+        abstract val channel: BroadcastChannel<List<Album>>
+
+        @Parcelize class All: Category() {
+            override val channel get() = Library.instance.albums
+        }
         @Parcelize data class ByArtist(
             val artist: ArtistId,
             val mode: ArtistDetailsFragment.Mode
-        ): Category()
-        // @Parcelize data class Custom(val albums: List<Album>): Category()
+        ): Category() {
+            var artistChannel: ReceiveChannel<Artist>? = null
+
+            override val channel get() =
+                (artistChannel ?: Library.instance.findArtist(artist)
+                    .map(BG_POOL) {
+                        if (it is LocalArtist) {
+                            when (mode) {
+                                ArtistDetailsFragment.Mode.LIBRARY -> it
+                                ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE ->
+                                    given (SearchApi.find(artist)) { remote -> MergedArtist(it, remote) } ?: it
+                                ArtistDetailsFragment.Mode.REMOTE -> it // use case?
+                            }
+                        } else {
+                            when (mode) {
+                                ArtistDetailsFragment.Mode.LIBRARY -> it
+                                ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE ->
+                                    given (Library.instance.findArtist(artist).firstOrNull()) { remote -> MergedArtist(it!!, remote) } ?: it
+                                ArtistDetailsFragment.Mode.REMOTE -> it // use case?
+                            }
+                        }
+                    })
+                    .map(BG_POOL) { it?.albums ?: emptyList() }
+                    .replayOne()
+        }
     }
 
     enum class SortBy {
@@ -49,26 +73,39 @@ class AlbumsFragment : BaseFragment() {
     }
 
     // TODO: Customize parameters
-    @Arg lateinit var category: Category
-    @Arg(optional=true) var sortBy: SortBy = SortBy.NONE
-    @Arg(optional=true) var columnCount: Int = 3
+    private var category: Category by arg()
+    private var sortBy: SortBy by arg(SortBy.NONE)
+    private var columnCount: Int by arg(3)
+    @State var listState: Parcelable? = null
 
-    // TODO: Make this cold by using a function returning the channel
-    // This would be to prevent any filtering, resolution, and merging from happening while the view is invisible!
-    // This also allows us to drop the channel entirely onDetach and make a new one in onAttach (if we want that??)
-    // private lateinit var albums: ReceiveChannel<List<Album>>
     lateinit var albums: BroadcastChannel<List<Album>>
-//    private val category by lazy { ConflatedBroadcastChannel(initialCategory) }
 
     companion object {
-        fun all(): AlbumsFragment {
-            return AlbumsFragmentStarter.newInstance(Category.All())
+        fun all() = AlbumsFragment().apply {
+            category = Category.All()
         }
-        fun fromChan(channel: ReceiveChannel<List<Album>>): AlbumsFragment {
-            return AlbumsFragmentStarter.newInstance(Category.All()).apply {
-                albums = channel.replayOne()//.broadcast(Channel.CONFLATED, start = CoroutineStart.DEFAULT)
+
+        fun fromChan(
+            channel: ReceiveChannel<List<Album>>,
+            sortBy: SortBy? = null,
+            columnCount: Int? = null
+        ) = AlbumsFragment().apply {
+            category = Category.All()
+            if (sortBy != null) {
+                this.sortBy = sortBy
+            }
+            if (columnCount != null) {
+                this.columnCount = columnCount
+            }
+            albums = channel.replayOne()//.broadcast(Channel.CONFLATED, start = CoroutineStart.DEFAULT)
+        }
+
+        fun byArtist(artistId: ArtistId, artist: ReceiveChannel<Artist>) = AlbumsFragment().apply {
+            category = Category.ByArtist(artistId, ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE).apply {
+                artistChannel = artist
             }
         }
+
 
 //        fun fromArtist(artist: ReceiveChannel<Artist>, mode: ReceiveChannel<ArtistDetailsFragment.Mode>): AlbumsFragment {
 //            val cat = Category.ByArtist(artist.id, mode)
@@ -101,15 +138,15 @@ class AlbumsFragment : BaseFragment() {
 
     override fun onCreate() {
         super.onCreate()
-        if (!::albums.isInitialized && category is Category.All) {
-            albums = Library.instance.albums
+        if (!::albums.isInitialized) {
+            albums = category.channel
         }
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) = menu.run {
         menuItem("Search", R.drawable.ic_search, showIcon=true).onClick(UI) {
             act.replaceMainContent(
-                SearchFragmentStarter.newInstance(SearchFragment.Category.ALBUMS),
+                SearchFragmentStarter.newInstance(SearchFragment.Category.Albums()),
                 true
             )
         }
@@ -130,12 +167,22 @@ class AlbumsFragment : BaseFragment() {
         }
     }
 
+    fun byArtist(vm: ViewManager, artistId: ArtistId, artist: ReceiveChannel<Artist>) {
+        category = Category.ByArtist(artistId, ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE).apply {
+            this.artistChannel = artist
+        }
+        albums = category.channel
+        vm.createView()
+    }
+
     override fun ViewManager.createView() = frameLayout {
+        id = R.id.container
         val cat = category
         val grid = GridLayoutManager(context, 3)
 
-        val adapter = if (cat is Category.ByArtist) {
+        val adapter = /*if (cat is Category.ByArtist) {
             AlbumSectionAdapter { view, album ->
+                listState = grid.onSaveInstanceState()
                 view.itemView.context.replaceMainContent(
                     DetailsFragment.fromAlbum(album),
                     true,
@@ -144,15 +191,16 @@ class AlbumsFragment : BaseFragment() {
             }.apply {
                 setLayoutManager(grid)
             }
-        } else {
+        } else {*/
             AlbumsAdapter(false) { view, album ->
+                listState = grid.onSaveInstanceState()
                 view.itemView.context.replaceMainContent(
                     DetailsFragment.fromAlbum(album),
                     true,
                     view.transitionViews
                 )
             }
-        }
+        //}
 
         val recycler = if (cat is Category.All) {
             fastScrollRecycler().apply {
@@ -162,7 +210,7 @@ class AlbumsFragment : BaseFragment() {
             turntableStyle(UI)
         }
 
-        val loadCircle = CircularProgressDrawable.Builder(ctx)
+        val loadCircle = CircularProgressDrawable.Builder(context)
             .color(UserPrefs.primaryColor.value)
             .rotationSpeed(3f)
             .strokeWidth(dip(8).toFloat())
@@ -186,6 +234,10 @@ class AlbumsFragment : BaseFragment() {
             layoutManager = grid
             padding = dimen(R.dimen.grid_gutter)
 
+            if (listState != null) {
+                grid.onRestoreInstanceState(listState)
+            }
+
             if (columnCount > 0) {
                 grid.spanCount = columnCount
             } else launch(UI) {
@@ -208,13 +260,13 @@ class AlbumsFragment : BaseFragment() {
 //                } else it
 //            }
 
-            if (adapter is AlbumsAdapter) {
+//            if (adapter is AlbumsAdapter) {
                 adapter.subscribeData(sub)
-            } else if (adapter is AlbumSectionAdapter) {
-                sub.consumeEach(UI) {
-                    adapter.replaceData(it)
-                }
-            }
+//            } else if (adapter is AlbumSectionAdapter) {
+//                sub.consumeEach(UI) {
+//                    adapter.replaceData(it)
+//                }
+//            }
 
             launch(UI, CoroutineStart.UNDISPATCHED) {
                 albums.consume {

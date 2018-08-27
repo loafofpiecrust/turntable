@@ -12,10 +12,11 @@ data class CombinedQueue(
     val nextUp: List<Song>,
     val isPlayingNext: Boolean = false
 ): MusicPlayer.Queue {
-    override val list: List<Song>
-        get() = if (nextUp.isNotEmpty()) {
+    override val list: List<Song> by lazy {
+        if (nextUp.isNotEmpty()) {
             primary.list.with(nextUp, primary.position + 1)
         } else primary.list
+    }
 
     override val position: Int get() = if (isPlayingNext) {
         primary.position + 1

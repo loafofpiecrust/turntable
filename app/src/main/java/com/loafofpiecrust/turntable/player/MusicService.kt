@@ -4,29 +4,23 @@ package com.loafofpiecrust.turntable.player
 import activitystarter.ActivityStarter
 import activitystarter.Arg
 import activitystarter.MakeActivityStarter
-import android.app.*
-import android.content.BroadcastReceiver
+import android.app.PendingIntent
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
 import android.media.AudioManager.*
 import android.net.wifi.WifiManager
-import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
-import android.support.v4.app.NotificationCompat
-import android.support.v4.media.MediaMetadataCompat
-import android.support.v4.media.MediaMetadataCompat.*
 import android.support.v4.media.session.MediaSessionCompat
-import android.support.v4.media.session.PlaybackStateCompat
-import com.bumptech.glide.Glide
-import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.App
+import com.loafofpiecrust.turntable.broadcastReceiver
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
-import com.loafofpiecrust.turntable.ui.MainActivity
-import com.loafofpiecrust.turntable.ui.MainActivityStarter
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
@@ -39,7 +33,7 @@ import java.lang.ref.WeakReference
 @MakeActivityStarter
 class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
     companion object {
-        private val actions = actor<Pair<SyncService.Message, Boolean>>(capacity = Channel.UNLIMITED) {
+        private val actions = actor<Pair<SyncService.Message, Boolean>>(BG_POOL, capacity = Channel.UNLIMITED) {
             for ((action, synced) in channel) {
                 val service = _instance.valueOrNull?.get() ?: run {
                     MusicServiceStarter.start(App.instance)
@@ -136,9 +130,9 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
         super.onCreate()
         player = MusicPlayer(ctx)
 
-        player.currentSong.combineLatest(player.isPlaying)
-            .consumeEach(UI + subs) { (song, playing) ->
-                showNotification(song, playing)
+        player.queue.combineLatest(player.isPlaying)
+            .consumeEach(UI + subs) { (q, playing) ->
+                showNotification(q.current, playing)
             }
 
         player.isPlaying.skip(1)

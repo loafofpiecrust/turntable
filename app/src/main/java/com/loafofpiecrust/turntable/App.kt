@@ -19,7 +19,6 @@ import com.loafofpiecrust.turntable.util.CBCSerializer
 import com.loafofpiecrust.turntable.util.distinctSeq
 import com.loafofpiecrust.turntable.util.task
 import com.loafofpiecrust.turntable.util.threadLocalLazy
-import com.squareup.leakcanary.LeakCanary
 import de.javakaffee.kryoserializers.ArraysAsListSerializer
 import de.javakaffee.kryoserializers.SubListSerializers
 import de.javakaffee.kryoserializers.UUIDSerializer
@@ -85,12 +84,12 @@ class App: Application() {
         super.onCreate()
         _instance = WeakReference(this)
 
-        if (LeakCanary.isInAnalyzerProcess(this)) {
-            // This process is dedicated to LeakCanary for heap analysis.
-            // You should not init your app in this process.
-            return
-        }
-        LeakCanary.install(this)
+//        if (LeakCanary.isInAnalyzerProcess(this)) {
+//            // This process is dedicated to LeakCanary for heap analysis.
+//            // You should not init your app in this process.
+//            return
+//        }
+//        LeakCanary.install(this)
 
         StateSaver.setEnabledForAllActivitiesAndSupportFragments(this, true)
 

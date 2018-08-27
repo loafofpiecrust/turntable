@@ -8,7 +8,6 @@ import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumsFragment
 import com.loafofpiecrust.turntable.artist.ArtistsFragment
-import com.loafofpiecrust.turntable.artist.ArtistsFragmentStarter
 import com.loafofpiecrust.turntable.browse.BrowseFragment
 import com.loafofpiecrust.turntable.playlist.PlaylistsFragment
 import com.loafofpiecrust.turntable.prefs.UserPrefs
@@ -62,7 +61,7 @@ class LibraryFragment: BaseFragment() {
         val tabFragments = { key: String -> when (key) {
             "Albums" -> AlbumsFragment.all()
             "Songs" -> SongsFragment.all() // all songs yo
-            "Artists" -> ArtistsFragmentStarter.newInstance(ArtistsFragment.Category.All()) // artists
+            "Artists" -> ArtistsFragment.all() // artists
             "Playlists" -> PlaylistsFragment() // playlists!
             "Friends" -> SyncTabFragment()
             "Recommendations" -> BrowseFragment()

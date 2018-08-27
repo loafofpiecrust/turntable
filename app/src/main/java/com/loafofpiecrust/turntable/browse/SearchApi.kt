@@ -9,6 +9,7 @@ import com.loafofpiecrust.turntable.artist.RemoteArtist
 import com.loafofpiecrust.turntable.provided
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
+import com.loafofpiecrust.turntable.tryOr
 
 interface SearchApi {
     interface Id {
@@ -39,7 +40,7 @@ interface SearchApi {
 
         private suspend fun <R: Any> overApis(block: suspend SearchApi.() -> R?): R? {
             for (a in APIS) {
-                val res = block(a)
+                val res = tryOr(null) { block(a) }
                 if (res != null) {
                     return res
                 }
@@ -71,9 +72,9 @@ interface SearchApi {
                 searchSongs(query).provided { it.isNotEmpty() }
             } ?: listOf()
 
-        override suspend fun fullArtwork(album: Album, search: Boolean): String? {
-            return if (album is RemoteAlbum) {
-                return album.remoteId.artworkUrl ?: when (album.remoteId) {
+        override suspend fun fullArtwork(album: Album, search: Boolean): String? = tryOr(null) {
+            if (album is RemoteAlbum) {
+                album.remoteId.artworkUrl ?: when (album.remoteId) {
                     is Discogs.AlbumDetails -> Discogs.fullArtwork(album, search)
                     is Spotify.AlbumDetails -> Spotify.fullArtwork(album, search)
                     is MusicBrainz.AlbumDetails -> MusicBrainz.fullArtwork(album, search)
@@ -86,9 +87,9 @@ interface SearchApi {
             }
         }
 
-        override suspend fun fullArtwork(artist: Artist, search: Boolean): String? {
-            return if (artist is RemoteArtist) {
-                return when (artist.details) {
+        override suspend fun fullArtwork(artist: Artist, search: Boolean): String? = tryOr(null) {
+            if (artist is RemoteArtist) {
+                when (artist.details) {
                     is Discogs.ArtistDetails -> Discogs.fullArtwork(artist, search)
                     is Spotify.ArtistDetails -> Spotify.fullArtwork(artist, search)
                     is MusicBrainz.ArtistDetails -> MusicBrainz.fullArtwork(artist, search)

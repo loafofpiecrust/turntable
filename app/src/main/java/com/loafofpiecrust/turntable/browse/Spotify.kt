@@ -3,6 +3,7 @@ package com.loafofpiecrust.turntable.browse
 import android.content.Context
 import android.util.Base64
 import com.github.salomonbrys.kotson.*
+import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.album.AlbumId
 import com.loafofpiecrust.turntable.album.RemoteAlbum
@@ -85,8 +86,8 @@ object Spotify: SearchApi {
                     ),
                     AlbumDetails(
                         it["id"].string,
-                        imgs.last()["url"].string,
-                        imgs.first()["url"].string
+                        tryOr(null) { imgs.last()["url"].string },
+                        tryOr(null) { imgs.first()["url"].string }
                     ),
                     year = it["release_date"].nullString?.take(4)?.toInt(),
                     type = when (it["album_type"].string) {
@@ -107,12 +108,12 @@ object Spotify: SearchApi {
                 "Authorization" to "Bearer $accessToken"
             )).gson
 
-            return res["images"][0]["url"].nullString
+            return tryOr(null) { res["images"][0]["url"].string }
         }
     }
 
-    private const val clientId = "54514b2bb2524b5eb7d8f7651bfcb493"
-    private const val clientSecret = "5fda57d9c9604a67be526791971ed3fa"
+    private const val clientId = BuildConfig.SPOTIFY_ID
+    private const val clientSecret = BuildConfig.SPOTIFY_SECRET
 
     private var accessToken: String? = null
         get() {
@@ -368,7 +369,7 @@ object Spotify: SearchApi {
         return res["artists"].array.map { it.obj }.map {
             RemoteArtist(
                 ArtistId(it["name"].string),
-                ArtistDetails(it["id"].string, it["images"][1]["url"].nullString)
+                ArtistDetails(it["id"].string, tryOr(null) { it["images"][1]["url"].string })
             )
         }
     }

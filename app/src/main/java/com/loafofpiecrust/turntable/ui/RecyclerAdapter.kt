@@ -3,6 +3,8 @@ package com.loafofpiecrust.turntable.ui
 import android.content.Context
 import android.graphics.Rect
 import android.graphics.Typeface
+import android.support.constraint.ConstraintSet
+import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
 import android.util.TypedValue
@@ -16,7 +18,6 @@ import android.widget.TextView
 import com.afollestad.sectionedrecyclerview.SectionedViewHolder
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.cancelSafely
 import com.loafofpiecrust.turntable.util.task
 import com.loafofpiecrust.turntable.util.then
 import kotlinx.coroutines.experimental.Job
@@ -132,10 +133,13 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
     }
 
     fun subscribeData(obs: ReceiveChannel<List<T>>) {
-        _subscription?.cancelSafely()
-//        if (!obs.isEmpty) {
-//            data = runBlocking { obs.receive() }
-//        }
+        _subscription?.cancel()
+        if (!obs.isEmpty && !obs.isClosedForReceive) {
+            println("recycler restoring data?")
+            data = runBlocking { obs.receive() }
+        } else {
+            println("recycler newly subscribing to data")
+        }
         _subscription = task(BG_POOL) {
             obs.consumeEach { newData ->
                 val diff = DiffUtil.calculateDiff(Differ(data, newData))
@@ -149,7 +153,7 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
         super.onDetachedFromRecyclerView(recyclerView)
-        _subscription?.cancelSafely()
+        _subscription?.cancel()
         _subscription = null
     }
 
@@ -331,9 +335,9 @@ fun ViewManager.defaultGridItemOpt(maxTextLines: Int = 3, init: LinearLayout.() 
         applyConstraintSet {
             thumbnail {
                 connect(
-                    TOP to TOP of this@constraintLayout,
-                    START to START of this@constraintLayout,
-                    END to END of this@constraintLayout
+                    TOP to TOP of PARENT_ID,
+                    START to START of PARENT_ID,
+                    END to END of PARENT_ID
                 )
                 height = matchConstraint
                 width = matchConstraint
@@ -341,18 +345,20 @@ fun ViewManager.defaultGridItemOpt(maxTextLines: Int = 3, init: LinearLayout.() 
             }
             mainLine {
                 connect(
-                    START to START of this@constraintLayout margin dip(16),
-                    END to END of this@constraintLayout margin dip(16),
-                    TOP to BOTTOM of thumbnail margin dip(8)
+                    START to START of PARENT_ID margin dip(16),
+                    END to END of PARENT_ID margin dip(16),
+                    TOP to BOTTOM of thumbnail margin dip(8),
+                    BOTTOM to TOP of subLine
                 )
                 width = matchConstraint
+                verticalChainStyle = ConstraintSet.CHAIN_PACKED
             }
             subLine {
                 connect(
                     START to START of mainLine,
                     END to END of mainLine,
                     TOP to BOTTOM of mainLine,
-                    BOTTOM to BOTTOM of this@constraintLayout margin dip(8)
+                    BOTTOM to BOTTOM of PARENT_ID margin dip(8)
                 )
                 width = matchConstraint
             }

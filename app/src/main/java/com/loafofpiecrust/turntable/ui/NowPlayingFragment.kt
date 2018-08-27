@@ -87,7 +87,8 @@ open class NowPlayingFragment : BaseFragment() {
         val songCarousel = frameLayout {
             clipToOutline = false
             clipToPadding = false
-            fragment(PlayerAlbumCoverFragment())
+            id = R.id.albums
+            fragment { PlayerAlbumCoverFragment() }
         }
 
         val seeker = seekBar {

@@ -268,7 +268,7 @@ interface Artist: Music {
     override fun optionsMenu(ctx: Context, menu: Menu) = with(menu) {
         menuItem("Similar Artists", R.drawable.ic_people, showIcon=false).onClick {
             ctx.replaceMainContent(
-                RelatedArtistsFragmentStarter.newInstance(this@Artist.id),
+                ArtistsFragment.relatedTo(id),
                 true
             )
         }

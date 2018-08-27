@@ -107,12 +107,14 @@ object Discogs: SearchApi, AnkoLogger {
             "artist" to album.artist.name,
 //            "year" to album.year.toString(),
             "per_page" to "5"
-        )).map {
-            val artist = cleanArtistName(it["artists"][0]["name"].string)
-            RemoteAlbum(
-                AlbumId(it["name"].string, artist),
-                AlbumDetails(it["type"].string + "s/" + it["id"].string)
-            )
+        )).mapNotNull {
+            tryOr(null) {
+                val artist = cleanArtistName(it["artists"][0]["name"].string)
+                RemoteAlbum(
+                    AlbumId(it["name"].string, artist),
+                    AlbumDetails(it["type"].string + "s/" + it["id"].string)
+                )
+            }
         }
     }
 
@@ -464,11 +466,10 @@ object Discogs: SearchApi, AnkoLogger {
                 }
                 val year = cols.first { it.hasClass("year") }.text().toIntOrNull()
 
-                val thumbLink = tryOr(null) {
-                    cols.first { it.hasClass("image") }
-                        .getElementsByClass("thumbnail_center").first()
-                        .child(0).attr("data-src")
-                }
+                val thumbLink = cols.firstOrNull { it.hasClass("image") }
+                    ?.getElementsByClass("thumbnail_center")?.firstOrNull()
+                    ?.child(0)?.attr("data-src")
+
                 val artist = ArtistId(
                     cols.first { it.hasClass("artist") }.text()
                 )

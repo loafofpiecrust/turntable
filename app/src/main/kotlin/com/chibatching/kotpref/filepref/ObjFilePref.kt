@@ -7,12 +7,10 @@ import com.esotericsoftware.kryo.io.Input
 import com.esotericsoftware.kryo.io.Output
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.consumeEach
 import java.io.FileOutputStream
-import java.util.concurrent.TimeUnit
 import kotlin.reflect.KProperty
 
 abstract class BaseObjFilePref<T: Any>(
@@ -27,7 +25,7 @@ abstract class BaseObjFilePref<T: Any>(
         if (name == null || lastWrite >= lastModify) return null
         return task(BG_POOL) {
             try {
-                synchronized(this) {
+                synchronized(this@BaseObjFilePref) {
                     val file = App.instance.filesDir.resolve("$name.prop")
                     if (!file.exists()) {
                         file.createNewFile()

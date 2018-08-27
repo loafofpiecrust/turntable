@@ -141,7 +141,8 @@ class PlaylistDetailsFragment: BaseFragment() {
                     menuItem("Get recommendation", showIcon = false).onClick(BG_POOL) {
                         val r = Random()
                         val tracks = playlist.tracks.first()
-                        val tracksToUse = (0..minOf(5, tracks.size)).map { r.nextInt(tracks.size) }
+                        val tracksToUse = (0..minOf(5, tracks.size))
+                            .map { r.nextInt(tracks.size) }
                             .mapNotNull { tracks.getOrNull(it)?.id }
                         Spotify.openRecommendationsPlaylist(ctx, songs = tracksToUse)
                     }
@@ -168,13 +169,14 @@ class PlaylistDetailsFragment: BaseFragment() {
             }.lparams(width= matchParent)
 
             frameLayout {
-                fragment(
+                id = R.id.songs
+                fragment {
                     SongsFragmentStarter.newInstance(
                         SongsFragment.Category.Playlist(playlistId)
                     ).apply {
                         songs = playlist.tracks.replayOne()
                     }
-                )
+                }
             }.lparams(width = matchParent, height = matchParent) {
 //                behavior = AppBarLayout.ScrollingViewBehavior()
             }
