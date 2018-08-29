@@ -80,8 +80,6 @@ abstract class BaseFragment: Fragment(), AnkoLogger {
                 .commit()
         }
     }
-
-    protected fun <T: Any> arg(defaultValue: T? = null) = FragmentArgument(defaultValue)
 }
 
 abstract class BaseDialogFragment: DialogFragment(), AnkoLogger {

@@ -11,6 +11,7 @@ import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.song.Music
+import com.loafofpiecrust.turntable.song.MusicId
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
 import kotlinx.coroutines.experimental.channels.map
@@ -42,7 +43,7 @@ class PlaylistPickerDialog: BaseDialogFragment() {
         builder.setMessage("Add to playlist")
             .setPositiveButton("New Playlist") { _, _ ->
                 val item = this.item
-                val id = when (item) {
+                val id: MusicId = when (item) {
                     is Song -> item.id
                     is Album -> item.id
                     is Artist -> item.id

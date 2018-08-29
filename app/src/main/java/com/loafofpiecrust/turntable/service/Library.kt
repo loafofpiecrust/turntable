@@ -31,6 +31,7 @@ import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.artist.LocalArtist
 import com.loafofpiecrust.turntable.playlist.Playlist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.song.LocalSong
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
 import com.loafofpiecrust.turntable.util.*
@@ -51,69 +52,6 @@ import kotlin.coroutines.experimental.coroutineContext
 
 /// Manages all our music and album covers, including loading from MediaStore
 class Library : Service() {
-    companion object: AnkoLogger {
-        lateinit var instance: Library
-            private set
-
-        val ARTWORK_OPTIONS = RequestOptions()
-            .fallback(R.drawable.ic_default_album)
-            .error(R.drawable.ic_default_album)
-            .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
-            .fitCenter()
-
-
-        /// Bridges the connection between an Activity and the MusicService instance
-        /// Starts the service if it somehow isn't started yet
-        fun with(context: Context, cb: (Library) -> Unit) {
-            var conn: ServiceConnection? = null
-            class Conn: ServiceConnection {
-                override fun onServiceConnected(comp: ComponentName, binder: IBinder?) {
-                    cb.invoke((binder as Binder).music)
-                    context.unbindService(conn)
-                }
-                override fun onServiceDisconnected(comp: ComponentName) {
-                }
-            }
-            conn = Conn()
-            val intent = Intent(App.instance, Library::class.java)
-            context.bindService(intent, conn, Context.BIND_AUTO_CREATE)
-        }
-
-        val ARTIST_COMPARATOR = compareByIgnoreCase<ArtistId>({ it.sortName })
-        val ARTIST_META_COMPARATOR = compareByIgnoreCase<ArtistMetadata>({ it.id.sortName })
-
-        /**
-         * Sorting and searching comparator for albums.
-         * TODO: Maybe re-order to allow finding albums by an artist by binary searching within albums, then going backwards and forwards
-         */
-        val ALBUM_COMPARATOR = compareByIgnoreCase<AlbumId>(
-            { it.sortTitle }, { it.artist.sortName }//, { it.type.name }
-        )
-//        val ALBUM_ARTIST_COMPARATOR = compareBy<Album>({ it.artist })
-
-        /**
-         * Sorting and searching comparator for album metadata.
-         */
-        val ALBUM_META_COMPARATOR = compareByIgnoreCase<AlbumMetadata>(
-            { it.id.sortTitle }, { it.id.artist.sortName }
-        )
-
-        val SONG_COMPARATOR = compareByIgnoreCase<Song>(
-            { it.id.name }, { it.id.album.sortTitle }, { it.id.album.artist.sortName }
-        )
-//        val SONG_ALBUM_COMPARATOR = compareBy<Song>({ it.artist }, { it.album })
-//        val SONG_ARTIST_COMPARATOR = compareBy<Song>({ it.artist })
-
-
-        const val REMOTE_ALBUM_CACHE_LIMIT = 100
-        const val REMOTE_ARTIST_CACHE_LIMIT = 20
-
-        val METADATA_UPDATE_FREQ = TimeUnit.DAYS.toMillis(14)
-    }
-
-    class Binder(val music: Library) : android.os.Binder()
-    override fun onBind(intent: Intent): IBinder? = Binder(this)
-
     init {
         instance = this
     }
@@ -154,9 +92,10 @@ class Library : Service() {
     }.replayOne()
 
     private val artistMeta = UserPrefs.artistMeta.openSubscription().map {
-        it.sortedWith(ARTIST_META_COMPARATOR).dedupMergeSorted({ a, b ->
-            ARTIST_META_COMPARATOR.compare(a, b) == 0
-        }, { a, b -> b })
+        it.sortedWith(ARTIST_META_COMPARATOR).dedupMergeSorted(
+            { a, b -> ARTIST_META_COMPARATOR.compare(a, b) == 0 },
+            { a, b -> b }
+        )
     }.replayOne()
 
     private val remoteAlbums = UserPrefs.remoteAlbums
@@ -181,58 +120,33 @@ class Library : Service() {
 //            (songs + remotes.flatMap { it.tracks }).sortedBy { it.searchKey }
 //        }
 
-    val localAlbums/*: ReceiveChannel<List<Album>>*/ = _songs.openSubscription().map {
+    private val localAlbums: ReceiveChannel<List<Album>> = _songs.openSubscription().map {
         it.groupBy {
-            val local = it.local as Song.LocalDetails.Downloaded
-//            if (local is Song.LocalDetails.Downloaded) {
-//                "${local.albumId}\$id"
-//            } else {
-//                (it.album + Artist.sortKey(it.artist)).toLowerCase()
-//            }
-            local.albumId
+            (it as LocalSong).localAlbumId
+//            it.id.album
         }.map {
             val tracks = it.value.sortedBy { (it.disc * 1000) + it.track }
-            val firstTrack = tracks.first()
-            val id = firstTrack.id.album
-            val discNum = id.discNumber
-            val album = LocalAlbum(
-                id = id,
-                tracks = tracks
-            )
-            album.tracks.forEach {
-                it.disc = discNum
-            }
-            album
+            LocalAlbum(it.value.first().id.album, tracks)
         }
-    } //.replay(1).autoConnect()
+    }
 
     /**
      * Artist sort key: id
      * Album sort key: name + artist
      * Song sort key: name + album + artist
      */
-    val albums: ConflatedBroadcastChannel<List<Album>> = localAlbums.combineLatest(remoteAlbums.openSubscription()).map { (a, b) ->
-        (a + b).sortedBy { it.id }.dedupMergeSorted(
-            { a, b -> a.id == b.id },
-            { a, b -> a.mergeWith(b) }
-        )
-    }.replayOne()
+    val albums: ConflatedBroadcastChannel<List<Album>> =
+        combineLatest(localAlbums, remoteAlbums.openSubscription()) { a, b ->
+            (a + b).sortedBy { it.id }.dedupMergeSorted(
+                { a, b -> a.id == b.id },
+                { a, b -> MergedAlbum(a, b) }
+            )
+        }.replayOne()
 
 
-//    val songs: Observable<List<Song>> = Observables.combineLatest(
-//        remoteAlbums.map { it.flatMap { it.tracks } },
-//        _songs, { a, b ->
-//            (b + a).sortedWith(SONG_COMPARATOR).filter {
-//                it.duration == 0 || (Song.MIN_DURATION <= it.duration && it.duration <= Song.MAX_DURATION)
-//            }.dedupMergeSorted(
-//                { a, b -> SONG_COMPARATOR.compare(a, b) == 0 },
-//                { a, b -> if (a.local != null) a else b }
-//            )
-//        }).replay(1).autoConnect()
-
-    val songs: ConflatedBroadcastChannel<List<Song>>
-        = albums.openSubscription().map {
-            it.flatMap { it.tracks }.sortedWith(SONG_COMPARATOR)
+    val songs: ConflatedBroadcastChannel<List<Song>> =
+        albums.openSubscription().map {
+            it.flatMap { it.tracks }.sortedBy { it.id }
         }.replayOne()
 
     val artists: ConflatedBroadcastChannel<List<Artist>> = albums.openSubscription().map { albums ->
@@ -253,46 +167,22 @@ class Library : Service() {
 
     private var updateTask: Deferred<Unit>? = null
 
-//    val playlists: Observable<List<Playlist>> = FileSyncService.instance.playlists.map {
-//        it.sortedBy { it.id }
-//    }
-//    val playlists = BehaviorSubject.createDefault(listOf<Playlist>())
+
+
+    class Binder(val music: Library) : android.os.Binder()
+    override fun onBind(intent: Intent): IBinder? = Binder(this)
 
     fun albumsByArtist(id: ArtistId): ReceiveChannel<List<Album>> = artists.openSubscription().map { artists ->
-//        val key = Artist.justForSearch(id.name)
         val artist = artists.binarySearchElem(id) { it.id }
-//        val artist = it.binarySearchElem(Artist.sortKey(artistName).toLowerCase()) { it.searchKey }
         artist?.albums ?: listOf()
     }
 
     fun songsOnAlbum(id: AlbumId)
         = findCachedAlbum(id).map { it?.tracks }
 
-//    fun songsOnAlbum(unresolved: Album): Observable<List<Song>> = albums.map {
-////        val album = it.getOrNull(it.binarySearch(unresolved, ALBUM_COMPARATOR))
-////        album?.tracks ?: run {
-////            val cache = cachedAlbums.blockingFirst()
-////            cache.getOrNull(cache.binarySearch(unresolved, ALBUM_COMPARATOR))?.tracks
-////        } ?: listOf()
-//    }
+
     fun songsOnAlbum(unresolved: Album): ReceiveChannel<List<Song>?>
         = findCachedAlbum(unresolved.id).map { it?.tracks }
-
-//    fun songsOnAlbum(unresolved: Album): Observable<List<Song>> = songs.map { songs ->
-//        val key = Song.justForSearch("", unresolved.name, unresolved.artist)
-//        val someSongIdx = songs.binarySearch(key, SONG_ALBUM_COMPARATOR)
-//        val someSong = songs.getOrNull(someSongIdx) ?: return@map listOf<Song>()
-//        val firstIdx = ((someSongIdx..0).find {
-//            val song = songs[it]
-//            song.album != someSong.album && song.artist != someSong.artist
-//        } ?: return@map listOf<Song>()) + 1
-//        val endIdx = (someSongIdx until songs.size).find {
-//            val song = songs[it]
-//            song.album != someSong.album && song.artist != someSong.artist
-//        } ?: return@map listOf<Song>()
-//
-//        songs.subList(firstIdx, endIdx)
-//    }
 
     fun songsByArtist(id: ArtistId): ReceiveChannel<List<Song>>
         = albumsByArtist(id).map { it.flatMap { it.tracks } }
@@ -317,7 +207,6 @@ class Library : Service() {
             }
         }
 
-
     fun findAlbumOfSong(song: Song): ReceiveChannel<Album?> = run {
         // First, look for one with matching artist id, that'll catch the majority of cases
         // So, most searches are as fast as binary search and Various Artists albums only do a few more comparisons
@@ -338,28 +227,19 @@ class Library : Service() {
     }
 
     fun findSong(id: SongId): ReceiveChannel<Song?> = songs.openSubscription().map {
-        val key = Song(null, null, id, 1, 1, 0)
-        it.binarySearchElem(key, SONG_COMPARATOR)
+//        val key = Song(null, null, id, 1, 1, 0)
+        it.getOrNull(it.binarySearchBy(id) { s: Song -> s.id })
     }
 
-    fun findSongFuzzy(song: Song): ReceiveChannel<Song?> = songs.openSubscription().map {
-//        if (song.id.album.displayName.isNotBlank()) {
-            given(it.binarySearchNearestElem(song, SONG_COMPARATOR)) {
-                it provided {
-                    Math.abs(it.duration - song.duration) <= 10_000
-                        && it.id.fuzzyEquals(song.id)
-                }
-            }
-//        } else {
-//            // sigh, do a search without album...
-//            // this is always from outside queries, so not super duper common.
-//
-//        }
+    fun findSongFuzzy(song: SongId): ReceiveChannel<Song?> = songs.openSubscription().map {
+        it.binarySearchNearestElem(song) { it.id }?.takeIf {
+            it.id.fuzzyEquals(song)
+        }
     }
 
     fun findArtist(id: ArtistId): ReceiveChannel<Artist?> = artists.openSubscription().map {
 //        val key = Artist(id, null, listOf())
-        it.binarySearchElem(id) { artist: Artist -> artist.id }
+        it.binarySearchElem(id) { it.id }
 //        it.binarySearchElem(Artist.sortKey(id).toLowerCase()) { it.searchKey }
     }
 
@@ -401,33 +281,6 @@ class Library : Service() {
         UserPrefs.artistMeta appends meta
     }
 
-//    fun addPlaylist(pl: Playlist) {
-//        UserPrefs.playlists appends pl
-////        async(CommonPool) {
-////            FileSyncService.instance.uploadPlaylist(pl)
-////        }
-//    }
-
-//    fun deletePlaylist(pl: Playlist) {
-//        val all = UserPrefs.playlists.value.toList()
-//        UserPrefs.playlists puts all.without(all.indexOf(pl)).toTypedArray()
-////        async(CommonPool) {
-////            FileSyncService.instance.deletePlaylist(pl)
-////        }
-//    }
-
-//    fun findPlaylist(name: String): Playlist? {
-//        async(UI) { println("playlist: looking for $name") }
-//        return playlists.blockingFirst().binarySearchElem(name) { it.id }
-////        return UserPrefs.playlists.value.find { it.id == name }
-//    }
-
-//    fun addToPlaylist(name: String, tracks: List<Song>) {
-//        val playlists = UserPrefs.playlists.value
-//        val idx = playlists.indexOfFirst { it.id == name }
-//        val pl = playlists.getOrNull(idx) ?: return
-//        playlists.withReplaced(idx, pl.copy(songs = pl.songs + tracks))
-//    }
 
     private fun fillMissingArtwork() = task {
         val albums = albums.openSubscription().first()
@@ -671,7 +524,7 @@ class Library : Service() {
                         println("songs: External Media has been added")
                         // Update the song library, but to accomodate rapid changes, wait 2 seconds
                         // before re-querying the MediaStore.
-                        given(updateTask) {
+                        updateTask?.let {
                             if (it.isActive) it.cancelSafely()
                         }
                         updateTask = task {
@@ -750,12 +603,15 @@ class Library : Service() {
                             1 to index
                         }
 
-                        songs.add(Song(
-                            Song.LocalDetails.Downloaded(data, id, albumId, artistId),
-                            null,
+                        songs.add(LocalSong(
+                            data,
+                            albumId,
                             SongId(title, album, albumArtist, artist),
-                            track, disc, duration,
-                            year
+                            track,
+                            disc,
+                            duration,
+                            year,
+                            artworkUrl = null
                         ))
                     }
                 } catch (e: Exception) {
@@ -832,7 +688,7 @@ class Library : Service() {
             }
 
             val firstTrack = it.tracks.firstOrNull() ?: return@parMap
-            val local = firstTrack.local as Song.LocalDetails.Downloaded
+            val local = firstTrack as LocalSong
             val folder = File(local.path).parentFile
             val imagePaths = folder.listFiles { path ->
                 val ext = path.extension
@@ -854,6 +710,67 @@ class Library : Service() {
         }.awaitAll()
 
 //        UserPrefs.albumMeta puts metaList
+    }
+
+
+    companion object: AnkoLogger {
+        lateinit var instance: Library
+            private set
+
+        val ARTWORK_OPTIONS = RequestOptions()
+            .fallback(R.drawable.ic_default_album)
+            .error(R.drawable.ic_default_album)
+            .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+            .fitCenter()
+
+
+        /// Bridges the connection between an Activity and the MusicService instance
+        /// Starts the service if it somehow isn't started yet
+        fun with(context: Context, cb: (Library) -> Unit) {
+            var conn: ServiceConnection? = null
+            class Conn: ServiceConnection {
+                override fun onServiceConnected(comp: ComponentName, binder: IBinder?) {
+                    cb.invoke((binder as Binder).music)
+                    context.unbindService(conn)
+                }
+                override fun onServiceDisconnected(comp: ComponentName) {
+                }
+            }
+            conn = Conn()
+            val intent = Intent(App.instance, Library::class.java)
+            context.bindService(intent, conn, Context.BIND_AUTO_CREATE)
+        }
+
+        val ARTIST_COMPARATOR = compareByIgnoreCase<ArtistId>({ it.sortName })
+        val ARTIST_META_COMPARATOR = compareByIgnoreCase<ArtistMetadata>({ it.id.sortName })
+
+        /**
+         * Sorting and searching comparator for albums.
+         * TODO: Maybe re-order to allow finding albums by an artist by binary searching within albums, then going backwards and forwards
+         */
+        val ALBUM_COMPARATOR = compareByIgnoreCase<AlbumId>(
+            { it.sortName }, { it.artist.sortName }//, { it.type.name }
+        )
+//        val ALBUM_ARTIST_COMPARATOR = compareBy<Album>({ it.artist })
+
+        /**
+         * Sorting and searching comparator for album metadata.
+         */
+        val ALBUM_META_COMPARATOR = compareByIgnoreCase<AlbumMetadata>(
+            { it.id.sortName }, { it.id.artist.sortName }
+        )
+
+        val SONG_COMPARATOR = compareByIgnoreCase<SongId>(
+            { it.name }, { it.album.sortName }, { it.album.artist.sortName }
+        )
+//        val SONG_ALBUM_COMPARATOR = compareBy<Song>({ it.artist }, { it.album })
+//        val SONG_ARTIST_COMPARATOR = compareBy<Song>({ it.artist })
+
+
+        const val REMOTE_ALBUM_CACHE_LIMIT = 100
+        const val REMOTE_ARTIST_CACHE_LIMIT = 20
+
+        val METADATA_UPDATE_FREQ = TimeUnit.DAYS.toMillis(14)
     }
 }
 

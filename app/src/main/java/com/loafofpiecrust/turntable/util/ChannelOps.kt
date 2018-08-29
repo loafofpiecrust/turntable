@@ -7,7 +7,7 @@ import kotlinx.coroutines.experimental.Unconfined
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.*
 import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.selects.selectUnbiased
+import kotlinx.coroutines.experimental.selects.whileSelect
 import org.jetbrains.anko.sdk25.coroutines.onAttachStateChangeListener
 import kotlin.coroutines.experimental.CoroutineContext
 import kotlin.coroutines.experimental.coroutineContext
@@ -15,15 +15,23 @@ import kotlin.coroutines.experimental.coroutineContext
 
 fun <T, R> ReceiveChannel<T>.switchMap(
     context: CoroutineContext = Unconfined,
-    f: suspend (T) -> ReceiveChannel<R>
-): ReceiveChannel<R> = produce(context) {
-    var lastJob: Job? = null
-    consumeEach {
-        lastJob?.cancel()
-        lastJob = async(coroutineContext) {
-            f(it).consumeEach { send(it) }
+    transform: suspend (T) -> ReceiveChannel<R>
+): ReceiveChannel<R> = produce(context, onCompletion = consumes()) {
+    val input = this@switchMap
+
+    var current: ReceiveChannel<R> = transform(input.receive())
+    val output = this
+
+    whileSelect {
+        input.onReceiveOrNull { t ->
+            t?.also { current = transform(it) } != null
+        }
+
+        current.onReceiveOrNull { r ->
+            r?.also { output.send(it) } != null
         }
     }
+    current.cancel()
 }
 
 fun <T> ReceiveChannel<T>.replayOne(context: CoroutineContext = BG_POOL): ConflatedBroadcastChannel<T> {
@@ -31,120 +39,102 @@ fun <T> ReceiveChannel<T>.replayOne(context: CoroutineContext = BG_POOL): Confla
     val chan = ConflatedBroadcastChannel<T>()
     launch(context) {
         consumeEach {
-            chan.offer(it)
+            chan.send(it)
         }
     }
     return chan
 }
 
 
-fun <E, R> ReceiveChannel<E>.combineLatest(
-    other: ReceiveChannel<R>,
+fun <E, R> combineLatest(
+    a: ReceiveChannel<E>,
+    b: ReceiveChannel<R>,
     context: CoroutineContext = Unconfined
-): ReceiveChannel<Pair<E, R>> = combineLatest(other, context) { a, b -> a to b }
+): ReceiveChannel<Pair<E, R>> = combineLatest(a, b, context) { a, b -> a to b }
 
 fun <A, B, C> ReceiveChannel<A>.combineLatest(
     b: ReceiveChannel<B>,
-    c: ReceiveChannel<B>,
+    c: ReceiveChannel<C>,
     context: CoroutineContext = Unconfined
 ) = combineLatest(b, c, context) { a, b, c -> Triple(a, b, c) }
 
 
-fun <A, B, R> ReceiveChannel<A>.combineLatest(
+fun <A, B, R> combineLatest(
+    sourceA: ReceiveChannel<A>,
     sourceB: ReceiveChannel<B>,
     context: CoroutineContext = Unconfined,
-    combineFunction: suspend (A, B) -> R
-): ReceiveChannel<R> = produce(context) {
-    val sourceA = this@combineLatest
-
+    combine: suspend (A, B) -> R
+): ReceiveChannel<R> = produce(context, onCompletion = {
+    sourceA.cancel(it)
+    sourceB.cancel(it)
+}) {
     var latestA: A? = null
     var latestB: B? = null
 
-//    var job: Job? = null
-
-    while (isActive && !sourceA.isClosedForReceive && !sourceB.isClosedForReceive) {
-        try {
-            selectUnbiased<Unit> {
-                sourceA.onReceiveOrNull { a ->
-                    latestA = a
-                    val b = latestB
-                    if (a != null && b != null) {
-                        send(combineFunction(a, b))
-                    }
-                }
-                sourceB.onReceiveOrNull { b ->
-                    latestB = b
-                    val a = latestA
-                    if (b != null && a != null) {
-                        send(combineFunction(a, b))
-                    }
-                }
+    whileSelect {
+        sourceA.onReceiveOrNull { a ->
+            latestA = a
+            val b = latestB
+            if (a != null && b != null) {
+                send(combine(a, b))
             }
-        } catch (e: Throwable) {}
+            a != null
+        }
+        sourceB.onReceiveOrNull { b ->
+            latestB = b
+            val a = latestA
+            if (b != null && a != null) {
+                send(combine(a, b))
+            }
+            b != null
+        }
     }
-
-//    sourceB.consumeEach {
-//        job?.cancel()
-//        latestB = it
-//        if (latestA != null) {
-//            send(combineFunction(latestA!!, it))
-//        }
-//        job = async(coroutineContext) {
-//            sourceA.consumeEach {
-//                latestA = it
-//                send(combineFunction(it, latestB))
-//            }
-//        }
-//    }
 }
 
 fun <A, B, C, R> ReceiveChannel<A>.combineLatest(
     sourceB: ReceiveChannel<B>,
     sourceC: ReceiveChannel<C>,
     context: CoroutineContext = Unconfined,
-    combineFunction: suspend (A, B, C) -> R
-): ReceiveChannel<R> = produce(context) {
+    combine: suspend (A, B, C) -> R
+): ReceiveChannel<R> = produce(context, onCompletion = {
+    cancel(it)
+    sourceB.cancel(it)
+    sourceC.cancel(it)
+}) {
     val sourceA = this@combineLatest
 
-    var a: A
-    var b: B
-    var c: C
+    var latestA: A? = null
+    var latestB: B? = null
+    var latestC: C? = null
 
-    try {
-        a = sourceA.receive()
-        b = sourceB.receive()
-        c = sourceC.receive()
-        send(combineFunction(a, b, c))
-    } catch (e: Exception) {
-        sourceA.cancel(e)
-        sourceB.cancel(e)
-        sourceC.cancel(e)
-        return@produce
-    }
-
-    val atask = async(coroutineContext) {
-        sourceA.consumeEach {
-            a = it
-            send(combineFunction(it, b, c))
+    whileSelect {
+        sourceA.onReceiveOrNull { a ->
+            latestA = a
+            val b = latestB
+            val c = latestC
+            if (a != null && b != null && c != null) {
+                send(combine(a, b, c))
+            }
+            a != null
         }
-    }
-    val ctask = async(coroutineContext) {
-        sourceC.consumeEach {
-            c = it
-            send(combineFunction(a, b, it))
+        sourceB.onReceiveOrNull { b ->
+            latestB = b
+            val a = latestA
+            val c = latestC
+            if (a != null && b != null && c != null) {
+                send(combine(a, b, c))
+            }
+            b != null
         }
-    }
-    val btask = async(coroutineContext) {
-        sourceB.consumeEach {
-            b = it
-            send(combineFunction(a, it, c))
+        sourceC.onReceiveOrNull { c ->
+            latestC = c
+            val a = latestA
+            val b = latestB
+            if (a != null && b != null && c != null) {
+                send(combine(a, b, c))
+            }
+            c != null
         }
-    }
-    // wait until *all* tasks are completed or cancelled.
-    arrayOf(atask, btask, ctask).forEach {
-        try {
-            it.join()
-        } catch (e: Throwable) {}
     }
 }
 
@@ -177,10 +167,24 @@ fun <T> ReceiveChannel<T>.interrupt(context: CoroutineContext = Unconfined): Rec
 
 fun <T> ReceiveChannel<T>.distinctSeq(context: CoroutineContext = Unconfined): ReceiveChannel<T> {
     return produce(context) {
-        var prev = receive().also { send(it) }
-        consumeEach {
-            if (it != prev) send(it)
-            prev = it
+        consume {
+            var prev = receive().also { send(it) }
+            for (elem in this) {
+                if (elem != prev) send(elem)
+                prev = elem
+            }
+        }
+    }
+}
+
+fun <T> ReceiveChannel<T>.changes(context: CoroutineContext = Unconfined) = produce(context) {
+    consume {
+        var prev = receive()
+        for (elem in this) {
+            if (prev != elem) {
+                send(prev to elem)
+            }
+            prev = elem
         }
     }
 }

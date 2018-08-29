@@ -17,6 +17,7 @@ import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.album.AlbumId
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
+import com.loafofpiecrust.turntable.song.LocalSong
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.util.always
 import com.loafofpiecrust.turntable.util.consumeEach
@@ -146,7 +147,7 @@ class AlbumEditorActivity : BaseActivity() {
         }
 
         album.tracks.parMap { song ->
-            given(song.local as? Song.LocalDetails.Downloaded) { local ->
+            given(song as? LocalSong) { local ->
                 tryOr(null) {
                     val internal = File(local.path)
                     val f = if (internal.canWrite()) {

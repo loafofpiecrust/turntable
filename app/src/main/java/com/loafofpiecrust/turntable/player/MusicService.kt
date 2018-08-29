@@ -52,15 +52,18 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
     }
 
 
+    enum class Action {
+        PLAY, PAUSE, NEXT, PREVIOUS, STOP
+    }
     /**
      * Incoming command from notification _or_ the sync service.
      * Should remain generic between these two uses to make syncing work as smoothly as possible.
      */
     @Arg(optional=true)
-    var command: SyncService.Message? = null
+    var command: Action? = null
 
     @Arg(optional=true)
-    var shouldSync: Boolean? = null
+    var shouldSync: Boolean = false
 
 
     lateinit var player: MusicPlayer
@@ -78,7 +81,7 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
             this,
             "com.loafofpiecrust.turntable",
             null,
-            notifyIntent(SyncService.Message.Play())
+            notifyIntent(Action.PLAY)
         ).apply {
             setCallback(object : MediaSessionCompat.Callback() {
                 override fun onPlay() {
@@ -99,8 +102,8 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
 
     private var isFocused = false
 
-    fun notifyIntent(msg: SyncService.Message, context: Context? = this): PendingIntent = PendingIntent.getService(
-        context ?: App.instance, 69 + msg.hashCode(),
+    fun notifyIntent(msg: Action, context: Context? = this): PendingIntent = PendingIntent.getService(
+        context ?: App.instance, 69 + msg.ordinal,
         MusicServiceStarter.getIntent(context, msg),
         PendingIntent.FLAG_UPDATE_CURRENT // Signals the existing MusicService instance
     )
@@ -130,7 +133,7 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
         super.onCreate()
         player = MusicPlayer(ctx)
 
-        player.queue.combineLatest(player.isPlaying)
+        combineLatest(player.queue, player.isPlaying)
             .consumeEach(UI + subs) { (q, playing) ->
                 showNotification(q.current, playing)
             }
@@ -184,10 +187,14 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null) {
             ActivityStarter.fill(this, intent)
-            val msg = command
-            val shouldSync = shouldSync
-            if (msg != null && shouldSync != null) {
-                doAction(msg, shouldSync)
+            command?.let { msg ->
+                doAction(when (msg) {
+                    Action.PLAY -> SyncService.Message.Play()
+                    Action.PAUSE -> SyncService.Message.Pause()
+                    Action.PREVIOUS -> SyncService.Message.RelativePosition(-1)
+                    Action.NEXT -> SyncService.Message.RelativePosition(1)
+                    Action.STOP -> SyncService.Message.Stop()
+                }, shouldSync)
             }
         }
         return START_STICKY

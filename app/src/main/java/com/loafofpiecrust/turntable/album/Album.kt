@@ -16,7 +16,6 @@ import com.bumptech.glide.RequestManager
 import com.bumptech.glide.signature.ObjectKey
 import com.github.florent37.glidepalette.GlidePalette
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.menuItem
@@ -28,118 +27,21 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.*
-import com.loafofpiecrust.turntable.sync.FriendPickerDialogStarter
+import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.util.task
 import com.loafofpiecrust.turntable.util.then
-import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.textColor
 import java.io.Serializable
-import java.util.*
-import java.util.regex.Pattern
-
-
-// Remote never has: id, artistId
-// Local could have: mbid
-
-
-@Parcelize
-data class AlbumId(
-    override val name: String,
-    val artist: ArtistId
-): MusicId, Parcelable, Comparable<AlbumId> {
-
-    private constructor(): this("", ArtistId(""))
-
-    companion object {
-        private val TYPE_SUFFIX_PAT by lazy {
-            Pattern.compile("\\b\\s*[-]?\\s*[(\\[]?(EP|Single|LP)[)\\]]?$", Pattern.CASE_INSENSITIVE)
-        }
-        private val EDITION_SUFFIX_PAT by lazy {
-            Pattern.compile(
-                "\\s+([(\\[][\\w\\s]*(Edition|Version|Deluxe|Release|Reissue|Mono|Stereo|Extended)[\\w\\s]*[)\\]])|(\\w+\\s+(Edition|Version|Release)$)",
-                Pattern.CASE_INSENSITIVE
-            )
-        }
-        val SIMPLE_EDITION_PAT by lazy {
-            Regex("\\b(Deluxe|Expansion)\\b", RegexOption.IGNORE_CASE)
-        }
-        private val DISC_SUFFIX_PAT by lazy {
-            Pattern.compile(
-                "\\s*[(\\[]?\\s*(Disc|Disk|CD)\\s*(\\d+)\\s*[)\\]]?$",
-                Pattern.CASE_INSENSITIVE
-            )
-        }
-    }
-
-    override fun toString() = "$displayName | $artist"
-    override fun equals(other: Any?) = given(other as? AlbumId) { other ->
-        this.displayName.equals(other.displayName, true)
-            && this.artist == other.artist
-    } ?: false
-    override fun hashCode() = Objects.hash(displayName.toLowerCase(), artist)
-
-    fun forSong(song: String) = SongId(song, this)
-
-    val sortTitle: String get() = displayName.withoutArticle()
-    val dbKey: String get() = "$displayName~${artist.sortName}".toLowerCase()
-
-    val selfTitledAlbum: Boolean get() = sortTitle.equals(artist.sortName, true)
-
-    @delegate:Transient
-    val discNumber: Int by lazy {
-        val discM = DISC_SUFFIX_PAT.matcher(name)
-        if (discM.find()) {
-            discM.group(2).toIntOrNull() ?: 1
-        } else 1
-    }
-
-    /// Cut out versions and types at the end for a CLEAN id
-    /// Examples:
-    /// Whoa - Single => Whoa
-    /// Whoa - Fine & Single => Whoa - Fine & Single
-    /// I'm Still Single => I'm Still Single
-    /// What's Going On (Deluxe Edition) => What's Going On
-    /// Whatever (Maxi Edition) - EP => Whatever
-    /// What We... (Deluxe Version) => What We...
-    /// It's a Deluxe Edition => It's a Deluxe Edition
-    @delegate:Transient
-    override val displayName: String by lazy {
-        // First, remove " - $type" suffix
-        var name = this.name.trim()
-        val typeM = TYPE_SUFFIX_PAT.matcher(name)
-        name = if (typeM.find()) {
-            typeM.replaceFirst("")
-        } else name
-        // Then, remove "(Deluxe Edition)" suffix
-        val editionM = EDITION_SUFFIX_PAT.matcher(name)
-        name = if (editionM.find()) {
-            editionM.replaceFirst("")
-        } else name
-        // Finally, remove "(Disc 1)" suffix and set the disc # for all tracks.
-        val discM = DISC_SUFFIX_PAT.matcher(name)
-        name = if (discM.find()) {
-            discM.replaceFirst("")
-        } else name
-
-        val res = if (name.isNotEmpty()) {
-            name
-        } else {
-            this.artist.name
-        }.replace("“", "\"").replace("”", "\"").replace("‘", "\'").replace("’", "\'")
-
-        res
-    }
-
-    override fun compareTo(other: AlbumId): Int
-        = Library.ALBUM_COMPARATOR.compare(this, other)
-}
 
 
 interface Album: Music {
+    val id: AlbumId
+    val year: Int?
+
     enum class Type {
         LP, // A full album, or LP
         EP, // A shorter release, or EP
@@ -148,36 +50,18 @@ interface Album: Music {
         COMPILATION, // A collection or compilation that wasn't an original release
         OTHER // Something else altogether
     }
-
-    abstract class RemoteDetails(
-        open val thumbnailUrl: String? = null,
-        open val artworkUrl: String? = null
-    ): Serializable, Parcelable {
-        abstract suspend fun resolveTracks(album: AlbumId): List<Song>
-
-        /// Priority of this entry, on a rough scale of [0, 100]
-        /// where 100 is the best match possible.
-    }
-
-    val id: AlbumId
+    val type: Type
     val tracks: List<Song>
-    val year: Int?
-    val type: Album.Type
-
-    val hasTrackGaps: Boolean get() =
-        tracks.zipWithNext().any { (lastSong, song) ->
-            (song.track - lastSong.track > 1)
-        }
-
-    fun mergeWith(other: Album): Album
 
     override val simpleName: String get() = id.displayName
+
+    /// TODO: Can we pull this out of the class...?
     override fun optionsMenu(ctx: Context, menu: Menu) {
         menu.menuItem("Shuffle", R.drawable.ic_shuffle, showIcon=false).onClick {
             task {
                 Library.instance.songsOnAlbum(id).first()
             }.then { tracks ->
-                given(tracks) {
+                tracks?.let {
                     if (it.isNotEmpty()) {
                         MusicService.enact(SyncService.Message.PlaySongs(it, mode = MusicPlayer.OrderMode.SHUFFLE))
                     }
@@ -186,7 +70,7 @@ interface Album: Music {
         }
 
         menu.menuItem("Recommend").onClick {
-            FriendPickerDialogStarter.newInstance(
+            FriendPickerDialog(
                 SyncService.Message.Recommendation(this@Album.id),
                 "Send Recommendation"
             ).show(ctx)
@@ -200,7 +84,7 @@ interface Album: Music {
 
     fun loadCover(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?>
         = Library.instance.loadAlbumCover(req, id).map {
-            (it ?: given(SearchApi.fullArtwork(this, true)) {
+            (it ?: SearchApi.fullArtwork(this, true)?.let {
                 req.load(it)
 //                    .thumbnail(req.load(remote?.thumbnailUrl).apply(Library.ARTWORK_OPTIONS))
             })?.apply(Library.ARTWORK_OPTIONS
@@ -210,10 +94,25 @@ interface Album: Music {
 
     fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> = loadCover(req)
 
-    fun loadPalette(vararg views: View)
-        = loadPalette(id, views)
+
+    abstract class RemoteDetails(
+        open val thumbnailUrl: String? = null,
+        open val artworkUrl: String? = null
+    ): Serializable, Parcelable {
+        abstract suspend fun resolveTracks(album: AlbumId): List<Song>
+
+        /// Priority of this entry, on a rough scale of [0, 100]
+        /// where 100 is the best match possible.
+    }
 }
 
+val Album.hasTrackGaps: Boolean get() =
+    tracks.zipWithNext().any { (lastSong, song) ->
+        (song.track - lastSong.track > 1)
+    }
+
+fun Album.loadPalette(vararg views: View)
+    = loadPalette(id, views)
 
 fun loadPalette(id: MusicId, views: Array<out View>) =
     loadPalette(id) { palette, swatch ->

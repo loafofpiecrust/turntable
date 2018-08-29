@@ -14,10 +14,12 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.service.library
+import com.loafofpiecrust.turntable.song.LocalSong
+import com.loafofpiecrust.turntable.song.RemoteSong
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.song.SongsFragmentStarter
 import com.loafofpiecrust.turntable.style.standardStyle
-import com.loafofpiecrust.turntable.sync.FriendPickerDialogStarter
+import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.ALT_BG_POOL
 import com.loafofpiecrust.turntable.util.replayOne
@@ -59,13 +61,13 @@ class MixTapeDetailsFragment: BaseFragment() {
                 transitionName = playlistId.toString()
 
                 menuItem("Download", R.drawable.ic_cloud_download, showIcon = true).onClick(ALT_BG_POOL) {
-                    playlist.tracks.first()
-                        .filter { ctx.library.findSong(it.id).first()?.local == null }
-                        .forEach { it.download() }
+//                    playlist.tracks.first()
+//                        .filter { ctx.library.findSong(it.id).first() == null }
+//                        .forEach { it.download() }
                 }
 
                 menuItem("Share").onClick {
-                    FriendPickerDialogStarter.newInstance(
+                    FriendPickerDialog(
                         SyncService.Message.Playlist(playlistId),
                         "Share"
                     ).show(ctx)

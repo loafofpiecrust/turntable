@@ -513,7 +513,7 @@ data class YouTubeFullAlbum(
     val title: String,
     val id: String,
     val duration: Int,
-    val tracks: List<Song>,
+    val tracks: Map<Song, Track>,
     val stream128: String?
 ) {
     data class Track(
@@ -596,7 +596,6 @@ data class YouTubeFullAlbum(
                     val desc = info["textDisplay"].string
 
                     val videoTracks = tracksFromDesc(desc, Int.MAX_VALUE)
-
 //                async(UI) {
 //                    println("youtube: video tracks = $videoTracks")
 //                }
@@ -609,14 +608,9 @@ data class YouTubeFullAlbum(
 
                         if (ratio > 80) {
                             info { "youtube: mapping song '${song.id.name}' to section ${vidTrack.start}-${vidTrack.end} called '${vidTrack.title}'" }
-                            val remote = if (song.remote != null) {
-                                song.remote.copy(start = vidTrack.start)
-                            } else {
-                                Song.RemoteDetails(null, null, null, start = vidTrack.start)
-                            }
-                            song.copy(remote = remote, duration = (vidTrack.end - vidTrack.start))
+                            song to vidTrack
                         } else null
-                    }
+                    }.toMap()
 
                     // Map tracks from description
 
@@ -660,18 +654,20 @@ data class YouTubeFullAlbum(
             if (Math.abs(durationDiff) <= 5500) { // Duration is just about the same
                 // So, just map the tracks in order.
                 // This is the mapping *least* likely to be correct.
-                val tracks = mutableListOf<Song>()
+                val tracks = mutableMapOf<Song, Track>()
                 // Add the average difference to each song, which should be < 1 second
                 val durationDiscrepancy = durationDiff / album.tracks.size
                 var currStart = 0
                 for (song in album.tracks) {
-                    val vidTrack = song.copy(remote = if (song.remote != null) {
-                        song.remote.copy(start = currStart)
-                    } else {
-                        Song.RemoteDetails(null, null, null, start = currStart)
-                    }, duration = song.duration + durationDiscrepancy)
-                    tracks.add(vidTrack)
-                    currStart += vidTrack.duration
+                    val duration = song.duration + durationDiscrepancy
+                    tracks[song] = Track("", currStart, currStart + duration)
+//                    val vidTrack = song.copy(remote = if (song.remote != null) {
+//                        song.remote.copy(start = currStart)
+//                    } else {
+//                        Song.RemoteDetails(null, null, null, start = currStart)
+//                    }, duration = song.duration + durationDiscrepancy)
+//                    tracks.add(vidTrack)
+                    currStart += duration
                 }
 
                 YouTubeFullAlbum(album, "", videoId, duration, tracks, null)
@@ -694,16 +690,22 @@ data class YouTubeFullAlbum(
 
                     if (ratio > 80) {
                         info { "youtube: mapping song '${song.id.displayName}' to section ${vidTrack.start}-${vidTrack.end} called '${vidTrack.title}'" }
-                        val remote = if (song.remote != null) {
-                            song.remote.copy(start = vidTrack.start)
-                        } else {
-                            Song.RemoteDetails(null, null, null, start = vidTrack.start)
-                        }
                         val videoSongDuration = vidTrack.end - vidTrack.start
                         val newDurationCorrect = abs(song.duration - videoSongDuration) < TimeUnit.MINUTES.toMillis(1)
-                        song.copy(remote = remote, duration = if (newDurationCorrect || song.duration <= 0) videoSongDuration else song.duration)
+                        val end = if (newDurationCorrect) {
+                            vidTrack.end
+                        } else {
+                            vidTrack.start + song.duration
+                        }
+                        song to vidTrack.copy(end = end)
+//                        val remote = if (song.remote != null) {
+//                            song.remote.copy(start = vidTrack.start)
+//                        } else {
+//                            Song.RemoteDetails(null, null, null, start = vidTrack.start)
+//                        }
+//                        song.copy(remote = remote, duration = if (newDurationCorrect || song.duration <= 0) videoSongDuration else song.duration)
                     } else null
-                }
+                }.toMap()
 
                 // Map tracks from description
 

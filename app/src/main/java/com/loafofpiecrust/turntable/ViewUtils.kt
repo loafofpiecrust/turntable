@@ -218,18 +218,10 @@ fun <T> List<T>.withoutElem(elem: T): List<T> {
 fun <T> List<T>.withReplaced(pos: Int, newVal: T): List<T>
     = take(pos) + newVal + drop(pos + 1)
 
-fun <T> List<T>.dedup(pred: (T, T) -> Boolean = { a, b -> a == b }): List<T> {
-    val result = ArrayList<T>(this.size)
-    this.forEach { curr ->
-        val dup = result.find { pred(curr, it) }
-        if (dup == null) {
-            result.add(curr)
-        }
-    }
-    return result
-}
+fun <T> List<T>.dedup(pred: (T, T) -> Boolean = { a, b -> a == b }): List<T> =
+    dedupMerge(pred) { a, b -> a }
 
-inline fun <T> List<T>.dedupMerge(pred: (T, T) -> Boolean, merger: (T, T) -> T): List<T> {
+inline fun <T> Collection<T>.dedupMerge(pred: (T, T) -> Boolean, merger: (T, T) -> T): List<T> {
     val result = ArrayList<T>(this.size)
     this.forEach { curr ->
         val dupIdx = result.indexOfFirst { pred(curr, it) }
@@ -243,7 +235,7 @@ inline fun <T> List<T>.dedupMerge(pred: (T, T) -> Boolean, merger: (T, T) -> T):
     return result
 }
 
-inline fun <T> List<T>.dedupMergeSorted(isDup: (T, T) -> Boolean, merger: (T, T) -> T): List<T> {
+inline fun <T> Collection<T>.dedupMergeSorted(isDup: (T, T) -> Boolean, merger: (T, T) -> T): List<T> {
     val result = ArrayList<T>(this.size)
     var prev: T? = null
     this.forEach { curr ->
@@ -255,7 +247,7 @@ inline fun <T> List<T>.dedupMergeSorted(isDup: (T, T) -> Boolean, merger: (T, T)
         }
         prev = curr
     }
-    return result
+    return result.apply { trimToSize() }
 }
 
 fun <T> List<T>.mergeSortDedup(other: List<T>, comp: Comparator<T>, merger: (T, T) -> T): List<T> {
@@ -334,6 +326,12 @@ fun <T> MutableList<T>.shift(from: Int, to: Int) {
 inline fun <T, R: Comparable<R>> List<T>.binarySearchElem(key: R, crossinline comp: (T) -> R) =
     getOrNull(binarySearchBy(key) { comp(it) })
 
+inline fun <T, R: Comparable<R>> List<T>.binarySearchNearestElem(key: R, crossinline comp: (T) -> R): T? {
+    val idx = binarySearchBy(key) { comp(it) }
+    // idx is negative if no _exact_ match found
+    return getOrNull(if (idx < 0) -idx else idx)
+}
+
 fun <T> List<T>.binarySearchElem(key: T, comparator: Comparator<in T>) =
     getOrNull(binarySearch(key, comparator))
 fun <T> List<T>.binarySearchNearestElem(key: T, comparator: Comparator<in T>): T? {
@@ -406,13 +404,9 @@ inline fun View.postDelayedLoop(intervalMs: Long, crossinline cb: () -> Boolean)
     }, intervalMs)
 }
 
-inline fun <T: Any, R> given(cond: T?, block: (T) -> R): R? = run {
-    if (cond != null && cond != false) {
-        block(cond)
-    } else null
-}
-inline fun <A, B, R> given(a: A?, b: B?, block: (A, B) -> R): R? = run {
-    if (a != null && b != null) {
+inline fun <T: Any, R> given(cond: T?, block: (T) -> R): R? = cond?.let(block)
+inline fun <A, B, R> given(a: A?, b: B?, block: (A, B) -> R): R? {
+    return if (a != null && b != null) {
         block(a, b)
     } else null
 }
@@ -420,6 +414,13 @@ inline fun <A, B, C, R> given(a: A?, b: B?, c: C?, block: (A, B) -> R): R? = run
     if (a != null && b != null && c != null) {
         block(a, b)
     } else null
+}
+inline fun <T: Any> mergeNullables(a: T?, b: T?, block: (T, T) -> T): T? {
+    return if (a != null) {
+        if (b != null) {
+            return block(a, b)
+        } else a
+    } else b
 }
 
 fun String.substrings(substrLength: Int): List<String> {

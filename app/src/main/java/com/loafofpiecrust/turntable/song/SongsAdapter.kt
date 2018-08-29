@@ -131,8 +131,8 @@ open class SongsAdapter(
 //        }
 
         MusicService.instance.switchMap {
-            given(it) {
-                it.player.queue.combineLatest(App.instance.internetStatus)
+            it?.let {
+                combineLatest(it.player.queue, App.instance.internetStatus)
             } ?: produceSingle(null to null)
         }.consumeEach(UI + subs) { (q, internet) ->
             if (song.id == q?.current?.id) {
@@ -154,7 +154,7 @@ open class SongsAdapter(
 //                    holder.statusIcon.visibility = View.GONE
 //                }
 
-                val c = ctx.resources.getColor(if (internet == App.InternetStatus.OFFLINE && song.local == null) {
+                val c = ctx.resources.getColor(if (internet == App.InternetStatus.OFFLINE && song !is LocalSong) {
                     R.color.text_unavailable
                 } else R.color.text)
                 holder.mainLine.textColor = c
@@ -211,7 +211,7 @@ open class SongsAdapter(
 //        if (category !is SongsFragment.Category.All) {
 //            task(UI + subs) {
 //                OnlineSearchService.instance.findDownload(song).consumeEach {
-//                    given(it) { dl ->
+//                    it?.let { dl ->
 //                        holder.progress.layoutParams = holder.progress.layoutParams.apply {
 //                            width = (holder.card.measuredWidth * dl.progress).toInt()
 //                        }

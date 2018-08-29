@@ -4,6 +4,9 @@ import android.os.Binder
 import android.os.Bundle
 import android.support.v4.app.BundleCompat
 import android.support.v4.app.Fragment
+import com.loafofpiecrust.turntable.App
+import com.loafofpiecrust.turntable.objectFromBytes
+import com.loafofpiecrust.turntable.objectToBytes
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
@@ -14,16 +17,18 @@ import kotlin.reflect.KProperty
  *
  * Inspired by Adam Powell, he mentioned it during his IO/17 talk about Kotlin
  */
-class FragmentArgument<T: Any>(val defaultValue: T? = null) : ReadWriteProperty<Fragment, T> {
-    var value: T? = null
+class FragmentArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty<Fragment, T> {
+    private var value: T? = null
 
     override operator fun getValue(thisRef: Fragment, property: KProperty<*>): T {
         if (value == null) {
             try {
                 val args = thisRef.arguments
                     ?: throw IllegalStateException("Cannot read property ${property.name} if no arguments have been set")
+                val storedValue = args.get(property.name)
+
                 @Suppress("UNCHECKED_CAST")
-                value = args.get(property.name) as T
+                value = (storedValue as? T) ?: App.kryo.objectFromBytes(storedValue as ByteArray)
             } catch (e: Throwable) {
                 // If the argument wasn't provided, attempt to fallback on the default value.
                 value = defaultValue
@@ -52,8 +57,10 @@ class FragmentArgument<T: Any>(val defaultValue: T? = null) : ReadWriteProperty<
             is Bundle -> args?.putBundle(key, value)
             is Binder -> BundleCompat.putBinder(args!!, key, value)
             is android.os.Parcelable -> args?.putParcelable(key, value)
-            is java.io.Serializable -> args?.putSerializable(key, value)
-            else -> throw IllegalStateException("Type ${value.javaClass.canonicalName} of property ${property.name} is not supported")
+//            is java.io.Serializable -> args?.putSerializable(key, value)
+            else -> args?.putByteArray(key, App.kryo.objectToBytes(value))
         }
     }
 }
+
+fun <T: Any> Fragment.arg(defaultValue: T? = null) = FragmentArgument(defaultValue)

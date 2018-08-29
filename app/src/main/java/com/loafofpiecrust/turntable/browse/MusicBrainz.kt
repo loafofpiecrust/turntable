@@ -10,6 +10,7 @@ import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.artist.RemoteArtist
 import com.loafofpiecrust.turntable.service.Library
+import com.loafofpiecrust.turntable.song.RemoteSong
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
 import com.loafofpiecrust.turntable.util.Http
@@ -40,7 +41,7 @@ object MusicBrainz: SearchApi, AnkoLogger {
     @Parcelize
     data class ArtistDetails(
         val id: String
-    ): Artist.RemoteDetails {
+    ): RemoteArtist.Details {
         override val albums: List<Album> by lazy {
             runBlocking { resolveAlbums(id) } // TODO: implement
         }
@@ -72,9 +73,9 @@ object MusicBrainz: SearchApi, AnkoLogger {
                     val images = res["image"].nullArray
                     AlbumDetails(
                         mbid,
-                        thumbnailUrl = given(images) { it[2]["#text"].nullString },
+                        thumbnailUrl = images?.let { it[2]["#text"].nullString },
                         listeners = res["listeners"].string.toInt()
-                    ) to given(images) { it.last()["#text"].nullString }
+                    ) to images?.let { it.last()["#text"].nullString }
                 }
             }
 
@@ -190,17 +191,16 @@ object MusicBrainz: SearchApi, AnkoLogger {
                     //                                }
 //                async(UI) { println("album track '${name}'") }
 
-                    Song(
-                        null,
-                        Song.RemoteDetails(
-                            tryOr(null) { recording["id"].string },
-                            rgid,
-                            null
-                        ),
+                    RemoteSong(
                         SongId(
                             title,
                             albumId,
                             tryOr(albumId.artist) { ArtistId(recording["artist-credit"][0]["name"].string) }
+                        ),
+                        RemoteSong.Details(
+                            tryOr(null) { recording["id"].string },
+                            rgid,
+                            null
                         ),
                         track = recording["position"].nullInt ?: idx + 1,
                         disc = discIdx + 1,
@@ -263,8 +263,7 @@ object MusicBrainz: SearchApi, AnkoLogger {
             "query" to query
         )).gson["recordings"].array.map {
             val artistName = it["artist-credit"][0]["artist"]["name"].string
-            Song(
-                null, null,
+            RemoteSong(
                 SongId(
                     it["title"].string,
                     it["releases"][0]["title"].string,
@@ -344,11 +343,11 @@ object MusicBrainz: SearchApi, AnkoLogger {
                 }
 
 //                        val (remote, cover) = Album.coverArtFor(albumId).let { imgUrls ->
-//                            Album.RemoteDetails(
+//                            Album.Details(
 //                                albumId,
 //                                this@Artist.mbid,
 //                                imgUrls?.get(0),
-//                                type = Album.RemoteDetails.Type.MUSICBRAINZ
+//                                type = Album.Details.Type.MUSICBRAINZ
 //                            ) to imgUrls?.get(1)
 //                        }
 

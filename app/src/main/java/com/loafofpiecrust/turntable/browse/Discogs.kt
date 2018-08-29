@@ -10,6 +10,7 @@ import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.artist.RemoteArtist
 import com.loafofpiecrust.turntable.service.Library
+import com.loafofpiecrust.turntable.song.RemoteSong
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
 import com.loafofpiecrust.turntable.util.Http
@@ -46,7 +47,7 @@ object Discogs: SearchApi, AnkoLogger {
         override val biography: String = "",
         val artworkUrl: String? = null//,
 //        val members:
-    ): Artist.RemoteDetails {
+    ): RemoteArtist.Details {
         override val albums: List<Album> by lazy {
             runBlocking { discographyHtml(id) }
 //            runBlocking { discography(id) }
@@ -181,7 +182,7 @@ object Discogs: SearchApi, AnkoLogger {
         }
     }
 
-//    override suspend fun find(song: Song): Song.RemoteDetails? {
+//    override suspend fun find(song: Song): Song.Details? {
 //        return given(searchFor(song.id).firstOrNull()) {
 //            val res = apiRequest("https://api.discogs.com/artists/$it").obj
 //            ArtistDetails(
@@ -203,7 +204,7 @@ object Discogs: SearchApi, AnkoLogger {
             }
             val relTy = it["type"].nullString
             val format = it["format"].nullString?.split(", ")
-            val type = given(format) {
+            val type = format?.let {
                 when {
                     relTy == "LP" -> Album.Type.LP
                     relTy == "Single" -> Album.Type.SINGLE
@@ -503,13 +504,12 @@ object Discogs: SearchApi, AnkoLogger {
         return res["tracklist"].array.map { it.obj }.mapIndexed { idx, it ->
             val title = it["title"].string
             val durationParts = it["duration"].nullString?.split(':')
-            val duration = given(durationParts) {
+            val duration = durationParts?.let {
                 if (it.size > 1) {
                     (it[0].toInt() * 60 + it[1].toInt()) * 1000
                 } else 0
             } ?: 0
-            Song(
-                null, null,
+            RemoteSong(
                 SongId(
                     title,
                     AlbumId(albumTitle, artistName),

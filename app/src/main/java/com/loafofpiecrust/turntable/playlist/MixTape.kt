@@ -151,7 +151,7 @@ class MixTape(
             false
         } else {
             val side = _tracks.value[sideIdx]
-            _tracks puts _tracks.value.withReplaced(sideIdx, side + song.minimize())
+            _tracks puts _tracks.value.withReplaced(sideIdx, side + song)
             updateLastModified()
 //            !sideIsFull(sideIdx)
             true
@@ -164,7 +164,7 @@ class MixTape(
     fun addAll(sideIdx: Int, newSongs: List<Song>): Boolean {
         // Adds songs from the given list until that side is full (add returns false)
         // or the list is spent (all are added).
-        return newSongs.all { add(sideIdx, it.minimize()) }
+        return newSongs.all { add(sideIdx, it) }
     }
 
     fun replaceSides(newTracks: List<List<Song>>) {

@@ -13,7 +13,7 @@ import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.song.SongsFragmentStarter
 import com.loafofpiecrust.turntable.style.standardStyle
-import com.loafofpiecrust.turntable.sync.FriendPickerDialogStarter
+import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.popMainContent
 import com.loafofpiecrust.turntable.util.BG_POOL
@@ -148,7 +148,7 @@ class PlaylistDetailsFragment: BaseFragment() {
                     }
 
                     menuItem("Share", showIcon = false).onClick {
-                        FriendPickerDialogStarter.newInstance(
+                        FriendPickerDialog(
                             SyncService.Message.Playlist(playlistId),
                             "Share"
                         ).show(ctx)

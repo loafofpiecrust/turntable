@@ -21,11 +21,11 @@ import com.frostwire.jlibtorrent.TorrentInfo
 import com.github.salomonbrys.kotson.nullObj
 import com.github.salomonbrys.kotson.obj
 import com.github.salomonbrys.kotson.string
+import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.source.MediaPeriod
+import com.google.android.exoplayer2.source.MediaSource
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.album.Album
-import com.loafofpiecrust.turntable.album.AlbumId
-import com.loafofpiecrust.turntable.album.LocalAlbum
-import com.loafofpiecrust.turntable.album.YouTubeFullAlbum
+import com.loafofpiecrust.turntable.album.*
 import com.loafofpiecrust.turntable.artist.MusicDownload
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
@@ -170,7 +170,7 @@ class OnlineSearchService : Service(), AnkoLogger {
     data class SongDownload(val song: Song, val progress: Double, val id: Long) {
         companion object {
             val COMPARATOR = Comparator<SongDownload> { a, b ->
-                Library.SONG_COMPARATOR.compare(a.song, b.song)
+                a.song.id.compareTo(b.song.id)
             }
         }
     }
@@ -184,33 +184,29 @@ class OnlineSearchService : Service(), AnkoLogger {
 
     @DynamoDBTable(tableName="MusicStreams")
     data class SongDBEntry(
-        @get:DynamoDBHashKey(attributeName="SongId")
+        @DynamoDBHashKey(attributeName="SongId")
         var id: String,
-        @get:DynamoDBAttribute
         var youtubeId: String? = null,
-        @get:DynamoDBAttribute
         var timestamp: Long = System.currentTimeMillis(),
-        @get:DynamoDBAttribute
         var stream128: String? = null,
-        @get:DynamoDBAttribute
         var stream192: String? = null
     ) {
         constructor(): this("")
 
         /// Map of videoIds reported by users as not correct, to # of reports
-        @get:DynamoDBAttribute
+        @DynamoDBAttribute
         var blacklist: Map<String, Int> = mapOf()
     }
 
     @DynamoDBTable(tableName="TurntableAlbums")
     data class AlbumDBEntry(
-        @get:DynamoDBHashKey var id: String,
-        @get:DynamoDBAttribute var youtubeId: String?,
-        @get:DynamoDBAttribute var timestamp: Long = System.currentTimeMillis(),
-        @get:DynamoDBAttribute var stream: String? = null,
-        @get:DynamoDBAttribute var hqStream: String? = null,
-        @get:DynamoDBAttribute var torrentUrl: String? = null,
-        @get:DynamoDBAttribute var tracks: List<Pair<String, Range<Long>>> = listOf()
+        @DynamoDBHashKey var id: String,
+        var youtubeId: String?,
+        var timestamp: Long = System.currentTimeMillis(),
+        var stream: String? = null,
+        var hqStream: String? = null,
+        var torrentUrl: String? = null,
+        var tracks: List<Pair<String, Range<Long>>> = listOf()
     )
 
 
@@ -280,16 +276,21 @@ class OnlineSearchService : Service(), AnkoLogger {
         }.await()
     }
 
-    suspend fun getSongStreams(song: Song): Pair<Song, StreamStatus> {
+    data class SongStream(
+        val status: StreamStatus,
+        val start: Int = 0,
+        val end: Int = 0
+    )
+    suspend fun getSongStreams(song: Song): SongStream {
         val key = song.id.dbKey
         val existing = getExistingEntry(key)
         info { "youtube: ${song.id} existing entry? $existing" }
         return if (existing is StreamStatus.Available) {
-            song to if (existing.isStale) {
+            SongStream(if (existing.isStale) {
                 createEntry(key, existing.youtubeId)
-            } else existing
+            } else existing)
         } else if (existing is StreamStatus.Unavailable && !existing.isStale) {
-            song to existing
+            SongStream(existing)
         } else {
             val albumKey = song.id.album.dbKey
             val album = /*Library.instance.findAlbumOfSong(song).first()
@@ -297,17 +298,24 @@ class OnlineSearchService : Service(), AnkoLogger {
 
             getExistingEntry(albumKey).let { entry ->
                 if (entry is StreamStatus.Available) {
-                    given(
-                        YouTubeFullAlbum.grabFromPage(album, entry.youtubeId)
-                            ?.tracks?.firstOrNull()
-//                            ?.tracks?.firstOrNull { it.id == song.id }
-                    ) { it to entry }
+                    YouTubeFullAlbum.grabFromPage(album, entry.youtubeId)?.let { ytAlbum ->
+                        ytAlbum.tracks[song]?.let { ytTrack ->
+                            SongStream(
+                                entry,
+                                start = ytTrack.start,
+                                end = ytTrack.end
+                            )
+                        }
+                    }
                 } else null
             } ?: given(YouTubeFullAlbum.search(album)) { ytAlbum ->
-                given(ytAlbum.tracks.firstOrNull()) {
-                    it to createEntry(albumKey, ytAlbum.id)
+                given(ytAlbum.tracks[song]) {
+                    SongStream(
+                        createEntry(albumKey, ytAlbum.id),
+                        it.start, it.end
+                    )
                 }
-            } ?: tryOr(song to StreamStatus.Unknown()) {
+            } ?: tryOr(SongStream(StreamStatus.Unknown())) {
                 val res = Http.get("https://us-central1-turntable-3961c.cloudfunctions.net/parseStreamsFromYouTube", params = mapOf(
                     "title" to song.id.displayName.toLowerCase(),
                     "album" to song.id.album.displayName.toLowerCase(),
@@ -322,7 +330,7 @@ class OnlineSearchService : Service(), AnkoLogger {
                     saveYouTubeStreamUrl(SongDBEntry(
                         key, null, System.currentTimeMillis()
                     ))
-                    song to StreamStatus.Unavailable()
+                    SongStream(StreamStatus.Unavailable())
                 } else {
                     val hq = res["highQuality"].nullObj?.get("url")?.string
                     val id = res["id"].string
@@ -331,7 +339,7 @@ class OnlineSearchService : Service(), AnkoLogger {
                         stream128 = lq,
                         stream192 = hq
                     ))
-                    song to StreamStatus.Available(id, lq, hq)
+                    SongStream(StreamStatus.Available(id, lq, hq))
                 }
             }
         }
@@ -622,7 +630,7 @@ class OnlineSearchService : Service(), AnkoLogger {
 ////            ActivityStarter.fill(this, intent)
 //            val downloadId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, 0)
 //            val dl = OnlineSearchService.instance.downloadingSongs[downloadId]
-//            given(dl) { (song, progress) ->
+//            dl?.let { (song, progress) ->
 //                val query = DownloadManager.Query()
 //                query.setFilterById(downloadId)
 //                val cur = context.downloadManager.query(query)
@@ -707,8 +715,10 @@ class OnlineSearchService : Service(), AnkoLogger {
                                 if (dl.song.disc > 0) {
                                     tags.setField(FieldKey.DISC_NO, dl.song.disc.toString())
                                 }
-                                if (dl.song.year != null && dl.song.year > 0) {
-                                    tags.setField(FieldKey.YEAR, dl.song.year.toString())
+                                dl.song.year?.let {
+                                    if (it > 0) {
+                                        tags.setField(FieldKey.YEAR, it.toString())
+                                    }
                                 }
                                 AudioFileIO.write(ctx, f)
                                 App.instance.addToMediaStore(path)

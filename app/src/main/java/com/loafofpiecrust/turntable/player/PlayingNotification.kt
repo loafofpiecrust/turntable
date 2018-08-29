@@ -69,7 +69,7 @@ class PlayingNotification(private val service: MusicService) {
                 setMediaSession(service.mediaSession.sessionToken)
                 setShowCancelButton(true)
                 setCancelButtonIntent(service.notifyIntent(
-                    SyncService.Message.Stop()
+                    MusicService.Action.STOP
                 ))
             })
 
@@ -84,28 +84,30 @@ class PlayingNotification(private val service: MusicService) {
             setAutoCancel(false)
 //            setOngoing(playing)
             setColorized(true)
-            given(paletteColor) { color = it }
+            paletteColor?.let { color = it }
 //            setBadgeIconType(R.drawable.ic_cake)
             // Colors the name only
 
             // Previous
             if (service.player.hasPrev) {
-                addAction(R.drawable.ic_skip_previous, "Previous", service.notifyIntent(
-                    SyncService.Message.RelativePosition(-1)
-                ))
+                addAction(
+                    R.drawable.ic_skip_previous,
+                    "Previous",
+                    service.notifyIntent(MusicService.Action.PREVIOUS)
+                )
             }
 
             // Toggle pause
             if (playing) {
-                addAction(R.drawable.ic_pause, "Pause", service.notifyIntent(SyncService.Message.Pause()))
+                addAction(R.drawable.ic_pause, "Pause", service.notifyIntent(MusicService.Action.PAUSE))
             } else {
-                addAction(R.drawable.ic_play_arrow, "Play", service.notifyIntent(SyncService.Message.Play()))
+                addAction(R.drawable.ic_play_arrow, "Play", service.notifyIntent(MusicService.Action.PLAY))
             }
 
             // Next
             if (service.player.hasNext) {
                 addAction(R.drawable.ic_skip_next, "Next", service.notifyIntent(
-                    SyncService.Message.RelativePosition(1)
+                    MusicService.Action.NEXT
                 ))
             }
 

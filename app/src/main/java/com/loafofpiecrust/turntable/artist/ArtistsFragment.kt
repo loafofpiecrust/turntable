@@ -13,9 +13,12 @@ import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
+import com.loafofpiecrust.turntable.song.imageTransition
+import com.loafofpiecrust.turntable.song.nameTransition
 import com.loafofpiecrust.turntable.style.turntableStyle
 import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.util.BG_POOL
+import com.loafofpiecrust.turntable.util.arg
 import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.replayOne
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
@@ -177,7 +180,7 @@ class ArtistsAdapter(
         holder.header.transitionName = item.id.nameTransition
 
         holder.mainLine.text = item.id.displayName
-        given(item.id.altName) {
+        item.id.altName?.let {
             holder.subLine.text = it
         }
 

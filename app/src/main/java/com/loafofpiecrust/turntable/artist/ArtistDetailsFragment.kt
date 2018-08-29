@@ -18,8 +18,11 @@ import com.loafofpiecrust.turntable.album.AlbumsFragment
 import com.loafofpiecrust.turntable.album.albumList
 import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.service.Library
+import com.loafofpiecrust.turntable.song.imageTransition
+import com.loafofpiecrust.turntable.song.nameTransition
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
+import com.loafofpiecrust.turntable.util.arg
 import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.switchMap
 import kotlinx.coroutines.experimental.channels.*
@@ -43,13 +46,15 @@ import org.jetbrains.anko.support.v4.ctx
  * 3. artist id (from saved state)
  */
 class ArtistDetailsFragment: BaseFragment() {
+    private var artistId: ArtistId by arg()
+
     enum class Mode(@StringRes val titleRes: Int) {
         LIBRARY_AND_REMOTE(R.string.artist_content_all),
         LIBRARY(R.string.artist_content_library),
         REMOTE(R.string.artist_content_remote),
     }
+    private var initialMode: Mode by arg(Mode.LIBRARY)
 
-    @Arg lateinit var artistId: ArtistId
     // Procedural creation:
     // init: artistId is known
     //       create channel of found artist from id (maybe local or remote)
@@ -63,23 +68,9 @@ class ArtistDetailsFragment: BaseFragment() {
     private lateinit var artist: BroadcastChannel<Artist>
     private lateinit var albums: BroadcastChannel<List<Album>>
 
-    @Arg(optional = true) var initialMode = Mode.LIBRARY
 
     private val currentMode by lazy { ConflatedBroadcastChannel(initialMode) }
 
-    companion object {
-        fun fromId(id: ArtistId): ArtistDetailsFragment {
-            return ArtistDetailsFragmentStarter.newInstance(id)
-        }
-
-        fun fromArtist(artist: Artist, mode: Mode = Mode.LIBRARY): ArtistDetailsFragment {
-            return ArtistDetailsFragment().also {
-                it.initialMode = mode
-                it.artistId = artist.id
-                it.artist = ConflatedBroadcastChannel(artist)
-            }
-        }
-    }
 
 
     override fun onCreate() {
@@ -238,6 +229,19 @@ class ArtistDetailsFragment: BaseFragment() {
             id = R.id.albums
         }.lparams(width = matchParent) {
             behavior = AppBarLayout.ScrollingViewBehavior()
+        }
+    }
+
+
+    companion object {
+        fun fromId(id: ArtistId) = ArtistDetailsFragment().apply {
+            this.artistId = id
+        }
+
+        fun fromArtist(artist: Artist, mode: Mode = Mode.LIBRARY) = ArtistDetailsFragment().apply {
+            initialMode = mode
+            artistId = artist.id
+            this.artist = ConflatedBroadcastChannel(artist)
         }
     }
 }

@@ -13,6 +13,8 @@ import com.bumptech.glide.signature.ObjectKey
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.song.imageTransition
+import com.loafofpiecrust.turntable.song.nameTransition
 import com.loafofpiecrust.turntable.textStyle
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerGridItem
@@ -43,7 +45,7 @@ class AlbumsAdapter(
     contentsSame = { a, b, aIdx, bIdx -> a == b }
 ), FastScrollRecyclerView.SectionedAdapter {
     override fun getSectionName(position: Int): String
-        = data[position].id.sortTitle.first().toUpperCase().toString()
+        = data[position].id.sortName.first().toUpperCase().toString()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int)
         = RecyclerGridItem(parent, 3)
@@ -84,11 +86,9 @@ class AlbumsAdapter(
             holder.coverImage.imageResource = R.drawable.ic_default_album
             val job = async(BG_POOL) {
                 album.loadThumbnail(Glide.with(holder.card.context)).consumeEach {
-                    val req = given(it) {
-                        it.apply(opts)
-                            .transition(DrawableTransitionOptions().crossFade(200))
-                            .listener(album.loadPalette(holder.card, holder.mainLine, holder.subLine))
-                    }
+                    val req = it?.apply(opts)
+                        ?.transition(DrawableTransitionOptions().crossFade(200))
+                        ?.listener(album.loadPalette(holder.card, holder.mainLine, holder.subLine))
 
                     withContext(UI) {
                         req?.into(holder.coverImage) ?: run {
@@ -165,14 +165,12 @@ class AlbumSectionAdapter(
 
             imageJobs.put(holder, async(UI) {
                 album.loadThumbnail(Glide.with(holder.card.context)).consumeEach {
-                    given(it) {
-                        it.apply(opts)
-                            .transition(DrawableTransitionOptions().crossFade(200))
-                            .listener(album.loadPalette(holder.card, holder.mainLine, holder.subLine))
-                            .into(holder.coverImage)
-                    } ?: run {
-                        holder.coverImage.imageResource = R.drawable.ic_default_album
-                    }
+                    it?.apply(opts)
+                        ?.transition(DrawableTransitionOptions().crossFade(200))
+                        ?.listener(album.loadPalette(holder.card, holder.mainLine, holder.subLine))
+                        ?.into(holder.coverImage) ?: run {
+                            holder.coverImage.imageResource = R.drawable.ic_default_album
+                        }
                 }
             })?.cancelSafely()
         }

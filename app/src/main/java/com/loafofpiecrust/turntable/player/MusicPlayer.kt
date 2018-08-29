@@ -495,7 +495,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         // TODO: Decide on percent threshold to count as a "full" listen. Is half the song enough?
         if (percent > 0.5) {
             // TODO: Add timestamp and percent to history entries
-            UserPrefs.history appends HistoryEntry(_queue.value.current!!.minimize())
+            UserPrefs.history appends HistoryEntry(_queue.value.current!!)
         }
         totalListenedTime = 0
     }

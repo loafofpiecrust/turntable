@@ -33,13 +33,19 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.song.MusicId
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
+import com.loafofpiecrust.turntable.song.SyncSong
 import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.ui.MainActivityStarter
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.experimental.Deferred
+import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.zip
+import kotlinx.coroutines.experimental.channels.actor
+import kotlinx.coroutines.experimental.channels.consumeEach
+import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
 import java.lang.ref.WeakReference
 import java.util.*
@@ -52,6 +58,9 @@ class SyncService : FirebaseMessagingService() {
         private const val API_KEY = BuildConfig.FIREBASE_API_KEY
         private const val PROJECT_ID = BuildConfig.FIREBASE_PROJECT_ID
         private const val SERVER_KEY = BuildConfig.FIREBASE_SERVER_KEY
+
+        /// Amount of time (milliseconds) to keep a session alive without hearing a response.
+        private const val TIMEOUT = 20_000
 
         val selfUser = User()
 
@@ -67,7 +76,7 @@ class SyncService : FirebaseMessagingService() {
         private var googleAccount: FirebaseUser? = null
             set(value) {
                 field = value
-                given (value) {
+                value?.let {
                     selfUser.displayName = it.displayName
                     given (it.email) {
                         if (it.isNotEmpty()) selfUser.username = it
@@ -76,28 +85,57 @@ class SyncService : FirebaseMessagingService() {
             }
 
         val mode: ConflatedBroadcastChannel<Mode> by lazy {
-            val res = ConflatedBroadcastChannel<Mode>(Mode.None())
+            ConflatedBroadcastChannel<Mode>(Mode.None()).also {
+                it.openSubscription()
+                    .changes()
+                    .consumeEach(BG_POOL) { (prev, value) ->
+                        if (prev is Mode.InGroup) {
+                            leaveGroup()
+                        } else if (prev is Mode.Topic) {
+                            FirebaseMessaging.getInstance().unsubscribeFromTopic(prev.topic)
+                        }
 
-            res.openSubscription().zip(res.openSubscription().skip(1))
-                .distinctSeq()
-                .consumeEach(BG_POOL) { (prev, value) ->
-                    if (prev is Mode.InGroup) {
-                        leaveGroup()
-                    } else if (prev is Mode.Topic) {
-                        FirebaseMessaging.getInstance().unsubscribeFromTopic(prev.topic)
+                        if (value is Mode.Topic) {
+                            FirebaseMessaging.getInstance().subscribeToTopic(value.topic)
+                        }
+                        instance?.get()?.updateNotification()
                     }
-
-                    if (value is Mode.Topic) {
-                        FirebaseMessaging.getInstance().subscribeToTopic(value.topic)
-                    }
-                    instance?.get()?.updateNotification()
-                }
-
-            res
+            }
         }
 
-        private var lastSentTime = 0L
-        private var lastDeliveredTime = 0L
+        /// when a message hasn't been received in TIMEOUT seconds, end sync session.
+        private enum class MessageDir { SENT, RECEIVED }
+        private val pinger = actor<MessageDir>(BG_POOL) {
+            var timer: Job? = null
+            var lastSent: Long = 0
+            consumeEach { dir -> when (dir) {
+                // receiving a ping keeps the session alive
+                MessageDir.RECEIVED -> if (timer?.cancel() == true) {
+                    latency puts System.currentTimeMillis() - lastSent
+                }
+                // after some timeout, end the sync session
+                MessageDir.SENT -> {
+                    if (timer == null || timer!!.isCompleted) {
+                        lastSent = System.currentTimeMillis()
+                        timer = launch(BG_POOL) {
+                            delay(TIMEOUT)
+
+                            val mode = mode.value
+                            val name = when (mode) {
+                                is Mode.OneOnOne -> mode.other.name
+                                is Mode.InGroup -> mode.group.name
+                                else -> TODO()
+                            }
+                            launch(UI) {
+                                App.instance.toast("Connection to $name lost")
+                            }
+                            SyncService.mode puts Mode.None()
+                        }
+                    }
+                }
+            } }
+        }
+
         val latency = ConflatedBroadcastChannel(0L)
 
 
@@ -108,22 +146,9 @@ class SyncService : FirebaseMessagingService() {
         }
 
         fun send(msg: Message, to: User) = send(msg, Mode.OneOnOne(to))
-
-        fun send(msg: Message) {
-            val now = System.currentTimeMillis()
-            val mode = this.mode.value
-            if (lastSentTime > 0 && lastSentTime > lastDeliveredTime && now - lastSentTime > TimeUnit.MINUTES.toMillis(3)) {
-                if (mode is Mode.OneOnOne) {
-                    task(UI) {
-                        App.instance.toast("Connection with ${mode.other.name} lost")
-                    }
-                }
-                SyncService.mode puts Mode.None()
-                lastSentTime = 0
-                lastDeliveredTime = 0
-            } else {
-                lastSentTime = System.currentTimeMillis()
-                send(msg, SyncService.mode.value)
+        fun send(msg: Message) = send(msg, mode.value).also {
+            if (msg !is Message.Ping) {
+                pinger.offer(MessageDir.SENT)
             }
         }
 
@@ -164,6 +189,7 @@ class SyncService : FirebaseMessagingService() {
 
             debug { "Send response $res" }
             // TODO: Process messages that fail to send to part of a group.
+            // TODO: Cache messages sent when there's no connection, then dispatch them once we regain connection.
         }
 
         suspend fun createGroup(name: String): Group? {
@@ -297,6 +323,8 @@ class SyncService : FirebaseMessagingService() {
         }
     }
 
+
+
     init {
         instance = WeakReference(this)
     }
@@ -311,39 +339,49 @@ class SyncService : FirebaseMessagingService() {
         @Parcelize data class Topic(val topic: String): Mode()
     }
 
-    sealed class Message: Parcelable {
+    sealed class Message {
         internal open fun minimize(): Message = this
+        /// seconds
+        internal open val timeout: Long get() = TimeUnit.MINUTES.toSeconds(3)
 
-        @Parcelize class Play: Message()
-        @Parcelize class Pause: Message()
-        @Parcelize class TogglePause: Message()
-        @Parcelize class Stop: Message()
-        @Parcelize data class QueuePosition(val pos: Int): Message()
-        @Parcelize data class RelativePosition(val diff: Int): Message()
-        @Parcelize data class Enqueue(
+        class Play: Message()
+        class Pause: Message()
+        class TogglePause: Message()
+        class Stop: Message()
+        data class QueuePosition(val pos: Int): Message()
+        data class RelativePosition(val diff: Int): Message()
+        data class Enqueue(
             val songs: List<Song>,
             val mode: MusicPlayer.EnqueueMode
         ): Message() {
-            override fun minimize() = copy(songs = songs.map { it.minimizeForSync() })
+            override fun minimize() = copy(songs = songs.map { SyncSong(it.id) })
         }
-        @Parcelize data class RemoveFromQueue(val pos: Int): Message()
-        @Parcelize data class PlaySongs(
+        data class RemoveFromQueue(val pos: Int): Message()
+        data class PlaySongs(
             val songs: List<Song>,
             val pos: Int = 0,
             val mode: MusicPlayer.OrderMode = MusicPlayer.OrderMode.SEQUENTIAL
         ): Message() {
-            override fun minimize() = copy(songs = songs.map { it.minimizeForSync() })
+//            override fun minimize() = copy(songs = songs.map { it.minimizeForSync() })
         }
-        @Parcelize data class SeekTo(val pos: Long): Message()
-        @Parcelize class SyncRequest: Message()
-        @Parcelize class EndSync: Message()
-        @Parcelize data class SyncResponse(val accept: Boolean): Message()
-        @Parcelize class FriendRequest: Message()
-        @Parcelize data class FriendResponse(val accept: Boolean): Message()
-        @Parcelize data class Recommendation(val content: MusicId): Message()
-        @Parcelize data class Playlist(val id: UUID): Message()
-        @Parcelize class Ping: Message()
-        @Parcelize class ClearQueue: Message()
+        data class SeekTo(val pos: Long): Message()
+        class SyncRequest: Message() {
+            override val timeout get() = TimeUnit.MINUTES.toSeconds(20)
+        }
+        class EndSync: Message()
+        data class SyncResponse(val accept: Boolean): Message()
+        class FriendRequest: Message() {
+            override val timeout get() = TimeUnit.DAYS.toSeconds(28)
+        }
+        data class FriendResponse(val accept: Boolean): Message() {
+            override val timeout get() = TimeUnit.DAYS.toSeconds(28)
+        }
+        data class Recommendation(val content: MusicId): Message() {
+            override val timeout get() = TimeUnit.DAYS.toSeconds(28)
+        }
+        data class Playlist(val id: UUID): Message()
+        class Ping: Message()
+        class ClearQueue: Message()
     }
 
 
@@ -360,7 +398,7 @@ class SyncService : FirebaseMessagingService() {
         constructor(): this("", "", null)
 
         @get:DynamoDBIgnore
-        val name get() = given(displayName) {
+        val name get() = displayName?.let {
             if (it.isNotBlank()) it else username
         } ?: username
 
@@ -463,6 +501,7 @@ class SyncService : FirebaseMessagingService() {
         if (mode is Mode.OneOnOne && message !is Message.EndSync) {
             if (mode.other.deviceId == sender.deviceId) {
                 // Only ping if the last message was not a ping
+                // This prevents an infinite ping circle, which is generally unnecessary.
                 if (message !is Message.Ping) {
                     send(Message.Ping())
                 }
@@ -561,7 +600,7 @@ class SyncService : FirebaseMessagingService() {
 
             is Message.Recommendation -> task {
                 given(when (message.content) {
-                    is SongId -> Song.justForSearch(message.content)
+                    is SongId -> SearchApi.find(message.content)
                     is AlbumId -> SearchApi.find(message.content)
                     is ArtistId -> SearchApi.find(message.content)
                     else -> TODO("Cover other cases")
@@ -571,9 +610,10 @@ class SyncService : FirebaseMessagingService() {
             }
 
             is Message.Ping -> {
+                pinger.offer(MessageDir.RECEIVED)
                 // Confirms that the last message sent was received.
-                lastDeliveredTime = System.currentTimeMillis()
-                latency.offer(lastDeliveredTime - lastSentTime)
+//                lastDeliveredTime = System.currentTimeMillis()
+//                latency.offer(lastDeliveredTime - lastSentTime)
             }
 
             is Message.Playlist -> task {

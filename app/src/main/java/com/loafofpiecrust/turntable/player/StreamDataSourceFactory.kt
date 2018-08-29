@@ -13,6 +13,7 @@ import com.google.android.exoplayer2.upstream.DataSource
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.util.BG_POOL
 import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.launch
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -101,8 +102,11 @@ class StreamMediaPeriod(
     override fun prepare(callback: MediaPeriod.Callback, positionUs: Long) {
         // Loading happens here, telling `callback` when it's done.
         this.callback = callback
+        launch(BG_POOL) {
+            // TODO: Skip somewhere if a song can't be loaded
+            val media = song.loadMedia() ?:
+                throw MissingResourceException("No stream to load!", Song.Media::class.java.simpleName, song.id.toString())
 
-        fun setupMedia(media: Song.Media) {
             val start = TimeUnit.MILLISECONDS.toMicros(media.start.toLong())
             val end = if (media.end > 0) {
                 TimeUnit.MILLISECONDS.toMicros(media.end.toLong())
@@ -117,19 +121,7 @@ class StreamMediaPeriod(
                 null, null
             ), start, end)
 
-            callback.onContinueLoadingRequested(this)
-        }
-
-        val local = song.localMedia
-        if (local != null) {
-            setupMedia(local)
-        } else async(BG_POOL) {
-            val remote = song.remoteMedia()
-            if (remote == null) {
-                maybeThrowPrepareError()
-                throw MissingResourceException("No stream to load!", Song.Media::class.java.simpleName, song.id.toString())
-            }
-            setupMedia(remote)
+            callback.onContinueLoadingRequested(this@StreamMediaPeriod)
         }
     }
 

@@ -36,8 +36,7 @@ class LibraryFragment: BaseFragment() {
 
     private val currentTabIdx = ConflatedBroadcastChannel<Int>()
 
-    val currentTab get() = currentTabIdx.openSubscription()
-        .combineLatest(tabs.openSubscription()) { idx, tabs -> tabs[idx] }
+    val currentTab get() = combineLatest(currentTabIdx.openSubscription(), tabs.openSubscription()) { idx, tabs -> tabs[idx] }
 
     val fragments = mutableMapOf<String, WeakReference<BaseFragment>>()
 

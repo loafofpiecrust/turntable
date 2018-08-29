@@ -49,14 +49,14 @@ class AlbumsFragment : BaseFragment() {
                             when (mode) {
                                 ArtistDetailsFragment.Mode.LIBRARY -> it
                                 ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE ->
-                                    given (SearchApi.find(artist)) { remote -> MergedArtist(it, remote) } ?: it
+                                    SearchApi.find(artist)?.let { remote -> MergedArtist(it, remote) } ?: it
                                 ArtistDetailsFragment.Mode.REMOTE -> it // use case?
                             }
                         } else {
                             when (mode) {
                                 ArtistDetailsFragment.Mode.LIBRARY -> it
                                 ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE ->
-                                    given (Library.instance.findArtist(artist).firstOrNull()) { remote -> MergedArtist(it!!, remote) } ?: it
+                                    Library.instance.findArtist(artist).firstOrNull()?.let { remote -> MergedArtist(it!!, remote) } ?: it
                                 ArtistDetailsFragment.Mode.REMOTE -> it // use case?
                             }
                         }
@@ -280,7 +280,7 @@ inline fun ViewManager.albumList(
 //                if (cat !is Category.All) {
 //                    when (sortBy) {
 //                        SortBy.NONE -> it
-//                        SortBy.TITLE -> it.sortedWith(compareByIgnoreCase({ it.id.sortTitle }))
+//                        SortBy.TITLE -> it.sortedWith(compareByIgnoreCase({ it.id.sortName }))
 //                        SortBy.YEAR -> it.sortedByDescending {
 //                            it.year ?: 0
 //                        }.sortedBy { it.type.ordinal }

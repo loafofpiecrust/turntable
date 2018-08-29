@@ -91,7 +91,7 @@ class DeferredMediaSource(
         debug { "Loading: [" + song.id.name + "] with url: <insert-here>" }
 
         loader = async(BG_POOL) {
-            val (url, start, end) = song.localMedia ?: song.remoteMedia() ?: return@async null
+            val (url, start, end) = song.loadMedia() ?: return@async null
             val innerSource: MediaSource = ExtractorMediaSource(
                 Uri.parse(url),
                 sourceFactory,

@@ -15,6 +15,7 @@ import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItem
+import com.loafofpiecrust.turntable.util.arg
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
@@ -43,9 +44,15 @@ private class FriendAdapter(
     }
 }
 
-class FriendPickerDialog: BaseDialogFragment() {
-    @Arg lateinit var message: SyncService.Message
-    @Arg(optional = true) var acceptText: String = "Send"
+class FriendPickerDialog(): BaseDialogFragment() {
+    constructor(message: SyncService.Message, acceptText: String = "Send"): this() {
+        this.message = message
+        this.acceptText = acceptText
+    }
+
+    var message: SyncService.Message by arg()
+    var acceptText: String by arg()
+
     private var selected: SyncService.User? = null
 
     override fun ViewManager.createView(): View? = null
@@ -61,8 +68,8 @@ class FriendPickerDialog: BaseDialogFragment() {
                 }
             }
         }
-        positiveButton("Send") {
-            given(selected) {
+        positiveButton(acceptText) {
+            selected?.let {
                 SyncService.send(this@FriendPickerDialog.message, it)
                 dismiss()
             } ?: toast("Must choose a friend.")

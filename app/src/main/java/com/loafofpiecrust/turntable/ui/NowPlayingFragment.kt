@@ -15,7 +15,7 @@ import com.loafofpiecrust.turntable.generateChildrenIds
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.selector
 import com.loafofpiecrust.turntable.service.SyncService
-import com.loafofpiecrust.turntable.sync.FriendPickerDialogStarter
+import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.sync.SyncDetailsDialog
 import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.produceSingle
@@ -136,7 +136,7 @@ open class NowPlayingFragment : BaseFragment() {
                         // Open sync options: contact choice
                         v!!.context.selector("Sync options", listOf(
                             "Sync with Friend" to {
-                                FriendPickerDialogStarter.newInstance(
+                                FriendPickerDialog(
                                     SyncService.Message.SyncRequest(),
                                     "Request Sync"
                                 ).show(ctx)

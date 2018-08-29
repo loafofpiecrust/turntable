@@ -47,7 +47,7 @@ open class SongsFragment: BaseFragment() {
         @Parcelize data class History(val limit: Int? = null): Category()
         @Parcelize data class ByArtist(val artist: ArtistId): Category()
         @Parcelize data class OnAlbum(val album: AlbumId, val isPartial: Boolean = false): Category()
-        @Parcelize data class Custom(val songs: List<Song>): Category()
+//        @Parcelize data class Custom(val songs: List<Song>): Category()
         @Parcelize data class Playlist(val id: UUID, val sideIdx: Int = 0): Category()
     }
 
@@ -88,7 +88,7 @@ open class SongsFragment: BaseFragment() {
         menu.menuItem("History").onClick {
             ctx.replaceMainContent(
                 SongsFragmentStarter.newInstance(
-                    Category.Custom(UserPrefs.history.value.asReversed().map { it.song })
+                    Category.History(null)
                 )
             )
         }

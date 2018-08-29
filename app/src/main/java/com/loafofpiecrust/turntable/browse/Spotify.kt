@@ -15,6 +15,7 @@ import com.loafofpiecrust.turntable.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragmentStarter
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.Music
+import com.loafofpiecrust.turntable.song.RemoteSong
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
 import com.loafofpiecrust.turntable.tryOr
@@ -40,8 +41,7 @@ object Spotify: SearchApi {
                 "https://api.spotify.com/v1/albums/$id/tracks",
                 mapOf("limit" to "50")
             ).gson["items"].array.map {
-                Song(
-                    null, null,
+                RemoteSong(
                     SongId(
                         it["name"].string,
                         album,
@@ -70,7 +70,7 @@ object Spotify: SearchApi {
         val id: String,
         val thumbnailUrl: String? = null,
         val artworkUrl: String? = null
-    ): Artist.RemoteDetails {
+    ): RemoteArtist.Details {
         /// TODO: Pagination
         override val albums: List<Album> by lazy { runBlocking {
             apiRequest(
@@ -262,8 +262,7 @@ object Spotify: SearchApi {
                 "type" to "track"
             )
         ).gson["tracks"]["items"].array.map {
-            Song(
-                null, null,
+            RemoteSong(
                 SongId(
                     it["name"].string,
                     it["album"]["name"].string,
@@ -285,8 +284,8 @@ object Spotify: SearchApi {
 
         val tracks = res["tracks"].array
         return tracks.map { it.obj }.map {
-            Song(
-                null, null, SongId(
+            RemoteSong(
+                SongId(
                     it["name"].string,
                     tryOr("") { it["album"]["name"].string },
                     tryOr("") { it["album"]["artists"][0]["name"].string }
@@ -381,16 +380,15 @@ object Spotify: SearchApi {
         ).gson
         val items = res["items"].array.map {
             val track = it["track"].obj
-            Song(
-                null, null,
+            RemoteSong(
                 SongId(
                     track["name"].string,
                     track["album"]["name"].string,
                     track["artists"][0]["name"].string
                 ),
-                track["track_number"].int,
-                track["disc_number"].int,
-                track["duration_ms"].nullInt ?: 0
+                track = track["track_number"].int,
+                disc = track["disc_number"].int,
+                duration = track["duration_ms"].nullInt ?: 0
             )
         }
         return if (items.size == 100) {

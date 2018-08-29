@@ -8,10 +8,9 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.channels.map
+import com.loafofpiecrust.turntable.song.SongId
+import com.loafofpiecrust.turntable.util.replayOne
+import kotlinx.coroutines.experimental.channels.*
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
@@ -34,28 +33,25 @@ class CollaborativePlaylist(
         get() = "Playlist"
 
     sealed class Operation(
-        open val song: Song,
         open val timestamp: Long
     ): Serializable {
+        abstract val songId: SongId
+
         data class Add(
-            override val song: Song,
+            val song: Song,
             override val timestamp: Long = System.currentTimeMillis()
-        ): Operation(song, timestamp) {
-            constructor(): this(Song())
+        ): Operation(timestamp) {
+            override val songId: SongId get() = song.id
         }
         data class Remove(
-            override val song: Song,
+            override val songId: SongId,
             override val timestamp: Long = System.currentTimeMillis()
-        ): Operation(song, timestamp) {
-            constructor(): this(Song())
-        }
+        ): Operation(timestamp)
         data class Move(
-            override val song: Song,
+            override val songId: SongId,
             val to: Int,
             override val timestamp: Long = System.currentTimeMillis()
-        ): Operation(song, timestamp) {
-            constructor(): this(Song(), 0)
-        }
+        ): Operation(timestamp)
     }
 
     companion object: AnkoLogger {
@@ -146,11 +142,11 @@ class CollaborativePlaylist(
 
     val operations = ConflatedBroadcastChannel(listOf<Operation>())
 
-//    @Transient
-    override val tracks: ReceiveChannel<List<Song>> get() = this.operations.openSubscription().map { ops ->
+    @Transient
+    private val _tracks: ConflatedBroadcastChannel<List<Song>> = this.operations.openSubscription().map { ops ->
         val songs = mutableListOf<Song>()
         ops.forEach { op ->
-            val idx = songs.indexOfFirst { it.id == op.song.id }
+            val idx = songs.indexOfFirst { it.id == op.songId }
             when (op) {
                 is Operation.Add -> if (idx == -1) songs.add(op.song)
                 is Operation.Remove -> if (idx != -1) songs.removeAt(idx)
@@ -158,7 +154,10 @@ class CollaborativePlaylist(
             }
         }
         songs
-    }
+    }.replayOne()
+
+    override val tracks: ReceiveChannel<List<Song>>
+        get() = _tracks.openSubscription()
 
     constructor(): this(SyncService.User(), "", null, UUID.randomUUID())
 
@@ -176,26 +175,26 @@ class CollaborativePlaylist(
         // Check if we already have this song, and if so ask for confirmation
         val isNew = operations.value.find { it is Operation.Add && it.song.id == song.id } == null
         if (isNew) {
-            operations appends Operation.Add(song.minimize())
+            operations appends Operation.Add(song)
             updateLastModified()
         }
         return isNew
     }
 
     fun remove(idx: Int) {
-        val song = runBlocking { tracks.first().getOrNull(idx) }
+        val song = _tracks.value.getOrNull(idx)
         if (song != null) {
-            operations appends Operation.Remove(song)
+            operations appends Operation.Remove(song.id)
             updateLastModified()
         }
     }
 
     fun move(from: Int, to: Int) {
-        val song = runBlocking { tracks.first().getOrNull(from) }
+        val song = _tracks.value.getOrNull(from)
         if (song != null) {
-            val op = Operation.Move(song, to)
+            val op = Operation.Move(song.id, to)
             val lastOp = operations.value.last()
-            if (lastOp is Operation.Move && lastOp.song == song) {
+            if (lastOp is Operation.Move && lastOp.songId == song.id) {
                 operations putsMapped { ops ->
                     ops.withReplaced(ops.lastIndex, op)
                 }

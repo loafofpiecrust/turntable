@@ -19,6 +19,8 @@ import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.SongsFragment
+import com.loafofpiecrust.turntable.song.imageTransition
+import com.loafofpiecrust.turntable.song.nameTransition
 import com.loafofpiecrust.turntable.style.detailsStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.consumeEach
@@ -138,7 +140,7 @@ class DetailsFragment: BaseFragment() {
                     image = imageView {
                         fitsSystemWindows = false
                         scaleType = ImageView.ScaleType.CENTER_CROP
-                        transitionName = albumId.transitionFor("art")
+                        transitionName = albumId.imageTransition
                     }
 
                     // Downloaded status
@@ -150,14 +152,12 @@ class DetailsFragment: BaseFragment() {
                         backgroundResource = R.drawable.rounded_rect
 
                         album.consumeEach(UI) {
-                            text = given(it) {
-                                when (it) {
-                                    is LocalAlbum -> if (it.hasTrackGaps) {
-                                        getString(R.string.album_partial)
-                                    } else getString(R.string.album_local)
-                                    else -> getString(R.string.album_remote)
-                                }
-                            } ?: getString(R.string.album_remote)
+                            text = when (it) {
+                                is LocalAlbum -> if (it.hasTrackGaps) {
+                                    getString(R.string.album_partial)
+                                } else getString(R.string.album_local)
+                                else -> getString(R.string.album_remote)
+                            }
                         }
                     }.also { coloredText += it }
 
