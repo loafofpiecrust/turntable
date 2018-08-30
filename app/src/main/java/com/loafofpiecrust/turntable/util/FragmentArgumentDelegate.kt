@@ -1,5 +1,7 @@
 package com.loafofpiecrust.turntable.util
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Binder
 import android.os.Bundle
 import android.support.v4.app.BundleCompat
@@ -25,7 +27,7 @@ class FragmentArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty
             try {
                 val args = thisRef.arguments
                     ?: throw IllegalStateException("Cannot read property ${property.name} if no arguments have been set")
-                val storedValue = args.get(property.name)
+                val storedValue = args[property.name]
 
                 @Suppress("UNCHECKED_CAST")
                 value = (storedValue as? T) ?: App.kryo.objectFromBytes(storedValue as ByteArray)
@@ -42,6 +44,8 @@ class FragmentArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty
 
         val args = thisRef.arguments
         val key = property.name
+
+        this.value = value
 
         when (value) {
             is String -> args?.putString(key, value)
@@ -64,3 +68,52 @@ class FragmentArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty
 }
 
 fun <T: Any> Fragment.arg(defaultValue: T? = null) = FragmentArgument(defaultValue)
+
+
+
+class ActivityArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty<Activity, T> {
+    private var value: T? = null
+
+    override operator fun getValue(thisRef: Activity, property: KProperty<*>): T {
+        if (value == null) {
+            try {
+                val args = thisRef.intent.extras
+                    ?: throw IllegalStateException("Cannot read property ${property.name} if no arguments have been set")
+                val storedValue = args[property.name]
+
+                @Suppress("UNCHECKED_CAST")
+                value = (storedValue as? T) ?: App.kryo.objectFromBytes(storedValue as ByteArray)
+            } catch (e: Throwable) {
+                // If the argument wasn't provided, attempt to fallback on the default value.
+                value = defaultValue
+            }
+        }
+        return value ?: throw IllegalStateException("Property ${property.name} could not be read")
+    }
+
+    override operator fun setValue(thisRef: Activity, property: KProperty<*>, value: T) {
+        if (thisRef.intent == null) thisRef.intent = Intent()
+        val args = thisRef.intent
+        val key = property.name
+
+        this.value = value
+
+        when (value) {
+            is String -> args?.putExtra(key, value)
+            is Int -> args?.putExtra(key, value)
+            is Short -> args?.putExtra(key, value)
+            is Long -> args?.putExtra(key, value)
+            is Byte -> args?.putExtra(key, value)
+            is ByteArray -> args?.putExtra(key, value)
+            is Char -> args?.putExtra(key, value)
+            is CharArray -> args?.putExtra(key, value)
+            is CharSequence -> args?.putExtra(key, value)
+            is Float -> args?.putExtra(key, value)
+            is Bundle -> args?.putExtra(key, value)
+//            is Binder -> BundleCompat.putBinder(args!!, key, value)
+            is android.os.Parcelable -> args?.putExtra(key, value)
+//            is java.io.Serializable -> args?.putSerializable(key, value)
+            else -> args?.putExtra(key, App.kryo.objectToBytes(value))
+        }
+    }
+}

@@ -8,13 +8,17 @@ import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.BG_POOL
+import com.loafofpiecrust.turntable.util.arg
 import com.loafofpiecrust.turntable.util.produceTask
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.ctx
 
-class RelatedArtistsFragment: BaseFragment() {
-    @Arg lateinit var artistId: ArtistId
-    lateinit var gridAdapter: ArtistsAdapter
+class RelatedArtistsFragment(): BaseFragment() {
+    constructor(artistId: ArtistId): this() {
+        this.artistId = artistId
+    }
+
+    private var artistId: ArtistId by arg()
 
     override fun ViewManager.createView(): View = recyclerView {
         // TODO: dynamic grid size

@@ -15,7 +15,6 @@ import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.album.AlbumId
-import com.loafofpiecrust.turntable.album.DetailsFragmentStarter
 import com.loafofpiecrust.turntable.album.LocalAlbum
 import com.loafofpiecrust.turntable.album.loadPalette
 import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment

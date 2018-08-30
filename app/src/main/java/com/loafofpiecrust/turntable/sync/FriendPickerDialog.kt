@@ -50,8 +50,8 @@ class FriendPickerDialog(): BaseDialogFragment() {
         this.acceptText = acceptText
     }
 
-    var message: SyncService.Message by arg()
-    var acceptText: String by arg()
+    private var message: SyncService.Message by arg()
+    private var acceptText: String by arg()
 
     private var selected: SyncService.User? = null
 

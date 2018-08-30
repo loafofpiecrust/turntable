@@ -30,14 +30,12 @@ import org.jetbrains.anko.sdk25.coroutines.onClick
 import org.jetbrains.anko.sdk25.coroutines.onItemSelectedListener
 import java.util.*
 
-//@MakeActivityStarter
 class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
 
     @Parcelize
     data class TrackList(val tracks: List<MusicId> = listOf()): Parcelable
 
-    @Arg(optional=true)
-    var startingTracks = TrackList()
+    @Arg(optional=true) var startingTracks = TrackList()
 
     private var playlistName: String = ""
     private var playlistType: String = "Playlist"
@@ -46,7 +44,7 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
 
     private lateinit var toolbar: Toolbar
 
-    override fun ViewManager.createView(): View = verticalLayout {
+    override fun ViewManager.createView() = verticalLayout {
         toolbar = toolbar {
             standardStyle()
             topPadding = dimen(R.dimen.statusbar_height)
@@ -127,7 +125,7 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
                             UUID.randomUUID()
                         ).apply {
                             startingTracks.tracks.forEach {
-                                given(it as? Song) { add(0, it) }
+                                (it as? Song)?.let { add(0, it) }
                             }
                         }
                         "Playlist" -> CollaborativePlaylist(
@@ -137,7 +135,7 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
                             UUID.randomUUID()
                         ).apply {
                             startingTracks.tracks.forEach {
-                                given(it as? Song) { add(it) }
+                                (it as? Song)?.let { add(it) }
                             }
                         }
                         "Album Collection" -> AlbumCollection(
@@ -147,7 +145,7 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
                             UUID.randomUUID()
                         ).apply {
                             startingTracks.tracks.forEach {
-                                given(it as? Album) { add(it) }
+                                (it as? Album)?.let { add(it) }
                             }
                         }
                         else -> kotlin.error("Unreachable")

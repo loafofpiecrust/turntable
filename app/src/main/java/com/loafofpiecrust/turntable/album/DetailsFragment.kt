@@ -23,6 +23,7 @@ import com.loafofpiecrust.turntable.song.imageTransition
 import com.loafofpiecrust.turntable.song.nameTransition
 import com.loafofpiecrust.turntable.style.detailsStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
+import com.loafofpiecrust.turntable.util.arg
 import com.loafofpiecrust.turntable.util.consumeEach
 import kotlinx.coroutines.experimental.channels.*
 import org.jetbrains.anko.*
@@ -64,19 +65,16 @@ class AlbumsViewModel: ViewModel() {
 
 // Album or Artist or Playlist details (?)
 // Maybe split this up. Start with Album.
-class DetailsFragment: BaseFragment() {
-    @Arg lateinit var albumId: AlbumId
-    @Arg(optional=true) var isPartial = false
-
-    lateinit var album: BroadcastChannel<Album>
-
-    companion object {
-        fun fromAlbum(album: Album, isPartial: Boolean = false): DetailsFragment {
-            return DetailsFragmentStarter.newInstance(album.id, isPartial).also {
-                it.album = ConflatedBroadcastChannel(album)
-            }
-        }
+class DetailsFragment(): BaseFragment() {
+    constructor(albumId: AlbumId, isPartial: Boolean = false): this() {
+        this.albumId = albumId
+        this.isPartial = isPartial
     }
+
+    private var albumId: AlbumId by arg()
+    private var isPartial: Boolean by arg()
+
+    private lateinit var album: BroadcastChannel<Album>
 
     override fun onCreate() {
         super.onCreate()
@@ -104,18 +102,9 @@ class DetailsFragment: BaseFragment() {
 //        postponeEnterTransition()
     }
 
-    override fun ViewManager.createView(): View = coordinatorLayout {
+    override fun ViewManager.createView() = coordinatorLayout {
         id = R.id.container
         backgroundColor = TRANSPARENT
-//        fitsSystemWindows = true
-
-//        val album = if (album.local !is Album.LocalDetails.Downloaded) {
-//            val existing = Library.instance.findAlbum(album)
-//            existing.blockingFirst().toNullable() ?: album
-//        } else album
-
-//        val album = ctx.library.findCachedAlbum(albumId).replayOne()
-
 
         val coloredText = mutableListOf<TextView>()
 
@@ -288,7 +277,6 @@ class DetailsFragment: BaseFragment() {
         }.lparams(width = matchParent, height = wrapContent)
 
 
-
         frameLayout {
             id = R.id.songs
             fragment {
@@ -296,6 +284,15 @@ class DetailsFragment: BaseFragment() {
             }
         }.lparams(width = matchParent, height = wrapContent) {
             behavior = AppBarLayout.ScrollingViewBehavior()
+        }
+    }
+
+
+    companion object {
+        fun fromAlbum(album: Album, isPartial: Boolean = false) = DetailsFragment().apply {
+            this.albumId = album.id
+            this.isPartial = isPartial
+            this.album = ConflatedBroadcastChannel(album)
         }
     }
 }

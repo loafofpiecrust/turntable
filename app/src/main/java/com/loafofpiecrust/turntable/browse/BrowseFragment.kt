@@ -7,7 +7,7 @@ import android.view.ViewManager
 import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.Album
-import com.loafofpiecrust.turntable.album.DetailsFragmentStarter
+import com.loafofpiecrust.turntable.album.DetailsFragment
 import com.loafofpiecrust.turntable.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
 import com.loafofpiecrust.turntable.browse.ui.RecommendationsFragment
@@ -122,7 +122,7 @@ class MusicAdapter(
                 }
                 holder.card.onClick {
                     ctx.replaceMainContent(
-                        DetailsFragmentStarter.newInstance(item.id)
+                        DetailsFragment.fromAlbum(item)
                     )
                 }
             }

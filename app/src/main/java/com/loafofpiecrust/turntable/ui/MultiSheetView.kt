@@ -80,9 +80,9 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
         bottomSheetBehavior2.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 if (newState == BottomSheetBehavior.STATE_EXPANDED || newState == BottomSheetBehavior.STATE_DRAGGING) {
-                    bottomSheetBehavior1.setAllowDragging(false)
+                    bottomSheetBehavior1.allowDragging = false
                 } else {
-                    bottomSheetBehavior1.setAllowDragging(true)
+                    bottomSheetBehavior1.allowDragging = true
                 }
 
                 fadeView(sheet2Peek, newState)
@@ -91,7 +91,7 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
             }
 
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                bottomSheetBehavior1.setAllowDragging(false)
+                bottomSheetBehavior1.allowDragging = false
                 fadeView(sheet2Peek, slideOffset)
 
                 sheetStateChangeListener?.onSlide(Sheet.SECOND, slideOffset)
@@ -105,8 +105,8 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
         sheet2Peek.onClick { v -> expandSheet(Sheet.SECOND) }
 
         sheet2Peek.setOnTouchListener { v, event ->
-            bottomSheetBehavior1.setAllowDragging(false)
-            bottomSheetBehavior2.setAllowDragging(true)
+            bottomSheetBehavior1.allowDragging = false
+            bottomSheetBehavior2.allowDragging = true
             false
         }
     }
