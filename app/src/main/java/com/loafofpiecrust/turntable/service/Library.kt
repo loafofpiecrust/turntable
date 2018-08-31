@@ -34,6 +34,7 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.song.LocalSong
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
+import com.loafofpiecrust.turntable.song.SongInfo
 import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.intValue
 import com.mcxiaoke.koi.ext.longValue
@@ -125,7 +126,7 @@ class Library : Service() {
             (it as LocalSong).localAlbumId
 //            it.id.album
         }.map {
-            val tracks = it.value.sortedBy { (it.disc * 1000) + it.track }
+            val tracks = it.value.sortedBy { (it.info.disc * 1000) + it.info.track }
             LocalAlbum(it.value.first().id.album, tracks)
         }
     }
@@ -146,6 +147,7 @@ class Library : Service() {
 
     val songs: ConflatedBroadcastChannel<List<Song>> =
         albums.openSubscription().map {
+            // Doesn't make sense to sequence, b/c sorting allocates
             it.flatMap { it.tracks }.sortedBy { it.id }
         }.replayOne()
 
@@ -606,11 +608,13 @@ class Library : Service() {
                         songs.add(LocalSong(
                             data,
                             albumId,
-                            SongId(title, album, albumArtist, artist),
-                            track,
-                            disc,
-                            duration,
-                            year,
+                            SongInfo(
+                                SongId(title, album, albumArtist, artist),
+                                track,
+                                disc,
+                                duration,
+                                year
+                            ),
                             artworkUrl = null
                         ))
                     }

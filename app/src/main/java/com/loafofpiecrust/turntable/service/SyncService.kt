@@ -8,6 +8,7 @@ import android.os.Parcelable
 import android.support.v4.app.NotificationCompat
 import android.support.v4.app.NotificationCompat.PRIORITY_DEFAULT
 import android.support.v4.app.NotificationCompat.PRIORITY_HIGH
+import android.util.Base64
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBAttribute
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBIgnore
@@ -22,7 +23,6 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.App.Companion.kryo
 import com.loafofpiecrust.turntable.album.AlbumId
 import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.browse.SearchApi
@@ -38,7 +38,6 @@ import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.ui.MainActivityStarter
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
@@ -181,8 +180,8 @@ class SyncService : FirebaseMessagingService() {
                     "priority" to "high",
                     "time_to_live" to ttl,
                     "data" to jsonObject(
-                        "sender" to kryo.objectToBytes(selfUser).toString(Charsets.ISO_8859_1),
-                        "action" to kryo.objectToBytes(msg.minimize()).toString(Charsets.ISO_8859_1)
+                        "sender" to serializeToString(selfUser),
+                        "action" to serializeToString(msg.minimize())
                     )
                 )
             )
@@ -354,7 +353,7 @@ class SyncService : FirebaseMessagingService() {
             val songs: List<Song>,
             val mode: MusicPlayer.EnqueueMode
         ): Message() {
-            override fun minimize() = copy(songs = songs.map { SyncSong(it.id) })
+            override fun minimize() = copy(songs = songs.map { SyncSong(it.info) })
         }
         data class RemoveFromQueue(val pos: Int): Message()
         data class PlaySongs(
@@ -484,16 +483,14 @@ class SyncService : FirebaseMessagingService() {
     override fun onMessageReceived(msg: RemoteMessage) {
         val mode = mode.value
 
-        val senderStr = msg.data["sender"]!!.toByteArray(Charsets.ISO_8859_1)
-        val sender = kryo.objectFromBytes<User>(senderStr)
+        val sender = deserialize<User>(msg.data["sender"]!!)
 
         if (!msg.data.containsKey("action") || sender.deviceId == selfUser.deviceId /*|| mode is Mode.None*/) {
             // We sent this message ourselves, don't process it.
             return
         }
 
-        val msgData = msg.data["action"]!!.toByteArray(Charsets.ISO_8859_1)
-        val message = kryo.objectFromBytes<Message>(msgData)
+        val message = deserialize<Message>(msg.data["action"]!!)
         println("sync: received firebase msg, $message from $sender")
 
         // If we're in a consensual sync session with the sender, tell them we're still online.

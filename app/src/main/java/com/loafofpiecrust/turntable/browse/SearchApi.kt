@@ -12,10 +12,6 @@ import com.loafofpiecrust.turntable.song.SongId
 import com.loafofpiecrust.turntable.tryOr
 
 interface SearchApi {
-    interface Id {
-        val id: String
-    }
-
     suspend fun searchArtists(query: String): List<Artist>
     suspend fun searchAlbums(query: String): List<Album>
     suspend fun searchSongs(query: String): List<Song>
@@ -33,6 +29,7 @@ interface SearchApi {
 
         /// All Music APIs in descending order of priority
         private val APIS = listOf(
+            LocalApi,
             Discogs,
             MusicBrainz,
             Spotify

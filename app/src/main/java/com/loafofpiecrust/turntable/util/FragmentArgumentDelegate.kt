@@ -6,9 +6,6 @@ import android.os.Binder
 import android.os.Bundle
 import android.support.v4.app.BundleCompat
 import android.support.v4.app.Fragment
-import com.loafofpiecrust.turntable.App
-import com.loafofpiecrust.turntable.objectFromBytes
-import com.loafofpiecrust.turntable.objectToBytes
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
@@ -30,7 +27,7 @@ class FragmentArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty
                 val storedValue = args[property.name]
 
                 @Suppress("UNCHECKED_CAST")
-                value = (storedValue as? T) ?: App.kryo.objectFromBytes(storedValue as ByteArray)
+                value = (storedValue as? T) ?: deserialize(storedValue as ByteArray)
             } catch (e: Throwable) {
                 // If the argument wasn't provided, attempt to fallback on the default value.
                 value = defaultValue
@@ -62,7 +59,7 @@ class FragmentArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty
             is Binder -> BundleCompat.putBinder(args!!, key, value)
             is android.os.Parcelable -> args?.putParcelable(key, value)
 //            is java.io.Serializable -> args?.putSerializable(key, value)
-            else -> args?.putByteArray(key, App.kryo.objectToBytes(value))
+            else -> args?.putByteArray(key, serialize(value))
         }
     }
 }
@@ -82,7 +79,7 @@ class ActivityArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty
                 val storedValue = args[property.name]
 
                 @Suppress("UNCHECKED_CAST")
-                value = (storedValue as? T) ?: App.kryo.objectFromBytes(storedValue as ByteArray)
+                value = (storedValue as? T) ?: deserialize(storedValue as ByteArray)
             } catch (e: Throwable) {
                 // If the argument wasn't provided, attempt to fallback on the default value.
                 value = defaultValue
@@ -113,7 +110,7 @@ class ActivityArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty
 //            is Binder -> BundleCompat.putBinder(args!!, key, value)
             is android.os.Parcelable -> args?.putExtra(key, value)
 //            is java.io.Serializable -> args?.putSerializable(key, value)
-            else -> args?.putExtra(key, App.kryo.objectToBytes(value))
+            else -> args?.putExtra(key, serialize(value))
         }
     }
 }

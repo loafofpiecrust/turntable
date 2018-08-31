@@ -13,13 +13,14 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
+import com.loafofpiecrust.turntable.song.SongInfo
+import com.loafofpiecrust.turntable.util.serialize
 import com.loafofpiecrust.turntable.util.suspendedTask
-import kotlinx.coroutines.experimental.android.UI
+import com.loafofpiecrust.turntable.util.toObject
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.map
-import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.selector
@@ -54,22 +55,20 @@ class MixTape(
         C120(2, 60);
 
         val totalLength get() = sideCount * sideLength
-        fun sideName(index: Int): String = ('A' + index) + " Side"
+        private fun sideName(index: Int): String = ('A' + index) + " Side"
         val sideNames: List<String> get() = (0 until sideCount).map(::sideName)
     }
 
     companion object: AnkoLogger {
         fun fromDocument(doc: DocumentSnapshot): MixTape = run {
             MixTape(
-                App.kryo.concreteFromBytes(doc.getBlob("owner")!!.toBytes()),
+                doc.getBlob("owner")!!.toObject(),
                 Type.valueOf(doc.getString("type")!!),
                 doc.getString("name")!!,
                 doc.getLong("color")?.toInt(),
                 UUID.fromString(doc.id)
             ).apply {
-                _tracks puts App.kryo.objectFromBytes(
-                    doc.getBlob("tracks")!!.toBytes()
-                )
+                _tracks puts doc.getBlob("tracks")!!.toObject()
                 lastModified = doc.getDate("lastModified")!!
                 isPublished = true
             }
@@ -113,10 +112,10 @@ class MixTape(
     }
 
     private val _tracks = ConflatedBroadcastChannel(
-        (0 until type.sideCount).map { listOf<Song>() }
+        (0 until type.sideCount).map { emptyList<SongInfo>() }
     )
 
-    override val tracks get() = _tracks.openSubscription().map { it.flatten() }
+    override val tracks: ReceiveChannel<List<SongInfo>> get() = _tracks.openSubscription().map { it.flatten() }
 
 
     /**
@@ -128,7 +127,7 @@ class MixTape(
         runBlocking { tracks.first() }.sumBy { it.duration }.toLong()
     )
 
-    fun tracksOnSide(sideIdx: Int): ReceiveChannel<List<Song>> =
+    fun tracksOnSide(sideIdx: Int): ReceiveChannel<List<SongInfo>> =
 //        _tracks.value[clamp(0, sideNum, type.sideCount - 1)]
         _tracks.openSubscription().map { it[sideIdx] }
 
@@ -151,7 +150,7 @@ class MixTape(
             false
         } else {
             val side = _tracks.value[sideIdx]
-            _tracks puts _tracks.value.withReplaced(sideIdx, side + song)
+            _tracks puts _tracks.value.withReplaced(sideIdx, side + song.info)
             updateLastModified()
 //            !sideIsFull(sideIdx)
             true
@@ -167,9 +166,9 @@ class MixTape(
         return newSongs.all { add(sideIdx, it) }
     }
 
-    fun replaceSides(newTracks: List<List<Song>>) {
-        _tracks puts newTracks
-    }
+//    fun replaceSides(newTracks: List<List<Song>>) {
+//        _tracks puts newTracks
+//    }
 
     fun remove(sideIdx: Int, index: Int) {
 //        val sideIdx = clamp(0, sideIdx, type.sideCount - 1)
@@ -201,8 +200,8 @@ class MixTape(
                 "color" to color,
                 "lastModified" to lastModified,
                 "createdTime" to createdTime,
-                "tracks" to Blob.fromBytes(App.kryo.objectToBytes(_tracks.value)),
-                "owner" to Blob.fromBytes(App.kryo.concreteToBytes(owner))
+                "tracks" to Blob.fromBytes(serialize(_tracks.value)),
+                "owner" to Blob.fromBytes(serialize(owner))
             ))
         isPublished = true
 //        databaseUser.continueWith {

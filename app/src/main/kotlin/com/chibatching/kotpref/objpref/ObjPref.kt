@@ -4,12 +4,7 @@ import android.content.SharedPreferences
 import android.util.Base64
 import com.chibatching.kotpref.KotprefModel
 import com.chibatching.kotpref.pref.AbstractPref
-import com.loafofpiecrust.turntable.App
-import com.loafofpiecrust.turntable.objectFromBytes
-import com.loafofpiecrust.turntable.objectToBytes
-import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.hasValue
-import com.loafofpiecrust.turntable.util.task
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlin.reflect.KProperty
@@ -31,7 +26,7 @@ class objPref<T: Any>(val default: T): AbstractPref<T>() {
         return preference.getString(property.name, null)?.let {
             try {
 //                App.kryo.objectFromBytes<T>(it.toByteArray(Charsets.ISO_8859_1))
-                App.kryo.objectFromBytes<T>(Base64.decode(it, Base64.NO_WRAP))
+                deserialize<T>(Base64.decode(it, Base64.NO_WRAP))
             } catch(e: Throwable) {
                 task(UI) { e.printStackTrace() }
                 default
@@ -41,7 +36,7 @@ class objPref<T: Any>(val default: T): AbstractPref<T>() {
 
     override fun setToPreference(property: KProperty<*>, value: T, preference: SharedPreferences) {
         try {
-            val bytes = App.kryo.objectToBytes(value)
+            val bytes = serialize(value)
             preference.edit()
 //                .putString(property.id, bytes.toString(Charsets.ISO_8859_1))
                 .putString(property.name, Base64.encodeToString(bytes, Base64.NO_WRAP))
@@ -53,7 +48,7 @@ class objPref<T: Any>(val default: T): AbstractPref<T>() {
 
     override fun setToEditor(property: KProperty<*>, value: T, editor: SharedPreferences.Editor) {
         try {
-            val bytes = App.kryo.objectToBytes(value)
+            val bytes = serialize(value)
 //            editor.putString(property.id, bytes.toString(Charsets.ISO_8859_1))
             editor.putString(property.name, Base64.encodeToString(bytes, Base64.NO_WRAP))
         } catch (e: Throwable) {

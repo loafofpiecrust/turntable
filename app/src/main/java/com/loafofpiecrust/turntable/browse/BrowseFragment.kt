@@ -97,7 +97,7 @@ class MusicAdapter(
     override fun onBindViewHolder(holder: RecyclerListItem, position: Int) {
         val item = data[position]
 
-        holder.mainLine.text = item.simpleName
+        holder.mainLine.text = item.displayName
 
         // TODO: Add the recommending user!
         val ctx = holder.itemView.context

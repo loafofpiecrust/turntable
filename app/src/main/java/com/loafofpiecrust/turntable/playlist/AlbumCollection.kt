@@ -6,7 +6,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.service.SyncService
-import com.loafofpiecrust.turntable.song.Song
+import com.loafofpiecrust.turntable.song.SongInfo
+import com.loafofpiecrust.turntable.util.serialize
+import com.loafofpiecrust.turntable.util.toObject
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.map
@@ -29,22 +31,21 @@ class AlbumCollection(
     override val typeName: String
         get() = "Album Collection"
 
-    override val tracks: ReceiveChannel<List<Song>>
-        get() = albums.map { it.flatMap { it.tracks } }
+    override val tracks: ReceiveChannel<List<SongInfo>>
+        get() = albums.map { it.asSequence().flatMap {
+            it.tracks.asSequence().map { it.info }
+        }.toList() }
 
     companion object {
         fun fromDocument(doc: DocumentSnapshot): AlbumCollection {
             return AlbumCollection(
-                App.kryo.concreteFromBytes(doc.getBlob("owner")!!.toBytes()),
+                doc.getBlob("owner")!!.toObject(),
                 doc.getString("name")!!,
                 doc.getLong("color")?.toInt(),
                 UUID.fromString(doc.id)
             ).apply {
                 isPublished = true
-                _albums puts App.kryo.objectFromBytes(
-                    doc.getBlob("albums")!!.toBytes(),
-                    decompress = true
-                )
+                _albums puts doc.getBlob("albums")!!.toObject()
             }
         }
     }
@@ -89,11 +90,11 @@ class AlbumCollection(
             .document(id.toString())
             .set(mapOf(
                 "format" to "albums",
-                "owner" to Blob.fromBytes(App.kryo.concreteToBytes(owner)),
+                "owner" to Blob.fromBytes(serialize(owner)),
                 "name" to name,
                 "color" to color,
                 "lastModified" to lastModified,
-                "albums" to Blob.fromBytes(App.kryo.objectToBytes(_albums.value, compress=true))
+                "albums" to Blob.fromBytes(serialize(_albums.value))
             ))
         isPublished = true
     }

@@ -14,10 +14,7 @@ import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragmentStarter
 import com.loafofpiecrust.turntable.service.library
-import com.loafofpiecrust.turntable.song.Music
-import com.loafofpiecrust.turntable.song.RemoteSong
-import com.loafofpiecrust.turntable.song.Song
-import com.loafofpiecrust.turntable.song.SongId
+import com.loafofpiecrust.turntable.song.*
 import com.loafofpiecrust.turntable.tryOr
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.Http
@@ -42,14 +39,17 @@ object Spotify: SearchApi {
                 mapOf("limit" to "50")
             ).gson["items"].array.map {
                 RemoteSong(
-                    SongId(
-                        it["name"].string,
-                        album,
-                        ArtistId(it["artists"][0]["name"].string)
-                    ),
-                    track = it["track_number"].int,
-                    disc = it["disc_number"].int,
-                    duration = it["duration_ms"].int
+                    SongInfo(
+                        SongId(
+                            it["name"].string,
+                            album,
+                            ArtistId(it["artists"][0]["name"].string)
+                        ),
+                        track = it["track_number"].int,
+                        disc = it["disc_number"].int,
+                        duration = it["duration_ms"].int,
+                        year = null
+                    )
                 )
             }
         }
@@ -263,15 +263,18 @@ object Spotify: SearchApi {
             )
         ).gson["tracks"]["items"].array.map {
             RemoteSong(
-                SongId(
-                    it["name"].string,
-                    it["album"]["name"].string,
-                    it["album"]["artists"][0]["name"].string,
-                    it["artists"][0]["name"].string
-                ),
-                track = it["track_number"].int,
-                disc = it["disc_number"].int,
-                duration = it["duration_ms"].int
+                SongInfo(
+                    SongId(
+                        it["name"].string,
+                        it["album"]["name"].string,
+                        it["album"]["artists"][0]["name"].string,
+                        it["artists"][0]["name"].string
+                    ),
+                    track = it["track_number"].int,
+                    disc = it["disc_number"].int,
+                    duration = it["duration_ms"].int,
+                    year = null
+                )
             )
         }
     }
@@ -285,14 +288,17 @@ object Spotify: SearchApi {
         val tracks = res["tracks"].array
         return tracks.map { it.obj }.map {
             RemoteSong(
-                SongId(
-                    it["name"].string,
-                    tryOr("") { it["album"]["name"].string },
-                    tryOr("") { it["album"]["artists"][0]["name"].string }
-                ),
-                track = it["track_number"].int,
-                disc = it["disc_number"].nullInt ?: 1,
-                duration = it["duration_ms"].int
+                SongInfo(
+                    SongId(
+                        it["name"].string,
+                        tryOr("") { it["album"]["name"].string },
+                        tryOr("") { it["album"]["artists"][0]["name"].string }
+                    ),
+                    track = it["track_number"].int,
+                    disc = it["disc_number"].nullInt ?: 1,
+                    duration = it["duration_ms"].int,
+                    year = null
+                )
             )
 
         }
@@ -381,14 +387,17 @@ object Spotify: SearchApi {
         val items = res["items"].array.map {
             val track = it["track"].obj
             RemoteSong(
-                SongId(
-                    track["name"].string,
-                    track["album"]["name"].string,
-                    track["artists"][0]["name"].string
-                ),
-                track = track["track_number"].int,
-                disc = track["disc_number"].int,
-                duration = track["duration_ms"].nullInt ?: 0
+                SongInfo(
+                    SongId(
+                        track["name"].string,
+                        track["album"]["name"].string,
+                        track["artists"][0]["name"].string
+                    ),
+                    track = track["track_number"].int,
+                    disc = track["disc_number"].int,
+                    duration = track["duration_ms"].nullInt ?: 0,
+                    year = null
+                )
             )
         }
         return if (items.size == 100) {

@@ -167,7 +167,7 @@ class AlbumEditorActivity : BaseActivity() {
                     tag.setField(FieldKey.ALBUM, title)
 //                tag.setField(FieldKey.ARTIST, artist)
                     tag.setField(FieldKey.ALBUM_ARTIST, artist)
-                    tag.setField(FieldKey.DISC_NO, song.disc.toString())
+                    tag.setField(FieldKey.DISC_NO, song.info.disc.toString())
                     tag.setField(FieldKey.YEAR, year)
                     f.commit(ctx)
                 }

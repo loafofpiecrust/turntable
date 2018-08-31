@@ -13,7 +13,7 @@ class RemoteArtist(
     override val albums get() = details.albums
     override val biography get() = details.biography
 
-    // Properties only obtained with details:
+    // Properties only obtained with remoteInfo:
     // - albums
     // - members
     // - biography

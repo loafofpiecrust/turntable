@@ -40,7 +40,7 @@ import org.jetbrains.anko.support.v4.ctx
 
 
 /**
- * We want to be able to open Artist details with either:
+ * We want to be able to open Artist remoteInfo with either:
  * 1. full artist
  * 2. artist id (from Song/Album)
  * 3. artist id (from saved state)

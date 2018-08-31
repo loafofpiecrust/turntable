@@ -8,7 +8,6 @@ import android.view.Menu
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
 import com.loafofpiecrust.turntable.App
-import com.loafofpiecrust.turntable.album.LocalAlbum
 import com.loafofpiecrust.turntable.album.loadPalette
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
@@ -18,46 +17,61 @@ import com.loafofpiecrust.turntable.util.switchMap
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.channels.map
 import java.util.concurrent.TimeUnit
 
 
-interface Song: Music {
-    val id: SongId
-    val track: Int
-    val disc: Int
-    val duration: Int // milliseconds
+@Parcelize
+data class SongInfo(
+    val id: SongId,
+    val track: Int,
+    val disc: Int,
+    val duration: Int, // milliseconds
     val year: Int?
-    val artworkUrl: String?
+): MusicInfo, Parcelable {
     /**
      * Comparable/sortable value for disc and track
      * Assumes that a disc will never have over 999 tracks.
      * Example: Disc 2, Track 27 => 2027
      */
     val discTrack: Int get() = disc * 1000 + track
+}
 
-    override val simpleName get() = id.displayName
+abstract class Song: Music {
+    abstract val info: SongInfo
+    abstract val artworkUrl: String?
+
+    val id: SongId get() = info.id
+    val track get() = info.track
+    val disc get() = info.disc
+    val duration get() = info.duration
+    val year get() = info.year
+
+
+    override fun equals(other: Any?) = other is Song && id == other.id
+
+    final override val displayName: String get() = id.displayName
+
 
     data class Media(val url: String, val start: Int = 0, val end: Int = 0)
-    suspend fun loadMedia(): Media?
+    abstract suspend fun loadMedia(): Media?
 
     override fun optionsMenu(ctx: Context, menu: Menu) {}
 
     fun loadCover(req: RequestManager, cb: (Palette?, Palette.Swatch?) -> Unit = { a, b -> }): ReceiveChannel<RequestBuilder<Drawable>?> = run {
-        Library.instance.findAlbumExtras(id.album).switchMap {
+        Library.instance.findAlbumExtras(info.id.album).switchMap {
             if (it != null) {
                 // This album cover is either local or cached.
                 produceTask {
                     req.load(it.artworkUri)
                         .apply(Library.ARTWORK_OPTIONS)
-                        .listener(loadPalette(id, cb))
+                        .listener(loadPalette(info.id, cb))
                 }
             } else when {
                 // The song happens to know its artwork url.
                 artworkUrl != null -> produceTask {
                     req.load(artworkUrl)
                         .apply(Library.ARTWORK_OPTIONS)
-                        .listener(loadPalette(id, cb))
+                        .listener(loadPalette(info.id, cb))
                 }
                 else -> produceTask { null }
             }
@@ -73,17 +87,13 @@ interface Song: Music {
 
 @Parcelize
 data class SyncSong(
-    override val id: SongId
-): Song, Parcelable {
-    override val track get() = 1
-    override val disc get() = 1
-    override val duration get() = 0
-    override val year: Int? get() = null
+    override val info: SongInfo
+): Song(), Parcelable {
     override val artworkUrl: String? get() = null
 
 
     override suspend fun loadMedia(): Song.Media? {
-        val existing = Library.instance.findSong(id).first()
+        val existing = Library.instance.findSong(info.id).first()
 //        val existing: Song? = null
 
         val internetStatus = App.instance.internetStatus.first()
@@ -119,27 +129,21 @@ data class SyncSong(
 data class LocalSong(
     val path: String,
     val localAlbumId: Long,
-    override val id: SongId,
-    override val track: Int,
-    override val disc: Int,
-    override val duration: Int,
-    override val year: Int?,
+    override val info: SongInfo,
     override val artworkUrl: String? = null
-): Song {
+): Song() {
     override suspend fun loadMedia() = Song.Media(path)
+    override fun equals(other: Any?) =
+        (other is LocalSong && path == other.path) || super.equals(other)
 }
 
 data class RemoteSong(
-    override val id: SongId,
-    val details: Details? = null,
-    override val track: Int = 1,
-    override val disc: Int = 1,
-    override val duration: Int = 0,
-    override val year: Int? = null,
+    override val info: SongInfo,
+    val remoteInfo: Details? = null,
     override val artworkUrl: String? = null
-): Song {
+): Song() {
     override suspend fun loadMedia(): Song.Media? {
-        val existing = Library.instance.findSongFuzzy(id).first()
+        val existing = Library.instance.findSongFuzzy(info.id).first()
 //        val existing: Song? = null
 
         val internetStatus = App.instance.internetStatus.first()
@@ -169,6 +173,10 @@ data class RemoteSong(
             } else null
         }
     }
+
+    override fun equals(other: Any?) =
+        (other is RemoteSong && remoteInfo?.id != null && remoteInfo.id == other.remoteInfo?.id)
+            || super.equals(other)
 
     data class Details(
         val id: String?,

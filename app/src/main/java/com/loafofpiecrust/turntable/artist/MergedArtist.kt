@@ -29,7 +29,7 @@ class MergedArtist(val a: Artist, val b: Artist): Artist {
 Merged Usage:
    val local = Library.findArtist(id)
 We have the local albums for this artist,
-Now we want the remote albums too, for changing details display mode
+Now we want the remote albums too, for changing remoteInfo display mode
    val remote = SearchApi.find(local.id)
    val merged = MergedArtist(local, remote)
 

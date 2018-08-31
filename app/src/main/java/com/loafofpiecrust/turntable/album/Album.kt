@@ -17,7 +17,6 @@ import com.bumptech.glide.signature.ObjectKey
 import com.github.florent37.glidepalette.GlidePalette
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.browse.SearchApi
-import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.menuItem
 import com.loafofpiecrust.turntable.onClick
 import com.loafofpiecrust.turntable.player.MusicPlayer
@@ -53,7 +52,7 @@ interface Album: Music {
     val type: Type
     val tracks: List<Song>
 
-    override val simpleName: String get() = id.displayName
+    override val displayName get() = id.displayName
 
     /// TODO: Can we pull this out of the class...?
     override fun optionsMenu(ctx: Context, menu: Menu) {

@@ -3,8 +3,6 @@ package com.chibatching.kotpref.filepref
 import android.content.SharedPreferences
 import com.chibatching.kotpref.KotprefModel
 import com.chibatching.kotpref.pref.AbstractPref
-import com.esotericsoftware.kryo.io.Input
-import com.esotericsoftware.kryo.io.Output
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.Deferred
@@ -30,13 +28,9 @@ abstract class BaseObjFilePref<T: Any>(
                     if (!file.exists()) {
                         file.createNewFile()
                     }
-                    val output = Output(FileOutputStream(file, false))
                     val value = subject.valueOrNull ?: default ?: return@task
-                    App.kryo.writeClassAndObject(output, value)
-//                task(UI) { println("prefs: wrote out ${output.buffer.toString(Charsets.ISO_8859_1)}") }
-                    output.close()
+                    serialize(FileOutputStream(file, false), value)
                     lastWrite = System.nanoTime()
-//                task(UI) { println("prefs: wrote out value, ${subject?.value}") }
                 }
             } catch (e: Throwable) {
                 task(UI) { e.printStackTrace() }
@@ -65,13 +59,7 @@ inline fun <reified T: Any> objFilePref(default: T) = object: BaseObjFilePref<T>
         val res = try {
             val file = App.instance.filesDir.resolve("$name.prop")
             if (file.exists()) {
-                val bytes = file.readBytes()
-                if (bytes.isNotEmpty()) {
-                    val input = Input(bytes)
-                    val res = App.kryo.readClassAndObject(input) as T
-                    input.close()
-                    res
-                } else default
+                deserialize(file.inputStream())
             } else default
         } catch (e: Exception) {
             task(UI) { e.printStackTrace() }

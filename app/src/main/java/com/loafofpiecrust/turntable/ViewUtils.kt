@@ -433,29 +433,6 @@ fun String.substrings(substrLength: Int): List<String> {
     return strings
 }
 
-fun compress(input: String): String {
-    val compressed = ByteArray(input.length)
-    val len = Deflater().run {
-        setInput(input.toByteArray(Charsets.UTF_8))
-        finish()
-        val len = deflate(compressed)
-        end()
-        len
-    }
-    return String(compressed, 0, len, Charsets.ISO_8859_1)
-}
-
-fun decompress(input: String): String {
-    val decompressed = ByteArray(input.length * 2)
-    val len = Inflater().run {
-        val bytes = input.toByteArray(Charsets.ISO_8859_1)
-        setInput(bytes, 0, bytes.size)
-        val len = inflate(decompressed)
-        end()
-        len
-    }
-    return String(decompressed, 0, len, Charsets.UTF_8)
-}
 
 var TextView.textStyle: Int
     get() = typeface?.style ?: 0
@@ -564,39 +541,6 @@ suspend fun <T: Any> List<Deferred<T>>.awaitAllNotNull(): List<T> = run {
         }
     }
 }
-
-fun Kryo.concreteToBytes(obj: Any, expectedSize: Int = 256, compress: Boolean = false): ByteArray {
-    val baos = ByteArrayOutputStream(expectedSize)
-    val os = Output(if (compress) DeflaterOutputStream(baos) else baos)
-    writeObject(os, obj)
-    os.flush()
-    return baos.toByteArray().also {
-        os.closeQuietly()
-    }
-}
-
-fun Kryo.objectToBytes(obj: Any, expectedSize: Int = 256, compress: Boolean = false): ByteArray {
-    val baos = ByteArrayOutputStream(expectedSize)
-    val os = Output(if (compress) DeflaterOutputStream(baos) else baos)
-    writeClassAndObject(os, obj)
-    os.flush()
-    return baos.toByteArray().also { os.closeQuietly() }
-}
-
-inline fun <T: Any> Kryo.objectFromBytes(bytes: ByteArray, decompress: Boolean = false): T {
-    val input = if (decompress) {
-        Input(InflaterInputStream(ByteArrayInputStream(bytes)))
-    } else Input(bytes)
-    return (readClassAndObject(input) as T).also { input.closeQuietly() }
-}
-
-inline fun <reified T: Any> Kryo.concreteFromBytes(bytes: ByteArray, decompress: Boolean = false): T {
-    val input = if (decompress) {
-        Input(InflaterInputStream(ByteArrayInputStream(bytes)))
-    } else Input(bytes)
-    return readObject(input, T::class.java).also { input.closeQuietly() }
-}
-
 
 //infix fun <T> Subject<T>.puts(value: T) {
 //    onNext(value)

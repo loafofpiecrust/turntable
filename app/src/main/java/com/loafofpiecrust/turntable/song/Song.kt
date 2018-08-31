@@ -3,49 +3,9 @@ package com.loafofpiecrust.turntable.song
 //import com.devbrackets.android.playlistcore.manager.IPlaylistItem
 //import com.devbrackets.android.playlistcore.manager.ListPlaylistManager
 //import com.loafofpiecrust.turntable.service.PlaylistManager
-import android.app.DownloadManager
 import android.content.Context
-import android.graphics.drawable.Drawable
-import android.net.Uri
-import android.os.Environment
 import android.os.Parcelable
-import android.support.v7.graphics.Palette
 import android.view.Menu
-import com.bumptech.glide.RequestBuilder
-import com.bumptech.glide.RequestManager
-import com.loafofpiecrust.turntable.App
-import com.loafofpiecrust.turntable.album.AlbumId
-import com.loafofpiecrust.turntable.album.LocalAlbum
-import com.loafofpiecrust.turntable.album.loadPalette
-import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
-import com.loafofpiecrust.turntable.artist.ArtistId
-import com.loafofpiecrust.turntable.browse.SearchApi
-import com.loafofpiecrust.turntable.given
-import com.loafofpiecrust.turntable.menuItem
-import com.loafofpiecrust.turntable.onClick
-import com.loafofpiecrust.turntable.playlist.PlaylistPickerDialog
-import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.service.OnlineSearchService
-import com.loafofpiecrust.turntable.service.SyncService
-import com.loafofpiecrust.turntable.ui.replaceMainContent
-import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.produceTask
-import com.loafofpiecrust.turntable.util.switchMap
-import com.loafofpiecrust.turntable.util.task
-import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.channels.map
-import kotlinx.coroutines.experimental.withContext
-import me.xdrop.fuzzywuzzy.FuzzySearch
-import org.jetbrains.anko.downloadManager
-import org.jetbrains.anko.toast
-import java.io.Serializable
-import java.util.*
-import java.util.concurrent.TimeUnit
-import java.util.regex.Pattern
 
 // All possible music status':
 // - Local: has an id, can be played. May be partial album (if album)
@@ -55,15 +15,17 @@ import java.util.regex.Pattern
 // - Not local, downloading from p2p/udp (queued in sync)
 // - Not local, downloading from larger collection torrent (song from album, song/album from artist)
 
+interface MusicInfo
+
 interface Music {
-    val simpleName: String
+    val displayName: String
     fun optionsMenu(ctx: Context, menu: Menu)
 }
 
 
 // All possible statuses of a song:
 // Remote:
-// - Unknown: no details confirmed
+// - Unknown: no remoteInfo confirmed
 // - Partial: metadata confirmed, no stream urls
 // - Resolved: confirmed metadata and stream urls
 

@@ -13,6 +13,7 @@ import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.RemoteSong
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
+import com.loafofpiecrust.turntable.song.SongInfo
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.task
@@ -510,18 +511,21 @@ object Discogs: SearchApi, AnkoLogger {
                 } else 0
             } ?: 0
             RemoteSong(
-                SongId(
-                    title,
-                    AlbumId(albumTitle, artistName),
-                    features = if (it.has("extraartists")) {
-                        it["extraartists"].array.map {
-                            ArtistId(it["name"].string, it["anv"].nullString)
-                        }
-                    } else listOf()
-                ),
-                track = idx + 1,
-                disc = 1,
-                duration = duration
+                SongInfo(
+                    SongId(
+                        title,
+                        AlbumId(albumTitle, artistName),
+                        features = if (it.has("extraartists")) {
+                            it["extraartists"].array.map {
+                                ArtistId(it["name"].string, it["anv"].nullString)
+                            }
+                        } else listOf()
+                    ),
+                    track = idx + 1,
+                    disc = 1,
+                    duration = duration,
+                    year = null
+                )
             )
         }
     }

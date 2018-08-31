@@ -24,7 +24,7 @@ import java.util.regex.Pattern
 
 interface MusicDownload {
     /// Download the remote album to the default music folder
-    /// TODO: Add return value or listener that details progress, failure, and completion
+    /// TODO: Add return value or listener that remoteInfo progress, failure, and completion
     suspend fun download()
 }
 

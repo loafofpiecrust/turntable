@@ -13,6 +13,7 @@ import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.RemoteSong
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
+import com.loafofpiecrust.turntable.song.SongInfo
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.task
@@ -192,27 +193,29 @@ object MusicBrainz: SearchApi, AnkoLogger {
 //                async(UI) { println("album track '${name}'") }
 
                     RemoteSong(
-                        SongId(
-                            title,
-                            albumId,
-                            tryOr(albumId.artist) { ArtistId(recording["artist-credit"][0]["name"].string) }
+                        SongInfo(
+                            SongId(
+                                title,
+                                albumId,
+                                tryOr(albumId.artist) { ArtistId(recording["artist-credit"][0]["name"].string) }
+                            ),
+                            duration = recording["length"].nullInt ?: 0,
+                            track = recording["position"].nullInt ?: idx + 1,
+                            disc = discIdx + 1,
+                            year = year
                         ),
                         RemoteSong.Details(
                             tryOr(null) { recording["id"].string },
                             rgid,
                             null
-                        ),
-                        track = recording["position"].nullInt ?: idx + 1,
-                        disc = discIdx + 1,
-                        duration = recording["length"].nullInt ?: 0,
-                        year = year
+                        )
                     )
                 } catch (e: Exception) {
                     error { e.message }
                     null
                 }
             }.filterNotNull()
-        }.flatMap { it }.sortedBy { it.disc * 1000 + it.track }
+        }.flatMap { it }.sortedBy { it.info.disc * 1000 + it.info.track }
     }
 
     override suspend fun searchArtists(query: String): List<Artist> {
@@ -264,15 +267,18 @@ object MusicBrainz: SearchApi, AnkoLogger {
         )).gson["recordings"].array.map {
             val artistName = it["artist-credit"][0]["artist"]["name"].string
             RemoteSong(
-                SongId(
-                    it["title"].string,
-                    it["releases"][0]["title"].string,
-                    artistName,
-                    artistName
-                ),
-                track = it["releases"][0]["media"][0]["track"][0]["number"].nullString?.toInt() ?: 0,
-                disc = 1,
-                duration = it["length"].int
+                SongInfo(
+                    SongId(
+                        it["title"].string,
+                        it["releases"][0]["title"].string,
+                        artistName,
+                        artistName
+                    ),
+                    track = it["releases"][0]["media"][0]["track"][0]["number"].nullString?.toInt() ?: 0,
+                    disc = 1,
+                    duration = it["length"].int,
+                    year = null
+                )
             )
         }
     }

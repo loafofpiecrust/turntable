@@ -33,7 +33,7 @@ interface Artist: Music {
     val endYear: Int?
     val biography: String?
 
-    override val simpleName get() = id.displayName
+    override val displayName: String get() = id.displayName
 
     data class Member(
         val name: String,

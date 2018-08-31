@@ -9,9 +9,11 @@ import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
+import com.loafofpiecrust.turntable.song.SongInfo
 import com.loafofpiecrust.turntable.util.replayOne
+import com.loafofpiecrust.turntable.util.serialize
+import com.loafofpiecrust.turntable.util.toObject
 import kotlinx.coroutines.experimental.channels.*
-import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
 import java.io.Serializable
@@ -38,7 +40,7 @@ class CollaborativePlaylist(
         abstract val songId: SongId
 
         data class Add(
-            val song: Song,
+            val song: SongInfo,
             override val timestamp: Long = System.currentTimeMillis()
         ): Operation(timestamp) {
             override val songId: SongId get() = song.id
@@ -57,16 +59,12 @@ class CollaborativePlaylist(
     companion object: AnkoLogger {
         fun fromDocument(doc: DocumentSnapshot): CollaborativePlaylist = run {
             CollaborativePlaylist(
-                App.kryo.concreteFromBytes(doc.getBlob("owner")!!.toBytes()),
+                doc.getBlob("owner")!!.toObject(),
                 doc.getString("name")!!,
                 doc.getLong("color")?.toInt(),
                 UUID.fromString(doc.id)
             ).apply {
-                operations puts App.kryoWithRefs {
-                    it.objectFromBytes<List<Operation>>(
-                        doc.getBlob("operations")!!.toBytes()
-                    )
-                }
+                operations puts doc.getBlob("operations")!!.toObject()
                 lastModified = doc.getDate("lastModified")!!
                 isPublished = true
             }
@@ -143,8 +141,8 @@ class CollaborativePlaylist(
     val operations = ConflatedBroadcastChannel(listOf<Operation>())
 
     @Transient
-    private val _tracks: ConflatedBroadcastChannel<List<Song>> = this.operations.openSubscription().map { ops ->
-        val songs = mutableListOf<Song>()
+    private val _tracks: ConflatedBroadcastChannel<List<SongInfo>> = this.operations.openSubscription().map { ops ->
+        val songs = mutableListOf<SongInfo>()
         ops.forEach { op ->
             val idx = songs.indexOfFirst { it.id == op.songId }
             when (op) {
@@ -156,7 +154,7 @@ class CollaborativePlaylist(
         songs
     }.replayOne()
 
-    override val tracks: ReceiveChannel<List<Song>>
+    override val tracks: ReceiveChannel<List<SongInfo>>
         get() = _tracks.openSubscription()
 
     constructor(): this(SyncService.User(), "", null, UUID.randomUUID())
@@ -175,7 +173,7 @@ class CollaborativePlaylist(
         // Check if we already have this song, and if so ask for confirmation
         val isNew = operations.value.find { it is Operation.Add && it.song.id == song.id } == null
         if (isNew) {
-            operations appends Operation.Add(song)
+            operations appends Operation.Add(song.info)
             updateLastModified()
         }
         return isNew
@@ -240,8 +238,8 @@ class CollaborativePlaylist(
             "color" to color,
             "lastModified" to lastModified,
             "createdTime" to createdTime,
-            "operations" to Blob.fromBytes(App.kryoWithRefs { it.objectToBytes(operations.value) }),
-            "owner" to Blob.fromBytes(App.kryo.concreteToBytes(owner))
+            "operations" to Blob.fromBytes(serialize(operations.value)),
+            "owner" to Blob.fromBytes(serialize(owner))
         ))
 //        val ops = doc.collection("operations")
 //        operations.value.forEach { batch.set(ops.document(), it) }

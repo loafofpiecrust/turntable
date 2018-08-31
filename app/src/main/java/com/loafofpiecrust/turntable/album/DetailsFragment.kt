@@ -25,6 +25,7 @@ import com.loafofpiecrust.turntable.style.detailsStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.arg
 import com.loafofpiecrust.turntable.util.consumeEach
+import com.loafofpiecrust.turntable.util.produceTask
 import kotlinx.coroutines.experimental.channels.*
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
@@ -63,7 +64,7 @@ class AlbumsViewModel: ViewModel() {
 //    }.replayOne()
 }
 
-// Album or Artist or Playlist details (?)
+// Album or Artist or Playlist remoteInfo (?)
 // Maybe split this up. Start with Album.
 class DetailsFragment(): BaseFragment() {
     constructor(albumId: AlbumId, isPartial: Boolean = false): this() {
@@ -80,8 +81,8 @@ class DetailsFragment(): BaseFragment() {
         super.onCreate()
 
         if (!::album.isInitialized) {
-            album = Library.instance.findAlbum(albumId).map {
-                it ?: SearchApi.find(albumId)!!
+            album = produceTask {
+                SearchApi.find(albumId)!!
             }.broadcast(Channel.CONFLATED)
         }
 

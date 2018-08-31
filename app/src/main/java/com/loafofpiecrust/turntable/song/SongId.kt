@@ -29,11 +29,12 @@ data class SongId(
     }
 
     override fun toString() = "$displayName | $album"
-    override fun equals(other: Any?) = given(other as? SongId) { other ->
-        this.displayName.equals(other.displayName, true)
-            && this.album == other.album
-            && this.artist == other.artist
-    } ?: false
+    override fun equals(other: Any?) = this === other || (other is SongId
+        && this.displayName.equals(other.displayName, true)
+        && this.album == other.album
+        && this.artist == other.artist
+    )
+
     fun fuzzyEquals(other: SongId)
         = FuzzySearch.ratio(name, other.name) >= 88
         && FuzzySearch.ratio(album.name, other.album.name) >= 88
