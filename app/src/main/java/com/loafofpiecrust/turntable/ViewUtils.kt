@@ -522,17 +522,7 @@ fun <T, R> Iterable<T>.parMap(context: CoroutineContext = BG_POOL, mapper: suspe
 
 inline fun <T, R: Any> Iterable<T>.tryMap(block: (T) -> R): List<R> = mapNotNull { tryOr(null) { block(it) } }
 
-suspend fun <T> List<Deferred<T>>.awaitAll(): List<T?> = run {
-    this.map {
-        try {
-            it.await()
-        } catch (e: Exception) {
-            null
-        }
-    }
-}
-
-suspend fun <T: Any> List<Deferred<T>>.awaitAllNotNull(): List<T> = run {
+suspend fun <T: Any> Collection<Deferred<T>>.awaitAllNotNull(): List<T> = run {
     this.mapNotNull {
         try {
             it.await()

@@ -38,8 +38,8 @@ object Spotify: SearchApi {
                 "https://api.spotify.com/v1/albums/$id/tracks",
                 mapOf("limit" to "50")
             ).gson["items"].array.map {
-                RemoteSong(
-                    SongInfo(
+//                RemoteSong(
+                    Song(
                         SongId(
                             it["name"].string,
                             album,
@@ -50,7 +50,7 @@ object Spotify: SearchApi {
                         duration = it["duration_ms"].int,
                         year = null
                     )
-                )
+//                )
             }
         }
 
@@ -262,8 +262,8 @@ object Spotify: SearchApi {
                 "type" to "track"
             )
         ).gson["tracks"]["items"].array.map {
-            RemoteSong(
-                SongInfo(
+//            RemoteSong(
+                Song(
                     SongId(
                         it["name"].string,
                         it["album"]["name"].string,
@@ -275,7 +275,7 @@ object Spotify: SearchApi {
                     duration = it["duration_ms"].int,
                     year = null
                 )
-            )
+//            )
         }
     }
 
@@ -287,8 +287,8 @@ object Spotify: SearchApi {
 
         val tracks = res["tracks"].array
         return tracks.map { it.obj }.map {
-            RemoteSong(
-                SongInfo(
+//            RemoteSong(
+                Song(
                     SongId(
                         it["name"].string,
                         tryOr("") { it["album"]["name"].string },
@@ -299,7 +299,7 @@ object Spotify: SearchApi {
                     duration = it["duration_ms"].int,
                     year = null
                 )
-            )
+//            )
 
         }
     }
@@ -386,8 +386,8 @@ object Spotify: SearchApi {
         ).gson
         val items = res["items"].array.map {
             val track = it["track"].obj
-            RemoteSong(
-                SongInfo(
+//            RemoteSong(
+                Song(
                     SongId(
                         track["name"].string,
                         track["album"]["name"].string,
@@ -398,7 +398,7 @@ object Spotify: SearchApi {
                     duration = track["duration_ms"].nullInt ?: 0,
                     year = null
                 )
-            )
+//            )
         }
         return if (items.size == 100) {
             items + playlistTracks(userId, playlistId, page + 1)

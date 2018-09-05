@@ -14,8 +14,8 @@ import kotlin.reflect.KProperty
 abstract class BaseObjFilePref<T: Any>(
     open val default: T? = null
 ): AbstractPref<T>(default) {
-    var lastWrite = 0L
-    var lastModify = 0L
+    private var lastWrite = 0L
+    protected var lastModify = 0L
     var name: String? = null
 
     fun save(): Deferred<Unit>? {
@@ -28,7 +28,7 @@ abstract class BaseObjFilePref<T: Any>(
                     if (!file.exists()) {
                         file.createNewFile()
                     }
-                    val value = subject.valueOrNull ?: default ?: return@task
+                    val value = subject.valueOrNull ?: return@task
                     serialize(FileOutputStream(file, false), value)
                     lastWrite = System.nanoTime()
                 }
@@ -51,7 +51,7 @@ abstract class BaseObjFilePref<T: Any>(
     }
 }
 
-inline fun <reified T: Any> objFilePref(default: T) = object: BaseObjFilePref<T>(default) {
+class objFilePref<T: Any>(default: T): BaseObjFilePref<T>(default) {
 //    var lastValue: T? = null
 
     override fun getFromPreference(property: KProperty<*>, preference: SharedPreferences): T {
@@ -66,11 +66,11 @@ inline fun <reified T: Any> objFilePref(default: T) = object: BaseObjFilePref<T>
             default
         }
 
-        subject.consumeEach(ALT_BG_POOL) {
+        subject.consumeEach(BG_POOL) {
             lastModify = System.nanoTime()
         }
 
-        return res
+        return res!!
 //        return preference.getString(property.id, null)?.let {
 //            try {
 //                val input = Input(it.toByteArray(Charsets.ISO_8859_1))

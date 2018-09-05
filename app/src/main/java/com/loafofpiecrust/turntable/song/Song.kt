@@ -6,6 +6,7 @@ package com.loafofpiecrust.turntable.song
 import android.content.Context
 import android.os.Parcelable
 import android.view.Menu
+import java.io.Serializable
 
 // All possible music status':
 // - Local: has an id, can be played. May be partial album (if album)
@@ -17,7 +18,7 @@ import android.view.Menu
 
 interface MusicInfo
 
-interface Music {
+interface Music: Serializable {
     val displayName: String
     fun optionsMenu(ctx: Context, menu: Menu)
 }

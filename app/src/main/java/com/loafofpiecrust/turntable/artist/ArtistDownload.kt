@@ -15,6 +15,7 @@ import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.get
 import com.loafofpiecrust.turntable.util.task
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.runBlocking
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
@@ -42,7 +43,7 @@ sealed class ArtistDownload(val quality: OnlineSearchService.Quality): MusicDown
 //            } else {
 //                yt.await()
 //            }
-            return ru.get().firstOrNull()
+            return runBlocking { ru.await().firstOrNull() }
         }
     }
     //    abstract val completeness: Int

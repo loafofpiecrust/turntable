@@ -125,12 +125,14 @@ class ArtistDetailsFragment: BaseFragment() {
                         backgroundResource = R.drawable.rounded_rect
                         textSizeDimen = R.dimen.small_text_size
                         artist.consumeEach(UI) { artist ->
-                            if (artist.startYear != null) {
+                            val start = artist.startYear
+                            val end = artist.endYear
+                            if (start != null && start != end) {
                                 visibility = View.VISIBLE
                                 text = getString(
                                     R.string.artist_date_range,
-                                    artist.startYear,
-                                    artist.endYear ?: getString(R.string.artist_active_now)
+                                    start,
+                                    end ?: getString(R.string.artist_active_now)
                                 )
                             } else {
                                 visibility = View.GONE

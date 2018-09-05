@@ -352,9 +352,7 @@ class SyncService : FirebaseMessagingService() {
         data class Enqueue(
             val songs: List<Song>,
             val mode: MusicPlayer.EnqueueMode
-        ): Message() {
-            override fun minimize() = copy(songs = songs.map { SyncSong(it.info) })
-        }
+        ): Message()
         data class RemoveFromQueue(val pos: Int): Message()
         data class PlaySongs(
             val songs: List<Song>,

@@ -26,11 +26,11 @@ class MergedAlbum(
     }
     override val tracks: List<Song> by lazy {
         (a.tracks + b.tracks)
-            .sortedBy { it.info.discTrack }
+            .sortedBy { it.discTrack }
             .dedupMergeSorted(
                 { a, b -> a.disc == b.disc && a.id == b.id },
                 // TODO: Use MergedSong here!
-                { a, b -> a as? LocalSong ?: b }
+                { a, b -> a }
             )
     }
 

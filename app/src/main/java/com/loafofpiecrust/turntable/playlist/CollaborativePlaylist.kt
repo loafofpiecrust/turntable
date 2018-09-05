@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.playlist
 
-//import kaaes.spotify.webapi.android.SpotifyApi
 import com.google.firebase.firestore.Blob
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
@@ -9,7 +8,6 @@ import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
-import com.loafofpiecrust.turntable.song.SongInfo
 import com.loafofpiecrust.turntable.util.replayOne
 import com.loafofpiecrust.turntable.util.serialize
 import com.loafofpiecrust.turntable.util.toObject
@@ -40,7 +38,7 @@ class CollaborativePlaylist(
         abstract val songId: SongId
 
         data class Add(
-            val song: SongInfo,
+            val song: Song,
             override val timestamp: Long = System.currentTimeMillis()
         ): Operation(timestamp) {
             override val songId: SongId get() = song.id
@@ -141,8 +139,8 @@ class CollaborativePlaylist(
     val operations = ConflatedBroadcastChannel(listOf<Operation>())
 
     @Transient
-    private val _tracks: ConflatedBroadcastChannel<List<SongInfo>> = this.operations.openSubscription().map { ops ->
-        val songs = mutableListOf<SongInfo>()
+    private val _tracks: ConflatedBroadcastChannel<List<Song>> = this.operations.openSubscription().map { ops ->
+        val songs = mutableListOf<Song>()
         ops.forEach { op ->
             val idx = songs.indexOfFirst { it.id == op.songId }
             when (op) {
@@ -154,7 +152,7 @@ class CollaborativePlaylist(
         songs
     }.replayOne()
 
-    override val tracks: ReceiveChannel<List<SongInfo>>
+    override val tracks: ReceiveChannel<List<Song>>
         get() = _tracks.openSubscription()
 
     constructor(): this(SyncService.User(), "", null, UUID.randomUUID())
@@ -173,7 +171,7 @@ class CollaborativePlaylist(
         // Check if we already have this song, and if so ask for confirmation
         val isNew = operations.value.find { it is Operation.Add && it.song.id == song.id } == null
         if (isNew) {
-            operations appends Operation.Add(song.info)
+            operations appends Operation.Add(song)
             updateLastModified()
         }
         return isNew

@@ -12,6 +12,7 @@ import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.playlist.MixTape
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
@@ -154,7 +155,8 @@ open class SongsAdapter(
 //                    holder.statusIcon.visibility = View.GONE
 //                }
 
-                val c = ctx.resources.getColor(if (internet == App.InternetStatus.OFFLINE && song !is LocalSong) {
+                val isLocal = Library.instance.sourceForSong(song.id) != null
+                val c = ctx.resources.getColor(if (internet == App.InternetStatus.OFFLINE && !isLocal) {
                     R.color.text_unavailable
                 } else R.color.text)
                 holder.mainLine.textColor = c

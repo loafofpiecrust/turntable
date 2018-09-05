@@ -6,8 +6,8 @@ import android.os.Build
 import com.chibatching.kotpref.filepref.BaseObjFilePref
 import com.chibatching.kotpref.filepref.objFilePref
 import com.chibatching.kotpref.pref.*
-import com.loafofpiecrust.turntable.awaitAll
 import com.loafofpiecrust.turntable.awaitAllNotNull
+import kotlinx.coroutines.experimental.awaitAll
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import java.util.*
 import kotlin.properties.ReadOnlyProperty

@@ -16,6 +16,7 @@ import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.YouTubeSong
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.awaitAll
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.runBlocking
 import me.xdrop.fuzzywuzzy.FuzzySearch
@@ -494,7 +495,8 @@ class YouTubeAlbum(
             // Search for all the tracks on youtube concurrently
             val songs = album.tracks
                 .parMap { YouTubeSong.search(it) }
-                .mapNotNull { it.get() }
+                .awaitAll()
+                .filterNotNull()
 
             println("albumyt: completeness = ${songs.size}/${album.tracks.size}")
 
@@ -649,7 +651,7 @@ data class YouTubeFullAlbum(
             val durationStr = pageRes.substring(lengthStartIdx, lengthEndIdx)
             val duration = durationStr.toInt() * 1000
 
-            val goalDuration = album.tracks.sumBy { it.info.duration }
+            val goalDuration = album.tracks.sumBy { it.duration }
             val durationDiff = duration - goalDuration
             if (Math.abs(durationDiff) <= 5500) { // Duration is just about the same
                 // So, just map the tracks in order.
@@ -659,7 +661,7 @@ data class YouTubeFullAlbum(
                 val durationDiscrepancy = durationDiff / album.tracks.size
                 var currStart = 0
                 for (song in album.tracks) {
-                    val duration = song.info.duration + durationDiscrepancy
+                    val duration = song.duration + durationDiscrepancy
                     tracks[song] = Track("", currStart, currStart + duration)
 //                    val vidTrack = song.copy(remote = if (song.remote != null) {
 //                        song.remote.copy(start = currStart)
@@ -682,7 +684,7 @@ data class YouTubeFullAlbum(
                 val tracks = album.tracks.mapNotNull { song ->
                     val (ratio, vidTrack) = videoTracks.mapIndexed { idx, track ->
                         var ratio = FuzzySearch.ratio(track.title.toLowerCase(), song.id.displayName.toLowerCase())
-                        if (idx + 1 == song.info.track) {
+                        if (idx + 1 == song.track) {
                             ratio += 3
                         }
                         ratio to track
@@ -691,11 +693,11 @@ data class YouTubeFullAlbum(
                     if (ratio > 80) {
                         info { "youtube: mapping song '${song.id.displayName}' to section ${vidTrack.start}-${vidTrack.end} called '${vidTrack.title}'" }
                         val videoSongDuration = vidTrack.end - vidTrack.start
-                        val newDurationCorrect = abs(song.info.duration - videoSongDuration) < TimeUnit.MINUTES.toMillis(1)
+                        val newDurationCorrect = abs(song.duration - videoSongDuration) < TimeUnit.MINUTES.toMillis(1)
                         val end = if (newDurationCorrect) {
                             vidTrack.end
                         } else {
-                            vidTrack.start + song.info.duration
+                            vidTrack.start + song.duration
                         }
                         song to vidTrack.copy(end = end)
 //                        val remote = if (song.remote != null) {

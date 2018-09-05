@@ -13,12 +13,12 @@ import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.RemoteSong
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
-import com.loafofpiecrust.turntable.song.SongInfo
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.task
 import com.loafofpiecrust.turntable.util.text
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.experimental.awaitAll
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.AnkoLogger
@@ -192,8 +192,8 @@ object MusicBrainz: SearchApi, AnkoLogger {
                     //                                }
 //                async(UI) { println("album track '${name}'") }
 
-                    RemoteSong(
-                        SongInfo(
+//                    RemoteSong(
+                        Song(
                             SongId(
                                 title,
                                 albumId,
@@ -202,20 +202,21 @@ object MusicBrainz: SearchApi, AnkoLogger {
                             duration = recording["length"].nullInt ?: 0,
                             track = recording["position"].nullInt ?: idx + 1,
                             disc = discIdx + 1,
-                            year = year
-                        ),
-                        RemoteSong.Details(
-                            tryOr(null) { recording["id"].string },
-                            rgid,
-                            null
+                            year = year,
+                            platformId = RemoteSong.Details(
+                                tryOr(null) { recording["id"].string },
+                                rgid,
+                                null
+                            )
                         )
-                    )
+
+//                    )
                 } catch (e: Exception) {
                     error { e.message }
                     null
                 }
             }.filterNotNull()
-        }.flatMap { it }.sortedBy { it.info.disc * 1000 + it.info.track }
+        }.flatMap { it }.sortedBy { it.discTrack }
     }
 
     override suspend fun searchArtists(query: String): List<Artist> {
@@ -266,8 +267,8 @@ object MusicBrainz: SearchApi, AnkoLogger {
             "query" to query
         )).gson["recordings"].array.map {
             val artistName = it["artist-credit"][0]["artist"]["name"].string
-            RemoteSong(
-                SongInfo(
+//            RemoteSong(
+                Song(
                     SongId(
                         it["title"].string,
                         it["releases"][0]["title"].string,
@@ -279,7 +280,7 @@ object MusicBrainz: SearchApi, AnkoLogger {
                     duration = it["length"].int,
                     year = null
                 )
-            )
+//            )
         }
     }
 
@@ -372,7 +373,7 @@ object MusicBrainz: SearchApi, AnkoLogger {
 
                 album
             }
-        }.awaitAll().flatMap { it!! }
+        }.awaitAll().flatMap { it }
     }
 
 

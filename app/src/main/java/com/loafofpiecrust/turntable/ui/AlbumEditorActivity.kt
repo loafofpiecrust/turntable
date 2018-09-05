@@ -23,6 +23,7 @@ import com.loafofpiecrust.turntable.util.always
 import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.fail
 import com.loafofpiecrust.turntable.util.task
+import kotlinx.coroutines.experimental.awaitAll
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.runBlocking
 import org.jaudiotagger.audio.AudioFileIO
@@ -147,13 +148,13 @@ class AlbumEditorActivity : BaseActivity() {
         }
 
         album.tracks.parMap { song ->
-            given(song as? LocalSong) { local ->
+            given(Library.instance.sourceForSong(song.id)) { path ->
                 tryOr(null) {
-                    val internal = File(local.path)
+                    val internal = File(path)
                     val f = if (internal.canWrite()) {
                         AudioFileIO.read(internal)
                     } else {
-                        val parts = local.path.splitToSequence('/').drop(3)
+                        val parts = path.splitToSequence('/').drop(3)
                         val uri = Uri.parse(UserPrefs.sdCardUri.value).buildUpon()
                         var doc = DocumentFile.fromTreeUri(ctx, Uri.parse(UserPrefs.sdCardUri.value))
                         parts.forEach {
@@ -167,7 +168,7 @@ class AlbumEditorActivity : BaseActivity() {
                     tag.setField(FieldKey.ALBUM, title)
 //                tag.setField(FieldKey.ARTIST, artist)
                     tag.setField(FieldKey.ALBUM_ARTIST, artist)
-                    tag.setField(FieldKey.DISC_NO, song.info.disc.toString())
+                    tag.setField(FieldKey.DISC_NO, song.disc.toString())
                     tag.setField(FieldKey.YEAR, year)
                     f.commit(ctx)
                 }

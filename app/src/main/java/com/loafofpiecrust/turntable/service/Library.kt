@@ -31,16 +31,14 @@ import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.artist.LocalArtist
 import com.loafofpiecrust.turntable.playlist.Playlist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.song.LocalSong
-import com.loafofpiecrust.turntable.song.Song
-import com.loafofpiecrust.turntable.song.SongId
-import com.loafofpiecrust.turntable.song.SongInfo
+import com.loafofpiecrust.turntable.song.*
 import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.intValue
 import com.mcxiaoke.koi.ext.longValue
 import com.mcxiaoke.koi.ext.stringValue
 import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.awaitAll
 import kotlinx.coroutines.experimental.channels.*
 import kotlinx.coroutines.experimental.delay
 import me.xdrop.fuzzywuzzy.FuzzySearch
@@ -83,8 +81,11 @@ class Library : Service() {
         constructor(): this("", null, listOf())
     }
 
+    /// Map of SongId to local file path for that song.
+    private val localSongSources = TreeMap<SongId, String>()
 
     private val _songs = ConflatedBroadcastChannel<List<Song>>(listOf())
+    private val _albums = ConflatedBroadcastChannel<List<Album>>(listOf())
 
     private val albumCovers = UserPrefs.albumMeta.openSubscription().map {
         it.sortedWith(ALBUM_META_COMPARATOR).dedupMergeSorted({ a, b ->
@@ -123,10 +124,9 @@ class Library : Service() {
 
     private val localAlbums: ReceiveChannel<List<Album>> = _songs.openSubscription().map {
         it.groupBy {
-            (it as LocalSong).localAlbumId
-//            it.id.album
+            (it.platformId as? LocalSongId)?.albumId
         }.map {
-            val tracks = it.value.sortedBy { (it.info.disc * 1000) + it.info.track }
+            val tracks = it.value.sortedBy { it.discTrack }
             LocalAlbum(it.value.first().id.album, tracks)
         }
     }
@@ -173,6 +173,9 @@ class Library : Service() {
 
     class Binder(val music: Library) : android.os.Binder()
     override fun onBind(intent: Intent): IBinder? = Binder(this)
+
+    /// TODO: Find nearest and do fuzzy compare
+    fun sourceForSong(id: SongId): String? = localSongSources[id]
 
     fun albumsByArtist(id: ArtistId): ReceiveChannel<List<Album>> = artists.openSubscription().map { artists ->
         val artist = artists.binarySearchElem(id) { it.id }
@@ -549,6 +552,29 @@ class Library : Service() {
 
     }
 
+//    private fun compileAlbumsFrom(uri: Uri): List<Album> {
+//        val albums = mutableListOf<Album>()
+//        val cur = App.instance.contentResolver.query(
+//            uri,
+//            arrayOf(
+//                MediaStore.Audio.Albums._ID,
+//                MediaStore.Audio.Albums.ALBUM,
+//                MediaStore.Audio.Albums.ARTIST,
+//                MediaStore.Audio.Albums.FIRST_YEAR
+//            ),
+//            null,
+//            null,
+//            null,
+//            null
+//        )
+//        cur.use { cur ->
+//            cur.moveToFirst()
+//            do {
+//
+//            } while (cur.moveToNext())
+//        }
+//    }
+
     private fun compileSongsFrom(uri: Uri): List<Song> {
         val songs = ArrayList<Song>()
         val cur = App.instance.contentResolver.query(
@@ -580,7 +606,7 @@ class Library : Service() {
                 try {
                     val duration = cur.intValue(MediaStore.Audio.Media.DURATION)
 
-                    if (duration == 0 || (Song.MIN_DURATION <= duration && duration <= Song.MAX_DURATION)) {
+                    if (duration == 0 || (PlayableSong.MIN_DURATION <= duration && duration <= PlayableSong.MAX_DURATION)) {
                         var artist = cur.stringValue(MediaStore.Audio.Media.ARTIST)
                         val albumArtist = tryOr(artist) {
                             cur.stringValue("album_artist")
@@ -605,18 +631,21 @@ class Library : Service() {
                             1 to index
                         }
 
-                        songs.add(LocalSong(
+                        val songId = SongId(title, album, albumArtist, artist)
+                        songs.add(/*LocalSong(
                             data,
-                            albumId,
-                            SongInfo(
-                                SongId(title, album, albumArtist, artist),
+                            albumId,*/
+                            Song(
+                                songId,
                                 track,
                                 disc,
                                 duration,
-                                year
-                            ),
+                                year,
+                                platformId = LocalSongId(id, albumId, artistId)
+                            )/*,
                             artworkUrl = null
-                        ))
+                        )*/)
+                        localSongSources[songId] = data
                     }
                 } catch (e: Exception) {
                     Log.trace("Issues", e)
@@ -692,8 +721,8 @@ class Library : Service() {
             }
 
             val firstTrack = it.tracks.firstOrNull() ?: return@parMap
-            val local = firstTrack as LocalSong
-            val folder = File(local.path).parentFile
+            val local = sourceForSong(firstTrack.id)
+            val folder = File(local).parentFile
             val imagePaths = folder.listFiles { path ->
                 val ext = path.extension
                 imageExts.any { ext.equals(it, true) }

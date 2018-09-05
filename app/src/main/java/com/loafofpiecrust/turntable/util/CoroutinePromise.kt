@@ -134,13 +134,6 @@ fun <T> Deferred<T>.always(ctx: CoroutineContext = Unconfined, block: suspend (T
     return this
 }
 
-fun <T> Deferred<T>.success(ctx: CoroutineContext = Unconfined, block: suspend (T) -> Unit): Deferred<T> {
-    async(ctx) {
-        block(await())
-    }
-    return this
-}
-
 fun <T> Deferred<T>.fail(ctx: CoroutineContext = Unconfined, block: suspend (Throwable) -> Unit): Deferred<T> {
     async(ctx) {
         try {

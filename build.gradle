@@ -1,7 +1,7 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = '1.2.51'
+    ext.kotlin_version = '1.2.61'
     ext.anko_version = '0.10.5'
     ext.google_ver = '15.0.1'
     ext.firebase_ver = '17.0.0'
@@ -11,6 +11,7 @@ buildscript {
 
 
     repositories {
+        mavenCentral()
         google()
         jcenter()
         maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
@@ -26,7 +27,8 @@ buildscript {
         // in the individual module build.gradle files
         classpath 'com.google.gms:google-services:4.0.2'
 
-        classpath "com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.3-SNAPSHOT"
+        classpath "com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.3"
+        classpath "com.vanniktech:gradle-dependency-graph-generator-plugin:0.5.0"
         classpath 'gradle.plugin.org.jmailen.gradle:kotlinter-gradle:1.15.1'
     }
 }

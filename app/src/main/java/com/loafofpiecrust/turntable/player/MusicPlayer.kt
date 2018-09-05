@@ -130,7 +130,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
 
     private val _isPlaying: ConflatedBroadcastChannel<Boolean> = ConflatedBroadcastChannel(false)
     val isPlaying get() = _isPlaying.openSubscription()
-    var isStreaming: Boolean = false
+    var isStreaming: Boolean = true
         private set
 
     var shouldAutoplay: Boolean = false

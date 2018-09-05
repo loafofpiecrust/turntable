@@ -13,7 +13,6 @@ import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.RemoteSong
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
-import com.loafofpiecrust.turntable.song.SongInfo
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.task
@@ -510,8 +509,8 @@ object Discogs: SearchApi, AnkoLogger {
                     (it[0].toInt() * 60 + it[1].toInt()) * 1000
                 } else 0
             } ?: 0
-            RemoteSong(
-                SongInfo(
+//            RemoteSong(
+                Song(
                     SongId(
                         title,
                         AlbumId(albumTitle, artistName),
@@ -526,7 +525,7 @@ object Discogs: SearchApi, AnkoLogger {
                     duration = duration,
                     year = null
                 )
-            )
+//            )
         }
     }
 

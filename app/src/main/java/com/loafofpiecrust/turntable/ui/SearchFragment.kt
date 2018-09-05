@@ -18,6 +18,8 @@ import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongsAdapter
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.util.BG_POOL
+import com.loafofpiecrust.turntable.util.arg
+import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.async
@@ -38,6 +40,7 @@ open class SearchFragment : BaseFragment() {
 
     sealed class Category<T>: Parcelable {
         @Transient
+        @IgnoredOnParcel
         val results = ConflatedBroadcastChannel<List<T>>()
 
         @Parcelize class Artists: Category<Artist>()
@@ -45,7 +48,7 @@ open class SearchFragment : BaseFragment() {
         @Parcelize class Songs: Category<Song>()
     }
 
-    @Arg lateinit var category: Category<*>
+    private var category: Category<*> by arg()
 
     // TODO: Save the stream of results instead!
     private var albumsGrid : AlbumsAdapter? = null
@@ -134,6 +137,12 @@ open class SearchFragment : BaseFragment() {
             searchJob.cancelChildren()
             async(BG_POOL, parent = searchJob) { doSearch(query, category) }
 //                            .always(UI) { loadCircle.progressiveStop() }
+        }
+    }
+
+    companion object {
+        fun newInstance(category: Category<*>) = SearchFragment().apply {
+            this.category = category
         }
     }
 }

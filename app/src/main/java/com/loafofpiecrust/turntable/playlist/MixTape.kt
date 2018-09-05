@@ -1,11 +1,5 @@
 package com.loafofpiecrust.turntable.playlist
 
-//import com.mongodb.stitch.android.StitchClient
-//import com.mongodb.stitch.android.auth.anonymous.AnonymousAuthProvider
-//import com.mongodb.stitch.android.services.mongodb.MongoClient
-//import org.bson.Document
-//import org.bson.types.Binary
-//import org.bson.types.ObjectId
 import android.content.Context
 import com.google.firebase.firestore.Blob
 import com.google.firebase.firestore.DocumentSnapshot
@@ -13,7 +7,6 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
-import com.loafofpiecrust.turntable.song.SongInfo
 import com.loafofpiecrust.turntable.util.serialize
 import com.loafofpiecrust.turntable.util.suspendedTask
 import com.loafofpiecrust.turntable.util.toObject
@@ -112,10 +105,10 @@ class MixTape(
     }
 
     private val _tracks = ConflatedBroadcastChannel(
-        (0 until type.sideCount).map { emptyList<SongInfo>() }
+        (0 until type.sideCount).map { emptyList<Song>() }
     )
 
-    override val tracks: ReceiveChannel<List<SongInfo>> get() = _tracks.openSubscription().map { it.flatten() }
+    override val tracks: ReceiveChannel<List<Song>> get() = _tracks.openSubscription().map { it.flatten() }
 
 
     /**
@@ -127,7 +120,7 @@ class MixTape(
         runBlocking { tracks.first() }.sumBy { it.duration }.toLong()
     )
 
-    fun tracksOnSide(sideIdx: Int): ReceiveChannel<List<SongInfo>> =
+    fun tracksOnSide(sideIdx: Int): ReceiveChannel<List<Song>> =
 //        _tracks.value[clamp(0, sideNum, type.sideCount - 1)]
         _tracks.openSubscription().map { it[sideIdx] }
 
@@ -150,7 +143,7 @@ class MixTape(
             false
         } else {
             val side = _tracks.value[sideIdx]
-            _tracks puts _tracks.value.withReplaced(sideIdx, side + song.info)
+            _tracks puts _tracks.value.withReplaced(sideIdx, side + song)
             updateLastModified()
 //            !sideIsFull(sideIdx)
             true

@@ -5,6 +5,11 @@ import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.Input
 import com.esotericsoftware.kryo.io.Output
 import com.google.firebase.firestore.Blob
+import com.loafofpiecrust.turntable.album.Album
+import com.loafofpiecrust.turntable.album.AlbumId
+import com.loafofpiecrust.turntable.playlist.CollaborativePlaylist
+import com.loafofpiecrust.turntable.song.Song
+import com.loafofpiecrust.turntable.song.SongId
 import com.mcxiaoke.koi.ext.closeQuietly
 import org.nustaq.serialization.FSTConfiguration
 import java.io.ByteArrayInputStream
@@ -54,7 +59,16 @@ private inline fun <reified T: Any> Kryo.concreteFromBytes(bytes: ByteArray, dec
 //
 // FST
 //
-private val fst = FSTConfiguration.createAndroidDefaultConfiguration()
+private val fst = FSTConfiguration.createAndroidDefaultConfiguration().apply {
+    isForceSerializable = true
+    registerClass(
+        Album::class.java,
+        Song::class.java,
+        SongId::class.java,
+        AlbumId::class.java,
+        CollaborativePlaylist.Operation::class.java
+    )
+}
 fun serialize(obj: Any): ByteArray {
     val output = fst.objectOutput
     output.writeObject(obj)
@@ -62,7 +76,7 @@ fun serialize(obj: Any): ByteArray {
 }
 
 fun serializeToString(obj: Any) = Base64.encodeToString(serialize(obj), Base64.DEFAULT)
-fun <T: Any> deserialize(input: String): T = deserialize(Base64.decode(input, Base64.DEFAULT))
+inline fun <T: Any> deserialize(input: String): T = deserialize(Base64.decode(input, Base64.DEFAULT))
 
 fun serialize(stream: OutputStream, obj: Any) {
     val output = fst.getObjectOutput(stream)
@@ -85,9 +99,7 @@ fun <T: Any> deserialize(stream: InputStream): T {
 }
 
 fun <T: Any> Blob.toObject(): T {
-    return toByteString().newInput().let {
-        deserialize(it)
-    }
+    return deserialize(toByteString().newInput())
 }
 
 

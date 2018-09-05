@@ -140,7 +140,7 @@ class PlayingNotification(private val service: MusicService) {
                 .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, song.id.album.displayName)
                 .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, song.id.artist.displayName)
                 .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST, song.id.album.artist.displayName)
-                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, song.artworkUrl)
+//                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, song.artworkUrl)
                 .putLong(MediaMetadataCompat.METADATA_KEY_YEAR, song.year?.toLong() ?: 0)
                 .putLong(MediaMetadataCompat.METADATA_KEY_DISC_NUMBER, song.disc.toLong())
                 .build())

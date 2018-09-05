@@ -6,7 +6,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.service.SyncService
-import com.loafofpiecrust.turntable.song.SongInfo
+import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.util.serialize
 import com.loafofpiecrust.turntable.util.toObject
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
@@ -31,9 +31,9 @@ class AlbumCollection(
     override val typeName: String
         get() = "Album Collection"
 
-    override val tracks: ReceiveChannel<List<SongInfo>>
+    override val tracks: ReceiveChannel<List<Song>>
         get() = albums.map { it.asSequence().flatMap {
-            it.tracks.asSequence().map { it.info }
+            it.tracks.asSequence().map { it }
         }.toList() }
 
     companion object {

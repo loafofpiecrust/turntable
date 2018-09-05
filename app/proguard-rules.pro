@@ -20,8 +20,8 @@
 -keep class com.loafofpiecrust.turntable.ui.*$** { *; }
 -keep class com.loafofpiecrust.**$Parcelable { *; }
 #-keep class com.frostwire.jlibtorrent.swig.** { *; }
-
-
+#-keep class com.google.firebase.provider.FirebaseInitProvider
+-keep class * extends android.content.ContentProvider
 # If you keep the line number information, uncomment this to
 # hide the original source file id.
 #-renamesourcefileattribute SourceFile
@@ -109,12 +109,13 @@
 #-keepnames interface ** { *; }
 #-keepnames enum ** { *; }
 
-#-keep public class * extends android.view.View {
-#    public <init>(android.content.Context);
-#    public <init>(android.content.Context, android.util.AttributeSet);
-#    public <init>(android.content.Context, android.util.AttributeSet, int);
-#    public void set*(...);
-#}
+-keep public class * extends android.view.View {
+    public <init>(android.content.Context);
+    public <init>(android.content.Context, android.util.AttributeSet);
+    public <init>(android.content.Context, android.util.AttributeSet, int);
+    public void set*(...);
+}
+-keep class android.support.v7.widget.ListViewCompat
 
 -keepclassmembers class com.loafofpiecrust.** {
     ** serialPersistentFields;
@@ -128,10 +129,10 @@
 #    public <init>(android.content.Context, android.util.AttributeSet, int);
 #}
 
-#-keepclassmembers class * extends android.content.Context {
-#   public void *(android.view.View);
-#   public void *(android.view.MenuItem);
-#}
+-keepclassmembers class * extends android.content.Context {
+   public void *(android.view.View);
+   public void *(android.view.MenuItem);
+}
 
 -keepclassmembers class * implements android.os.Parcelable {
     static ** CREATOR;

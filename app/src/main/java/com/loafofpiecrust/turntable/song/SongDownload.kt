@@ -29,7 +29,7 @@ data class YouTubeSong(
 ) : SongDownload() {
 
     companion object: AnkoLogger by AnkoLogger<YouTubeSong>() {
-        val API_KEY = BuildConfig.YOUTUBE_API_KEY!!
+        val API_KEY = BuildConfig.YOUTUBE_API_KEY
         private val PAT_UNOFFICIAL by lazy {
             Pattern.compile("\\b(live|remix|mix|cover|unofficial|instrumental|sessions)\\b")
         }
@@ -322,8 +322,8 @@ data class YouTubeSong(
 //
 //            "http://www.youtubeinmp3.com/fetch/?video=https://www.youtube.com$url"
 //        }
-        val (song, s) = OnlineSearchService.instance.getSongStreams(goal)
-        val streams = s as? OnlineSearchService.StreamStatus.Available ?: return
+        val s = OnlineSearchService.instance.getSongStreams(goal)
+        val streams = s.status as? OnlineSearchService.StreamStatus.Available ?: return
         val downloadUrl = streams.hqStream ?: streams.stream
 
 //        println("albumyt song id: $downloadUrl")

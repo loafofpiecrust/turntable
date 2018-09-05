@@ -8,7 +8,7 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.reiterate
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Music
-import com.loafofpiecrust.turntable.song.SongInfo
+import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.util.suspendedTask
 import com.loafofpiecrust.turntable.util.task
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
@@ -32,7 +32,7 @@ abstract class Playlist(
 ): Music, Serializable {
     var createdTime: Date = Date()
         private set
-    abstract val tracks: ReceiveChannel<List<SongInfo>>
+    abstract val tracks: ReceiveChannel<List<Song>>
     abstract val typeName: String
 
     override val displayName: String get() = name

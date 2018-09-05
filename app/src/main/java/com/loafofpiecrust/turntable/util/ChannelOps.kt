@@ -2,11 +2,8 @@ package com.loafofpiecrust.turntable.util
 
 import android.support.annotation.UiThread
 import android.view.View
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.Unconfined
-import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.*
-import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.selects.whileSelect
 import org.jetbrains.anko.sdk25.coroutines.onAttachStateChangeListener
 import kotlin.coroutines.experimental.CoroutineContext
@@ -156,11 +153,9 @@ fun <T> ReceiveChannel<T>.skip(n: Int, context: CoroutineContext = Unconfined): 
 fun <T> ReceiveChannel<T>.interrupt(context: CoroutineContext = Unconfined): ReceiveChannel<T> {
     var job: Job? = null
     return produce(context) {
-        consume {
-            for (e in this) {
-                job?.cancel()
-                job = launch(coroutineContext) { send(e) }
-            }
+        consumeEach { e ->
+            job?.cancelAndJoin()
+            job = launch(coroutineContext) { send(e) }
         }
     }
 }
