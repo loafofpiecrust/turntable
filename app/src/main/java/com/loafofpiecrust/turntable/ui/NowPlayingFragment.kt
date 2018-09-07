@@ -12,6 +12,7 @@ import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.loadPalette
 import com.loafofpiecrust.turntable.generateChildrenIds
+import com.loafofpiecrust.turntable.getColorCompat
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.selector
 import com.loafofpiecrust.turntable.service.SyncService
@@ -63,7 +64,7 @@ open class NowPlayingFragment : BaseFragment() {
             }.consumeEach { (song, req) ->
                 if (song != null && req != null) {
                     req.listener(loadPalette(song.id.album) { palette, swatch ->
-                        backgroundColor = swatch?.rgb ?: context.resources.getColor(R.color.background)
+                        backgroundColor = swatch?.rgb ?: context.getColorCompat(R.color.background)
                         val c =
                             (palette?.mutedSwatch
                                 ?: palette?.darkMutedSwatch
@@ -128,7 +129,7 @@ open class NowPlayingFragment : BaseFragment() {
 
         val syncBtn = imageButton(R.drawable.ic_cast) {
             backgroundResource = R.drawable.round_selector_dark
-            padding = dip(16)
+            padding = dimen(R.dimen.text_content_margin)
             setColorFilter(Color.WHITE)
             SyncService.mode.consumeEach(UI) {
                 imageResource = if (it is SyncService.Mode.None) {
@@ -156,7 +157,7 @@ open class NowPlayingFragment : BaseFragment() {
 
         val prevBtn = imageButton(R.drawable.ic_skip_previous) {
             backgroundResource = R.drawable.round_selector_dark
-            padding = dip(16)
+            padding = dimen(R.dimen.text_content_margin)
             onClick {
                 MusicService.enact(SyncService.Message.RelativePosition(-1))
             }
@@ -165,13 +166,13 @@ open class NowPlayingFragment : BaseFragment() {
         playButton = floatingActionButton {
             id = R.id.playing_icon
             imageResource = R.drawable.ic_play_arrow
-            elevation = dip(2).toFloat()
+            elevation = dimen(R.dimen.low_elevation).toFloat()
             isLongClickable = true
         }
 
         val nextBtn = imageButton(R.drawable.ic_skip_next) {
             backgroundResource = R.drawable.round_selector_dark
-            padding = dip(16)
+            padding = dimen(R.dimen.text_content_margin)
             onClick {
                 MusicService.enact(SyncService.Message.RelativePosition(1))
             }
@@ -214,6 +215,8 @@ open class NowPlayingFragment : BaseFragment() {
 
         generateChildrenIds()
         applyConstraintSet {
+            val gap = dip(8)
+
             songCarousel {
                 connect(
                     TOP to TOP of PARENT_ID,
@@ -226,7 +229,7 @@ open class NowPlayingFragment : BaseFragment() {
             }
             seeker {
                 connect(
-                    TOP to BOTTOM of songCarousel margin dip(8),
+                    TOP to BOTTOM of songCarousel margin gap,
                     START to START of PARENT_ID,
                     END to END of PARENT_ID
                 )
@@ -234,7 +237,7 @@ open class NowPlayingFragment : BaseFragment() {
             }
             syncBtn {
                 connect(
-                    START to START of PARENT_ID margin dip(8),
+                    START to START of PARENT_ID margin gap,
                     TOP to TOP of playButton,
                     BOTTOM to BOTTOM of playButton
                 )
@@ -250,7 +253,7 @@ open class NowPlayingFragment : BaseFragment() {
                 connect(
                     START to START of PARENT_ID,
                     END to END of PARENT_ID,
-                    TOP to BOTTOM of seeker margin dip(8)
+                    TOP to BOTTOM of seeker margin gap
                 )
             }
             nextBtn {
@@ -262,7 +265,7 @@ open class NowPlayingFragment : BaseFragment() {
             }
             shuffleBtn {
                 connect(
-                    END to END of PARENT_ID margin dip(8),
+                    END to END of PARENT_ID margin gap,
                     TOP to TOP of playButton,
                     BOTTOM to BOTTOM of playButton
                 )

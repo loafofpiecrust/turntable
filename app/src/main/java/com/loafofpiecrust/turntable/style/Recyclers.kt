@@ -3,6 +3,7 @@ package com.loafofpiecrust.turntable.style
 import android.support.v7.widget.RecyclerView
 import android.view.View
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.getColorCompat
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.bind
 import com.loafofpiecrust.turntable.util.consumeEach
@@ -21,7 +22,7 @@ inline fun FastScrollRecyclerView.turntableStyle() {
         setThumbColor(it)
         setPopupBgColor(it)
     }
-    setPopupTextColor(resources.getColor(R.color.text))
+    setPopupTextColor(context.getColorCompat(R.color.text))
     setPopupPosition(FastScroller.FastScrollerPopupPosition.ADJACENT)
     setAutoHideEnabled(true)
     addOnItemTouchListener(this)

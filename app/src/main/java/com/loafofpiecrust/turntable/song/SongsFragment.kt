@@ -20,7 +20,6 @@ import com.loafofpiecrust.turntable.menuItem
 import com.loafofpiecrust.turntable.onClick
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.CollaborativePlaylist
-import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.service.library
@@ -85,7 +84,7 @@ open class SongsFragment: BaseFragment() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
-        menu.menuItem("History").onClick {
+        menu.menuItem(R.string.show_history).onClick {
             ctx.replaceMainContent(
                 SongsFragmentStarter.newInstance(
                     Category.History(null)
@@ -154,7 +153,7 @@ open class SongsFragment: BaseFragment() {
             }
 
             addItemDecoration(DividerItemDecoration(context, linear.orientation).apply {
-                setDrawable(resources.getDrawable(R.drawable.song_divider))
+                setDrawable(ctx.getDrawable(R.drawable.song_divider))
             })
 
 

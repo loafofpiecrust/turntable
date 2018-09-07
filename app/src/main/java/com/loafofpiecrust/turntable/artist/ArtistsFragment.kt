@@ -79,7 +79,7 @@ class ArtistsFragment : BaseFragment() {
 
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
-        menu.menuItem("Search", R.drawable.ic_search, showIcon = true) {
+        menu.menuItem(R.string.search, R.drawable.ic_search, showIcon = true) {
             onClick {
                 act.replaceMainContent(
                     SearchFragmentStarter.newInstance(SearchFragment.Category.Artists()),
@@ -88,7 +88,7 @@ class ArtistsFragment : BaseFragment() {
             }
         }
 
-        menu.subMenu("Grid size") {
+        menu.subMenu(R.string.set_grid_size) {
             group(0, true, true) {
                 val items = (1..4).map { idx ->
                     menuItem(idx.toString()).apply {

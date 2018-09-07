@@ -1,6 +1,8 @@
 package com.loafofpiecrust.turntable.artist
 
 import android.os.Parcelable
+import com.loafofpiecrust.turntable.App
+import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumId
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.MusicId
@@ -39,7 +41,8 @@ data class ArtistId(
     }
     val sortName: String get() = displayName.withoutArticle()
     val featureList: String get() = if (features.isNotEmpty()) {
-        " (ft. " + features.joinToString(", ") + ")"
+        // TODO: Localize the comma-based join (is this possible/feasible?)
+        App.instance.getString(R.string.artist_features, features.joinToString(", "))
     } else ""
 
 

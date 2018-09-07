@@ -10,6 +10,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.getColorCompat
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.task
 import kotlinx.coroutines.experimental.android.UI
@@ -35,7 +36,7 @@ class RecyclerListItem(
     gravity = Gravity.CENTER_VERTICAL
     lparams(width = matchParent, height = (dimen(R.dimen.subtitle_text_size) * maxOf(2.2f, maxTextLines.toFloat())).toInt() + textPadding * 2)
 
-    backgroundColor = context.resources.getColor(R.color.background)
+    backgroundColor = context.getColorCompat(R.color.background)
 
     frameLayout {
 

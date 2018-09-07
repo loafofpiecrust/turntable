@@ -49,7 +49,7 @@ class MiniPlayerFragment: BaseFragment() {
 
         imageButton(R.drawable.ic_play_arrow) {
             backgroundResource = R.drawable.round_selector_dark
-            padding = dip(16)
+            padding = dimen(R.dimen.text_content_margin)
 
             MusicService.instance.switchMap {
                 it.player.isPlaying

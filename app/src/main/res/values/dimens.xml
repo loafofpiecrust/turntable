@@ -31,8 +31,13 @@
     <dimen name="medium_elevation">4dp</dimen>
     <dimen name="high_elevation">8dp</dimen>
     <dimen name="top_elevation">16dp</dimen>
-    <dimen name="toolbar_elevation">4dp</dimen>
+    <dimen name="toolbar_elevation">@dimen/medium_elevation</dimen>
 
     <dimen name="grid_gutter">4dp</dimen>
+
+    <dimen name="load_circle_thickness">8dp</dimen>
+    <dimen name="load_circle_size">64dp</dimen>
+
+    <dimen name="drawer_width">200dp</dimen>
 
 </resources>

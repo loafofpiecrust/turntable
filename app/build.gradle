@@ -116,6 +116,8 @@ dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation project(':exoplayer-flac')
 
+    implementation "de.ruedigermoeller:fst:2.56"
+
     //    debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.1'
 
     //    releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.1'

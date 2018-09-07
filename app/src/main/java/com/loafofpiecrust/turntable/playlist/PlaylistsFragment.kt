@@ -35,7 +35,7 @@ class PlaylistsFragment: BaseFragment() {
             ctx.replaceMainContent(RecentMixTapesFragment(), true)
         }
 
-        menu.menuItem("Add", R.drawable.ic_add, showIcon=true).onClick {
+        menu.menuItem("Add", R.drawable.ic_add, showIcon =true).onClick {
             AddPlaylistActivityStarter.start(ctx)
         }
     }

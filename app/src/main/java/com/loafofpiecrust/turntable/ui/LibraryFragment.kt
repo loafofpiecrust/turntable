@@ -130,9 +130,8 @@ class LibraryFragment: BaseFragment() {
 //                    }
 //                }
             }.lparams {
-                topMargin = dip(8)
                 width = matchParent
-                height = dip(48)
+                height = dimen(R.dimen.toolbar_height)
             }
 
             tabs = tabLayout {

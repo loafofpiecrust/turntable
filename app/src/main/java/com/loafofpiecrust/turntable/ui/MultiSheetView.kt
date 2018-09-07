@@ -119,7 +119,7 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
     private var sheetStateChangeListener: SheetStateChangeListener? = null
 
     private val sheet1PeekHeight: Int = dimen(R.dimen.song_item_height)
-    private val sheet2PeekHeight: Int = dimen(R.dimen.song_item_height) * 2 + dimen(R.dimen.small_text_size) + dip(16)
+    private val sheet2PeekHeight: Int = dimen(R.dimen.song_item_height) * 2 + dimen(R.dimen.small_text_size) + dimen(R.dimen.text_content_margin)
 
     val isHidden: Boolean
         get() = bottomSheetBehavior1.peekHeight < sheet1PeekHeight

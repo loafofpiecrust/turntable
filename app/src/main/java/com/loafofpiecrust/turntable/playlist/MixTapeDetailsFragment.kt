@@ -14,8 +14,6 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.service.library
-import com.loafofpiecrust.turntable.song.LocalSong
-import com.loafofpiecrust.turntable.song.RemoteSong
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.song.SongsFragmentStarter
 import com.loafofpiecrust.turntable.style.standardStyle

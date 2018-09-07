@@ -57,7 +57,7 @@ class AlbumEditorActivity : BaseActivity() {
 
         val title = textInputLayout {
             titleEdit = editText(album.id.name) {
-                hint = "Title"
+                hintResource = R.string.album_title_hint
                 maxLines = 1
                 inputType = EditorInfo.TYPE_CLASS_TEXT or
                     EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES
@@ -65,7 +65,7 @@ class AlbumEditorActivity : BaseActivity() {
         }
         val artist = textInputLayout {
             artistEdit = editText(album.id.artist.name) {
-                hint = "Artist"
+                hintResource = R.string.album_artist_hint
                 maxLines = 1
                 inputType = EditorInfo.TYPE_CLASS_TEXT or
                     EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES or
@@ -75,7 +75,7 @@ class AlbumEditorActivity : BaseActivity() {
         val year = textInputLayout {
             yearEdit = editText(album.year?.toString() ?: "") {
                 inputType = EditorInfo.TYPE_CLASS_NUMBER
-                hint = "Year"
+                hintResource = R.string.album_year_hint
                 maxLines = 1
             }
         }
@@ -101,6 +101,7 @@ class AlbumEditorActivity : BaseActivity() {
 
         generateChildrenIds()
         applyConstraintSet {
+            val outerMargin = dimen(R.dimen.text_content_margin)
             artwork {
                 connect(
                     TOP to TOP of this@constraintLayout,
@@ -113,26 +114,26 @@ class AlbumEditorActivity : BaseActivity() {
             }
             title {
                 connect(
-                    TOP to BOTTOM of artwork margin dip(8)
+                    TOP to BOTTOM of artwork margin outerMargin / 2
                 )
                 width = matchParent
             }
             artist {
                 connect(
-                    TOP to BOTTOM of title margin dip(4)
+                    TOP to BOTTOM of title margin outerMargin / 4
                 )
                 width = matchParent
             }
             year {
                 connect(
-                    TOP to BOTTOM of artist margin dip(4)
+                    TOP to BOTTOM of artist margin outerMargin / 4
                 )
                 width = matchParent
             }
             saveBtn {
                 connect(
-                    END to END of this@constraintLayout margin dip(16),
-                    BOTTOM to BOTTOM of this@constraintLayout margin dip(16)
+                    END to END of this@constraintLayout margin outerMargin,
+                    BOTTOM to BOTTOM of this@constraintLayout margin outerMargin
                 )
             }
         }

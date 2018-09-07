@@ -27,7 +27,6 @@ import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.sdk25.coroutines.onClick
 import org.jetbrains.anko.support.v4.alert
 import org.jetbrains.anko.support.v4.ctx
-import org.jetbrains.anko.support.v4.selector
 import org.jetbrains.anko.support.v4.toast
 
 
@@ -39,45 +38,45 @@ class SyncTabFragment: BaseFragment() {
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
         val choices = listOf(
-            "From Contacts" to {
+            ctx.getString(R.string.friend_from_contacts) to {
                 pickContact()
             },
-            "Email Address" to {
-                alert("Add friend") {
+            ctx.getString(R.string.friend_from_email) to {
+                alert(R.string.friend_add) {
                     lateinit var textBox: EditText
                     customView {
                         verticalLayout {
-                            padding = dip(16)
+                            padding = dimen(R.dimen.text_content_margin)
                             textBox = editText {
                                 lines = 1
                                 hint = "User email address"
                             }
                         }
                     }
-                    positiveButton("Befriend") {
+                    positiveButton(R.string.user_befriend) {
                         val key = textBox.text.toString()
                         async(UI) {
                             val user = withContext(BG_POOL) { SyncService.User.resolve(key) }
                             // TODO: Use localized strings in xml
                             toast(if (user != null) {
                                 if (SyncService.requestFriendship(user)) {
-                                    "Befriending ${user.displayName}"
+                                    ctx.getString(R.string.friend_request_sent, user.displayName)
                                 } else {
-                                    "${user.displayName} is already a friend"
+                                    ctx.getString(R.string.friend_request_already_added, user.displayName)
                                 }
                             } else {
-                                "User '$key' doesn't exist"
+                                ctx.getString(R.string.user_nonexistent, key)
                             })
                         }
                     }
-                    negativeButton("Cancel") {}
+                    negativeButton(R.string.cancel) {}
                 }.show()
             }
         )
 
-        menu.menuItem("Add friend", R.drawable.ic_add, showIcon=true) {
+        menu.menuItem(R.string.friend_add, R.drawable.ic_add, showIcon =true) {
             onClick {
-                ctx.selector("Add friend", choices)()
+                ctx.selector(ctx.getString(R.string.friend_add), choices)()
             }
         }
     }
@@ -109,15 +108,15 @@ class SyncTabFragment: BaseFragment() {
             task {
                 SyncService.User.resolve(email)
             }.then(UI) { user ->
-                if (user != null) {
+                toast(if (user != null) {
                     if (SyncService.requestFriendship(user)) {
-                        "Befriending ${user.name}"
+                        ctx.getString(R.string.friend_request_sent, user.name)
                     } else {
-                        "${user.name} is already a friend"
+                        ctx.getString(R.string.friend_request_already_added, user.name)
                     }
                 } else {
-                    toast("$name isn't on Turntable yet")
-                }
+                    "$name isn't on Turntable yet"
+                })
             }
         }
     }
@@ -138,12 +137,12 @@ class SyncTabFragment: BaseFragment() {
                         mainLine.text = friend.user.name
                         subLine.text = when (friend.status) {
                             SyncService.Friend.Status.CONFIRMED -> friend.user.deviceId
-                            SyncService.Friend.Status.RECEIVED_REQUEST -> "Wants to be friends"
-                            SyncService.Friend.Status.SENT_REQUEST -> "Friendship request sent"
+                            SyncService.Friend.Status.RECEIVED_REQUEST -> ctx.getString(R.string.friend_request_received)
+                            SyncService.Friend.Status.SENT_REQUEST -> ctx.getString(R.string.friend_request_sent_line)
                         }
                         val choices = when (friend.status) {
                             SyncService.Friend.Status.CONFIRMED -> listOf(
-                                "Request Sync" to {
+                                ctx.getString(R.string.friend_request_sync) to {
                                     friend.user.refresh().then {
                                         SyncService.requestSync(it)
                                     }
@@ -151,21 +150,21 @@ class SyncTabFragment: BaseFragment() {
                                 }
                             )
                             SyncService.Friend.Status.RECEIVED_REQUEST -> listOf(
-                                "Confirm Friendship" to {
+                                ctx.getString(R.string.friend_confirm) to {
                                     friend.respondToRequest(true)
                                 },
-                                "Reject Friendship" to {
+                                ctx.getString(R.string.friend_reject) to {
                                     friend.respondToRequest(false)
                                 }
                             )
                             SyncService.Friend.Status.SENT_REQUEST -> listOf(
-                                "Rescind Request" to {
+                                ctx.getString(R.string.friend_request_cancel) to {
                                     UserPrefs.friends putsMapped { it.without(position) }
                                 }
                             )
                         }
                         card.onClick {
-                            ctx.selector("Do what with friend?", choices)()
+                            ctx.selector(ctx.getString(R.string.friend_do_what), choices)()
                         }
                     }
                 }

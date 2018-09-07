@@ -11,6 +11,7 @@ import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.signature.ObjectKey
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.getColorCompat
 import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.song.imageTransition
@@ -76,8 +77,8 @@ class AlbumsAdapter(
         } else {
             holder.card.backgroundColor = UserPrefs.primaryColor.value
         }
-        holder.mainLine.textColor = holder.card.resources.getColor(R.color.text)
-        holder.subLine.textColor = holder.card.resources.getColor(R.color.text)
+        holder.mainLine.textColor = holder.card.context.getColorCompat(R.color.text)
+        holder.subLine.textColor = holder.card.context.getColorCompat(R.color.text)
 
         val opts = RequestOptions()
             .placeholder(R.drawable.ic_default_album)
@@ -153,8 +154,8 @@ class AlbumSectionAdapter(
 
 
         holder.card.backgroundColor = UserPrefs.primaryColor.value
-        holder.mainLine.textColor = holder.card.resources.getColor(R.color.text)
-        holder.subLine.textColor = holder.card.resources.getColor(R.color.text)
+        holder.mainLine.textColor = holder.card.context.getColorCompat(R.color.text)
+        holder.subLine.textColor = holder.card.context.getColorCompat(R.color.text)
 
 
         if (holder.coverImage != null) {

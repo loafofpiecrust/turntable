@@ -132,7 +132,7 @@ class PlayerAlbumCoverFragment : BaseFragment() {
                     val screenWidth = context.screenSize.width - (padBy * 2)
                     padding = padBy
                     bottomPadding = dip(8)
-                    topPadding = dimen(R.dimen.fullscreen_card_margin) / 2 + dimen(R.dimen.statusbar_height)
+                    topPadding = padBy / 2 + dimen(R.dimen.statusbar_height)
                     clipToPadding = false
                     clipToOutline = false
 //                        minimumHeight = screenWidth

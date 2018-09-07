@@ -17,6 +17,7 @@ import com.bumptech.glide.signature.ObjectKey
 import com.github.florent37.glidepalette.GlidePalette
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.browse.SearchApi
+import com.loafofpiecrust.turntable.getColorCompat
 import com.loafofpiecrust.turntable.menuItem
 import com.loafofpiecrust.turntable.onClick
 import com.loafofpiecrust.turntable.player.MusicPlayer
@@ -56,7 +57,7 @@ interface Album: Music {
 
     /// TODO: Can we pull this out of the class...?
     override fun optionsMenu(ctx: Context, menu: Menu) {
-        menu.menuItem("Shuffle", R.drawable.ic_shuffle, showIcon=false).onClick {
+        menu.menuItem(R.string.album_shuffle, R.drawable.ic_shuffle, showIcon =false).onClick {
             task {
                 Library.instance.songsOnAlbum(id).first()
             }.then { tracks ->
@@ -68,14 +69,14 @@ interface Album: Music {
             }
         }
 
-        menu.menuItem("Recommend").onClick {
+        menu.menuItem(R.string.recommend).onClick {
             FriendPickerDialog(
                 SyncService.Message.Recommendation(this@Album.id),
                 "Send Recommendation"
             ).show(ctx)
         }
 
-        menu.menuItem("Add to Collection").onClick {
+        menu.menuItem(R.string.add_to_playlist).onClick {
             PlaylistPickerDialog.forItem(this@Album).show(ctx)
         }
     }
@@ -116,7 +117,7 @@ fun Album.loadPalette(vararg views: View)
 fun loadPalette(id: MusicId, views: Array<out View>) =
     loadPalette(id) { palette, swatch ->
         val color = if (palette == null || swatch == null) {
-            val textColor = views[0].resources.getColor(R.color.text)
+            val textColor = views[0].context.getColorCompat(R.color.text)
             views.forEach {
                 when (it) {
                     is Toolbar -> it.setTitleTextColor(textColor)

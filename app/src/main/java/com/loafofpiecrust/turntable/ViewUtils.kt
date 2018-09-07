@@ -3,20 +3,20 @@ package com.loafofpiecrust.turntable
 //import quatja.com.vorolay.VoronoiView
 import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.DialogInterface
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.support.annotation.ColorInt
+import android.support.annotation.ColorRes
+import android.support.annotation.DrawableRes
+import android.support.annotation.StringRes
+import android.support.v4.content.ContextCompat
 import android.support.v7.widget.PopupMenu
 import android.support.v7.widget.Toolbar
 import android.view.*
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
-import com.esotericsoftware.kryo.Kryo
-import com.esotericsoftware.kryo.io.Input
-import com.esotericsoftware.kryo.io.Output
 import com.github.daemontus.Option
 import com.github.daemontus.Result
 import com.github.daemontus.asError
@@ -30,7 +30,6 @@ import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.hasValue
 import com.loafofpiecrust.turntable.util.task
 import com.lsjwzh.widget.recyclerviewpager.RecyclerViewPager
-import com.mcxiaoke.koi.ext.closeQuietly
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import fr.castorflex.android.circularprogressbar.CircularProgressBar
 import kotlinx.coroutines.experimental.CancellationException
@@ -43,13 +42,7 @@ import kotlinx.coroutines.experimental.channels.SendChannel
 import org.jetbrains.anko.*
 import org.jetbrains.anko.custom.ankoView
 import org.jetbrains.anko.sdk25.coroutines.onClick
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.util.*
-import java.util.zip.Deflater
-import java.util.zip.DeflaterOutputStream
-import java.util.zip.Inflater
-import java.util.zip.InflaterInputStream
 import kotlin.collections.ArrayList
 import kotlin.coroutines.experimental.CoroutineContext
 import kotlin.coroutines.experimental.suspendCoroutine
@@ -89,19 +82,25 @@ inline fun ViewManager.circularProgressBar(theme: Int = 0, init: @AnkoViewDslMar
 //    ankoView({ FloatingSearchView(it) }, theme = theme, init = init)
 
 inline fun Toolbar.menuItem(
-    title: String,
-    iconId: Int? = null,
-    color: Int? = null,
+    @StringRes titleRes: Int,
+    @DrawableRes iconId: Int? = null,
+    @ColorInt color: Int? = null,
     showIcon: Boolean = false,
     init: MenuItem.() -> Unit = {}
 ): MenuItem {
-    return menu.menuItem(title, iconId, color, showIcon, init)
+    return menu.menuItem(titleRes, iconId, color, showIcon, init)
 }
 
-inline fun Menu.menuItem(title: String, iconId: Int? = null, color: Int? = null, showIcon: Boolean = false, init: MenuItem.() -> Unit = {}): MenuItem {
-    val item = add(title)
+inline fun Menu.menuItem(
+    @StringRes titleRes: Int,
+    @DrawableRes iconId: Int? = null,
+    @ColorInt color: Int? = null,
+    showIcon: Boolean = false,
+    init: MenuItem.() -> Unit = {}
+): MenuItem {
+    val item = add(App.instance.getString(titleRes))
     if (iconId != null) {
-        item.icon = App.instance.resources.getDrawable(iconId)
+        item.icon = App.instance.getDrawable(iconId)
         // TODO: Contrast with primary color instead?
         val color = color ?: if (UserPrefs.useDarkTheme.valueOrNull != false) {
             Color.WHITE
@@ -122,8 +121,8 @@ inline fun Toolbar.subMenu(title: String, init: SubMenu.() -> Unit) {
     init(sub)
 //    return sub
 }
-inline fun Menu.subMenu(title: String, init: SubMenu.() -> Unit) {
-    val sub = this.addSubMenu(title)
+inline fun Menu.subMenu(titleRes: Int, init: SubMenu.() -> Unit) {
+    val sub = this.addSubMenu(titleRes)
     init(sub)
 //    return sub
 }
@@ -140,7 +139,7 @@ data class MenuGroup(val menu: Menu, val id: Int) {
             field = value
         }
 
-    inline fun menuItem(title: String, iconId: Int? = null, color: Int? = null, showIcon: Boolean = false, init: MenuItem.() -> Unit = {}): MenuItem {
+    inline fun menuItem(title: String, color: Int? = null, iconId: Int? = null, showIcon: Boolean = false, init: MenuItem.() -> Unit = {}): MenuItem {
         val showType = if (showIcon) {
             MenuItem.SHOW_AS_ACTION_IF_ROOM
         } else {
@@ -148,7 +147,7 @@ data class MenuGroup(val menu: Menu, val id: Int) {
         }
         val item = menu.add(id, Menu.NONE, Menu.NONE, title)
         if (iconId != null) {
-            item.icon = App.instance.resources.getDrawable(iconId)
+            item.icon = App.instance.getDrawable(iconId)
             val color = color ?: if (UserPrefs.useDarkTheme.value) {
                 Color.WHITE
             } else Color.BLACK
@@ -157,6 +156,9 @@ data class MenuGroup(val menu: Menu, val id: Int) {
         init.invoke(item)
         item.setShowAsAction(showType)
         return item
+    }
+    inline fun menuItem(titleRes: Int, color: Int? = null, iconId: Int? = null, showIcon: Boolean = false, init: MenuItem.() -> Unit = {}): MenuItem {
+        return menuItem(App.instance.getString(titleRes), color, iconId, showIcon, init)
     }
 }
 
@@ -582,9 +584,10 @@ inline fun <T> ConflatedBroadcastChannel<T>.reiterate() {
 var ImageView.tintResource: Int
     get() = 0
     set(id) {
-        setColorFilter(context.resources.getColor(id))
+        setColorFilter(context.getColorCompat(id))
     }
 
+fun Context.getColorCompat(@ColorRes res: Int) = ContextCompat.getColor(this, res)
 
 
 fun ImageButton.menu(block: Menu.() -> Unit): ImageButton {
