@@ -5,7 +5,7 @@ import android.view.Menu
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ServerTimestamp
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.reiterate
+import com.loafofpiecrust.turntable.repeat
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Music
 import com.loafofpiecrust.turntable.song.SongInfo
@@ -66,7 +66,7 @@ abstract class Playlist(
 
     open fun updateLastModified() {
         lastModified = Date()
-        task { UserPrefs.playlists.reiterate() }
+        task { UserPrefs.playlists.repeat() }
     }
 
 

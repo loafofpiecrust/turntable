@@ -2,25 +2,19 @@ package com.loafofpiecrust.turntable.ui
 
 //import com.loafofpiecrust.turntable.service.MusicService2
 //import me.angrybyte.circularslider.CircularSlider
-import android.content.DialogInterface
 import android.graphics.Color
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.view.ViewManager
 import android.widget.ImageButton
 import android.widget.SeekBar
 import com.bumptech.glide.Glide
-import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.album.loadPalette
-import com.loafofpiecrust.turntable.generateChildrenIds
-import com.loafofpiecrust.turntable.getColorCompat
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.selector
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.sync.SyncDetailsDialog
-import com.loafofpiecrust.turntable.util.consumeEach
-import com.loafofpiecrust.turntable.util.produceSingle
-import com.loafofpiecrust.turntable.util.switchMap
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.map
@@ -127,10 +121,8 @@ open class NowPlayingFragment : BaseFragment() {
             }
         }
 
-        val syncBtn = imageButton(R.drawable.ic_cast) {
-            backgroundResource = R.drawable.round_selector_dark
-            padding = dimen(R.dimen.text_content_margin)
-            setColorFilter(Color.WHITE)
+        val syncBtn = iconButton(R.drawable.ic_cast) {
+            tintResource = R.color.md_white_1000
             SyncService.mode.consumeEach(UI) {
                 imageResource = if (it is SyncService.Mode.None) {
                     onClick { v ->
@@ -155,9 +147,7 @@ open class NowPlayingFragment : BaseFragment() {
             }
         }
 
-        val prevBtn = imageButton(R.drawable.ic_skip_previous) {
-            backgroundResource = R.drawable.round_selector_dark
-            padding = dimen(R.dimen.text_content_margin)
+        val prevBtn = iconButton(R.drawable.ic_skip_previous) {
             onClick {
                 MusicService.enact(SyncService.Message.RelativePosition(-1))
             }
@@ -170,18 +160,14 @@ open class NowPlayingFragment : BaseFragment() {
             isLongClickable = true
         }
 
-        val nextBtn = imageButton(R.drawable.ic_skip_next) {
-            backgroundResource = R.drawable.round_selector_dark
-            padding = dimen(R.dimen.text_content_margin)
+        val nextBtn = iconButton(R.drawable.ic_skip_next) {
             onClick {
                 MusicService.enact(SyncService.Message.RelativePosition(1))
             }
         }
 
-        val shuffleBtn = imageButton(R.drawable.ic_shuffle) {
-            backgroundResource = R.drawable.round_selector_dark
-            setColorFilter(Color.DKGRAY)
-            padding = dip(16)
+        val shuffleBtn = iconButton(R.drawable.ic_shuffle) {
+            tintResource = R.color.md_grey_700
 
 //            MusicService.instance.combineLatest(
 //                MusicService.instance.switchMap { it.player.queue }
@@ -215,7 +201,7 @@ open class NowPlayingFragment : BaseFragment() {
 
         generateChildrenIds()
         applyConstraintSet {
-            val gap = dip(8)
+            val gap = dimen(R.dimen.text_lines_gap)
 
             songCarousel {
                 connect(
@@ -223,8 +209,7 @@ open class NowPlayingFragment : BaseFragment() {
                     START to START of PARENT_ID,
                     END to END of PARENT_ID
                 )
-                width = matchConstraint
-                height = matchConstraint
+                size = matchConstraint
                 dimensionRation = "1:1"
             }
             seeker {

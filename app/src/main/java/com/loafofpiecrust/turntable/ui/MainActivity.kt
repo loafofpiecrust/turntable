@@ -39,9 +39,7 @@ import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.SyncService
-import com.loafofpiecrust.turntable.util.consumeEach
-import com.loafofpiecrust.turntable.util.switchMap
-import com.loafofpiecrust.turntable.util.task
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.*

@@ -17,9 +17,9 @@ import com.bumptech.glide.signature.ObjectKey
 import com.github.florent37.glidepalette.GlidePalette
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.browse.SearchApi
-import com.loafofpiecrust.turntable.getColorCompat
-import com.loafofpiecrust.turntable.menuItem
-import com.loafofpiecrust.turntable.onClick
+import com.loafofpiecrust.turntable.util.getColorCompat
+import com.loafofpiecrust.turntable.util.menuItem
+import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.PlaylistPickerDialog

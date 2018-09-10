@@ -10,9 +10,7 @@ import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.Song
-import com.loafofpiecrust.turntable.util.ALT_BG_POOL
-import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.consumeEach
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first

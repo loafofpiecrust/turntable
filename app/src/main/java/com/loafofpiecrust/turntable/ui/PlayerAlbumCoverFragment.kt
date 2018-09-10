@@ -12,7 +12,7 @@ import android.widget.ImageView
 import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.recyclerViewPager
+import com.loafofpiecrust.turntable.util.recyclerViewPager
 import com.loafofpiecrust.turntable.screenSize
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
@@ -131,7 +131,7 @@ class PlayerAlbumCoverFragment : BaseFragment() {
                     val padBy = dimen(R.dimen.fullscreen_card_margin)
                     val screenWidth = context.screenSize.width - (padBy * 2)
                     padding = padBy
-                    bottomPadding = dip(8)
+                    bottomPadding = padBy / 2
                     topPadding = padBy / 2 + dimen(R.dimen.statusbar_height)
                     clipToPadding = false
                     clipToOutline = false

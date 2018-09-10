@@ -8,8 +8,8 @@ import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumsFragment
 import com.loafofpiecrust.turntable.browse.RecentMixTapesFragment
 import com.loafofpiecrust.turntable.given
-import com.loafofpiecrust.turntable.menuItem
-import com.loafofpiecrust.turntable.onClick
+import com.loafofpiecrust.turntable.util.menuItem
+import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.ui.BaseFragment

@@ -17,10 +17,7 @@ import com.loafofpiecrust.turntable.song.imageTransition
 import com.loafofpiecrust.turntable.song.nameTransition
 import com.loafofpiecrust.turntable.style.turntableStyle
 import com.loafofpiecrust.turntable.ui.*
-import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.arg
-import com.loafofpiecrust.turntable.util.consumeEach
-import com.loafofpiecrust.turntable.util.replayOne
+import com.loafofpiecrust.turntable.util.*
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.Job

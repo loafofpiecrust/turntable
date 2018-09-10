@@ -18,11 +18,7 @@ import com.loafofpiecrust.turntable.album.AlbumId
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.LocalSong
-import com.loafofpiecrust.turntable.song.Song
-import com.loafofpiecrust.turntable.util.always
-import com.loafofpiecrust.turntable.util.consumeEach
-import com.loafofpiecrust.turntable.util.fail
-import com.loafofpiecrust.turntable.util.task
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.runBlocking
 import org.jaudiotagger.audio.AudioFileIO
@@ -108,8 +104,7 @@ class AlbumEditorActivity : BaseActivity() {
                     START to START of this@constraintLayout,
                     END to END of this@constraintLayout
                 )
-                width = matchConstraint
-                height = matchConstraint
+                size = matchConstraint
                 dimensionRation = "H,1:1"
             }
             title {

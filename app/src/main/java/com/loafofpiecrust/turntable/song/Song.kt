@@ -75,7 +75,7 @@ data class HistoryEntry(
 //     */
 //    val discTrack: Int get() = disc * 1000 + track
 //
-//    override fun optionsMenu(ctx: Context, menu: Menu) = with(menu) {
+//    override fun optionsMenu(ctx: Context, popupMenu: Menu) = with(popupMenu) {
 //        menuItem("Add to playlist").onClick {
 //            PlaylistPickerDialog.forItem(this@Song).show(ctx)
 //        }

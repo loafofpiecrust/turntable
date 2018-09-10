@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.artist
 
-import activitystarter.Arg
 import android.graphics.Color
 import android.support.annotation.StringRes
 import android.support.constraint.ConstraintSet.PARENT_ID
@@ -22,9 +21,7 @@ import com.loafofpiecrust.turntable.song.imageTransition
 import com.loafofpiecrust.turntable.song.nameTransition
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.util.arg
-import com.loafofpiecrust.turntable.util.consumeEach
-import com.loafofpiecrust.turntable.util.switchMap
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.channels.*
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
@@ -169,8 +166,7 @@ class ArtistDetailsFragment: BaseFragment() {
                                 START to START of PARENT_ID,
                                 END to END of PARENT_ID
                             )
-                            width = matchConstraint
-                            height = matchConstraint
+                            size = matchConstraint
                             dimensionRation = "H,2:1"
                         }
                         year {

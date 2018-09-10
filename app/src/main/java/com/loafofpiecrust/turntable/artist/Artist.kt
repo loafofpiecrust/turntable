@@ -11,8 +11,8 @@ import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.album.loadPalette
 import com.loafofpiecrust.turntable.browse.SearchApi
-import com.loafofpiecrust.turntable.menuItem
-import com.loafofpiecrust.turntable.onClick
+import com.loafofpiecrust.turntable.util.menuItem
+import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.radio.RadioQueue
 import com.loafofpiecrust.turntable.service.Library

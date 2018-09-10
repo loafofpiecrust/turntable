@@ -9,10 +9,9 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.getColorCompat
+import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.util.task
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.first
 import org.jetbrains.anko.*
@@ -39,7 +38,6 @@ class RecyclerListItem(
     backgroundColor = context.getColorCompat(R.color.background)
 
     frameLayout {
-
         linearLayout {
             // DL'd progress
             frameLayout {
@@ -49,6 +47,7 @@ class RecyclerListItem(
             }.lparams(height = matchParent)
         }.lparams(height = matchParent)
 
+        val iconSize = dimen(R.dimen.icon_size)
         linearLayout {
             gravity = Gravity.CENTER_VERTICAL
             leftPadding = dip(12)
@@ -63,7 +62,7 @@ class RecyclerListItem(
                     task(UI) {
                         setColorFilter(UserPrefs.accentColor.openSubscription().first())
                     }
-                }.lparams(width = dip(24), height = dip(24))
+                }.lparams(width = iconSize, height = iconSize)
             }.lparams(width = dip(28), height = matchParent)
 
             frameLayout {
@@ -82,10 +81,9 @@ class RecyclerListItem(
                 if (useIcon) { // Centered icon
                     linearLayout {
                         gravity = Gravity.CENTER
-                        imageView {
+                        iconView {
                             id = R.id.image
-                            scaleType = ImageView.ScaleType.FIT_CENTER
-                        }.lparams(width = dip(24), height = dip(24))
+                        }
                     }.lparams(width= matchParent, height= matchParent)
                 } else { // square image filling height, used for album/artist artwork
                     imageView {
@@ -97,15 +95,13 @@ class RecyclerListItem(
                 // Currently playing icon
                 linearLayout {
                     gravity = Gravity.CENTER
-                    imageView {
+                    iconView(R.drawable.ic_play_circle_outline) {
                         id = R.id.playing_icon
                         visibility = View.GONE
-                        scaleType = ImageView.ScaleType.FIT_CENTER
-                        imageResource = R.drawable.ic_play_circle_outline
                         task(UI) {
                             setColorFilter(UserPrefs.accentColor.openSubscription().first())
                         }
-                    }.lparams(width = dip(24), height = dip(24))
+                    }.lparams(width = iconSize, height = iconSize)
                 }.lparams(width= matchParent, height= matchParent)
             }.lparams(width = dimen(R.dimen.song_item_height) * 2/3, height = matchParent)
 
@@ -155,10 +151,9 @@ class RecyclerListItem(
             linearLayout {
                 gravity = Gravity.CENTER
 
-                // Dots context menu
-                val overflow = imageButton(R.drawable.ic_overflow) {
+                // Dots context popupMenu
+                iconButton(R.drawable.ic_overflow) {
                     id = R.id.itemMenuDots
-                    backgroundResource = R.drawable.round_selector_dark
                 }.lparams {
                     width = btnSize
                     height = btnSize
@@ -255,11 +250,11 @@ class RecyclerListItemOptimized(
         id = R.id.status_icon
     }
 
-    val overflow = imageButton(R.drawable.ic_overflow) {
+    val overflow = iconButton(R.drawable.ic_overflow) {
         id = R.id.itemMenuDots
-        backgroundResource = R.drawable.round_selector_dark
     }
 
+    val iconSize = dimen(R.dimen.icon_size)
     applyConstraintSet {
         track {
             connect(
@@ -267,7 +262,7 @@ class RecyclerListItemOptimized(
                 TOP to TOP of mainLine,
                 BOTTOM to BOTTOM of subLine
             )
-            width = dip(64)
+            width = dimen(R.dimen.overflow_icon_space)
         }
         statusIcon {
             connect(
@@ -276,8 +271,7 @@ class RecyclerListItemOptimized(
                 TOP to TOP of mainLine,
                 BOTTOM to BOTTOM of subLine
             )
-            width = dip(24)
-            height = dip(24)
+            size = iconSize
         }
         mainLine {
             connect(
@@ -300,18 +294,17 @@ class RecyclerListItemOptimized(
         }
         overflow {
             connect(
-                END to END of PARENT_ID margin dip(16),
+                END to END of PARENT_ID margin dimen(R.dimen.text_content_margin),
                 TOP to TOP of mainLine,
                 BOTTOM to BOTTOM of subLine
             )
-            width = dimen(R.dimen.overflow_icon_size)
-            height = dimen(R.dimen.overflow_icon_size)
+            size = dimen(R.dimen.overflow_icon_size)
         }
     }
 }) {
-    val track: TextView = itemView.findViewById(R.id.track)
-    val menu: View = itemView.findViewById(R.id.itemMenuDots)
+    val track: TextView = itemView.find(R.id.track)
+    val menu: View = itemView.find(R.id.itemMenuDots)
 //    val progress: View = itemView.findViewById(R.id.progressBg)
 //    val playingIcon: ImageView = itemView.findViewById(R.id.playing_icon)
-    val statusIcon: ImageView = itemView.findViewById(R.id.status_icon)
+    val statusIcon: ImageView = itemView.find(R.id.status_icon)
 }

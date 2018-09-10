@@ -17,9 +17,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.afollestad.sectionedrecyclerview.SectionedViewHolder
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.task
-import com.loafofpiecrust.turntable.util.then
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
@@ -209,7 +207,7 @@ class RecyclerGridItem(
 //    AnkoContext.create(parent.context, parent).defaultListItem(maxTextLines, useIcon)
 //) {
 //    val track: TextView = itemView.findViewById(R.id.track)
-//    val menu: View = itemView.findViewById(R.id.itemMenuDots)
+//    val popupMenu: View = itemView.findViewById(R.id.itemMenuDots)
 //    val progress: View = itemView.findViewById(R.id.progressBg)
 //    val playingIcon: ImageView = itemView.findViewById(R.id.playing_icon)
 //    val statusIcon: View = itemView.findViewById(R.id.status_icon)
@@ -236,9 +234,9 @@ fun ViewManager.defaultGridItem(maxTextLines: Int = 3, init: LinearLayout.() -> 
 
     cardView {
         id = R.id.card
-        cardElevation = dip(3).toFloat()
+        cardElevation = dimen(R.dimen.low_elevation).toFloat()
 //        setCardBackgroundColor(UserPrefs.primaryColor.value)
-        radius = dip(2).toFloat()
+        radius = dimen(R.dimen.card_corner_radius).toFloat()
 
         verticalLayout {
             val itemBg = TypedValue()
@@ -253,13 +251,13 @@ fun ViewManager.defaultGridItem(maxTextLines: Int = 3, init: LinearLayout.() -> 
                 adjustViewBounds = true
             }.lparams(width = matchParent, height = wrapContent)
 
-            val textPadding = dip(16)
+            val textPadding = dimen(R.dimen.text_content_margin)
             verticalLayout {
                 id = R.id.title
                 gravity = Gravity.CENTER_VERTICAL
 //                    padding = textPadding
-                horizontalPadding = dip(16)
-                verticalPadding = dip(8)
+                horizontalPadding = textPadding
+                verticalPadding = textPadding / 2
 
                 textView {
                     id = R.id.mainLine
@@ -282,7 +280,7 @@ fun ViewManager.defaultGridItem(maxTextLines: Int = 3, init: LinearLayout.() -> 
                     }
                 }.lparams(width=matchParent)
 
-                // Call this here for any added text or menu or whatever?
+                // Call this here for any added text or popupMenu or whatever?
                 init()
             }.lparams {
                 // Standardized height for the given line count
@@ -300,7 +298,7 @@ fun ViewManager.defaultGridItem(maxTextLines: Int = 3, init: LinearLayout.() -> 
 fun ViewManager.defaultGridItemOpt(maxTextLines: Int = 3, init: LinearLayout.() -> Unit = {}) = cardView {
     id = R.id.card
     cardElevation = dimen(R.dimen.medium_elevation).toFloat()
-    radius = dip(2).toFloat()
+    radius = dimen(R.dimen.card_corner_radius).toFloat()
 //    lparams(width = matchParent, height = wrapContent)
 
     constraintLayout {
@@ -333,21 +331,22 @@ fun ViewManager.defaultGridItemOpt(maxTextLines: Int = 3, init: LinearLayout.() 
 
         generateChildrenIds()
         applyConstraintSet {
+            val textPadding = dimen(R.dimen.text_content_margin)
+            val linesGap = dimen(R.dimen.text_lines_gap)
             thumbnail {
                 connect(
                     TOP to TOP of PARENT_ID,
                     START to START of PARENT_ID,
                     END to END of PARENT_ID
                 )
-                height = matchConstraint
-                width = matchConstraint
+                size = matchConstraint
                 dimensionRation = "H,1:1"
             }
             mainLine {
                 connect(
-                    START to START of PARENT_ID margin dip(16),
-                    END to END of PARENT_ID margin dip(16),
-                    TOP to BOTTOM of thumbnail margin dip(8),
+                    START to START of PARENT_ID margin textPadding,
+                    END to END of PARENT_ID margin textPadding,
+                    TOP to BOTTOM of thumbnail margin linesGap,
                     BOTTOM to TOP of subLine
                 )
                 width = matchConstraint
@@ -358,10 +357,10 @@ fun ViewManager.defaultGridItemOpt(maxTextLines: Int = 3, init: LinearLayout.() 
                     START to START of mainLine,
                     END to END of mainLine,
                     TOP to BOTTOM of mainLine,
-                    BOTTOM to BOTTOM of PARENT_ID margin dip(8)
+                    BOTTOM to BOTTOM of PARENT_ID margin linesGap
                 )
                 width = matchConstraint
             }
         }
-    }.lparams(matchParent, matchParent)
+    }.lparams { size = matchParent }
 }

@@ -164,12 +164,7 @@ open class SongsAdapter(
 
 
         val openOverflow = { v: View ->
-            val popup = PopupMenu(
-                v.context, holder.menu, Gravity.CENTER,
-                0, R.style.AppTheme_PopupOverlay
-            )
-
-            popup.menu.apply {
+            v.popupMenu {
                 if (category is SongsFragment.Category.Playlist) {
                     given (runBlocking { ctx.library.findPlaylist(category.id).first() }) { pl ->
                         menuItem(R.string.playlist_remove_item).onClick {
@@ -187,9 +182,9 @@ open class SongsAdapter(
                 menuItem(R.string.queue_next).onClick {
                     MusicService.enact(SyncService.Message.Enqueue(listOf(song), MusicPlayer.EnqueueMode.IMMEDIATELY_NEXT))
                 }
+
+                song.optionsMenu(holder.itemView.context, this)
             }
-            song.optionsMenu(holder.itemView.context, popup.menu)
-            popup.show()
         }
         holder.menu.setOnClickListener(openOverflow)
         holder.card.setOnLongClickListener {

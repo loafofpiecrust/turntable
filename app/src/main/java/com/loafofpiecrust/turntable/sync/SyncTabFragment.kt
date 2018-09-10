@@ -14,9 +14,7 @@ import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItem
-import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.task
-import com.loafofpiecrust.turntable.util.then
+import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.closeQuietly
 import com.mcxiaoke.koi.ext.stringValue
 import kotlinx.coroutines.experimental.async

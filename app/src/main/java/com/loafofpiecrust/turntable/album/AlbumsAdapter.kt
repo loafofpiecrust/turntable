@@ -11,12 +11,11 @@ import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.signature.ObjectKey
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.getColorCompat
-import com.loafofpiecrust.turntable.given
+import com.loafofpiecrust.turntable.util.getColorCompat
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.song.imageTransition
 import com.loafofpiecrust.turntable.song.nameTransition
-import com.loafofpiecrust.turntable.textStyle
+import com.loafofpiecrust.turntable.util.textStyle
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerGridItem
 import com.loafofpiecrust.turntable.ui.RecyclerItem

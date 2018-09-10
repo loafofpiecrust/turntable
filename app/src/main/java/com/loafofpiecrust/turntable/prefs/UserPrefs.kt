@@ -3,7 +3,7 @@ package com.loafofpiecrust.turntable.prefs
 import com.chibatching.kotpref.KotprefModel
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.Album
-import com.loafofpiecrust.turntable.getColorCompat
+import com.loafofpiecrust.turntable.util.getColorCompat
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.StaticQueue
 import com.loafofpiecrust.turntable.playlist.Playlist

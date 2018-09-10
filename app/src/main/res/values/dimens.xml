@@ -23,6 +23,7 @@
     <dimen name="subtitle_text_size">16sp</dimen>
     <dimen name="small_text_size">12sp</dimen>
     <dimen name="icon_text_size">24dp</dimen>
+    <dimen name="text_lines_gap">8dp</dimen>
 
     <dimen name="fullscreen_card_margin">16dp</dimen>
 
@@ -39,5 +40,6 @@
     <dimen name="load_circle_size">64dp</dimen>
 
     <dimen name="drawer_width">200dp</dimen>
+    <dimen name="card_corner_radius">2dp</dimen>
 
 </resources>

@@ -8,8 +8,8 @@ import android.view.MenuInflater
 import android.view.View
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.menuItem
-import com.loafofpiecrust.turntable.onClick
+import com.loafofpiecrust.turntable.util.menuItem
+import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.SyncService
