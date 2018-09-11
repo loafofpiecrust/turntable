@@ -58,20 +58,20 @@ class MixTapeDetailsFragment: BaseFragment() {
                 title = playlistTitle
                 transitionName = playlistId.toString()
 
-                menuItem("Download", R.drawable.ic_cloud_download, showIcon = true).onClick(ALT_BG_POOL) {
+                menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = true).onClick(ALT_BG_POOL) {
 //                    playlist.tracks.first()
 //                        .filter { ctx.library.findSong(it.id).first() == null }
 //                        .forEach { it.download() }
                 }
 
-                menuItem("Share").onClick {
+                menuItem(R.string.share).onClick {
                     FriendPickerDialog(
                         SyncService.Message.Playlist(playlistId),
                         "Share"
                     ).show(ctx)
                 }
 
-                menuItem("Publish").onClick {
+                menuItem(R.string.playlist_publish).onClick {
                     alert("Publish this mixtape?") {
                         positiveButton("Publish") {
                             playlist.publish()
@@ -92,7 +92,7 @@ class MixTapeDetailsFragment: BaseFragment() {
                 override fun getItem(idx: Int) = SongsFragmentStarter.newInstance(
                     SongsFragment.Category.Playlist(playlist.id, idx)
                 ).apply {
-                    songs = playlist.tracksOnSide(idx).replayOne()
+//                    songs = playlist.tracksOnSide(idx).replayOne()
                 }
 
                 override fun getCount(): Int = playlist.type.sideCount

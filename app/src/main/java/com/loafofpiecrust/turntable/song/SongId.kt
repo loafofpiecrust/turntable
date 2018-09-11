@@ -5,6 +5,7 @@ import com.loafofpiecrust.turntable.album.AlbumId
 import com.loafofpiecrust.turntable.artist.ArtistId
 import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.service.Library
+import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import java.util.*
@@ -53,13 +54,14 @@ data class SongId(
     val filePath: String get() = "${album.artist.name.toFileName()}/${album.displayName.toFileName()}/${name.toFileName()}"
 
 
-    @delegate:Transient
-    override val displayName by lazy {
+    @Transient
+    @IgnoredOnParcel
+    override val displayName = run {
         // remove features!
         val m = FEATURE_PAT.matcher(name)
         if (m.find()) {
             val res = m.replaceFirst("").trim()
-            features = m.group(2).split(",").mapNotNull {
+            features = m.group(2).split(',', '&').mapNotNull {
                 val s = it.trim().removeSuffix("&").removeSuffix(",").trimEnd()
                 if (s.isNotEmpty()) {
                     ArtistId(s)

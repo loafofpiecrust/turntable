@@ -9,6 +9,9 @@ import com.loafofpiecrust.turntable.song.withoutArticle
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import java.util.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 
 @Parcelize
@@ -56,10 +59,8 @@ data class AlbumId(
             name
         } else {
             this.artist.name
-        }.replace("“", "\"")
-            .replace("”", "\"")
-            .replace("‘", "\'")
-            .replace("’", "\'")
+            // TODO: Move quote simplification to remote API implementations.
+        }.simplifyQuotes()
     }
 
 
@@ -94,4 +95,9 @@ data class AlbumId(
 }
 
 
-val AlbumId.selfTitledAlbum: Boolean get() = sortName.equals(artist.sortName, true)
+val AlbumId.selfTitledAlbum: Boolean
+    inline get() = sortName.equals(artist.sortName, true)
+
+fun String.simplifyQuotes() = this
+    .replace(Regex("[“”]"), "\"")
+    .replace(Regex("[‘’]"), "\'")

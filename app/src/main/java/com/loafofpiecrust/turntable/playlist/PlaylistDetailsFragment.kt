@@ -80,7 +80,7 @@ class PlaylistDetailsFragment: BaseFragment() {
                     transitionName = playlistId.toString()
 
                     // TODO: can't find local playlist _or_ I'm not the owner
-                    menuItem("Rename", showIcon = false).setOnMenuItemClickListener {
+                    menuItem(R.string.playlist_rename, showIcon = false).setOnMenuItemClickListener {
                         alert("Rename playlist '${playlist.name}'") {
                             lateinit var editor: EditText
                             customView {
@@ -114,7 +114,7 @@ class PlaylistDetailsFragment: BaseFragment() {
 //                        }.show(activity!!.supportFragmentManager, "colors")
 //                    }
 
-                    menuItem("Delete", showIcon = false).onClick {
+                    menuItem(R.string.playlist_delete, showIcon = false).onClick {
                         alert("Delete playlist '${playlist.name}'") {
                             positiveButton("Delete") {
                                 task {
@@ -128,7 +128,7 @@ class PlaylistDetailsFragment: BaseFragment() {
                         }.show()
                     }
 
-                    menuItem("Unpublish", showIcon = false).onClick {
+                    menuItem(R.string.playlist_unpublish, showIcon = false).onClick {
                         if (playlist.isPublished) {
                             playlist.unpublish()
                             toast("Playlist has been unpublished")
@@ -136,7 +136,7 @@ class PlaylistDetailsFragment: BaseFragment() {
                             toast("Playlist isn't published")
                         }
                     }
-                    menuItem("Get recommendation", showIcon = false).onClick(BG_POOL) {
+                    menuItem(R.string.playlist_generate_similar, showIcon = false).onClick(BG_POOL) {
                         val r = Random()
                         val tracks = playlist.tracks.first()
                         val tracksToUse = (0..minOf(5, tracks.size))
@@ -145,7 +145,7 @@ class PlaylistDetailsFragment: BaseFragment() {
                         Spotify.openRecommendationsPlaylist(ctx, songs = tracksToUse)
                     }
 
-                    menuItem("Share", showIcon = false).onClick {
+                    menuItem(R.string.share, showIcon = false).onClick {
                         FriendPickerDialog(
                             SyncService.Message.Playlist(playlistId),
                             "Share"
@@ -153,13 +153,13 @@ class PlaylistDetailsFragment: BaseFragment() {
                     }
 
                     // TODO: Only show if playlist isn't already saved.
-                    menuItem("Subscribe", showIcon = false).onClick {
+                    menuItem(R.string.playlist_subscribe, showIcon = false).onClick {
                         ctx.library.addPlaylist(playlist)
                     }
 
-                    menuItem("Make Completable", showIcon = false).onClick {
-                        playlist.isCompletable = true
-                    }
+//                    menuItem("Make Completable", showIcon = false).onClick {
+//                        playlist.isCompletable = true
+//                    }
 
                 }.lparams(width = matchParent, height = dimen(R.dimen.toolbar_height)) {
                     //                    scrollFlags = SCROLL_FLAG_SCROLL and SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
@@ -172,7 +172,7 @@ class PlaylistDetailsFragment: BaseFragment() {
                     SongsFragmentStarter.newInstance(
                         SongsFragment.Category.Playlist(playlistId)
                     ).apply {
-                        songs = playlist.tracks.replayOne()
+//                        songs = playlist.tracks.replayOne()
                     }
                 }
             }.lparams(width = matchParent, height = matchParent) {

@@ -11,6 +11,7 @@
     <string name="tab_text_2">Tab 2</string>
     <string name="tab_text_3">Tab 3</string>
     <string name="title_activity_album">AlbumActivity</string>
+    <string name="share">Share</string>
 
     <!-- Last.FM -->
     <string name="api_key">fc166cab90ed1689767f61d1ef9cc585</string>
@@ -35,6 +36,14 @@
     <string name="playlist_remove_item">Remove from Playlist</string>
     <string name="mixtape_pick_side">Add to which side?</string>
     <string name="recommendations">Recommendations</string>
+    <string name="playlist_new">Add</string>
+    <string name="mixtapes_recent">Recent Mixtapes</string>
+    <string name="playlist_subscribe">Subscribe</string>
+    <string name="playlist_publish">Publish</string>
+    <string name="playlist_unpublish">Unpublish</string>
+    <string name="playlist_delete">Delete</string>
+    <string name="playlist_rename">Rename</string>
+    <string name="playlist_generate_similar">Get Recommendations</string>
 
     <!-- Sync -->
     <string name="sync_details">Sync Details</string>

@@ -31,11 +31,11 @@ class PlaylistsFragment: BaseFragment() {
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
         super.onCreateOptionsMenu(menu, inflater)
-        menu.menuItem("Recent Mixtapes").onClick {
+        menu.menuItem(R.string.mixtapes_recent).onClick {
             ctx.replaceMainContent(RecentMixTapesFragment(), true)
         }
 
-        menu.menuItem("Add", R.drawable.ic_add, showIcon =true).onClick {
+        menu.menuItem(R.string.playlist_new, R.drawable.ic_add, showIcon =true).onClick {
             AddPlaylistActivityStarter.start(ctx)
         }
     }
