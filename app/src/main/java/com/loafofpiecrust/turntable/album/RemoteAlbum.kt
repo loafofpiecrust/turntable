@@ -10,9 +10,7 @@ import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.Song
-import com.loafofpiecrust.turntable.util.ALT_BG_POOL
-import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.consumeEach
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
@@ -45,7 +43,7 @@ class RemoteAlbum(
     override fun optionsMenu(ctx: Context, menu: Menu) {
         super.optionsMenu(ctx, menu)
 
-        menu.menuItem(ctx.getString(R.string.download), R.drawable.ic_cloud_download, showIcon=false).onClick(ALT_BG_POOL) {
+        menu.menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = false).onClick(ALT_BG_POOL) {
             if (App.instance.hasInternet) {
                 ctx.library.findCachedAlbum(id).first()?.tracks?.let { tracks ->
 //                    tracks.filter {
@@ -57,20 +55,20 @@ class RemoteAlbum(
             }
         }
 
-        menu.menuItem(ctx.getString(R.string.add_to_library), R.drawable.ic_turned_in_not, showIcon = true) {
+        menu.menuItem(R.string.add_to_library, R.drawable.ic_turned_in_not, showIcon = true) {
             ctx.library.findAlbum(id).consumeEach(UI) { existing ->
                 if (existing != null) {
                     icon = ctx.getDrawable(R.drawable.ic_turned_in)
                     onClick {
                         // Remove remote album from library
                         ctx.library.removeRemoteAlbum(existing)
-                        ctx.toast("Removed album to library")
+                        ctx.toast(R.string.album_removed_library)
                     }
                 } else {
                     icon = ctx.getDrawable(R.drawable.ic_turned_in_not)
                     onClick {
                         ctx.library.addRemoteAlbum(this@RemoteAlbum)
-                        ctx.toast("Added album to library")
+                        ctx.toast(R.string.album_added_library)
                     }
                 }
             }

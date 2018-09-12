@@ -34,7 +34,7 @@ class MergedAlbum(
             )
     }
 
-    // TODO: Generalize to include both! Maybe abstract over menu items
+    // TODO: Generalize to include both! Maybe abstract over popupMenu items
     override fun optionsMenu(ctx: Context, menu: Menu) = a.optionsMenu(ctx, menu)
 }
 

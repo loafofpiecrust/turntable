@@ -2,9 +2,9 @@ package com.loafofpiecrust.turntable.album
 
 import android.content.Context
 import android.view.Menu
-import com.loafofpiecrust.turntable.dedupMergeSorted
-import com.loafofpiecrust.turntable.menuItem
-import com.loafofpiecrust.turntable.onClick
+import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.util.menuItem
+import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.ui.AlbumEditorActivityStarter
 
@@ -29,7 +29,7 @@ data class LocalAlbum(
     override fun optionsMenu(ctx: Context, menu: Menu) {
         super.optionsMenu(ctx, menu)
 
-        menu.menuItem("Edit Tags").onClick {
+        menu.menuItem(R.string.album_edit_metadata).onClick {
             AlbumEditorActivityStarter.start(ctx, id)
         }
     }

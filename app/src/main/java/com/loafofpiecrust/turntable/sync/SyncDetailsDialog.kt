@@ -27,8 +27,8 @@ class SyncDetailsDialog: BaseDialogFragment() {
 
                 SyncService.mode.consumeEach(UI) { mode ->
                     modeLabel.text = when (mode) {
-                        is SyncService.Mode.OneOnOne -> "Synced with ${mode.other.name}"
-                        is SyncService.Mode.InGroup -> "Synced with group '${mode.group.name}'"
+                        is SyncService.Mode.OneOnOne -> ctx.getString(R.string.synced_with_user, mode.other.name)
+                        is SyncService.Mode.InGroup -> ctx.getString(R.string.synced_with_group, mode.group.name)
                         else -> ""
                     }
                 }
@@ -38,7 +38,7 @@ class SyncDetailsDialog: BaseDialogFragment() {
             }
         }
 
-        positiveButton("Disconnect") {
+        positiveButton(R.string.sync_disconnect) {
             SyncService.disconnect()
         }
         cancelButton {}

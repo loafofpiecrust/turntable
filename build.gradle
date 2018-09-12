@@ -8,6 +8,7 @@ buildscript {
     ext.android_ver = '27.1.1'
     ext.ktor_ver = '0.9.3'
     ext.aws_ver = '2.4.0'
+    ext.arrow_version = "0.7.3"
 
 
     repositories {

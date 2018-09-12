@@ -155,7 +155,7 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
                 }
             }
         }.lparams(width=matchParent) {
-            margin = dip(16)
+            margin = dimen(R.dimen.text_content_margin)
         }
     }
 

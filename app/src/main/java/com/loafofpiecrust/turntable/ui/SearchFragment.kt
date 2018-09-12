@@ -13,7 +13,7 @@ import com.loafofpiecrust.turntable.artist.ArtistsAdapter
 import com.loafofpiecrust.turntable.artist.ArtistsFragment
 import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.puts
-import com.loafofpiecrust.turntable.searchBar
+import com.loafofpiecrust.turntable.util.searchBar
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongsAdapter
 import com.loafofpiecrust.turntable.song.SongsFragment

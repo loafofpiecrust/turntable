@@ -8,14 +8,12 @@ import android.view.MenuInflater
 import android.view.View
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.menuItem
-import com.loafofpiecrust.turntable.onClick
+import com.loafofpiecrust.turntable.util.menuItem
+import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.service.library
-import com.loafofpiecrust.turntable.song.LocalSong
-import com.loafofpiecrust.turntable.song.RemoteSong
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.song.SongsFragmentStarter
 import com.loafofpiecrust.turntable.style.standardStyle
@@ -60,20 +58,20 @@ class MixTapeDetailsFragment: BaseFragment() {
                 title = playlistTitle
                 transitionName = playlistId.toString()
 
-                menuItem("Download", R.drawable.ic_cloud_download, showIcon = true).onClick(ALT_BG_POOL) {
+                menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = true).onClick(ALT_BG_POOL) {
 //                    playlist.tracks.first()
 //                        .filter { ctx.library.findSong(it.id).first() == null }
 //                        .forEach { it.download() }
                 }
 
-                menuItem("Share").onClick {
+                menuItem(R.string.share).onClick {
                     FriendPickerDialog(
                         SyncService.Message.Playlist(playlistId),
                         "Share"
                     ).show(ctx)
                 }
 
-                menuItem("Publish").onClick {
+                menuItem(R.string.playlist_publish).onClick {
                     alert("Publish this mixtape?") {
                         positiveButton("Publish") {
                             playlist.publish()
@@ -94,7 +92,7 @@ class MixTapeDetailsFragment: BaseFragment() {
                 override fun getItem(idx: Int) = SongsFragmentStarter.newInstance(
                     SongsFragment.Category.Playlist(playlist.id, idx)
                 ).apply {
-                    songs = playlist.tracksOnSide(idx).replayOne()
+//                    songs = playlist.tracksOnSide(idx).replayOne()
                 }
 
                 override fun getCount(): Int = playlist.type.sideCount

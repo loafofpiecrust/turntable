@@ -39,9 +39,7 @@ import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.SyncService
-import com.loafofpiecrust.turntable.util.consumeEach
-import com.loafofpiecrust.turntable.util.switchMap
-import com.loafofpiecrust.turntable.util.task
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.*
@@ -89,17 +87,17 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                         true
                     }
                     menu.group(1, true, true) {
-                        menuItem("Library").onClick {
+                        menuItem(R.string.title_activity_library).onClick {
                             this@drawerLayout.closeDrawers()
                             while (supportFragmentManager.popBackStackImmediate()) {
                             }
                         }
-                        menuItem("Settings").onClick {
+                        menuItem(R.string.action_settings).onClick {
                             this@drawerLayout.closeDrawers()
                             SettingsActivityStarter.start(ctx)
                         }
                     }
-                }.lparams(width = dip(100), height = matchParent) {
+                }.lparams(width = dimen(R.dimen.drawer_width), height = matchParent) {
                     gravity = Gravity.START
                 }
             }
@@ -115,8 +113,8 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
 
         lateinit var queueSheet: QueueFragment
         secondSheet {
-            horizontalPadding = dip(16)
-            bottomPadding = dip(16)
+            horizontalPadding = dimen(R.dimen.activity_horizontal_margin)
+            bottomPadding = dimen(R.dimen.activity_vertical_margin)
             clipToPadding = false
             queueSheet = fragment(QueueFragment())
         }
@@ -271,14 +269,14 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
             is Action.FriendRequest -> {
                 val sender = action.sender
                 alert("${sender.name} wants to be friends") {
-                    positiveButton("Befriend") {
+                    positiveButton(R.string.user_befriend) {
                         SyncService.send(
                             SyncService.Message.FriendResponse(true),
                             SyncService.Mode.OneOnOne(sender)
                         )
                         UserPrefs.friends appends SyncService.Friend(sender, SyncService.Friend.Status.CONFIRMED)
                     }
-                    negativeButton("Decline") {
+                    negativeButton(R.string.request_decline) {
                         SyncService.send(
                             SyncService.Message.FriendResponse(false),
                             SyncService.Mode.OneOnOne(sender)
@@ -289,14 +287,14 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
             is Action.SyncRequest -> {
                 val sender = action.sender
                 alert("Sync request from ${sender.name}") {
-                    positiveButton("Sync") {
+                    positiveButton(R.string.user_sync_accept) {
                         // set sync mode to One on One, enable sync
                         // change some UI element to indicate sync mode (in Now Playing?)
                         // TODO: Send display id or have that somewhere.
                         SyncService.confirmSync(sender)
                         toast("Now synced with ${sender.name}")
                     }
-                    negativeButton("Decline") {
+                    negativeButton(R.string.request_decline) {
                         SyncService.send(
                             SyncService.Message.SyncResponse(false),
                             SyncService.Mode.OneOnOne(sender)

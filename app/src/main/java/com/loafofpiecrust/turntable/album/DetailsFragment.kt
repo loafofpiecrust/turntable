@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.album
 
-import activitystarter.Arg
 import android.arch.lifecycle.ViewModel
 import android.graphics.Color.TRANSPARENT
 import android.graphics.Typeface.BOLD
@@ -17,15 +16,12 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.browse.SearchApi
-import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.song.imageTransition
 import com.loafofpiecrust.turntable.song.nameTransition
 import com.loafofpiecrust.turntable.style.detailsStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.util.arg
-import com.loafofpiecrust.turntable.util.consumeEach
-import com.loafofpiecrust.turntable.util.produceTask
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.channels.*
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
@@ -174,8 +170,7 @@ class DetailsFragment(): BaseFragment() {
                                 BOTTOM to BOTTOM of PARENT_ID,
                                 END to END of PARENT_ID
                             )
-                            width = matchConstraint
-                            height = matchConstraint
+                            size = matchConstraint
                             dimensionRation = "H,1:1"
                         }
                         status {
@@ -202,8 +197,7 @@ class DetailsFragment(): BaseFragment() {
                     collapseMode = COLLAPSE_MODE_PIN
                 }
             }.lparams {
-                width = matchParent
-                height = matchParent
+                size = matchParent
                 scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
                     AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
 //                topPadding = -dimen(R.dimen.statusbar_height)
@@ -266,7 +260,7 @@ class DetailsFragment(): BaseFragment() {
 //                    }
 //                }
 
-//                album.optionsMenu(menu)
+//                album.optionsMenu(popupMenu)
 
             }.lparams {
                 minimumHeight = dimen(R.dimen.details_toolbar_height)

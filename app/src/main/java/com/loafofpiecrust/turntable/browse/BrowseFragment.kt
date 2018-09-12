@@ -38,10 +38,10 @@ class BrowseFragment: BaseFragment() {
     override fun ViewManager.createView() = verticalLayout {
         // Recommendations
         linearLayout {
-            textView("Recommendations").lparams {
+            textView(R.string.recommendations).lparams {
                 weight = 1f
             }
-            button("More").lparams {
+            button(R.string.show_more).lparams {
                 gravity = Gravity.END
             }.onClick {
                 ctx.replaceMainContent(RecommendationsFragment())
@@ -61,7 +61,7 @@ class BrowseFragment: BaseFragment() {
                 weight = 1f
             }
 
-            button("More").lparams {
+            button(R.string.show_more).lparams {
                 gravity = Gravity.END
             }.onClick {
                 ctx.replaceMainContent(SongsFragmentStarter.newInstance(

@@ -156,7 +156,7 @@ open class SongsAdapter(
 //                }
 
                 val isLocal = Library.instance.sourceForSong(song.id) != null
-                val c = ctx.resources.getColor(if (internet == App.InternetStatus.OFFLINE && !isLocal) {
+                val c = ctx.getColorCompat(if (internet == App.InternetStatus.OFFLINE && !isLocal) {
                     R.color.text_unavailable
                 } else R.color.text)
                 holder.mainLine.textColor = c
@@ -166,15 +166,10 @@ open class SongsAdapter(
 
 
         val openOverflow = { v: View ->
-            val popup = PopupMenu(
-                v.context, holder.menu, Gravity.CENTER,
-                0, R.style.AppTheme_PopupOverlay
-            )
-
-            popup.menu.apply {
+            v.popupMenu {
                 if (category is SongsFragment.Category.Playlist) {
                     given (runBlocking { ctx.library.findPlaylist(category.id).first() }) { pl ->
-                        menuItem("Remove from Playlist").onClick {
+                        menuItem(R.string.playlist_remove_item).onClick {
                             when (pl) {
                                 is MixTape -> pl.remove(category.sideIdx, position)
                                 is CollaborativePlaylist -> pl.remove(position)
@@ -183,15 +178,15 @@ open class SongsAdapter(
                     }
                 }
 
-                menuItem("Queue").onClick {
+                menuItem(R.string.queue_last).onClick {
                     MusicService.enact(SyncService.Message.Enqueue(listOf(song), MusicPlayer.EnqueueMode.NEXT))
                 }
-                menuItem("Queue next").onClick {
+                menuItem(R.string.queue_next).onClick {
                     MusicService.enact(SyncService.Message.Enqueue(listOf(song), MusicPlayer.EnqueueMode.IMMEDIATELY_NEXT))
                 }
+
+                song.optionsMenu(holder.itemView.context, this)
             }
-            song.optionsMenu(holder.itemView.context, popup.menu)
-            popup.show()
         }
         holder.menu.setOnClickListener(openOverflow)
         holder.card.setOnLongClickListener {

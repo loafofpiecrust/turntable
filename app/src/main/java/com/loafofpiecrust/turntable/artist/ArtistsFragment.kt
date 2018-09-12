@@ -17,10 +17,7 @@ import com.loafofpiecrust.turntable.song.imageTransition
 import com.loafofpiecrust.turntable.song.nameTransition
 import com.loafofpiecrust.turntable.style.turntableStyle
 import com.loafofpiecrust.turntable.ui.*
-import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.arg
-import com.loafofpiecrust.turntable.util.consumeEach
-import com.loafofpiecrust.turntable.util.replayOne
+import com.loafofpiecrust.turntable.util.*
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.Job
@@ -79,7 +76,7 @@ class ArtistsFragment : BaseFragment() {
 
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
-        menu.menuItem("Search", R.drawable.ic_search, showIcon = true) {
+        menu.menuItem(R.string.search, R.drawable.ic_search, showIcon = true) {
             onClick {
                 act.replaceMainContent(
                     SearchFragment.newInstance(SearchFragment.Category.Artists()),
@@ -88,7 +85,7 @@ class ArtistsFragment : BaseFragment() {
             }
         }
 
-        menu.subMenu("Grid size") {
+        menu.subMenu(R.string.set_grid_size) {
             group(0, true, true) {
                 val items = (1..4).map { idx ->
                     menuItem(idx.toString()).apply {

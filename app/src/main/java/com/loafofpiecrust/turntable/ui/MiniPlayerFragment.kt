@@ -10,9 +10,10 @@ import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.loadPalette
 import com.loafofpiecrust.turntable.given
+import com.loafofpiecrust.turntable.util.iconButton
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.service.SyncService
-import com.loafofpiecrust.turntable.textStyle
+import com.loafofpiecrust.turntable.util.textStyle
 import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.switchMap
 import kotlinx.coroutines.experimental.channels.filterNotNull
@@ -47,10 +48,7 @@ class MiniPlayerFragment: BaseFragment() {
             weight = 1f
         }
 
-        imageButton(R.drawable.ic_play_arrow) {
-            backgroundResource = R.drawable.round_selector_dark
-            padding = dip(16)
-
+        iconButton(R.drawable.ic_play_arrow) {
             MusicService.instance.switchMap {
                 it.player.isPlaying
             }.consumeEach(UI) {
@@ -62,7 +60,10 @@ class MiniPlayerFragment: BaseFragment() {
             onClick {
                 MusicService.enact(SyncService.Message.TogglePause())
             }
-        }.lparams(height = matchParent)
+        }.lparams {
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
 
         MusicService.instance.switchMap {
             it.player.currentSong.filterNotNull()

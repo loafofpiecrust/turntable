@@ -3,20 +3,11 @@ package com.loafofpiecrust.turntable
 //import quatja.com.vorolay.VoronoiView
 import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.DialogInterface
 import android.content.Intent
 import android.graphics.Color
-import android.graphics.PorterDuff
-import android.support.annotation.ColorInt
 import android.support.v7.widget.PopupMenu
-import android.support.v7.widget.Toolbar
 import android.view.*
 import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.TextView
-import com.esotericsoftware.kryo.Kryo
-import com.esotericsoftware.kryo.io.Input
-import com.esotericsoftware.kryo.io.Output
 import com.github.daemontus.Option
 import com.github.daemontus.Result
 import com.github.daemontus.asError
@@ -24,165 +15,21 @@ import com.github.daemontus.unwrapOrElse
 import com.github.salomonbrys.kotson.jsonNull
 import com.github.salomonbrys.kotson.registerTypeAdapter
 import com.google.gson.GsonBuilder
-import com.lapism.searchview.widget.SearchView
-import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.hasValue
 import com.loafofpiecrust.turntable.util.task
-import com.lsjwzh.widget.recyclerviewpager.RecyclerViewPager
-import com.mcxiaoke.koi.ext.closeQuietly
-import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
-import fr.castorflex.android.circularprogressbar.CircularProgressBar
 import kotlinx.coroutines.experimental.CancellationException
 import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.Runnable
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.SendChannel
 import org.jetbrains.anko.*
-import org.jetbrains.anko.custom.ankoView
 import org.jetbrains.anko.sdk25.coroutines.onClick
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.util.*
-import java.util.zip.Deflater
-import java.util.zip.DeflaterOutputStream
-import java.util.zip.Inflater
-import java.util.zip.InflaterInputStream
 import kotlin.collections.ArrayList
 import kotlin.coroutines.experimental.CoroutineContext
 import kotlin.coroutines.experimental.suspendCoroutine
 
-
-//inline fun ViewManager.slidingUpPanelLayout(init: @AnkoViewDslMarker SlidingUpPanelLayout.() -> Unit = {}): SlidingUpPanelLayout =
-//    ankoView({ SlidingUpPanelLayout(it) }, theme = 0, init = init)
-
-inline fun ViewManager.fastScrollRecycler(init: @AnkoViewDslMarker FastScrollRecyclerView.() -> Unit = {}): FastScrollRecyclerView =
-    ankoView({ FastScrollRecyclerView(it) }, theme = 0, init = init)
-
-inline fun ViewManager.recyclerViewPager(init: @AnkoViewDslMarker RecyclerViewPager.() -> Unit): RecyclerViewPager =
-    ankoView({ RecyclerViewPager(it) }, theme = 0, init = init)
-
-inline fun ViewManager.searchBar(theme: Int = 0, init: SearchView.() -> Unit = {}): SearchView =
-    ankoView({ SearchView(it) }, theme, init)
-//fun ViewManager.voronoiView(theme: Int = 0, init: @AnkoViewDslMarker VoronoiView.() -> Unit = {}): VoronoiView =
-//    ankoView({ VoronoiView(it) }, theme = theme, init = init)
-
-inline fun ViewManager.circularProgressBar(theme: Int = 0, init: @AnkoViewDslMarker CircularProgressBar.() -> Unit = {}): CircularProgressBar =
-    ankoView({ CircularProgressBar(it) }, theme = theme, init = init)
-
-//inline fun ViewManager.seekBarCompat(theme: Int = 0, init: @AnkoViewDslMarker SeekBarCompat.() -> Unit): SeekBarCompat =
-//    ankoView({ SeekBarCompat(it) }, theme = theme, init = init)
-
-//fun ViewManager.circularSlider(theme: Int = 0, init: @AnkoViewDslMarker CircularSlider.() -> Unit = {}): CircularSlider =
-//    ankoView({ CircularSlider(it) }, theme = theme, init = init)
-
-
-//fun ViewManager.playbackControlView(theme: Int = 0, init: PlaybackControlView.() -> Unit = {}): PlaybackControlView =
-//    ankoView({ PlaybackControlView(it) }, theme = theme, init = init)
-
-//fun ViewManager.defaultTimeBar(theme: Int = 0, init: DefaultTimeBar.() -> Unit = {}): DefaultTimeBar =
-//    ankoView({ DefaultTimeBar(it, null) }, theme = theme, init = init)
-
-//fun ViewManager.playbackControlView(theme: Int = 0, init: PlaybackControlView.() -> Unit = {}): FloatingSearchView =
-//    ankoView({ FloatingSearchView(it) }, theme = theme, init = init)
-
-inline fun Toolbar.menuItem(
-    title: String,
-    iconId: Int? = null,
-    color: Int? = null,
-    showIcon: Boolean = false,
-    init: MenuItem.() -> Unit = {}
-): MenuItem {
-    return menu.menuItem(title, iconId, color, showIcon, init)
-}
-
-inline fun Menu.menuItem(title: String, iconId: Int? = null, color: Int? = null, showIcon: Boolean = false, init: MenuItem.() -> Unit = {}): MenuItem {
-    val item = add(title)
-    if (iconId != null) {
-        item.icon = App.instance.resources.getDrawable(iconId)
-        // TODO: Contrast with primary color instead?
-        val color = color ?: if (UserPrefs.useDarkTheme.valueOrNull != false) {
-            Color.WHITE
-        } else Color.BLACK
-        item.icon.setColorFilter(color, PorterDuff.Mode.SRC_ATOP)
-    }
-    init.invoke(item)
-    item.setShowAsAction(
-        if (showIcon) {
-            MenuItem.SHOW_AS_ACTION_IF_ROOM
-        } else MenuItem.SHOW_AS_ACTION_NEVER
-    )
-    return item
-}
-
-inline fun Toolbar.subMenu(title: String, init: SubMenu.() -> Unit) {
-    val sub = menu.addSubMenu(title)
-    init(sub)
-//    return sub
-}
-inline fun Menu.subMenu(title: String, init: SubMenu.() -> Unit) {
-    val sub = this.addSubMenu(title)
-    init(sub)
-//    return sub
-}
-
-data class MenuGroup(val menu: Menu, val id: Int) {
-    var enabled: Boolean = true
-        set(value) {
-            menu.setGroupEnabled(id, value)
-            field = value
-        }
-    var visible: Boolean = true
-        set(value) {
-            menu.setGroupVisible(id, value)
-            field = value
-        }
-
-    inline fun menuItem(title: String, iconId: Int? = null, color: Int? = null, showIcon: Boolean = false, init: MenuItem.() -> Unit = {}): MenuItem {
-        val showType = if (showIcon) {
-            MenuItem.SHOW_AS_ACTION_IF_ROOM
-        } else {
-            MenuItem.SHOW_AS_ACTION_NEVER
-        }
-        val item = menu.add(id, Menu.NONE, Menu.NONE, title)
-        if (iconId != null) {
-            item.icon = App.instance.resources.getDrawable(iconId)
-            val color = color ?: if (UserPrefs.useDarkTheme.value) {
-                Color.WHITE
-            } else Color.BLACK
-            item.icon.setColorFilter(color, PorterDuff.Mode.SRC_ATOP)
-        }
-        init.invoke(item)
-        item.setShowAsAction(showType)
-        return item
-    }
-}
-
-inline fun Menu.group(
-    id: Int,
-    checkable: Boolean = false,
-    exclusive: Boolean = false,
-    cb: MenuGroup.() -> Unit
-): MenuGroup = run {
-    val g = MenuGroup(this, id)
-    cb(g)
-    setGroupCheckable(g.id, checkable, exclusive)
-    g
-}
-
-fun MenuItem.onClick(
-    context: CoroutineContext = UI,
-    handler: suspend (v: MenuItem) -> Unit
-) {
-    setOnMenuItemClickListener { v ->
-        async(context) {
-            handler(v)
-        }
-        true
-    }
-}
 
 fun msToTimeString(ms: Int): String {
     // seconds: divide by 1000
@@ -434,10 +281,6 @@ fun String.substrings(substrLength: Int): List<String> {
 }
 
 
-var TextView.textStyle: Int
-    get() = typeface?.style ?: 0
-    set(value) = setTypeface(null, value)
-
 inline fun <T, E, R> Result<T, E>.flatMap(
     mapper: (T) -> Result<R, E>
 ): Result<R, E> = when (this) {
@@ -565,51 +408,19 @@ infix fun <T> ConflatedBroadcastChannel<List<T>>.appends(toAdd: T) {
     }
 }
 
-inline fun <T> ConflatedBroadcastChannel<T>.reiterate() {
+inline fun <T> ConflatedBroadcastChannel<T>.repeat() {
     offer(value)
 }
 
-var ImageView.tintResource: Int
-    get() = 0
-    set(id) {
-        setColorFilter(context.resources.getColor(id))
-    }
 
-
-
-fun ImageButton.menu(block: Menu.() -> Unit): ImageButton {
-    backgroundColor = Color.TRANSPARENT
+fun View.popupMenu(block: Menu.() -> Unit) {
     val popup = PopupMenu(
-        this@menu.context, this@menu, Gravity.CENTER,
+        context, this, Gravity.CENTER,
         0, R.style.AppTheme_PopupOverlay
     )
     block(popup.menu)
-    onClick {
-        popup.show()
-    }
-    return this
+    popup.show()
 }
-
-fun View.generateChildrenIds() {
-    if (id == View.NO_ID) {
-        id = View.generateViewId()
-    }
-    childrenSequence().forEach {
-        if (it.id == View.NO_ID) {
-            it.id = View.generateViewId()
-        }
-    }
-}
-
-@get:ColorInt
-val Int.complementaryColor: Int get() {
-    val hsv = FloatArray(3)
-    Color.RGBToHSV(Color.red(this), Color.green(this),
-        Color.blue(this), hsv)
-    hsv[0] = (hsv[0] + 180) % 360
-    return Color.HSVToColor(hsv)
-}
-
 
 
 suspend fun <T: Any> Context.selector(

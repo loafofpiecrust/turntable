@@ -23,7 +23,6 @@ import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.firstOrNull
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.dimen
-import org.jetbrains.anko.dip
 import org.jetbrains.anko.frameLayout
 import org.jetbrains.anko.padding
 import org.jetbrains.anko.recyclerview.v7.recyclerView
@@ -144,14 +143,14 @@ class AlbumsFragment : BaseFragment() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) = menu.run {
-        menuItem("Search", R.drawable.ic_search, showIcon=true).onClick(UI) {
+        menuItem(R.string.search, R.drawable.ic_search, showIcon =true).onClick(UI) {
             act.replaceMainContent(
                 SearchFragment.newInstance(SearchFragment.Category.Albums()),
                 true
             )
         }
 
-        subMenu("Grid size") {
+        subMenu(R.string.set_grid_size) {
             group(0, true, true) {
                 val items = (1..4).map { idx ->
                     menuItem(idx.toString()).apply {
@@ -242,7 +241,7 @@ inline fun ViewManager.albumList(
     val loadCircle = CircularProgressDrawable.Builder(context)
         .color(UserPrefs.primaryColor.value)
         .rotationSpeed(3f)
-        .strokeWidth(dip(8).toFloat())
+        .strokeWidth(dimen(R.dimen.load_circle_thickness).toFloat())
         .build()
         .apply { start() }
 
@@ -250,8 +249,8 @@ inline fun ViewManager.albumList(
         visibility = View.VISIBLE
         isIndeterminate = true
         indeterminateDrawable = loadCircle
-    }.lparams(dip(64), dip(64)) {
-        topMargin = dip(16)
+    }.lparams(dimen(R.dimen.load_circle_size), dimen(R.dimen.load_circle_size)) {
+        topMargin = dimen(R.dimen.text_content_margin)
         gravity = Gravity.CENTER_HORIZONTAL
     }
 

@@ -263,8 +263,16 @@ class OnlineSearchService : Service(), AnkoLogger {
         database.deleteItem("MusicStreams", mapOf("SongId" to AttributeValue(key)))
     }
 
+    private fun getExistingEntries(keys: Iterable<String>): Map<String, StreamStatus> {
+        val m = mapOf<Class<*>, List<KeyPair>>(SongDBEntry::class.java to keys.map { KeyPair().withHashKey(it) })
+        return dbMapper.batchLoad(m)["MusicStreams"]!!
+            .map {
+                val entry = it as SongDBEntry
+                entry.id to StreamStatus.from(entry)
+            }.toMap()
+    }
+
     private fun getExistingEntry(key: String): StreamStatus {
-        val now = System.currentTimeMillis()
         val entry = tryOr(null) { dbMapper.load(SongDBEntry::class.java, key) }
         return StreamStatus.from(entry)
     }
@@ -281,10 +289,9 @@ class OnlineSearchService : Service(), AnkoLogger {
         val start: Int = 0,
         val end: Int = 0
     )
-    suspend fun getSongStreams(song: Song): SongStream {
+
+    private suspend fun evalExistingStream(song: Song, existing: StreamStatus): SongStream {
         val key = song.id.dbKey
-        val existing = getExistingEntry(key)
-        info { "youtube: ${song.id} existing entry? $existing" }
         return if (existing is StreamStatus.Available) {
             SongStream(if (existing.isStale) {
                 createEntry(key, existing.youtubeId)
@@ -323,7 +330,7 @@ class OnlineSearchService : Service(), AnkoLogger {
                     "duration" to song.duration.toString()
                 )).gson.obj
 
-                 val lq = res["lowQuality"].nullObj?.get("url")?.string
+                val lq = res["lowQuality"].nullObj?.get("url")?.string
 
                 if (lq == null) {
                     // not available on youtube!
@@ -343,6 +350,33 @@ class OnlineSearchService : Service(), AnkoLogger {
                 }
             }
         }
+    }
+
+    suspend fun getSongStreams(song: Song): SongStream {
+        val key = song.id.dbKey
+        val existing = getExistingEntry(key)
+        info { "youtube: ${song.id} existing entry? $existing" }
+        return evalExistingStream(song, existing)
+    }
+
+    fun getManyExistingSongStreams(songs: List<Song>): Map<Song, StreamStatus> {
+        // TODO: More preemptive check rather than this LAME comparison
+        if (songs.all { it.id.album == songs[0].id.album }) {
+            val existingAlbum = getExistingAlbumStream(songs[0].id.album)
+            if (existingAlbum is StreamStatus.Available) {
+                return songs.map { it to existingAlbum }.toMap()
+            }
+        }
+
+        val keys = songs.map { it.id.dbKey }
+        val existingEntries = getExistingEntries(keys)
+        return songs.map {
+            it to existingEntries[it.id.dbKey]!!
+        }.toMap()
+    }
+
+    private fun getExistingAlbumStream(albumId: AlbumId): StreamStatus {
+        return getExistingEntry(albumId.dbKey)
     }
 
     suspend fun getAlbumStreams(album: Album): Pair<Album, StreamStatus> {

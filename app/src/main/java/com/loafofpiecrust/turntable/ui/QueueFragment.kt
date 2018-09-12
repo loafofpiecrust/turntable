@@ -16,17 +16,13 @@ import android.view.ViewGroup
 import android.view.ViewManager
 import android.widget.ImageView
 import android.widget.TextView
-import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.given
-import com.loafofpiecrust.turntable.menuItem
-import com.loafofpiecrust.turntable.onClick
+import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.player.StaticQueue
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
-import com.loafofpiecrust.turntable.util.consumeEach
-import com.loafofpiecrust.turntable.util.switchMap
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
@@ -36,6 +32,7 @@ import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.cardview.v7.cardView
 import org.jetbrains.anko.recyclerview.v7.recyclerView
+import org.jetbrains.anko.sdk25.coroutines.onClick
 import org.jetbrains.anko.support.v4.ctx
 
 @MakeActivityStarter
@@ -50,7 +47,7 @@ class QueueFragment : BaseFragment() {
             cardElevation = dimen(R.dimen.medium_elevation).toFloat()
 
             verticalLayout {
-                backgroundColor = ctx.resources.getColor(R.color.background)
+                backgroundColor = ctx.getColorCompat(R.color.background)
 
                 // Currently playing song
                 linearLayout {
@@ -80,7 +77,7 @@ class QueueFragment : BaseFragment() {
                     }
                 }.lparams(width = matchParent, height = dimen(R.dimen.song_item_height))
 
-                textView("Up Next") {
+                textView(R.string.queue_up_next) {
                     textSizeDimen = R.dimen.small_text_size
                 }.lparams {
                     marginStart = dip(32)
@@ -114,7 +111,7 @@ class QueueFragment : BaseFragment() {
                     }
 
                     addItemDecoration(DividerItemDecoration(context, linear.orientation).apply {
-                        setDrawable(resources.getDrawable(R.drawable.song_divider))
+                        setDrawable(ctx.getDrawable(R.drawable.song_divider))
                     })
                 }.lparams(matchParent, matchParent)
 
@@ -197,7 +194,7 @@ class QueueAdapter : RecyclerAdapter<Song, RecyclerListItemOptimized>(
             val c = if (relPos == 0) {
                 UserPrefs.accentColor.value
             } else {
-                holder.itemView.context.resources.getColor(R.color.text)
+                holder.itemView.context.getColorCompat(R.color.text)
             }
 
             holder.mainLine.text = song.id.displayName
@@ -211,24 +208,20 @@ class QueueAdapter : RecyclerAdapter<Song, RecyclerListItemOptimized>(
                 MusicService.enact(SyncService.Message.QueuePosition(index))
             }
 
-            holder.menu.setOnClickListener { v ->
-                val popup = PopupMenu(
-                    v.context, v, Gravity.CENTER,
-                    0, R.style.AppTheme_PopupOverlay
-                )
-                popup.menu.apply {
+            holder.menu.onClick { v ->
+                v?.popupMenu {
                     // TODO: Abstract this out to a MusicService method that adds queue-specific options!
                     given(runBlocking { MusicService.instance.first() }) { music ->
                         val q = runBlocking { music.player.queue.first() }
                         if (q.primary is StaticQueue) {
-                            menuItem("Remove from Queue").onClick {
+                            menuItem(R.string.queue_remove).onClick {
                                 MusicService.enact(SyncService.Message.RemoveFromQueue(index))
                             }
                         }
                     }
+
+                    song.optionsMenu(holder.itemView.context, this)
                 }
-                song.optionsMenu(holder.itemView.context, popup.menu)
-                popup.show()
             }
         }
     }
