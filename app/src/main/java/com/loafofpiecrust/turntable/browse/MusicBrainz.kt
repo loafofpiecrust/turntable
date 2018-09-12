@@ -98,7 +98,7 @@ object MusicBrainz: SearchApi, AnkoLogger {
 
             val details = task.await()
             RemoteAlbum(
-                ArtistId(artistName).forAlbum(name).also { id ->
+                AlbumId(name, ArtistId(artistName)).also { id ->
                     Library.instance.addAlbumExtras(
                         Library.AlbumMetadata(id, details?.second)
                     )

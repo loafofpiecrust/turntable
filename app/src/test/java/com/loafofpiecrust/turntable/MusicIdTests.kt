@@ -1,14 +1,13 @@
 package com.loafofpiecrust.turntable
 
-import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.album.AlbumId
-import com.loafofpiecrust.turntable.album.LocalAlbum
 import com.loafofpiecrust.turntable.album.selfTitledAlbum
 import com.loafofpiecrust.turntable.artist.ArtistId
-import com.loafofpiecrust.turntable.song.LocalSong
 import com.loafofpiecrust.turntable.song.SongId
-import com.loafofpiecrust.turntable.song.SongInfo
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 
 class AlbumIdTests {
@@ -29,6 +28,7 @@ class AlbumIdTests {
         assertEquals(disc1.displayName, disc2.displayName)
         assertEquals(basic, disc1)
         assertEquals(disc2, disc1)
+        assertEquals(disc1.hashCode(), disc2.hashCode())
     }
 
     @Test fun `displayName with disc and edition`() {
@@ -55,6 +55,16 @@ class AlbumIdTests {
         assertEquals(vol2.name, vol2.displayName)
         assertEquals(1, vol2.discNumber)
     }
+
+    @Test fun `case insensitivity`() {
+        val a = AlbumId("violenT fEmmes", ArtistId("VioLenT feMmEs"))
+        val b = AlbumId("ViolenT FEmmes", ArtistId("VIOLENT FEMMES"))
+        assertTrue(a.selfTitledAlbum)
+        assertTrue(b.selfTitledAlbum)
+        assertEquals(a.dbKey, b.dbKey)
+        assertEquals(a, b)
+        assertEquals(0, a.compareTo(b))
+    }
 }
 
 class SongIdTests {
@@ -79,31 +89,16 @@ class SongIdTests {
             ArtistId("Francis and the Lights")
         ), song.features)
     }
-}
 
-class LocalAlbumTests {
-    val artistId = ArtistId("Cashmere Cat")
-    val albumId = AlbumId("9", artistId)
-    val album = LocalAlbum(
-        albumId,
-        listOf(
-            LocalSong(
-                "",
-                0,
-                SongInfo(
-                    SongId("Night Night (feat. Kehlani)", albumId.copy()),
-                    track = 1,
-                    disc = 1,
-                    duration = 60000 + 45000,
-                    year = 2017
-                )
-            )
+    @Test fun `database key`() {
+        val song = SongId(
+            "Help",
+            AlbumId("Help", ArtistId("The Beatles"))
         )
-    )
-
-    @Test fun `basic info`() {
-        assertEquals(Album.Type.SINGLE, album.type)
-        assertEquals(2017, album.year)
-        assertEquals("Night Night", album.tracks[0].id.displayName)
+        assertEquals('B', song.album.artist.sortChar)
+        assertEquals("help~help~beatles", song.dbKey)
+        assertEquals("help~beatles", song.album.dbKey)
+        assertEquals("Help | Help | The Beatles", song.toString())
+        assertEquals("Help | The Beatles", song.album.toString())
     }
 }

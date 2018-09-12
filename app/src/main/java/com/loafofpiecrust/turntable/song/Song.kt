@@ -6,7 +6,9 @@ package com.loafofpiecrust.turntable.song
 import android.content.Context
 import android.os.Parcelable
 import android.view.Menu
+import com.loafofpiecrust.turntable.util.subSequenceView
 import java.io.Serializable
+import java.nio.CharBuffer
 
 // All possible music status':
 // - Local: has an id, can be played. May be partial album (if album)
@@ -30,9 +32,9 @@ interface Music: Serializable {
 // - Partial: metadata confirmed, no stream urls
 // - Resolved: confirmed metadata and stream urls
 
-fun String.withoutArticle(): String = when {
-    startsWith("the ", true) -> drop(4)
-    startsWith("a ", true) -> drop(2)
+fun CharSequence.withoutArticle(): CharSequence = when {
+    startsWith("the ", true) -> subSequenceView(4)
+    startsWith("a ", true) -> subSequenceView(2)
     else -> this
 }
 

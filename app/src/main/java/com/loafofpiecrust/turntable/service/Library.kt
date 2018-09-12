@@ -622,7 +622,7 @@ class Library : Service() {
 //                        val album = cur.stringValue(MediaStore.Audio.Media.ALBUM)
                         val data = cur.stringValue(MediaStore.Audio.Media.DATA)
                         val index = cur.intValue(MediaStore.Audio.Media.TRACK)
-                        val year = cur.intValue(MediaStore.Audio.Media.YEAR).provided { it > 0 }
+                        val year = cur.intValue(MediaStore.Audio.Media.YEAR).takeIf { it > 0 }
 
                         val (disc, track) = if (index >= 1000) {
                             // There may be multiple discs
@@ -656,13 +656,13 @@ class Library : Service() {
         return songs
     }
 
-    private suspend fun updateSongs() {
+    private fun updateSongs() {
         // Load the song library here
         val external = compileSongsFrom(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
 //        val internal = task { compileSongsFrom(MediaStore.Audio.Media.INTERNAL_CONTENT_URI) }
 //        val songs = external.await() //+ internal.await()
         // synchronized(this) {
-            _songs.send(external)
+            _songs.offer(external)
         // }
     }
 
@@ -750,11 +750,13 @@ class Library : Service() {
         lateinit var instance: Library
             private set
 
-        val ARTWORK_OPTIONS = RequestOptions()
-            .fallback(R.drawable.ic_default_album)
-            .error(R.drawable.ic_default_album)
-            .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
-            .fitCenter()
+        val ARTWORK_OPTIONS by lazy {
+            RequestOptions()
+                .fallback(R.drawable.ic_default_album)
+                .error(R.drawable.ic_default_album)
+                .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                .fitCenter()
+        }
 
 
         /// Bridges the connection between an Activity and the MusicService instance
@@ -774,28 +776,18 @@ class Library : Service() {
             context.bindService(intent, conn, Context.BIND_AUTO_CREATE)
         }
 
-        val ARTIST_COMPARATOR = compareByIgnoreCase<ArtistId>({ it.sortName })
-        val ARTIST_META_COMPARATOR = compareByIgnoreCase<ArtistMetadata>({ it.id.sortName })
+        val ARTIST_META_COMPARATOR = compareBy<ArtistMetadata> { it.id }
 
         /**
          * Sorting and searching comparator for albums.
          * TODO: Maybe re-order to allow finding albums by an artist by binary searching within albums, then going backwards and forwards
          */
-        val ALBUM_COMPARATOR = compareByIgnoreCase<AlbumId>(
-            { it.sortName }, { it.artist.sortName }//, { it.type.name }
-        )
 //        val ALBUM_ARTIST_COMPARATOR = compareBy<Album>({ it.artist })
 
         /**
          * Sorting and searching comparator for album metadata.
          */
-        val ALBUM_META_COMPARATOR = compareByIgnoreCase<AlbumMetadata>(
-            { it.id.sortName }, { it.id.artist.sortName }
-        )
-
-        val SONG_COMPARATOR = compareByIgnoreCase<SongId>(
-            { it.name }, { it.album.sortName }, { it.album.artist.sortName }
-        )
+        val ALBUM_META_COMPARATOR = compareBy<AlbumMetadata> { it.id }
 //        val SONG_ALBUM_COMPARATOR = compareBy<Song>({ it.artist }, { it.album })
 //        val SONG_ARTIST_COMPARATOR = compareBy<Song>({ it.artist })
 

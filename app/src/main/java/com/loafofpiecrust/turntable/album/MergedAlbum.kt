@@ -8,8 +8,8 @@ import com.loafofpiecrust.turntable.song.Song
 
 
 class MergedAlbum(
-    val a: Album,
-    val b: Album
+    private val a: Album,
+    private val b: Album
 ): Album {
     init {
 //        assert(a.id == b.id) { "Can only merge similarly named albums" }
@@ -35,7 +35,7 @@ class MergedAlbum(
     }
 
     // TODO: Generalize to include both! Maybe abstract over popupMenu items
-    override fun optionsMenu(ctx: Context, menu: Menu) = a.optionsMenu(ctx, menu)
+//    override fun optionsMenu(ctx: Context, menu: Menu) = a.optionsMenu(ctx, menu)
 }
 
 //data class MergedAlbum(

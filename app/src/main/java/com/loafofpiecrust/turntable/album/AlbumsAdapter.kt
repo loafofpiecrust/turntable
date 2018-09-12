@@ -45,7 +45,7 @@ class AlbumsAdapter(
     contentsSame = { a, b, aIdx, bIdx -> a == b }
 ), FastScrollRecyclerView.SectionedAdapter {
     override fun getSectionName(position: Int): String
-        = data[position].id.sortName.first().toUpperCase().toString()
+        = data[position].id.sortChar.toString()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int)
         = RecyclerGridItem(parent, 3)

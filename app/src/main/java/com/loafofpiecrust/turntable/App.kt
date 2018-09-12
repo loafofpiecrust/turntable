@@ -78,6 +78,7 @@ class App: Application() {
                 register(SyncService.User::class.java, 19)
                 register(StaticQueue::class.java, 20)
                 register(SyncService.Friend::class.java, 21)
+                register(ConflatedBroadcastChannel::class.java, 22)
             }
         }
 

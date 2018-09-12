@@ -1,17 +1,14 @@
 package com.loafofpiecrust.turntable.album
 
 import com.loafofpiecrust.turntable.artist.ArtistId
-import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.MusicId
-import com.loafofpiecrust.turntable.song.SongId
 import com.loafofpiecrust.turntable.song.withoutArticle
+import com.loafofpiecrust.turntable.util.compareByIgnoreCase
+import com.loafofpiecrust.turntable.util.compareTo
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import java.util.*
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 
 @Parcelize
@@ -19,8 +16,11 @@ data class AlbumId(
     override val name: String,
     val artist: ArtistId
 ): MusicId, Comparable<AlbumId> {
-    val sortName: String get() = displayName.withoutArticle()
-    val dbKey: String get() = "$displayName~${artist.sortName}".toLowerCase()
+    private constructor(): this("", ArtistId(""))
+
+    val sortChar: Char get() = sortName.first().toUpperCase()
+    private val sortName: CharSequence get() = displayName.withoutArticle()
+    val dbKey: String get() = "$displayName~${artist.dbKey}".toLowerCase()
 
     val discNumber: Int get() =
         DISC_SUFFIX_PAT.find(name)?.let { m ->
@@ -37,8 +37,8 @@ data class AlbumId(
     /// What We... (Deluxe Version) => What We...
     /// It's a Deluxe Edition => It's a Deluxe Edition
     @IgnoredOnParcel
-    @Transient
-    override val displayName: String = run {
+    @delegate:Transient
+    override val displayName: String by lazy {
         val toRemove = arrayOf(
             // First, remove " - $type" suffix
             TYPE_SUFFIX_PAT,
@@ -70,11 +70,13 @@ data class AlbumId(
             && this.artist == other.artist
     } ?: false
     override fun hashCode() = Objects.hash(displayName.toLowerCase(), artist)
-    override fun compareTo(other: AlbumId): Int
-        = Library.ALBUM_COMPARATOR.compare(this, other)
+    override fun compareTo(other: AlbumId) = COMPARATOR.compare(this, other)
 
 
     companion object {
+        val COMPARATOR = compareByIgnoreCase<AlbumId>(
+            { it.sortName }
+        ).thenBy { it.artist }
         private val TYPE_SUFFIX_PAT = Regex(
             "\\b\\s*[-]?\\s*[(\\[]?(EP|Single|LP)[)\\]]?$",
             RegexOption.IGNORE_CASE
@@ -96,7 +98,7 @@ data class AlbumId(
 
 
 val AlbumId.selfTitledAlbum: Boolean
-    inline get() = sortName.equals(artist.sortName, true)
+    inline get() = displayName.compareTo(artist.displayName, true) == 0
 
 fun String.simplifyQuotes() = this
     .replace(Regex("[“”]"), "\"")

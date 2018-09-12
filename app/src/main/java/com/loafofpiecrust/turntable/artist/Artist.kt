@@ -54,14 +54,14 @@ interface Artist: Music {
 
 
     override fun optionsMenu(ctx: Context, menu: Menu) = with(menu) {
-        menuItem(R.string.artist_show_similar, R.drawable.ic_people, showIcon = false).onClick {
+        menuItem(R.string.artist_show_similar).onClick {
             ctx.replaceMainContent(
                 ArtistsFragment.relatedTo(id),
                 true
             )
         }
 
-        menuItem(R.string.recommend, showIcon = false).onClick {
+        menuItem(R.string.recommend).onClick {
             FriendPickerDialog(
                 SyncService.Message.Recommendation(this@Artist.id),
                 ctx.getString(R.string.recommend)
@@ -70,7 +70,7 @@ interface Artist: Music {
 
         // TODO: Sync with radios...
         // TODO: Sync with any type of queue!
-        menuItem(R.string.radio_start, showIcon = false).onClick(BG_POOL) {
+        menuItem(R.string.radio_start).onClick(BG_POOL) {
             MusicService.enact(SyncService.Message.Pause(), false)
 
             val radio = RadioQueue.fromSeed(listOf(this@Artist))
@@ -82,7 +82,7 @@ interface Artist: Music {
             }
         }
 
-        menuItem(R.string.artist_biography, showIcon =false).onClick(BG_POOL) {
+        menuItem(R.string.artist_biography).onClick(BG_POOL) {
             BiographyFragment.fromChan(produceSingle(this@Artist)).show(ctx)
         }
     }

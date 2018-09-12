@@ -8,6 +8,7 @@ import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.experimental.runBlocking
 import java.io.FileOutputStream
 import kotlin.reflect.KProperty
 
@@ -59,7 +60,7 @@ class objFilePref<T: Any>(default: T): BaseObjFilePref<T>(default) {
         val res = try {
             val file = App.instance.filesDir.resolve("$name.prop")
             if (file.exists()) {
-                deserialize(file.inputStream())
+                runBlocking { deserialize<T>(file.inputStream()) }
             } else default
         } catch (e: Exception) {
             task(UI) { e.printStackTrace() }

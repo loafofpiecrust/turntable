@@ -162,7 +162,7 @@ class ArtistsAdapter(
     var gridSize: Int = 3
 
     override fun getSectionName(position: Int)
-        = data[position].id.sortName.first().toUpperCase().toString()
+        = data[position].id.sortChar.toString()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerItem =
         if (gridSize == 1) {
