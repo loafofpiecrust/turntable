@@ -5,20 +5,31 @@ import android.arch.lifecycle.ViewModelProvider
 import android.arch.lifecycle.ViewModelStore
 import android.content.Context
 import android.net.*
+import android.provider.MediaStore
 import android.support.annotation.MainThread
 import android.support.v4.app.Fragment
 import android.util.DisplayMetrics
 import com.chibatching.kotpref.Kotpref
 import com.esotericsoftware.kryo.Kryo
+import com.esotericsoftware.kryo.serializers.CompatibleFieldSerializer
 import com.esotericsoftware.kryo.serializers.FieldSerializer
 import com.evernote.android.state.StateSaver
+import com.loafofpiecrust.turntable.album.Album
+import com.loafofpiecrust.turntable.album.AlbumId
+import com.loafofpiecrust.turntable.artist.ArtistId
+import com.loafofpiecrust.turntable.player.StaticQueue
+import com.loafofpiecrust.turntable.playlist.AlbumCollection
+import com.loafofpiecrust.turntable.playlist.CollaborativePlaylist
+import com.loafofpiecrust.turntable.playlist.MixTape
+import com.loafofpiecrust.turntable.radio.CombinedQueue
+import com.loafofpiecrust.turntable.radio.RadioQueue
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.service.SyncService
-import com.loafofpiecrust.turntable.util.CBCSerializer
-import com.loafofpiecrust.turntable.util.distinctSeq
-import com.loafofpiecrust.turntable.util.task
-import com.loafofpiecrust.turntable.util.threadLocalLazy
+import com.loafofpiecrust.turntable.song.HistoryEntry
+import com.loafofpiecrust.turntable.song.Song
+import com.loafofpiecrust.turntable.song.SongId
+import com.loafofpiecrust.turntable.util.*
 import de.javakaffee.kryoserializers.ArraysAsListSerializer
 import de.javakaffee.kryoserializers.SubListSerializers
 import de.javakaffee.kryoserializers.UUIDSerializer
@@ -41,31 +52,39 @@ class App: Application() {
         private lateinit var _instance: WeakReference<App>
         val instance: App get() = _instance.get()!!
 
-        val kryo by threadLocalLazy {
+        val kryo = InstancePool(3) {
             Kryo().apply {
-                // TODO: Switch to CompatibleFieldSerializer or TagFieldSerializer once Song.artworkUrl is removed or any other refactoring goes down.
-                setDefaultSerializer(FieldSerializer::class.java)
                 instantiatorStrategy = Kryo.DefaultInstantiatorStrategy(StdInstantiatorStrategy())
-//                setDefaultSerializer(FieldSerializer::class.java)
-//                addDefaultSerializer(BehaviorSubject::class.java, BehaviorSubjectSerializer::class.java)
+                isRegistrationRequired = false
+                references = true
+
+                // TODO: Switch to CompatibleFieldSerializer or TagFieldSerializer once Song.artworkUrl is removed or any other refactoring goes down.
+                setDefaultSerializer(CompatibleFieldSerializer::class.java)
                 addDefaultSerializer(ConflatedBroadcastChannel::class.java, CBCSerializer::class.java)
-                register(UUID::class.java, UUIDSerializer())
-                register(ArrayList::class.java).apply {
-                    instantiatorStrategy = Kryo.DefaultInstantiatorStrategy(StdInstantiatorStrategy())
-                }
-                register(Arrays.asList(0).javaClass, ArraysAsListSerializer())
-//                register(Collections.EMPTY_LIST.javaClass, CollectionsEmptyListSerializer())
-//                register(Collections.singleton("").javaClass, CollectionsSingletonListSerializer())
-//                register(emptyList<Song>().javaClass, JavaSerializer())
-//                references = false
                 SubListSerializers.addDefaultSerializers(this)
+
+                register(SongId::class.java, 10)
+                register(AlbumId::class.java, 11)
+                register(ArtistId::class.java, 12)
+
+                register(Song::class.java, 13)
+                register(Album::class.java, 14)
+
+                register(emptyList<Nothing>().javaClass, 15)
+                register(UUID::class.java, UUIDSerializer(), 16)
+                register(ArrayList::class.java, 17)
+                register(Arrays.asList(0).javaClass, ArraysAsListSerializer(), 18)
+
+                register(SyncService.User::class.java, 19)
+                register(StaticQueue::class.java, 20)
+                register(SyncService.Friend::class.java, 21)
             }
         }
 
-        fun <T> kryoWithRefs(block: (Kryo) -> T): T {
-            kryo.references = true
-            return block(kryo).also { kryo.references = false }
-        }
+//        fun <T> kryoWithRefs(block: (Kryo) -> T): T {
+//            kryo.references = true
+//            return block(kryo).also { kryo.references = false }
+//        }
 
         var sdCardUri: Uri? = null
     }

@@ -7,11 +7,14 @@ import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.album.Album
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
+import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.serialize
 import com.loafofpiecrust.turntable.util.toObject
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.map
+import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.experimental.runBlocking
 import java.util.*
 
 
@@ -37,8 +40,8 @@ class AlbumCollection(
         }.toList() }
 
     companion object {
-        fun fromDocument(doc: DocumentSnapshot): AlbumCollection {
-            return AlbumCollection(
+        fun fromDocument(doc: DocumentSnapshot): AlbumCollection = runBlocking {
+            AlbumCollection(
                 doc.getBlob("owner")!!.toObject(),
                 doc.getString("name")!!,
                 doc.getLong("color")?.toInt(),
@@ -85,17 +88,19 @@ class AlbumCollection(
     }
 
     override fun publish() {
-        val db = FirebaseFirestore.getInstance()
-        db.collection("playlists")
-            .document(id.toString())
-            .set(mapOf(
-                "format" to "albums",
-                "owner" to Blob.fromBytes(serialize(owner)),
-                "name" to name,
-                "color" to color,
-                "lastModified" to lastModified,
-                "albums" to Blob.fromBytes(serialize(_albums.value))
-            ))
-        isPublished = true
+        launch(BG_POOL) {
+            val db = FirebaseFirestore.getInstance()
+            db.collection("playlists")
+                .document(id.toString())
+                .set(mapOf(
+                    "format" to "albums",
+                    "owner" to Blob.fromBytes(serialize(owner)),
+                    "name" to name,
+                    "color" to color,
+                    "lastModified" to lastModified,
+                    "albums" to Blob.fromBytes(serialize(_albums.value))
+                ))
+            isPublished = true
+        }
     }
 }

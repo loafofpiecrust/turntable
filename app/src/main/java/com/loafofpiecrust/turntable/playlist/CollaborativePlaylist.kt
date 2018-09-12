@@ -8,10 +8,13 @@ import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
 import com.loafofpiecrust.turntable.song.SongId
+import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.replayOne
 import com.loafofpiecrust.turntable.util.serialize
 import com.loafofpiecrust.turntable.util.toObject
 import kotlinx.coroutines.experimental.channels.*
+import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
 import java.io.Serializable
@@ -55,7 +58,7 @@ class CollaborativePlaylist(
     }
 
     companion object: AnkoLogger {
-        fun fromDocument(doc: DocumentSnapshot): CollaborativePlaylist = run {
+        fun fromDocument(doc: DocumentSnapshot): CollaborativePlaylist = runBlocking {
             CollaborativePlaylist(
                 doc.getBlob("owner")!!.toObject(),
                 doc.getString("name")!!,
@@ -226,19 +229,21 @@ class CollaborativePlaylist(
     }
 
     override fun publish() {
-        val db = FirebaseFirestore.getInstance()
+        launch(BG_POOL) {
+            val db = FirebaseFirestore.getInstance()
 //        val batch = db.batch()
-        val doc = db.collection("playlists").document(id.toString())
-        doc.set(mapOf(
+            val doc = db.collection("playlists").document(id.toString())
+            doc.set(mapOf(
 //                "type" to type.toString(),
-            "format" to "playlist",
-            "name" to name,
-            "color" to color,
-            "lastModified" to lastModified,
-            "createdTime" to createdTime,
-            "operations" to Blob.fromBytes(serialize(operations.value)),
-            "owner" to Blob.fromBytes(serialize(owner))
-        ))
+                "format" to "playlist",
+                "name" to name,
+                "color" to color,
+                "lastModified" to lastModified,
+                "createdTime" to createdTime,
+                "operations" to Blob.fromBytes(serialize(operations.value)),
+                "owner" to Blob.fromBytes(serialize(owner))
+            ))
+        }
 //        val ops = doc.collection("operations")
 //        operations.value.forEach { batch.set(ops.document(), it) }
 //        batch.commit()

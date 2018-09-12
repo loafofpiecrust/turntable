@@ -387,9 +387,7 @@ class SyncService : FirebaseMessagingService() {
     data class User(
         @get:DynamoDBHashKey(attributeName="email")
         var username: String,
-        @get:DynamoDBAttribute
         var deviceId: String,
-        @get:DynamoDBAttribute
         var displayName: String?
     ): Parcelable {
         constructor(): this("", "", null)
@@ -481,143 +479,149 @@ class SyncService : FirebaseMessagingService() {
     override fun onMessageReceived(msg: RemoteMessage) {
         val mode = mode.value
 
-        val sender = deserialize<User>(msg.data["sender"]!!)
+        launch(BG_POOL) {
+            val sender = deserialize<User>(msg.data["sender"]!!)
 
-        if (!msg.data.containsKey("action") || sender.deviceId == selfUser.deviceId /*|| mode is Mode.None*/) {
-            // We sent this message ourselves, don't process it.
-            return
-        }
-
-        val message = deserialize<Message>(msg.data["action"]!!)
-        println("sync: received firebase msg, $message from $sender")
-
-        // If we're in a consensual sync session with the sender, tell them we're still online.
-        // Otherwise, don't even process the message, but send a rejection response.
-        if (mode is Mode.OneOnOne && message !is Message.EndSync) {
-            if (mode.other.deviceId == sender.deviceId) {
-                // Only ping if the last message was not a ping
-                // This prevents an infinite ping circle, which is generally unnecessary.
-                if (message !is Message.Ping) {
-                    send(Message.Ping())
-                }
-            } else {
-                send(Message.EndSync())
-                return
+            if (!msg.data.containsKey("action") || sender.deviceId == selfUser.deviceId /*|| mode is Mode.None*/) {
+                // We sent this message ourselves, don't process it.
+                return@launch
             }
-        }
 
-        when (message) {
-            is Message.SyncRequest -> task(UI) {
-                val sender = if (sender.displayName == null) {
-                    sender.refresh().await()
-                } else sender
+            val message = deserialize<Message>(msg.data["action"]!!)
+            println("sync: received firebase msg, $message from $sender")
 
-                notificationManager.notify(12349, NotificationCompat.Builder(ctx, "turntable").apply {
-                    priority = PRIORITY_HIGH
-                    setSmallIcon(R.drawable.ic_circle)
-                    setContentTitle("Sync request")
-                    setContentText("from ${sender.name}")
-                    setAutoCancel(true)
-                    setOngoing(true)
-
-                    setContentIntent(PendingIntent.getActivity(
-                        ctx, 6977,
-                        MainActivityStarter.getIntent(ctx, MainActivity.Action.SyncRequest(sender)),
-                        0
-                    ))
-                }.build())
-            }
-            is Message.SyncResponse -> {
-                if (message.accept) {
-                    // set sync mode and enable sync in MusicService
-                    SyncService.mode puts Mode.OneOnOne(sender)
-                    task(UI) { toast("Now synced with ${sender.name}") }
-                } else {
-                    task(UI) { toast("${sender.name} refused to sync") }
-                }
-            }
-            is Message.EndSync -> {
-                when (mode) {
-                    is Mode.OneOnOne -> {
-                        val name = mode.other.displayName ?: mode.other.username
-                        task(UI) { toast("Sync ended by $name") }
+            // If we're in a consensual sync session with the sender, tell them we're still online.
+            // Otherwise, don't even process the message, but send a rejection response.
+            if (mode is Mode.OneOnOne && message !is Message.EndSync) {
+                if (mode.other.deviceId == sender.deviceId) {
+                    // Only ping if the last message was not a ping
+                    // This prevents an infinite ping circle, which is generally unnecessary.
+                    if (message !is Message.Ping) {
+                        send(Message.Ping())
                     }
-                    is Mode.InGroup -> {
-                        val name = mode.group.name ?: mode.group.key
-                        task(UI) { toast("Left group '$name'?") }
+                } else {
+                    send(Message.EndSync())
+                    return@launch
+                }
+            }
+
+            when (message) {
+                is Message.SyncRequest -> {
+                    val sender = if (sender.displayName == null) {
+                        sender.refresh().await()
+                    } else sender
+
+                    launch(UI) {
+                        notificationManager.notify(12349, NotificationCompat.Builder(ctx, "turntable").apply {
+                            priority = PRIORITY_HIGH
+                            setSmallIcon(R.drawable.ic_circle)
+                            setContentTitle("Sync request")
+                            setContentText("from ${sender.name}")
+                            setAutoCancel(true)
+                            setOngoing(true)
+
+                            setContentIntent(PendingIntent.getActivity(
+                                ctx, 6977,
+                                MainActivityStarter.getIntent(ctx, MainActivity.Action.SyncRequest(sender)),
+                                0
+                            ))
+                        }.build())
                     }
                 }
-                SyncService.mode puts Mode.None()
-            }
-
-            is Message.FriendRequest -> task(UI) {
-                val sender = if (sender.displayName == null) {
-                    sender.refresh().await()
-                } else sender
-
-                // TODO: Don't add duplicate.
-                if (UserPrefs.friends.value.find { it.user == sender } == null) {
-                    // We don't know this user in any capacity yet.
-                    UserPrefs.friends appends Friend(sender, Friend.Status.RECEIVED_REQUEST)
+                is Message.SyncResponse -> {
+                    if (message.accept) {
+                        // set sync mode and enable sync in MusicService
+                        SyncService.mode puts Mode.OneOnOne(sender)
+                        task(UI) { toast("Now synced with ${sender.name}") }
+                    } else {
+                        task(UI) { toast("${sender.name} refused to sync") }
+                    }
+                }
+                is Message.EndSync -> {
+                    when (mode) {
+                        is Mode.OneOnOne -> {
+                            val name = mode.other.displayName ?: mode.other.username
+                            task(UI) { toast("Sync ended by $name") }
+                        }
+                        is Mode.InGroup -> {
+                            val name = mode.group.name ?: mode.group.key
+                            task(UI) { toast("Left group '$name'?") }
+                        }
+                    }
+                    SyncService.mode puts Mode.None()
                 }
 
-                notificationManager.notify(12350, NotificationCompat.Builder(ctx, "turntable").apply {
-                    priority = PRIORITY_DEFAULT
-                    setSmallIcon(R.drawable.ic_circle)
-                    setContentTitle("Friend request")
-                    setContentText("from ${sender.name}")
-                    setAutoCancel(true)
-                    setOngoing(true)
+                is Message.FriendRequest -> {
+                    val sender = if (sender.displayName == null) {
+                        sender.refresh().await()
+                    } else sender
 
-                    setContentIntent(PendingIntent.getActivity(
-                        ctx, 6978,
-                        MainActivityStarter.getIntent(ctx, MainActivity.Action.FriendRequest(sender)),
-                        0
-                    ))
-                }.build())
-            }
+                    // TODO: Don't add duplicate.
+                    if (UserPrefs.friends.value.find { it.user == sender } == null) {
+                        // We don't know this user in any capacity yet.
+                        UserPrefs.friends appends Friend(sender, Friend.Status.RECEIVED_REQUEST)
+                    }
 
-            is Message.FriendResponse -> task {
-                val sender = if (sender.displayName == null) {
-                    sender.refresh().await()
-                } else sender
+                    launch(UI) {
+                        notificationManager.notify(12350, NotificationCompat.Builder(ctx, "turntable").apply {
+                            priority = PRIORITY_DEFAULT
+                            setSmallIcon(R.drawable.ic_circle)
+                            setContentTitle("Friend request")
+                            setContentText("from ${sender.name}")
+                            setAutoCancel(true)
+                            setOngoing(true)
 
-                val friends = UserPrefs.friends.value
-                val existingIdx = friends.indexOfFirst { it.user == sender }
-                if (message.accept) {
-                    UserPrefs.friends puts friends.withReplaced(existingIdx, Friend(sender, Friend.Status.CONFIRMED))
-                    task(UI) { toast("Friendship fostered with ${sender.name}") }
-                } else {
-                    UserPrefs.friends puts friends.without(existingIdx)
-                    task(UI) { toast("${sender.name} declined friendship :(") }
+                            setContentIntent(PendingIntent.getActivity(
+                                ctx, 6978,
+                                MainActivityStarter.getIntent(ctx, MainActivity.Action.FriendRequest(sender)),
+                                0
+                            ))
+                        }.build())
+                    }
                 }
-            }
 
-            is Message.Recommendation -> task {
-                given(when (message.content) {
-                    is SongId -> SearchApi.find(message.content)
-                    is AlbumId -> SearchApi.find(message.content)
-                    is ArtistId -> SearchApi.find(message.content)
-                    else -> TODO("Cover other cases")
-                }) {
-                    UserPrefs.recommendations appends it
+                is Message.FriendResponse -> {
+                    val sender = if (sender.displayName == null) {
+                        sender.refresh().await()
+                    } else sender
+
+                    val friends = UserPrefs.friends.value
+                    val existingIdx = friends.indexOfFirst { it.user == sender }
+                    if (message.accept) {
+                        UserPrefs.friends puts friends.withReplaced(existingIdx, Friend(sender, Friend.Status.CONFIRMED))
+                        task(UI) { toast("Friendship fostered with ${sender.name}") }
+                    } else {
+                        UserPrefs.friends puts friends.without(existingIdx)
+                        task(UI) { toast("${sender.name} declined friendship :(") }
+                    }
                 }
-            }
 
-            is Message.Ping -> {
-                pinger.offer(MessageDir.RECEIVED)
-                // Confirms that the last message sent was received.
+                is Message.Recommendation -> {
+                    given(when (message.content) {
+                        is SongId -> SearchApi.find(message.content)
+                        is AlbumId -> SearchApi.find(message.content)
+                        is ArtistId -> SearchApi.find(message.content)
+                        else -> TODO("Cover other cases")
+                    }) {
+                        UserPrefs.recommendations appends it
+                    }
+                }
+
+                is Message.Ping -> {
+                    pinger.offer(MessageDir.RECEIVED)
+                    // Confirms that the last message sent was received.
 //                lastDeliveredTime = System.currentTimeMillis()
 //                latency.offer(lastDeliveredTime - lastSentTime)
-            }
-
-            is Message.Playlist -> task {
-                given(CollaborativePlaylist.find(message.id)) {
-                    UserPrefs.recommendations appends it
                 }
-            }
 
-            else -> MusicService.enact(message, false)
+                is Message.Playlist -> {
+                    given(CollaborativePlaylist.find(message.id)) {
+                        UserPrefs.recommendations appends it
+                    }
+                }
+
+                else -> MusicService.enact(message, false)
+            }
         }
     }
 

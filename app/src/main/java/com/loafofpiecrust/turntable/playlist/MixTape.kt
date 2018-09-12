@@ -7,6 +7,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.song.Song
+import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.serialize
 import com.loafofpiecrust.turntable.util.suspendedTask
 import com.loafofpiecrust.turntable.util.toObject
@@ -14,6 +15,7 @@ import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.map
+import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.selector
@@ -53,7 +55,7 @@ class MixTape(
     }
 
     companion object: AnkoLogger {
-        fun fromDocument(doc: DocumentSnapshot): MixTape = run {
+        fun fromDocument(doc: DocumentSnapshot): MixTape = runBlocking {
             MixTape(
                 doc.getBlob("owner")!!.toObject(),
                 Type.valueOf(doc.getString("type")!!),
@@ -184,18 +186,20 @@ class MixTape(
      * A mixtape's published version can only be modified by the original author republishing it.
      */
     override fun publish() {
-        val db = FirebaseFirestore.getInstance()
-        db.collection("playlists").document(id.toString())
-            .set(mapOf(
-                "type" to type.toString(),
-                "format" to "mixtape",
-                "name" to name,
-                "color" to color,
-                "lastModified" to lastModified,
-                "createdTime" to createdTime,
-                "tracks" to Blob.fromBytes(serialize(_tracks.value)),
-                "owner" to Blob.fromBytes(serialize(owner))
-            ))
+        launch(BG_POOL) {
+            val db = FirebaseFirestore.getInstance()
+            db.collection("playlists").document(id.toString())
+                .set(mapOf(
+                    "type" to type.toString(),
+                    "format" to "mixtape",
+                    "name" to name,
+                    "color" to color,
+                    "lastModified" to lastModified,
+                    "createdTime" to createdTime,
+                    "tracks" to Blob.fromBytes(serialize(_tracks.value)),
+                    "owner" to Blob.fromBytes(serialize(owner))
+                ))
+        }
         isPublished = true
 //        databaseUser.continueWith {
 //            database.updateOne(

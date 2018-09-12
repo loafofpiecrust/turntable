@@ -26,7 +26,7 @@ class objPref<T: Any>(val default: T): AbstractPref<T>() {
         return preference.getString(property.name, null)?.let {
             try {
 //                App.kryo.objectFromBytes<T>(it.toByteArray(Charsets.ISO_8859_1))
-                deserialize<T>(Base64.decode(it, Base64.NO_WRAP))
+                deserialize<T>(it)
             } catch(e: Throwable) {
                 task(UI) { e.printStackTrace() }
                 default
@@ -36,10 +36,10 @@ class objPref<T: Any>(val default: T): AbstractPref<T>() {
 
     override fun setToPreference(property: KProperty<*>, value: T, preference: SharedPreferences) {
         try {
-            val bytes = serialize(value)
+            val bytes = serializeToString(value)
             preference.edit()
 //                .putString(property.id, bytes.toString(Charsets.ISO_8859_1))
-                .putString(property.name, Base64.encodeToString(bytes, Base64.NO_WRAP))
+                .putString(property.name, bytes)
                 .apply()
         } catch (e: Throwable) {
             task(UI) { e.printStackTrace() }
@@ -48,9 +48,8 @@ class objPref<T: Any>(val default: T): AbstractPref<T>() {
 
     override fun setToEditor(property: KProperty<*>, value: T, editor: SharedPreferences.Editor) {
         try {
-            val bytes = serialize(value)
-//            editor.putString(property.id, bytes.toString(Charsets.ISO_8859_1))
-            editor.putString(property.name, Base64.encodeToString(bytes, Base64.NO_WRAP))
+            val bytes = serializeToString(value)
+            editor.putString(property.name, bytes)
         } catch (e: Throwable) {
             task(UI) { e.printStackTrace() }
         }

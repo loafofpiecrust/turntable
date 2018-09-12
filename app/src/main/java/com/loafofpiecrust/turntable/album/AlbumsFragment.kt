@@ -146,7 +146,7 @@ class AlbumsFragment : BaseFragment() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) = menu.run {
         menuItem("Search", R.drawable.ic_search, showIcon=true).onClick(UI) {
             act.replaceMainContent(
-                SearchFragmentStarter.newInstance(SearchFragment.Category.Albums()),
+                SearchFragment.newInstance(SearchFragment.Category.Albums()),
                 true
             )
         }

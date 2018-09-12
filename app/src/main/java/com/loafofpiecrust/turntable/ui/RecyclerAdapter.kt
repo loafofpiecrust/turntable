@@ -175,7 +175,7 @@ class StaticRecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
-        ctx.kryo.copy(viewHolder)
+        ctx.kryo.acquireBlocking { it.copy(viewHolder) }
 
 }
 

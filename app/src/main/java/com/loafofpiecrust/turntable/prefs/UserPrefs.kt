@@ -51,14 +51,14 @@ object UserPrefs: KotprefModel() {
     // Metadata (saves to files rather than SharedPreferences to reduce memory usage)
 //    val playlists by jsonPref(arrayOf<Playlist>())
 
-    val remoteAlbums by pref(listOf<Album>())
-    val albumMeta by pref(listOf<Library.AlbumMetadata>())
-    val artistMeta by pref(listOf<Library.ArtistMetadata>())
-    val history by pref(listOf<HistoryEntry>())
-    val playlists by pref(listOf<Playlist>())
-    val recommendations by pref(listOf<Music>())
+    val remoteAlbums by pref(emptyList<Album>())
+    val albumMeta by pref(emptyList<Library.AlbumMetadata>())
+    val artistMeta by pref(emptyList<Library.ArtistMetadata>())
+    val history by pref(emptyList<HistoryEntry>())
+    val playlists by pref(emptyList<Playlist>())
+    val recommendations by pref(emptyList<Music>())
 
-    val friends by pref(listOf<SyncService.Friend>())
+    val friends by pref(emptyList<SyncService.Friend>())
 
-    val queue by pref<MusicPlayer.Queue>(StaticQueue(listOf(), 0))
+    val queue by pref<MusicPlayer.Queue>(StaticQueue(emptyList(), 0))
 }

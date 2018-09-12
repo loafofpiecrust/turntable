@@ -82,7 +82,7 @@ class ArtistsFragment : BaseFragment() {
         menu.menuItem("Search", R.drawable.ic_search, showIcon = true) {
             onClick {
                 act.replaceMainContent(
-                    SearchFragmentStarter.newInstance(SearchFragment.Category.Artists()),
+                    SearchFragment.newInstance(SearchFragment.Category.Artists()),
                     true
                 )
             }

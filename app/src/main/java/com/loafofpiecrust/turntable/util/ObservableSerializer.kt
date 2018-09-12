@@ -45,6 +45,7 @@ class CBCSerializer<T: Any>: Serializer<ConflatedBroadcastChannel<T>>() {
     }
 
     override fun read(kryo: Kryo, input: Input, c: Class<ConflatedBroadcastChannel<T>>): ConflatedBroadcastChannel<T> {
+        @Suppress("UNCHECKED_CAST")
         val value = kryo.readClassAndObject(input) as? T
         return if (value != null) {
             ConflatedBroadcastChannel(value)
