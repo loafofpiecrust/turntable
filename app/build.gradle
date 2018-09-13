@@ -11,10 +11,17 @@ apply plugin: 'org.jmailen.kotlinter'
 apply plugin: 'com.getkeepsafe.dexcount'
 apply plugin: "com.vanniktech.dependency.graph.generator"
 
+//apply plugin: 'pl.droidsonroids.pitest'
+apply plugin: 'de.mannodermaus.android-junit5'
+
 task copyTestClasses(type: Copy) {
     from "build/tmp/kotlin-classes/debug"
     into "build/intermediates/classes/debug"
 }
+
+//test {
+//    useJUnitPlatform()
+//}
 
 android {
     testOptions {
@@ -324,6 +331,10 @@ dependencies {
     testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5:$kotlin_version"
     kaptTest "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
+    testImplementation "ch.tutteli.atrium:atrium-cc-en_GB-robstoll:0.7.0"
+//    testImplementation 'io.kotlintest:kotlintest-runner-junit5:3.1.10'
+//    testImplementation "org.mockito:mockito-core:2.+"
+//    testImplementation "org.robolectric:robolectric:3.8"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 }

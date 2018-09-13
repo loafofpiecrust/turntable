@@ -1,9 +1,9 @@
 package com.loafofpiecrust.turntable
 
-import com.loafofpiecrust.turntable.album.*
-import com.loafofpiecrust.turntable.artist.ArtistId
-import com.loafofpiecrust.turntable.song.Song
-import com.loafofpiecrust.turntable.song.SongId
+import com.loafofpiecrust.turntable.model.artist.ArtistId
+import com.loafofpiecrust.turntable.model.album.*
+import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.model.song.SongId
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

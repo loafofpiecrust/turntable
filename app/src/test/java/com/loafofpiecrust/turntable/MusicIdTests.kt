@@ -1,10 +1,12 @@
 package com.loafofpiecrust.turntable
 
-import com.loafofpiecrust.turntable.album.AlbumId
-import com.loafofpiecrust.turntable.album.selfTitledAlbum
-import com.loafofpiecrust.turntable.artist.ArtistId
-import com.loafofpiecrust.turntable.song.SongId
+import ch.tutteli.atrium.api.cc.en_GB.toBe
+import com.loafofpiecrust.turntable.model.album.AlbumId
+import com.loafofpiecrust.turntable.model.album.selfTitledAlbum
+import com.loafofpiecrust.turntable.model.artist.ArtistId
+import com.loafofpiecrust.turntable.model.song.SongId
 import kotlin.test.Test
+import ch.tutteli.atrium.verbs.assert
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -13,8 +15,8 @@ import kotlin.test.assertTrue
 class AlbumIdTests {
     @Test fun `simple self-titled`() {
         val id = AlbumId("Violent Femmes", ArtistId("Violent Femmes"))
-        assertTrue(id.selfTitledAlbum)
-        assertEquals(id.name, id.displayName)
+        assert(id.selfTitledAlbum).toBe(true)
+        assert(id.displayName).toBe(id.name)
     }
 
     @Test fun `disc of self-titled`() {
@@ -22,13 +24,14 @@ class AlbumIdTests {
         val basic = AlbumId("Violent Femmes", artist)
         val disc1 = AlbumId(basic.name + " (Disc 1)", artist)
         val disc2 = AlbumId(basic.name + " (Disc 2)", artist)
-        assertTrue(disc1.selfTitledAlbum)
-        assertEquals(1, disc1.discNumber)
-        assertEquals(basic.displayName, disc1.displayName)
-        assertEquals(disc1.displayName, disc2.displayName)
-        assertEquals(basic, disc1)
-        assertEquals(disc2, disc1)
-        assertEquals(disc1.hashCode(), disc2.hashCode())
+
+        assert(disc1.selfTitledAlbum).toBe(true)
+        assert(disc1.discNumber).toBe(1)
+        assert(disc1.displayName).toBe(basic.displayName)
+        assert(disc2.displayName).toBe(disc1.displayName)
+        assert(disc1).toBe(basic)
+        assert(disc1).toBe(disc2)
+        assert(disc2.hashCode()).toBe(disc1.hashCode())
     }
 
     @Test fun `displayName with disc and edition`() {
