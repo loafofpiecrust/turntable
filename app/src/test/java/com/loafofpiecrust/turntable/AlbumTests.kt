@@ -1,5 +1,9 @@
 package com.loafofpiecrust.turntable
 
+import ch.tutteli.atrium.api.cc.en_GB.notToBeNull
+import ch.tutteli.atrium.api.cc.en_GB.notToBeNullBut
+import ch.tutteli.atrium.api.cc.en_GB.toBe
+import ch.tutteli.atrium.verbs.assert
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.album.*
 import com.loafofpiecrust.turntable.model.song.Song
@@ -27,10 +31,10 @@ class LocalAlbumTests {
             )
         )
 
-        assertEquals(album.id.displayName, album.displayName)
-        assertEquals(Album.Type.SINGLE, album.type)
-        assertEquals(2017, album.year)
-        assertEquals("Night Night", album.tracks[0].id.displayName)
+        assert(album.displayName).toBe(album.id.displayName)
+        assert(album.type).toBe(Album.Type.SINGLE)
+        assert(album.year).notToBeNullBut(2017)
+        assert(album.tracks.first().displayName).toBe("Night Night")
     }
 
     @Test fun `types and EPs`() {
@@ -51,9 +55,9 @@ class LocalAlbumTests {
                 track1.copy(id = SongId("Rice Rain", albumId), track = 4)
             )
         )
-        assertEquals("Wedding Bells", album.id.displayName)
-        assertEquals(Album.Type.EP, album.type)
-        assertFalse(album.hasTrackGaps)
+        assert(album.id.displayName).toBe("Wedding Bells")
+        assert(album.type).toBe(Album.Type.EP)
+        assert(album.hasTrackGaps).toBe(false)
     }
 
     /**
@@ -89,8 +93,8 @@ class LocalAlbumTests {
 
         val finalAlbum = MergedAlbum(disc1, disc2)
 
-        assertEquals("Jackson C. Frank", finalAlbum.id.displayName)
-        assertEquals(2, finalAlbum.tracks.size)
-        assertEquals(1965, finalAlbum.year)
+        assert(finalAlbum.id.displayName).toBe("Jackson C. Frank")
+        assert(finalAlbum.tracks.size).toBe(2)
+        assert(finalAlbum.year).notToBeNullBut(1965)
     }
 }
