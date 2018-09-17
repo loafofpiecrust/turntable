@@ -1,16 +1,19 @@
-package com.loafofpiecrust.turntable
+package com.loafofpiecrust.turntable.model
 
 import android.graphics.Color
 import ch.tutteli.atrium.api.cc.en_GB.*
 import ch.tutteli.atrium.verbs.assert
+import ch.tutteli.atrium.verbs.expect
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
+import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.util.deserialize
 import com.loafofpiecrust.turntable.util.serialize
+import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.firstOrNull
 import kotlinx.coroutines.experimental.runBlocking
 import java.util.*
@@ -35,6 +38,18 @@ class PlaylistTests {
             disc = 1,
             duration = 65000,
             year = 2009
+        ),
+        Song(
+            SongId(
+                "Me, On The Beach",
+                AlbumId(
+                    "Dream Sounds",
+                    ArtistId("Nagisa Ni Te")
+                )
+            ),
+            track = 3, disc = 1,
+            duration = 76500,
+            year = 2005
         )
     )
 
@@ -59,5 +74,17 @@ class PlaylistTests {
 
         val side1 = runBlocking { mixtape.tracksOnSide(0).firstOrNull() }
         assert(side1!!).toBe(listOf(songs[0]))
+    }
+
+    @Test fun operations() {
+        val playlist = CollaborativePlaylist(user, "All Good Things...", Color.GREEN, UUID.randomUUID())
+        expect(playlist.add(songs[1])).toBe(true)
+        expect(playlist.add(songs[0])).toBe(true)
+        expect(runBlocking { playlist.tracks.first() }).toBe(listOf(songs[1], songs[0]))
+        playlist.move(1, 0)
+        playlist.remove(0)
+        expect(runBlocking { playlist.tracks.first() }).toBe(listOf(songs[1]))
+        playlist.remove(0)
+        expect(runBlocking { playlist.tracks.first() }).isEmpty()
     }
 }

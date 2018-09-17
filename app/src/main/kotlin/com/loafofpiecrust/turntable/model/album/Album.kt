@@ -17,8 +17,10 @@ import com.bumptech.glide.signature.ObjectKey
 import com.github.florent37.glidepalette.GlidePalette
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.browse.SearchApi
+import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.model.song.Music
 import com.loafofpiecrust.turntable.model.song.MusicId
+import com.loafofpiecrust.turntable.model.song.SaveableMusic
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.util.getColorCompat
 import com.loafofpiecrust.turntable.util.menuItem
@@ -32,13 +34,31 @@ import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.util.task
 import com.loafofpiecrust.turntable.util.then
+import kotlinx.android.parcel.IgnoredOnParcel
+import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.map
+import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.textColor
 import java.io.Serializable
 
+@Parcelize
+class PartialAlbum(
+    override val id: AlbumId,
+    override val year: Int?,
+    override val type: Album.Type
+): Album, SaveableMusic, Parcelable {
+    @IgnoredOnParcel
+    @delegate:Transient
+    private val remoteAlbum: Album? by lazy {
+        runBlocking { SearchApi.find(id) }
+    }
+
+    override val tracks: List<Song>
+        get() = remoteAlbum?.tracks ?: emptyList()
+}
 
 interface Album: Music {
     val id: AlbumId
@@ -57,6 +77,8 @@ interface Album: Music {
 
     override val displayName get() = id.displayName
 
+    fun toPartial() = PartialAlbum(id, year, type)
+
     /// TODO: Can we pull this out of the class...?
     override fun optionsMenu(ctx: Context, menu: Menu) {
         menu.menuItem(R.string.album_shuffle, R.drawable.ic_shuffle, showIcon =false).onClick {
@@ -73,13 +95,13 @@ interface Album: Music {
 
         menu.menuItem(R.string.recommend).onClick {
             FriendPickerDialog(
-                SyncService.Message.Recommendation(this@Album.id),
+                SyncService.Message.Recommendation(toPartial()),
                 "Send Recommendation"
             ).show(ctx)
         }
 
         menu.menuItem(R.string.add_to_playlist).onClick {
-            PlaylistPickerDialog.forItem(this@Album).show(ctx)
+            PlaylistPickerDialog.forItem(toPartial()).show(ctx)
         }
     }
 

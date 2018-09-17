@@ -7,15 +7,14 @@ import com.google.firebase.firestore.ServerTimestamp
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repeat
 import com.loafofpiecrust.turntable.service.SyncService
-import com.loafofpiecrust.turntable.model.song.Music
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.model.song.SaveableMusic
 import com.loafofpiecrust.turntable.util.suspendedTask
 import com.loafofpiecrust.turntable.util.task
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import java.io.Serializable
 import java.util.*
 
-abstract class Playlist: Music, Serializable {
+abstract class Playlist: SaveableMusic {
     abstract val owner: SyncService.User
     abstract var name: String
     abstract var color: Int?

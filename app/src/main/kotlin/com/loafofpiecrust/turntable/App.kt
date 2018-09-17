@@ -12,6 +12,7 @@ import com.chibatching.kotpref.Kotpref
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.serializers.CompatibleFieldSerializer
 import com.evernote.android.state.StateSaver
+import com.google.firebase.FirebaseApp
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
@@ -96,6 +97,8 @@ class App: Application() {
     override fun onCreate() {
         super.onCreate()
         _instance = WeakReference(this)
+
+        FirebaseApp.initializeApp(this)
 
 //        if (LeakCanary.isInAnalyzerProcess(this)) {
 //            // This process is dedicated to LeakCanary for heap analysis.

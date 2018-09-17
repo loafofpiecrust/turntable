@@ -8,7 +8,9 @@ import android.view.Menu
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
 import com.loafofpiecrust.turntable.App
+import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.album.loadPalette
+import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.OnlineSearchService
@@ -30,7 +32,7 @@ data class Song(
     val year: Int?,
     @Transient
     val platformId: PlatformId? = null
-): Music, Parcelable {
+): SaveableMusic, Parcelable {
     override val displayName get() = id.displayName
 
     /**

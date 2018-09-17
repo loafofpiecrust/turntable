@@ -11,6 +11,7 @@ import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.model.song.HistoryEntry
 import com.loafofpiecrust.turntable.model.song.Music
+import com.loafofpiecrust.turntable.model.song.SaveableMusic
 
 object UserPrefs: KotprefModel() {
     // Theming
@@ -57,7 +58,7 @@ object UserPrefs: KotprefModel() {
     val artistMeta by pref(emptyList<Library.ArtistMetadata>())
     val history by pref(emptyList<HistoryEntry>())
     val playlists by pref(emptyList<Playlist>())
-    val recommendations by pref(emptyList<Music>())
+    val recommendations by pref(emptyList<SaveableMusic>())
 
     val friends by pref(emptyList<SyncService.Friend>())
 

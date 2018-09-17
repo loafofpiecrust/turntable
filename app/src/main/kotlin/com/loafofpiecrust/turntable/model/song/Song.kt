@@ -19,10 +19,12 @@ import java.io.Serializable
 
 interface MusicInfo
 
-interface Music: Serializable {
+interface Music {
     val displayName: String
     fun optionsMenu(ctx: Context, menu: Menu)
 }
+
+interface SaveableMusic: Music, Serializable
 
 
 // All possible statuses of a song:

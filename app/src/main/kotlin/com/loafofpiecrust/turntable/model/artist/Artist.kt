@@ -2,6 +2,7 @@ package com.loafofpiecrust.turntable.model.artist
 
 import android.content.Context
 import android.graphics.drawable.Drawable
+import android.os.Parcelable
 import android.view.Menu
 import android.view.View
 import com.bumptech.glide.RequestBuilder
@@ -20,13 +21,26 @@ import com.loafofpiecrust.turntable.model.queue.RadioQueue
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.model.song.Music
+import com.loafofpiecrust.turntable.model.song.SaveableMusic
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.produceSingle
+import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.toast
+
+@Parcelize
+class PartialArtist(
+    val id: ArtistId
+): SaveableMusic, Parcelable {
+    override val displayName: String
+        get() = id.displayName
+
+    suspend fun toFull(): Artist? = SearchApi.find(id)
+    override fun optionsMenu(ctx: Context, menu: Menu) {}
+}
 
 interface Artist: Music {
     val id: ArtistId
@@ -43,6 +57,7 @@ interface Artist: Music {
         val active: Boolean
     )
 
+    fun toPartial() = PartialArtist(id)
 
     fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> = loadArtwork(req)
     fun loadArtwork(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
@@ -65,7 +80,7 @@ interface Artist: Music {
 
         menuItem(R.string.recommend).onClick {
             FriendPickerDialog(
-                SyncService.Message.Recommendation(this@Artist.id),
+                SyncService.Message.Recommendation(toPartial()),
                 ctx.getString(R.string.recommend)
             ).show(ctx)
         }

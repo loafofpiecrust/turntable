@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable
+package com.loafofpiecrust.turntable.model
 
 import ch.tutteli.atrium.api.cc.en_GB.toBe
 import com.loafofpiecrust.turntable.model.album.AlbumId
@@ -39,15 +39,15 @@ class AlbumIdTests {
             "The 20/20 Experience [Deluxe Edition] (Disc 2)",
             ArtistId("Justin Timberlake")
         )
-        assertFalse(id.selfTitledAlbum)
-        assertEquals("The 20/20 Experience", id.displayName)
-        assertEquals(2, id.discNumber)
+        assert(id.selfTitledAlbum).toBe(false)
+        assert(id.displayName).toBe("The 20/20 Experience")
+        assert(id.discNumber).toBe(2)
 
         val deluxe = AlbumId(
             "The Spirit Moves (Deluxe Edition)",
             ArtistId("Longhorne Slim")
         )
-        assertEquals("The Spirit Moves", deluxe.displayName)
+        assert(deluxe.displayName).toBe("The Spirit Moves")
     }
 
     @Test fun `distinct albums with numbers`() {

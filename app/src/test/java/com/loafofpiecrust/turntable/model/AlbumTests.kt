@@ -1,6 +1,5 @@
-package com.loafofpiecrust.turntable
+package com.loafofpiecrust.turntable.model
 
-import ch.tutteli.atrium.api.cc.en_GB.notToBeNull
 import ch.tutteli.atrium.api.cc.en_GB.notToBeNullBut
 import ch.tutteli.atrium.api.cc.en_GB.toBe
 import ch.tutteli.atrium.verbs.assert
@@ -9,8 +8,6 @@ import com.loafofpiecrust.turntable.model.album.*
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 
 
 class LocalAlbumTests {

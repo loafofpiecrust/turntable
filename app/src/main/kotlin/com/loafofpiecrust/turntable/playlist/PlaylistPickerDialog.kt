@@ -8,15 +8,14 @@ import android.support.v7.widget.LinearLayoutManager
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.Album
+import com.loafofpiecrust.turntable.model.album.PartialAlbum
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.playlist.AlbumCollection
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.model.playlist.add
+import com.loafofpiecrust.turntable.model.song.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.model.song.Music
-import com.loafofpiecrust.turntable.model.song.MusicId
-import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.AnkoContext
@@ -29,12 +28,12 @@ import org.jetbrains.anko.wrapContent
 
 class PlaylistPickerDialog: BaseDialogFragment() {
     companion object {
-        fun forItem(item: Music) = PlaylistPickerDialog().apply {
+        fun forItem(item: SaveableMusic) = PlaylistPickerDialog().apply {
             this.item = item
         }
     }
 
-    lateinit var item: Music
+    lateinit var item: SaveableMusic
 
     override fun onStart() {
         super.onStart()
@@ -46,14 +45,7 @@ class PlaylistPickerDialog: BaseDialogFragment() {
         val builder = AlertDialog.Builder(activity)
         builder.setMessage("Add to playlist")
             .setPositiveButton("New Playlist") { _, _ ->
-                val item = this.item
-                val id: MusicId = when (item) {
-                    is Song -> item.id
-                    is Album -> item.id
-                    is Artist -> item.id
-                    else -> error("Music can only be song, album, artist")
-                }
-                AddPlaylistActivityStarter.start(ctx, AddPlaylistActivity.TrackList(listOf(id)))
+                AddPlaylistActivityStarter.start(ctx, AddPlaylistActivity.TrackList(listOf(item)))
                 dismiss()
             }
             .setNegativeButton("Cancel") { dialog, id ->
@@ -80,7 +72,7 @@ class PlaylistPickerDialog: BaseDialogFragment() {
                         )
                     }
                 }
-                is Album -> {
+                is PartialAlbum -> {
                     when (selected) {
                         is AlbumCollection -> selected.add(item)
                     }
@@ -92,8 +84,8 @@ class PlaylistPickerDialog: BaseDialogFragment() {
                 it.filter {
                     when (item) {
                         is Song -> it is MixTape || it is CollaborativePlaylist
-                        is Album -> it is AlbumCollection || it is CollaborativePlaylist
-                        else -> throw IllegalStateException("Can't add Artist to playlist")
+                        is PartialAlbum -> it is AlbumCollection || it is CollaborativePlaylist
+                        else -> TODO("Can't add Artist to playlist")
                     }
                 }
             })

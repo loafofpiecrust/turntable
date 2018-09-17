@@ -13,14 +13,14 @@ import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.Album
+import com.loafofpiecrust.turntable.model.album.PartialAlbum
 import com.loafofpiecrust.turntable.model.playlist.AlbumCollection
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
+import com.loafofpiecrust.turntable.model.song.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.service.library
-import com.loafofpiecrust.turntable.model.song.MusicId
-import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseActivity
 import com.mcxiaoke.koi.ext.onTextChange
@@ -35,7 +35,7 @@ import java.util.*
 class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
 
     @Parcelize
-    data class TrackList(val tracks: List<MusicId> = listOf()): Parcelable
+    data class TrackList(val tracks: List<SaveableMusic> = listOf()): Parcelable
 
     @Arg(optional=true) var startingTracks = TrackList()
 
@@ -58,6 +58,7 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
             // id, color, type
             textInputLayout {
                 editText {
+                    id = R.id.title
                     hint = "Name"
                     inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
                     onTextChange { text, _, _, _ ->
@@ -116,44 +117,47 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
                 button("Cancel").onClick {
                     finish()
                 }
-                button("Add Playlist").onClick {
-                    val pl = when (playlistType) {
-                        // TODO: Use the actual user id string.
-                        "Mixtape" -> MixTape(
-                            SyncService.selfUser,
-                            mixTapeType,
-                            playlistName,
-                            playlistColor,
-                            UUID.randomUUID()
-                        ).apply {
-                            startingTracks.tracks.forEach {
-                                (it as? Song)?.let { add(0, it) }
+                button("Add Playlist") {
+                    id = R.id.positive_button
+                    onClick {
+                        val pl = when (playlistType) {
+                            // TODO: Use the actual user id string.
+                            "Mixtape" -> MixTape(
+                                SyncService.selfUser,
+                                mixTapeType,
+                                playlistName,
+                                playlistColor,
+                                UUID.randomUUID()
+                            ).apply {
+                                startingTracks.tracks.forEach {
+                                    (it as? Song)?.let { add(0, it) }
+                                }
                             }
-                        }
-                        "Playlist" -> CollaborativePlaylist(
-                            SyncService.selfUser,
-                            playlistName,
-                            playlistColor,
-                            UUID.randomUUID()
-                        ).apply {
-                            startingTracks.tracks.forEach {
-                                (it as? Song)?.let { add(it) }
+                            "Playlist" -> CollaborativePlaylist(
+                                SyncService.selfUser,
+                                playlistName,
+                                playlistColor,
+                                UUID.randomUUID()
+                            ).apply {
+                                startingTracks.tracks.forEach {
+                                    (it as? Song)?.let { add(it) }
+                                }
                             }
-                        }
-                        "Album Collection" -> AlbumCollection(
-                            SyncService.selfUser,
-                            playlistName,
-                            playlistColor,
-                            UUID.randomUUID()
-                        ).apply {
-                            startingTracks.tracks.forEach {
-                                (it as? Album)?.let { add(it) }
+                            "Album Collection" -> AlbumCollection(
+                                SyncService.selfUser,
+                                playlistName,
+                                playlistColor,
+                                UUID.randomUUID()
+                            ).apply {
+                                startingTracks.tracks.forEach {
+                                    (it as? PartialAlbum)?.let { add(it) }
+                                }
                             }
+                            else -> kotlin.error("Unreachable")
                         }
-                        else -> kotlin.error("Unreachable")
+                        ctx.library.addPlaylist(pl)
+                        finish()
                     }
-                    ctx.library.addPlaylist(pl)
-                    finish()
                 }
             }
         }.lparams(width=matchParent) {

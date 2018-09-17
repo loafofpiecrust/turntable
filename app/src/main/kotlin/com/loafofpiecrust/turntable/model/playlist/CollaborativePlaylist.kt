@@ -5,8 +5,8 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.replayOne

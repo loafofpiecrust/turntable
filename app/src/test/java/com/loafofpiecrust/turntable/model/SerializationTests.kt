@@ -1,14 +1,12 @@
-package com.loafofpiecrust.turntable
+package com.loafofpiecrust.turntable.model
 
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.util.deserialize
-import com.loafofpiecrust.turntable.util.hasValue
 import com.loafofpiecrust.turntable.util.serialize
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.firstOrNull
 import kotlinx.coroutines.experimental.runBlocking
 import java.util.*

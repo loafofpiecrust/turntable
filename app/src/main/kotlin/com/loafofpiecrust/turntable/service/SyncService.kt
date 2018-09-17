@@ -29,6 +29,7 @@ import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.model.song.MusicId
+import com.loafofpiecrust.turntable.model.song.SaveableMusic
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.ui.MainActivity
@@ -370,7 +371,7 @@ class SyncService : FirebaseMessagingService() {
         data class FriendResponse(val accept: Boolean): Message() {
             override val timeout get() = TimeUnit.DAYS.toSeconds(28)
         }
-        data class Recommendation(val content: MusicId): Message() {
+        data class Recommendation(val content: SaveableMusic): Message() {
             override val timeout get() = TimeUnit.DAYS.toSeconds(28)
         }
         data class Playlist(val id: UUID): Message()
@@ -594,14 +595,7 @@ class SyncService : FirebaseMessagingService() {
                 }
 
                 is Message.Recommendation -> {
-                    given(when (message.content) {
-                        is SongId -> SearchApi.find(message.content)
-                        is AlbumId -> SearchApi.find(message.content)
-                        is ArtistId -> SearchApi.find(message.content)
-                        else -> TODO("Cover other cases")
-                    }) {
-                        UserPrefs.recommendations appends it
-                    }
+                    UserPrefs.recommendations appends message.content
                 }
 
                 is Message.Ping -> {

@@ -5,8 +5,8 @@ import com.google.firebase.firestore.Blob
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.serialize
 import com.loafofpiecrust.turntable.util.suspendedTask
