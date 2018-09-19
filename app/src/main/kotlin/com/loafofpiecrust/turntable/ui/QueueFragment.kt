@@ -13,12 +13,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewManager
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.player.StaticQueue
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.*
@@ -30,116 +31,100 @@ import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.cardview.v7.cardView
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-import org.jetbrains.anko.sdk25.coroutines.onClick
-import org.jetbrains.anko.support.v4.ctx
+import org.jetbrains.anko.sdk27.coroutines.onClick
 
-@MakeActivityStarter
 class QueueFragment : BaseFragment() {
-    private lateinit var nowPlayingMainLine: TextView
-    private lateinit var nowPlayingSubLine: TextView
-    private lateinit var queueAdapter: QueueAdapter
+    private var queueAdapter: QueueAdapter? = null
     private var songList: RecyclerView? = null
 
-    override fun ViewManager.createView(): View {
-        return cardView {
-            cardElevation = dimen(R.dimen.medium_elevation).toFloat()
+    override fun ViewManager.createView() = cardView {
+        cardElevation = dimen(R.dimen.medium_elevation).toFloat()
 
-            verticalLayout {
-                backgroundColor = ctx.getColorCompat(R.color.background)
+        linearLayout {
+            orientation = LinearLayout.VERTICAL
+            backgroundColor = context.getColorCompat(R.color.background)
 
-                // Currently playing song
-                linearLayout {
-                    gravity = CENTER_VERTICAL
+            // Currently playing song
+            val currentItem = RecyclerListItemOptimized(this, 3).also {
+                addView(it.itemView)
+            }
+            currentItem.statusIcon.imageResource = R.drawable.ic_play_circle_outline
+            UserPrefs.accentColor.consumeEach(UI) {
+                currentItem.mainLine.textColor = it
+                currentItem.subLine.textColor = it
+                currentItem.statusIcon.tint = it
+            }
 
-                    lateinit var playIcon: ImageView
-                    linearLayout {
-                        gravity = CENTER
-                        playIcon = imageView(R.drawable.ic_play_circle_outline) {
+            textView(R.string.queue_up_next) {
+                textSizeDimen = R.dimen.small_text_size
+            }.lparams {
+                marginStart = dip(32)
+                bottomMargin = dip(4)
+            }
 
-                        }.lparams(dimen(R.dimen.icon_size), dimen(R.dimen.icon_size))
-                    }.lparams(width = dimen(R.dimen.overflow_icon_space))
-
-                    verticalLayout {
-                        nowPlayingMainLine = textView {
-                            maxLines = 2
+            val linear = LinearLayoutManager(context)
+            songList = recyclerView {
+                layoutManager = linear
+                queueAdapter = QueueAdapter()
+                adapter = queueAdapter.also { adapter ->
+                    val helper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+                        ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+                        ItemTouchHelper.START or ItemTouchHelper.END
+                    ) {
+                        override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+//                                    ctx.music.shiftQueueItem(viewHolder.adapterPosition, target.adapterPosition)
+                            adapter?.onItemMove(viewHolder.adapterPosition, target.adapterPosition)
+                            return true
                         }
-                        nowPlayingSubLine = textView {
-                            lines = 1
-                            textSizeDimen = R.dimen.small_text_size
-                        }
-                    }
-                    UserPrefs.accentColor.consumeEach(UI) {
-                        nowPlayingMainLine.textColor = it
-                        nowPlayingSubLine.textColor = it
-                        playIcon.setColorFilter(it)
-                    }
-                }.lparams(width = matchParent, height = dimen(R.dimen.song_item_height))
 
-                textView(R.string.queue_up_next) {
-                    textSizeDimen = R.dimen.small_text_size
-                }.lparams {
-                    marginStart = dip(32)
-                    bottomMargin = dip(4)
+                        override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                            adapter?.onItemDismiss(viewHolder.adapterPosition)
+//                                    ctx.music.removeFromQueue(viewHolder.adapterPosition)
+                        }
+
+                        override fun isLongPressDragEnabled() = true
+                        override fun isItemViewSwipeEnabled() = true
+                    })
+                    helper.attachToRecyclerView(this@recyclerView)
                 }
 
-                val linear = LinearLayoutManager(context)
-                songList = recyclerView {
-                    layoutManager = linear
-                    queueAdapter = QueueAdapter()
-                    adapter = queueAdapter.also { adapter ->
-                        val helper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
-                            ItemTouchHelper.UP or ItemTouchHelper.DOWN,
-                            ItemTouchHelper.START or ItemTouchHelper.END
-                        ) {
-                            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
-//                                    ctx.music.shiftQueueItem(viewHolder.adapterPosition, target.adapterPosition)
-                                adapter.onItemMove(viewHolder.adapterPosition, target.adapterPosition)
-                                return true
-                            }
+                addItemDecoration(DividerItemDecoration(context, linear.orientation).apply {
+                    setDrawable(context.getDrawable(R.drawable.song_divider))
+                })
+            }.lparams(matchParent, matchParent)
 
-                            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                                adapter.onItemDismiss(viewHolder.adapterPosition)
-//                                    ctx.music.removeFromQueue(viewHolder.adapterPosition)
-                            }
-
-                            override fun isLongPressDragEnabled() = true
-                            override fun isItemViewSwipeEnabled() = true
-                        })
-                        helper.attachToRecyclerView(this@recyclerView)
-                    }
-
-                    addItemDecoration(DividerItemDecoration(context, linear.orientation).apply {
-                        setDrawable(ctx.getDrawable(R.drawable.song_divider))
-                    })
-                }.lparams(matchParent, matchParent)
-
-                // Hook up our UI to the queue!
-                val queue = { MusicService.instance.switchMap { it.player.queue } }
-                queueAdapter.subscribeData(queue().map { it.list })
-                queueAdapter.subscribePos(queue().map { it.position })
-                queue().consumeEach(UI) { q ->
-                    val song = q.current
-                    nowPlayingMainLine.text = song?.id?.displayName ?: ""
-                    nowPlayingSubLine.text = song?.id?.artist?.displayName ?: ""
-                    if (queueAdapter.overscroll) { // collapsed
-                        delay(100) // Let the queue update itself.
-                        linear.scrollToPositionWithOffset(q.position + 1, 0)
-                    }
+            // Hook up our UI to the queue!
+            val queue = { MusicService.instance.switchMap { it.player.queue } }
+            queueAdapter?.subscribeData(queue().map { it.list })
+            queueAdapter?.subscribePos(queue().map { it.position })
+            queue().consumeEach(UI) { q ->
+                val song = q.current
+                currentItem.mainLine.text = song?.id?.displayName ?: ""
+                currentItem.subLine.text = song?.id?.artist?.displayName ?: ""
+                if (queueAdapter?.overscroll == true) { // collapsed
+                    delay(100) // Let the queue update itself.
+                    linear.scrollToPositionWithOffset(q.position + 1, 0)
                 }
             }
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        queueAdapter = null
+        songList = null
     }
 
 
     fun onSheetStateChanged(state: Int) {
         when (state) {
             BottomSheetBehavior.STATE_COLLAPSED -> {
-                queueAdapter.overscroll = true
+                queueAdapter?.overscroll = true
                 val layout = songList?.layoutManager as LinearLayoutManager
-                layout.scrollToPositionWithOffset(queueAdapter.currentPosition + 1, 0)
+                layout.scrollToPositionWithOffset(queueAdapter!!.currentPosition + 1, 0)
             }
             else -> {
-                queueAdapter.overscroll = false
+                queueAdapter?.overscroll = false
             }
         }
     }

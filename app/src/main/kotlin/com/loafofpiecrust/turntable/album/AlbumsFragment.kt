@@ -38,7 +38,7 @@ class AlbumsFragment : BaseFragment() {
         abstract val channel: BroadcastChannel<List<Album>>
 
         @Parcelize class All: Category() {
-            override val channel get() = Library.instance.albums
+            override val channel get() = Library.instance.localAlbums.replayOne()
         }
         @Parcelize data class ByArtist(
             val artist: ArtistId,
@@ -211,7 +211,7 @@ class AlbumsFragment : BaseFragment() {
         }
 }
 
-inline fun ViewManager.albumList(
+fun ViewManager.albumList(
     albums: BroadcastChannel<List<Album>>,
     category: AlbumsFragment.Category,
     sortBy: AlbumsFragment.SortBy,

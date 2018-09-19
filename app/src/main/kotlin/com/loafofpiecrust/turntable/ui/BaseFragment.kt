@@ -19,6 +19,7 @@ import org.jetbrains.anko.AnkoContext
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.info
 import org.jetbrains.anko.support.v4.ctx
+import java.lang.ref.WeakReference
 
 abstract class BaseFragment: Fragment(), AnkoLogger {
     /**
@@ -55,7 +56,8 @@ abstract class BaseFragment: Fragment(), AnkoLogger {
         if (savedInstanceState != null) {
             isFirstInit = false
         }
-        return AnkoContext.create(ctx, this).createView().also { isFirstInit = false }
+        return view ?: AnkoContext.create(requireContext(), this).createView()
+            .also { isFirstInit = false }
     }
 
     override fun onDestroy() {

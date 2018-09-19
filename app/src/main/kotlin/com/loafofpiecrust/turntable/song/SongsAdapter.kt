@@ -12,7 +12,7 @@ import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
@@ -23,7 +23,7 @@ import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.image
-import org.jetbrains.anko.sdk25.coroutines.onClick
+import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.textColor
 
 

@@ -30,7 +30,7 @@ import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
 import org.jetbrains.anko.constraint.layout.applyConstraintSet
 import org.jetbrains.anko.constraint.layout.constraintLayout
 import org.jetbrains.anko.constraint.layout.matchConstraint
-import org.jetbrains.anko.sdk25.coroutines.textChangedListener
+import org.jetbrains.anko.sdk27.coroutines.textChangedListener
 import java.util.*
 
 // TODO: Make interface for music data types that has their shared qualities: mainly an id. Then, maybe that'll allow some other generalization too.
@@ -173,7 +173,7 @@ class StaticRecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
-        ctx.kryo.acquireBlocking { it.copy(viewHolder) }
+        ctx.kryo.let { it.copy(viewHolder) }
 
 }
 
@@ -238,7 +238,9 @@ fun ViewManager.defaultGridItem(maxTextLines: Int = 3, init: LinearLayout.() -> 
 //        setCardBackgroundColor(UserPrefs.primaryColor.value)
         radius = dimen(R.dimen.card_corner_radius).toFloat()
 
-        verticalLayout {
+        linearLayout {
+            orientation = LinearLayout.VERTICAL
+
             val itemBg = TypedValue()
             context.theme.resolveAttribute(R.attr.selectableItemBackground, itemBg, true)
             backgroundResource = itemBg.resourceId
@@ -252,7 +254,8 @@ fun ViewManager.defaultGridItem(maxTextLines: Int = 3, init: LinearLayout.() -> 
             }.lparams(width = matchParent, height = wrapContent)
 
             val textPadding = dimen(R.dimen.text_content_margin)
-            verticalLayout {
+            linearLayout {
+                orientation = LinearLayout.VERTICAL
                 id = R.id.title
                 gravity = Gravity.CENTER_VERTICAL
 //                    padding = textPadding

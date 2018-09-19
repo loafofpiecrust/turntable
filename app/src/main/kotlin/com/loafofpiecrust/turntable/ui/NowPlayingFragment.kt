@@ -11,7 +11,7 @@ import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.album.loadPalette
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.sync.SyncDetailsDialog
 import com.loafofpiecrust.turntable.util.*
@@ -24,7 +24,7 @@ import org.jetbrains.anko.constraint.layout.applyConstraintSet
 import org.jetbrains.anko.constraint.layout.constraintLayout
 import org.jetbrains.anko.constraint.layout.matchConstraint
 import org.jetbrains.anko.design.floatingActionButton
-import org.jetbrains.anko.sdk25.coroutines.onClick
+import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.support.v4.ctx
 
 open class NowPlayingFragment : BaseFragment() {

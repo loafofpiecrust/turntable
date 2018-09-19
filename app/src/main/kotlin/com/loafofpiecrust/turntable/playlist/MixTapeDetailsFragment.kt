@@ -7,13 +7,14 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.View
 import android.view.ViewManager
+import android.widget.LinearLayout
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.song.SongsFragmentStarter
@@ -43,7 +44,9 @@ class MixTapeDetailsFragment: BaseFragment() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
     }
 
-    override fun ViewManager.createView(): View = verticalLayout {
+    override fun ViewManager.createView(): View = linearLayout {
+        orientation = LinearLayout.VERTICAL
+
         playlist = runBlocking {
             Library.instance.findPlaylist(playlistId).first()
                 ?: ctx.library.findCachedPlaylist(playlistId).first()

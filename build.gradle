@@ -1,8 +1,8 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = '1.2.61'
-    ext.anko_version = '0.10.5'
+    ext.kotlin_version = '1.2.70'
+    ext.anko_version = '0.10.6'
     ext.google_ver = '15.0.1'
     ext.firebase_ver = '17.0.0'
     ext.android_ver = '27.1.1'
@@ -17,6 +17,7 @@ buildscript {
         jcenter()
         maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
         maven { url "https://plugins.gradle.org/m2/" }
+        maven { url  "https://dl.bintray.com/brightinventions/maven" }
 //        maven { url 'https://jitpack.io' }
 //        maven { url 'file:///home/snead/piecrust' }
     }

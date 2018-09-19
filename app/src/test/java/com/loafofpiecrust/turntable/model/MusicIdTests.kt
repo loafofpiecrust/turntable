@@ -1,5 +1,8 @@
 package com.loafofpiecrust.turntable.model
 
+import ch.tutteli.atrium.api.cc.en_GB.and
+import ch.tutteli.atrium.api.cc.en_GB.returnValueOf
+import ch.tutteli.atrium.api.cc.en_GB.property
 import ch.tutteli.atrium.api.cc.en_GB.toBe
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.album.selfTitledAlbum
@@ -7,16 +10,13 @@ import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.song.SongId
 import kotlin.test.Test
 import ch.tutteli.atrium.verbs.assert
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
-
+import ch.tutteli.atrium.verbs.expect
 
 class AlbumIdTests {
     @Test fun `simple self-titled`() {
         val id = AlbumId("Violent Femmes", ArtistId("Violent Femmes"))
-        assert(id.selfTitledAlbum).toBe(true)
-        assert(id.displayName).toBe(id.name)
+        expect(id.selfTitledAlbum).toBe(true)
+        expect(id.displayName).toBe(id.name)
     }
 
     @Test fun `disc of self-titled`() {
@@ -25,13 +25,13 @@ class AlbumIdTests {
         val disc1 = AlbumId(basic.name + " (Disc 1)", artist)
         val disc2 = AlbumId(basic.name + " (Disc 2)", artist)
 
-        assert(disc1.selfTitledAlbum).toBe(true)
-        assert(disc1.discNumber).toBe(1)
-        assert(disc1.displayName).toBe(basic.displayName)
-        assert(disc2.displayName).toBe(disc1.displayName)
-        assert(disc1).toBe(basic)
-        assert(disc1).toBe(disc2)
-        assert(disc2.hashCode()).toBe(disc1.hashCode())
+        expect(disc1) {
+            toBe(basic).and.toBe(disc2)
+            returnValueOf(subject::hashCode).toBe(disc2.hashCode())
+            property(subject::selfTitledAlbum).toBe(true)
+            property(subject::discNumber).toBe(1)
+            property(subject::displayName).toBe(basic.displayName).and.toBe(disc2.displayName)
+        }
     }
 
     @Test fun `displayName with disc and edition`() {
@@ -39,9 +39,11 @@ class AlbumIdTests {
             "The 20/20 Experience [Deluxe Edition] (Disc 2)",
             ArtistId("Justin Timberlake")
         )
-        assert(id.selfTitledAlbum).toBe(false)
-        assert(id.displayName).toBe("The 20/20 Experience")
-        assert(id.discNumber).toBe(2)
+        expect(id) {
+            property(subject::selfTitledAlbum).toBe(false)
+            property(subject::displayName).toBe("The 20/20 Experience")
+            property(subject::discNumber).toBe(2)
+        }
 
         val deluxe = AlbumId(
             "The Spirit Moves (Deluxe Edition)",
@@ -55,18 +57,21 @@ class AlbumIdTests {
             "Lost at Last Vol. 2",
             ArtistId("Longhorne Slim")
         )
-        assertEquals(vol2.name, vol2.displayName)
-        assertEquals(1, vol2.discNumber)
+        expect(vol2) {
+            property(subject::displayName).toBe(subject.name)
+            property(subject::discNumber).toBe(1)
+        }
     }
 
     @Test fun `case insensitivity`() {
         val a = AlbumId("violenT fEmmes", ArtistId("VioLenT feMmEs"))
         val b = AlbumId("ViolenT FEmmes", ArtistId("VIOLENT FEMMES"))
-        assertTrue(a.selfTitledAlbum)
-        assertTrue(b.selfTitledAlbum)
-        assertEquals(a.dbKey, b.dbKey)
-        assertEquals(a, b)
-        assertEquals(0, a.compareTo(b))
+        expect(a) {
+            toBe(b)
+            returnValueOf(subject::compareTo, b).toBe(0)
+            property(subject::selfTitledAlbum).toBe(true)
+            property(subject::dbKey).toBe(b.dbKey)
+        }
     }
 }
 
@@ -76,10 +81,16 @@ class SongIdTests {
             "Infinite Stripes (feat. Ty Dolla \$ign)",
             AlbumId("9", ArtistId("Cashmere Cat"))
         )
-        assertEquals("Infinite Stripes", song.displayName)
-        assertEquals(listOf(ArtistId("Ty Dolla \$ign")), song.features)
-        assertEquals("Cashmere Cat", song.artist.displayName)
-        assertEquals("Cashmere Cat", song.album.artist.displayName)
+        expect(song) {
+            property(subject::displayName).toBe("Infinite Stripes")
+            property(subject::features).toBe(listOf(ArtistId("Ty Dolla \$ign")))
+        }
+        expect(song.artist) {
+            property(subject::displayName).toBe("Cashmere Cat")
+        }
+        expect(song.album.artist) {
+            property(subject::displayName).toBe("Cashmere Cat")
+        }
     }
 
     @Test fun `more featured artists`() {
@@ -87,10 +98,10 @@ class SongIdTests {
             "Wild Love (feat. The Weeknd & Francis and the Lights)",
             AlbumId("9", ArtistId("Cashmere Cat"))
         )
-        assertEquals(listOf(
+        expect(song.features).toBe(listOf(
             ArtistId("The Weeknd"),
             ArtistId("Francis and the Lights")
-        ), song.features)
+        ))
     }
 
     @Test fun `database key`() {
@@ -98,10 +109,14 @@ class SongIdTests {
             "Help",
             AlbumId("Help", ArtistId("The Beatles"))
         )
-        assertEquals('B', song.album.artist.sortChar)
-        assertEquals("help~help~beatles", song.dbKey)
-        assertEquals("help~beatles", song.album.dbKey)
-        assertEquals("Help | Help | The Beatles", song.toString())
-        assertEquals("Help | The Beatles", song.album.toString())
+        expect(song) {
+            property(subject::dbKey).toBe("help~help~beatles")
+            returnValueOf(subject::toString).toBe("Help | Help | The Beatles")
+
+            property(subject::album) {
+                property(subject::dbKey).toBe("help~beatles")
+                returnValueOf(subject::toString).toBe("Help | The Beatles")
+            }
+        }
     }
 }

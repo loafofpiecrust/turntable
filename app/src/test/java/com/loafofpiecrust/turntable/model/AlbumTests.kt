@@ -1,12 +1,16 @@
 package com.loafofpiecrust.turntable.model
 
-import ch.tutteli.atrium.api.cc.en_GB.notToBeNullBut
-import ch.tutteli.atrium.api.cc.en_GB.toBe
+import arrow.core.some
+import ch.tutteli.atrium.api.cc.en_GB.*
 import ch.tutteli.atrium.verbs.assert
+import ch.tutteli.atrium.verbs.expect
+import com.loafofpiecrust.turntable.browse.SearchApi
+import com.loafofpiecrust.turntable.isA
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.album.*
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
+import kotlinx.coroutines.experimental.runBlocking
 import kotlin.test.Test
 
 
@@ -93,5 +97,21 @@ class LocalAlbumTests {
         assert(finalAlbum.id.displayName).toBe("Jackson C. Frank")
         assert(finalAlbum.tracks.size).toBe(2)
         assert(finalAlbum.year).notToBeNullBut(1965)
+    }
+
+    @Test fun `find online`() {
+        val albumId = AlbumId("Wedding Bells", ArtistId("Cashmere Cat"))
+        val remote = runBlocking { SearchApi.find(albumId) }
+        expect(remote).notToBeNull {
+            isA<RemoteAlbum> {
+                println(subject.remoteId)
+
+                property(subject::id).toBe(albumId)
+                // FIXME: Doesn't give type EP!
+                property(subject::type).toBe(Album.Type.EP)
+                // EP "Wedding Bells" by Cashmere Cat has 4 tracks
+                property(subject::tracks).hasSize(4)
+            }
+        }
     }
 }

@@ -17,7 +17,7 @@ import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragmentStarter
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.song.*
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
@@ -30,7 +30,7 @@ import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-import org.jetbrains.anko.sdk25.coroutines.onClick
+import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.support.v4.ctx
 
 /**

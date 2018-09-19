@@ -19,8 +19,9 @@ import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.broadcastReceiver
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.puts
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.tryOr
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
@@ -33,6 +34,9 @@ import java.lang.ref.WeakReference
 @MakeActivityStarter
 class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
     companion object {
+        private val _instance = ConflatedBroadcastChannel<WeakReference<MusicService>>()
+        val instance get() = _instance.openSubscription().map { it.get() }.filterNotNull()
+
         private val actions = actor<Pair<SyncService.Message, Boolean>>(BG_POOL, capacity = Channel.UNLIMITED) {
             for ((action, synced) in channel) {
                 val service = _instance.valueOrNull?.get() ?: run {
@@ -43,11 +47,11 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
             }
         }
 
-        private val _instance = ConflatedBroadcastChannel<WeakReference<MusicService>>()
-        val instance get() = _instance.openSubscription().map { it.get() }.filterNotNull()
-
         fun enact(msg: SyncService.Message, shouldSync: Boolean = true) {
             actions.offer(msg to shouldSync)
+        }
+        suspend fun enactNow(msg: SyncService.Message, shouldSync: Boolean = true) {
+            actions.send(msg to shouldSync)
         }
     }
 
@@ -77,25 +81,27 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
         wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL, "com.loafofpiecrust.turntable")
     }
     val mediaSession by lazy {
-        MediaSessionCompat(
-            this,
-            "com.loafofpiecrust.turntable",
-            null,
-            notifyIntent(Action.PLAY)
-        ).apply {
-            setCallback(object : MediaSessionCompat.Callback() {
-                override fun onPlay() {
-                    player.play()
-                }
+        tryOr(null) {
+            MediaSessionCompat(
+                applicationContext,
+                "com.loafofpiecrust.turntable",
+                null,
+                notifyIntent(Action.PLAY)
+            ).apply {
+                setCallback(object : MediaSessionCompat.Callback() {
+                    override fun onPlay() {
+                        player.play()
+                    }
 
-                override fun onPause() {
-                    player.pause()
-                }
+                    override fun onPause() {
+                        player.pause()
+                    }
 
-                override fun onSkipToNext() {
-                    player.playNext()
-                }
-            })
+                    override fun onSkipToNext() {
+                        player.playNext()
+                    }
+                })
+            }
         }
     }
 //    private var sessionConnector: MediaSessionConnector? = null
@@ -131,7 +137,7 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
 
     override fun onCreate() {
         super.onCreate()
-        player = MusicPlayer(ctx)
+        player = MusicPlayer(this)
 
         combineLatest(player.queue, player.isPlaying)
             .consumeEach(UI + subs) { (q, playing) ->
@@ -179,7 +185,7 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
         if (wifiLock.isHeld) {
             wifiLock.release()
         }
-        mediaSession.release()
+        mediaSession?.release()
         unregisterReceiver(noisyReceiver)
         unregisterReceiver(plugReceiver)
     }
@@ -219,11 +225,21 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
                     abandonFocus()
                 }
             }
-            is SyncService.Message.QueuePosition -> player.shiftQueuePosition(msg.pos)
-            is SyncService.Message.RelativePosition -> player.shiftQueuePositionRelative(msg.diff)
-            is SyncService.Message.Enqueue -> player.enqueue(msg.songs, msg.mode)
-            is SyncService.Message.PlaySongs -> player.playSongs(msg.songs, msg.pos)
-            is SyncService.Message.SeekTo -> player.seekTo(msg.pos)
+            is SyncService.Message.QueuePosition -> {
+                player.shiftQueuePosition(msg.pos)
+            }
+            is SyncService.Message.RelativePosition -> {
+                player.shiftQueuePositionRelative(msg.diff)
+            }
+            is SyncService.Message.Enqueue -> {
+                player.enqueue(msg.songs, msg.mode)
+            }
+            is SyncService.Message.PlaySongs -> {
+                player.playSongs(msg.songs, msg.pos)
+            }
+            is SyncService.Message.SeekTo -> {
+                player.seekTo(msg.pos)
+            }
         }
         if (success && shouldSync) {
             SyncService.send(msg)

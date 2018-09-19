@@ -20,6 +20,7 @@ import com.loafofpiecrust.turntable.model.album.*
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.model.song.imageTransition
 import com.loafofpiecrust.turntable.model.song.nameTransition
+import com.loafofpiecrust.turntable.song.songsList
 import com.loafofpiecrust.turntable.style.detailsStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.*
@@ -33,7 +34,6 @@ import org.jetbrains.anko.constraint.layout.matchConstraint
 import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.design.collapsingToolbarLayout
 import org.jetbrains.anko.design.coordinatorLayout
-import org.jetbrains.anko.support.v4.ctx
 
 
 class AlbumsViewModel: ViewModel() {
@@ -72,7 +72,7 @@ class DetailsFragment(): BaseFragment() {
     private var albumId: AlbumId by arg()
     private var isPartial: Boolean by arg()
 
-    private lateinit var album: BroadcastChannel<Album>
+    lateinit var album: BroadcastChannel<Album>
 
     override fun onCreate() {
         super.onCreate()
@@ -233,7 +233,7 @@ class DetailsFragment(): BaseFragment() {
 
                 album.consumeEach(UI) {
                     menu.clear()
-                    it.optionsMenu(ctx, menu)
+                    it.optionsMenu(context, menu)
                 }
 
 //                if (album is RemoteAlbum) { // is remote album
@@ -269,16 +269,18 @@ class DetailsFragment(): BaseFragment() {
                 width = matchParent
             }
 
+        }.lparams(width = matchParent)
 
-        }.lparams(width = matchParent, height = wrapContent)
 
-
-        frameLayout {
+//            fragment {
+//                SongsFragment.onAlbum(albumId, album.openSubscription())
+//            }
+        songsList(
+            SongsFragment.Category.OnAlbum(albumId),
+            album.openSubscription().map { it.tracks }
+        ) {
             id = R.id.songs
-            fragment {
-                SongsFragment.onAlbum(albumId, album.openSubscription())
-            }
-        }.lparams(width = matchParent, height = wrapContent) {
+        }.lparams(width = matchParent) {
             behavior = AppBarLayout.ScrollingViewBehavior()
         }
     }

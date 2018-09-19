@@ -32,14 +32,9 @@ import org.jetbrains.anko.debug
 import org.jetbrains.anko.info
 
 class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
-    enum class OrderMode {
-        SEQUENTIAL,
-        SHUFFLE
-    }
     enum class EnqueueMode {
-        LAST, // Adds to the end of the queue
         NEXT, // Adds to the end of an "Up Next" section of the queue just after the current song.
-        IMMEDIATELY_NEXT // Will play _immediately_ after the current song
+        IMMEDIATELY_NEXT, // Will play _immediately_ after the current song
     }
 
     interface Queue {
@@ -54,7 +49,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         fun peek(): Song? = list.getOrNull(position + 1)
     }
 
-    data class BufferState(val duration: Long, val position: Long, val bufferedPosition: Long)
 
 
     private val subs = Job()
@@ -84,6 +78,10 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
     }
 
 
+    enum class OrderMode {
+        SEQUENTIAL,
+        SHUFFLE,
+    }
     private var _orderMode: OrderMode = OrderMode.SEQUENTIAL
     var orderMode: OrderMode
         get() = _orderMode
@@ -115,6 +113,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
     val currentSong: ReceiveChannel<Song?> get() = queue.map { it.current }
 
 
+    data class BufferState(val duration: Long, val position: Long, val bufferedPosition: Long)
     val bufferState: ReceiveChannel<BufferState> get() =
         produce(BG_POOL + subs) {
             while (isActive) {

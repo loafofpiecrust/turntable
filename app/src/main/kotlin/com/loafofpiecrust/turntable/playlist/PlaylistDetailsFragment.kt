@@ -5,11 +5,12 @@ import android.support.transition.Slide
 import android.view.View
 import android.view.ViewManager
 import android.widget.EditText
+import android.widget.LinearLayout
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.song.SongsFragmentStarter
@@ -57,7 +58,8 @@ class PlaylistDetailsFragment: BaseFragment() {
         exitTransition = Slide()
     }
 
-    override fun ViewManager.createView(): View = verticalLayout {
+    override fun ViewManager.createView(): View = linearLayout {
+        orientation = LinearLayout.VERTICAL
 //        fitsSystemWindows = true
 
         playlist = runBlocking {

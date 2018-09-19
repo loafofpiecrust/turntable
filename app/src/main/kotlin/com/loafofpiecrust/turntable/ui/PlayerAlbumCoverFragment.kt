@@ -14,7 +14,7 @@ import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.util.recyclerViewPager
 import com.loafofpiecrust.turntable.screenSize
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.Job

@@ -8,9 +8,8 @@ import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.StaticQueue
 import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.HistoryEntry
-import com.loafofpiecrust.turntable.model.song.Music
 import com.loafofpiecrust.turntable.model.song.SaveableMusic
 
 object UserPrefs: KotprefModel() {

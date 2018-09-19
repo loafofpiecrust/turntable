@@ -6,7 +6,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ServerTimestamp
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repeat
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SaveableMusic
 import com.loafofpiecrust.turntable.util.suspendedTask

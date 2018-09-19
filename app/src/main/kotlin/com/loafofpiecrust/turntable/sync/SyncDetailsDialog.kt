@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.view.View
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
 import com.loafofpiecrust.turntable.util.consumeEach
 import org.jetbrains.anko.cancelButton

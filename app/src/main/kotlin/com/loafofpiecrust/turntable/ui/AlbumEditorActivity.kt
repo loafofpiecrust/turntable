@@ -30,7 +30,7 @@ import org.jetbrains.anko.constraint.layout.constraintLayout
 import org.jetbrains.anko.constraint.layout.matchConstraint
 import org.jetbrains.anko.design.floatingActionButton
 import org.jetbrains.anko.design.textInputLayout
-import org.jetbrains.anko.sdk25.coroutines.onClick
+import org.jetbrains.anko.sdk27.coroutines.onClick
 import java.io.File
 
 class AlbumEditorActivity : BaseActivity() {

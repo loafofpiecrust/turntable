@@ -64,7 +64,7 @@ class PlayingNotification(private val service: MusicService) {
 //        val chan = NotificationChannel(100, "Playback", NotificationManager.IMPORTANCE_HIGH)
         val n = NotificationCompat.Builder(service, "turntable").apply {
             setStyle(android.support.v4.media.app.NotificationCompat.MediaStyle().run {
-                setMediaSession(service.mediaSession.sessionToken)
+                setMediaSession(service.mediaSession?.sessionToken)
                 setShowCancelButton(true)
                 setCancelButtonIntent(service.notifyIntent(
                     MusicService.Action.STOP
@@ -134,14 +134,15 @@ class PlayingNotification(private val service: MusicService) {
 
     private fun updateSessionMeta(song: Song?, playing: Boolean) {
         if (song != null) {
-            service.mediaSession.setMetadata(MediaMetadataCompat.Builder()
+            service.mediaSession?.setMetadata(MediaMetadataCompat.Builder()
                 .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, song.id.album.displayName)
                 .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, song.id.artist.displayName)
                 .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST, song.id.album.artist.displayName)
 //                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, song.artworkUrl)
                 .putLong(MediaMetadataCompat.METADATA_KEY_YEAR, song.year?.toLong() ?: 0)
                 .putLong(MediaMetadataCompat.METADATA_KEY_DISC_NUMBER, song.disc.toLong())
-                .build())
+                .build()
+            )
         }
 
         // TODO: Get more detailed with our state here
@@ -154,6 +155,6 @@ class PlayingNotification(private val service: MusicService) {
 //            .setBufferedPosition(player.bufferedPosition)
 //            .build())
 
-        service.mediaSession.isActive = playing
+        service.mediaSession?.isActive = playing
     }
 }

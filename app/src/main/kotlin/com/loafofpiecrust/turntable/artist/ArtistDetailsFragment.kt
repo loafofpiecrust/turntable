@@ -35,7 +35,7 @@ import org.jetbrains.anko.constraint.layout.matchConstraint
 import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.design.collapsingToolbarLayout
 import org.jetbrains.anko.design.coordinatorLayout
-import org.jetbrains.anko.sdk25.coroutines.onClick
+import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.support.v4.ctx
 
 

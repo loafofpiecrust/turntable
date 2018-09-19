@@ -22,7 +22,7 @@ import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.style.turntableStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
@@ -78,15 +78,17 @@ open class SongsFragment: BaseFragment() {
     override fun onCreate() {
         super.onCreate()
         if (!::songs.isInitialized) {
-            if (category is Category.All) {
-                songs = Library.instance.songs
+            val cat = category
+            when (cat) {
+                is Category.All -> songs = Library.instance.songs
+//                is Category.OnAlbum -> songs =
             }
         }
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
         menu.menuItem(R.string.show_history).onClick {
-            ctx.replaceMainContent(
+            context?.replaceMainContent(
                 SongsFragmentStarter.newInstance(
                     Category.History(null)
                 )
@@ -94,71 +96,79 @@ open class SongsFragment: BaseFragment() {
         }
     }
 
-    override fun ViewManager.createView(): View = with(this) {
-        val cat = category
-        val adapter = SongsAdapter(cat) { songs, idx ->
-            MusicService.enact(SyncService.Message.PlaySongs(songs, idx))
+    override fun ViewManager.createView(): View = songsList(category, songs.openSubscription())
+}
+
+
+fun ViewManager.songsList(
+    category: SongsFragment.Category,
+    songs: ReceiveChannel<List<Song>>,
+    block: RecyclerView.() -> Unit = {}
+) = with(this) {
+    val cat = category
+    val adapter = SongsAdapter(cat) { songs, idx ->
+        MusicService.enact(SyncService.Message.PlaySongs(songs, idx))
+    }
+
+    val recycler = if (cat is SongsFragment.Category.All) {
+        fastScrollRecycler {
+            turntableStyle()
         }
-
-        val recycler = if (cat is Category.All) {
-            fastScrollRecycler {
-                turntableStyle()
-            }
-        } else {
-            recyclerView {
-                turntableStyle()
-            }
+    } else {
+        recyclerView {
+            turntableStyle()
         }
+    }
 
-        recycler.apply {
-            clipToPadding = false
+    recycler.apply {
+        clipToPadding = false
 
-            val linear = LinearLayoutManager(context)
-            layoutManager = linear
-            this.adapter = adapter
-            if (cat is Category.Playlist) {
-                val playlist = runBlocking { ctx.library.findPlaylist(cat.id).first() }
-                val helper = ItemTouchHelper(object: ItemTouchHelper.SimpleCallback(
-                    ItemTouchHelper.UP or ItemTouchHelper.DOWN,
-                    ItemTouchHelper.START or ItemTouchHelper.END
-                ) {
-                    override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+        val linear = LinearLayoutManager(context)
+        layoutManager = linear
+        this.adapter = adapter
+        if (cat is SongsFragment.Category.Playlist) {
+            val playlist = runBlocking { context.library.findPlaylist(cat.id).first() }
+            val helper = ItemTouchHelper(object: ItemTouchHelper.SimpleCallback(
+                ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+                ItemTouchHelper.START or ItemTouchHelper.END
+            ) {
+                override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
 //                                    ctx.music.shiftQueueItem(viewHolder.adapterPosition, target.adapterPosition)
 //                                adapter.onItemMove(viewHolder.adapterPosition, target.adapterPosition)
-                        when (playlist) {
-                            is CollaborativePlaylist -> playlist.move(
-                                viewHolder.adapterPosition,
-                                target.adapterPosition
-                            )
-                        }
-                        return true
+                    when (playlist) {
+                        is CollaborativePlaylist -> playlist.move(
+                            viewHolder.adapterPosition,
+                            target.adapterPosition
+                        )
                     }
+                    return true
+                }
 
-                    override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
 //                                adapter.onItemDismiss(viewHolder.adapterPosition)
 //                                    ctx.music.removeFromQueue(viewHolder.adapterPosition)
-                        when (playlist) {
-                            is CollaborativePlaylist -> playlist.remove(
-                                viewHolder.adapterPosition
-                            )
-                        }
+                    when (playlist) {
+                        is CollaborativePlaylist -> playlist.remove(
+                            viewHolder.adapterPosition
+                        )
                     }
+                }
 
-                    override fun getMoveThreshold(viewHolder: RecyclerView.ViewHolder?)
-                        = 0.2f
+                override fun getMoveThreshold(viewHolder: RecyclerView.ViewHolder?)
+                    = 0.2f
 
-                    override fun isLongPressDragEnabled() = true
-                    override fun isItemViewSwipeEnabled() = true
-                })
-                helper.attachToRecyclerView(this)
-            }
-
-            addItemDecoration(DividerItemDecoration(context, linear.orientation).apply {
-                setDrawable(ctx.getDrawable(R.drawable.song_divider))
+                override fun isLongPressDragEnabled() = true
+                override fun isItemViewSwipeEnabled() = true
             })
-
-
-            adapter.subscribeData(songs.openSubscription())
+            helper.attachToRecyclerView(this)
         }
+
+        addItemDecoration(DividerItemDecoration(context, linear.orientation).apply {
+            setDrawable(context.getDrawable(R.drawable.song_divider))
+        })
+
+
+        adapter.subscribeData(songs)
+        block.invoke(this)
     }
 }

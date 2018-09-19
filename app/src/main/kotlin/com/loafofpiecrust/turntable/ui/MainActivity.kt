@@ -39,7 +39,7 @@ import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.runBlocking
@@ -237,22 +237,26 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
         // TODO: Check if already logged in or something so we don't get the dark flash every startup
 
 //        val lastAcc = GoogleSignIn.getLastSignedInAccount(ctx)
-        val lastAcc = FirebaseAuth.getInstance().currentUser
-        if (lastAcc != null) {
-            SyncService.login(lastAcc)
-        } else {
-            val providers = listOf(
-                AuthUI.IdpConfig.GoogleBuilder().build()
-            )
+        try {
+            val lastAcc = FirebaseAuth.getInstance().currentUser
+            if (lastAcc != null) {
+                SyncService.login(lastAcc)
+            } else {
+                val providers = listOf(
+                    AuthUI.IdpConfig.GoogleBuilder().build()
+                )
 
-            // Create and launch sign-in intent
-            startActivityForResult(
-                AuthUI.getInstance()
-                    .createSignInIntentBuilder()
-                    .setAvailableProviders(providers)
-                    .build(),
-                69
-            )
+                // Create and launch sign-in intent
+                startActivityForResult(
+                    AuthUI.getInstance()
+                        .createSignInIntentBuilder()
+                        .setAvailableProviders(providers)
+                        .build(),
+                    69
+                )
+            }
+        } catch (e: Throwable) {
+            e.printStackTrace()
         }
     }
 
@@ -434,7 +438,7 @@ fun FragmentManager.replaceMainContent(fragment: Fragment, allowBackNav: Boolean
         }
         replace(R.id.mainContentContainer, fragment)
         if (allowBackNav) {
-            addToBackStack(null)
+            addToBackStack(backStackEntryCount.toString())
         }
         commit()
     }
@@ -452,4 +456,11 @@ fun Context.popMainContent() {
     if (this is BaseActivity) {
         supportFragmentManager.popBackStack()
     }
+}
+
+val FragmentManager.currentFragment: Fragment? get() = findFragmentById(R.id.mainContentContainer)
+val Context.currentFragment: Fragment? get() {
+    return if (this is MainActivity) {
+        supportFragmentManager.currentFragment
+    } else null
 }

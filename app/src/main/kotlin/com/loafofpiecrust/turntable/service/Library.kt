@@ -35,6 +35,7 @@ import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.*
+import com.mcxiaoke.koi.ext.closeQuietly
 import com.mcxiaoke.koi.ext.intValue
 import com.mcxiaoke.koi.ext.longValue
 import com.mcxiaoke.koi.ext.stringValue
@@ -45,6 +46,7 @@ import kotlinx.coroutines.experimental.channels.*
 import kotlinx.coroutines.experimental.delay
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jetbrains.anko.AnkoLogger
+import org.jetbrains.anko.error
 import java.io.File
 import java.io.Serializable
 import java.util.*
@@ -86,7 +88,7 @@ class Library : Service() {
     /// Map of SongId to local file path for that song.
     private val localSongSources = TreeMap<SongId, String>()
 
-    private val _songs = ConflatedBroadcastChannel<List<Song>>(listOf())
+    val localSongs = ConflatedBroadcastChannel<List<Song>>(listOf())
     private val _albums = ConflatedBroadcastChannel<List<Album>>(listOf())
 
     private val albumCovers = UserPrefs.albumMeta.openSubscription().map {
@@ -119,12 +121,12 @@ class Library : Service() {
 //    val remoteAlbums: BehaviorSubject<List<Album>> = BehaviorSubject.createDefault(listOf())
     private var initialized = false
 
-//    val songs: Observable<List<Song>> = Observables.combineLatest(_songs, remoteAlbums)
+//    val songs: Observable<List<Song>> = Observables.combineLatest(localSongs, remoteAlbums)
 //        .map { (songs, remotes) ->
 //            (songs + remotes.flatMap { it.tracks }).sortedBy { it.searchKey }
 //        }
 
-    private val localAlbums: ReceiveChannel<List<Album>> = _songs.openSubscription().map {
+    val localAlbums: ReceiveChannel<List<Album>> = localSongs.openSubscription().map {
         it.groupBy {
             (it.platformId as? LocalSongId)?.albumId
         }.map {
@@ -600,10 +602,10 @@ class Library : Service() {
             null
         )
         if (cur == null) {
-            error("lopc: Cursor failed to load.")
+            error { "lopc: Cursor failed to load." }
         } else if (!cur.moveToFirst()) {
-            error("lopc: No music")
-        } else {
+            error { "lopc: No music" }
+        } else try {
             do {
                 try {
                     val duration = cur.intValue(MediaStore.Audio.Media.DURATION)
@@ -624,7 +626,7 @@ class Library : Service() {
 //                        val album = cur.stringValue(MediaStore.Audio.Media.ALBUM)
                         val data = cur.stringValue(MediaStore.Audio.Media.DATA)
                         val index = cur.intValue(MediaStore.Audio.Media.TRACK)
-                        val year = cur.intValue(MediaStore.Audio.Media.YEAR).takeIf { it > 0 }
+                        val year = cur.intValue(MediaStore.Audio.Media.YEAR) provided { it > 0 }
 
                         val (disc, track) = if (index >= 1000) {
                             // There may be multiple discs
@@ -649,12 +651,13 @@ class Library : Service() {
                         )*/)
                         localSongSources[songId] = data
                     }
-                } catch (e: Exception) {
-                    Log.trace("Issues", e)
+                } catch (e: Throwable) {
                 }
             } while (cur.moveToNext())
+        } catch (e: Throwable) {
+        } finally {
+            cur.close()
         }
-        cur.close()
         return songs
     }
 
@@ -664,7 +667,7 @@ class Library : Service() {
 //        val internal = task { compileSongsFrom(MediaStore.Audio.Media.INTERNAL_CONTENT_URI) }
 //        val songs = external.await() //+ internal.await()
         // synchronized(this) {
-            _songs.offer(external)
+            localSongs.offer(external)
         // }
     }
 

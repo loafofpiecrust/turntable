@@ -19,7 +19,7 @@ import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.queue.RadioQueue
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Music
 import com.loafofpiecrust.turntable.model.song.SaveableMusic
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog

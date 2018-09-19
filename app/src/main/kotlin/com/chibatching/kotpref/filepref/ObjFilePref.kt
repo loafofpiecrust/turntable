@@ -7,7 +7,11 @@ import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.experimental.channels.actor
+import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.runBlocking
 import java.io.FileOutputStream
 import kotlin.reflect.KProperty
@@ -19,33 +23,43 @@ abstract class BaseObjFilePref<T: Any>(
     protected var lastModify = 0L
     var name: String? = null
 
-    fun save(): Deferred<Unit>? {
-        val name = name
-        if (name == null || lastWrite >= lastModify) return null
-        return task(BG_POOL) {
-            try {
-                synchronized(this@BaseObjFilePref) {
-                    val file = App.instance.filesDir.resolve("$name.prop")
-                    if (!file.exists()) {
-                        file.createNewFile()
-                    }
-                    val value = subject.valueOrNull ?: return@task
-                    serialize(FileOutputStream(file, false), value)
-                    lastWrite = System.nanoTime()
-                }
-            } catch (e: Throwable) {
-                task(UI) { e.printStackTrace() }
+//    private sealed class Action {
+//        object Save: Action()
+//        data class Load(
+//            val thisRef: KotprefModel,
+//            val property: KProperty<*>
+//        ): Action()
+//    }
+//    private val saveActor = actor<Action>(BG_POOL, capacity = Channel.CONFLATED) {
+//        consumeEach { e ->
+//            if (e is Action.Save) {
+//            }
+//        }
+//    }
+
+
+    @Synchronized
+    fun save() {
+        if (name == null) return
+        try {
+            val file = App.instance.filesDir.resolve("$name.prop")
+            if (!file.exists()) {
+                file.createNewFile()
             }
+
+            runBlocking { serialize(file.outputStream(), subject.value) }
+            lastWrite = System.nanoTime()
+        } catch (e: Throwable) {
+            task(UI) { e.printStackTrace() }
         }
+//        return runBlocking { saveActor.send(Action.Save) }
     }
 
 
     override fun getValue(thisRef: KotprefModel, property: KProperty<*>): ConflatedBroadcastChannel<T> {
         if (!subject.hasValue) {
-            task(BG_POOL) {
-                getFromPreference(property, thisRef.kotprefPreference).also {
-                    subject.offer(it)
-                }
+            getFromPreference(property, thisRef.kotprefPreference).also {
+                subject.offer(it)
             }
         }
         return subject
@@ -53,7 +67,11 @@ abstract class BaseObjFilePref<T: Any>(
 }
 
 class objFilePref<T: Any>(default: T): BaseObjFilePref<T>(default) {
-//    var lastValue: T? = null
+//    init {
+//        subject.consumeEach(BG_POOL) {
+//            lastModify = System.nanoTime()
+//        }
+//    }
 
     override fun getFromPreference(property: KProperty<*>, preference: SharedPreferences): T {
         name = property.name
@@ -65,10 +83,6 @@ class objFilePref<T: Any>(default: T): BaseObjFilePref<T>(default) {
         } catch (e: Exception) {
             task(UI) { e.printStackTrace() }
             default
-        }
-
-        subject.consumeEach(BG_POOL) {
-            lastModify = System.nanoTime()
         }
 
         return res!!

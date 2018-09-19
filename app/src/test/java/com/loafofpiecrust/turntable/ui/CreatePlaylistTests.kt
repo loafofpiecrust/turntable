@@ -3,7 +3,6 @@ package com.loafofpiecrust.turntable.ui
 import android.widget.Button
 import android.widget.EditText
 import ch.tutteli.atrium.api.cc.en_GB.*
-import ch.tutteli.atrium.verbs.assert
 import ch.tutteli.atrium.verbs.expect
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
@@ -15,7 +14,7 @@ import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.playlist.AddPlaylistActivity
 import com.loafofpiecrust.turntable.playlist.AddPlaylistActivityStarter
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.firstOrNull
 import kotlinx.coroutines.experimental.runBlocking
@@ -60,11 +59,13 @@ class CreatePlaylistTests {
         val accept = activity.find<Button>(R.id.positive_button)
         accept.performClick()
 
+        Thread.sleep(100)
+
         val playlists = runBlocking { UserPrefs.playlists.openSubscription().firstOrNull() }
         expect(playlists?.firstOrNull()).notToBeNull {
             isA<Playlist> {
-                expect(subject.owner).toBe(SyncService.selfUser)
-                expect(subject.name).toBe("My First Playlist")
+                property(subject::owner).toBe(SyncService.selfUser)
+                property(subject::name).toBe("My First Playlist")
                 expect(runBlocking { subject.tracks.first() }).toBe(listOf(track1, track2))
             }
         }

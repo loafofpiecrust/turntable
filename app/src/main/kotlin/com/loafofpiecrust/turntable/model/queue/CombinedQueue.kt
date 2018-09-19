@@ -24,6 +24,7 @@ data class CombinedQueue(
 
     override val current: Song? get() = list.getOrNull(position)
 
+
     override fun next(): MusicPlayer.Queue {
         return if (isPlayingNext) {
             if (nextUp.size > 1) { // need more than 1 because currently playing the first one.
@@ -42,9 +43,8 @@ data class CombinedQueue(
         }
     }
 
-    override fun prev(): MusicPlayer.Queue {
-        return CombinedQueue(primary.prev(), nextUp, false)
-    }
+    override fun prev(): MusicPlayer.Queue =
+        CombinedQueue(primary.prev(), nextUp, false)
 
     override fun shifted(from: Int, to: Int): MusicPlayer.Queue {
         // first determine if the 'from' index is within the nextUp
@@ -55,7 +55,7 @@ data class CombinedQueue(
             val mappedFrom = from - firstNextPos
             val mappedTo = to - firstNextPos
             // shift within nextUp not affecting the primary queue
-            CombinedQueue(primary, nextUp.shifted(mappedFrom, mappedTo), isPlayingNext)
+            this.copy(nextUp = nextUp.shifted(mappedFrom, mappedTo))
         } else {
             val mappedFrom = if (from < firstNextPos) {
                 from
@@ -64,7 +64,7 @@ data class CombinedQueue(
                 to
             } else to - nextUp.size
             // shift within the primary queue without affecting the nextUp list
-            CombinedQueue(primary.shifted(mappedFrom, mappedTo), nextUp, isPlayingNext)
+            this.copy(primary = primary.shifted(mappedFrom, mappedTo))
         }
     }
 
@@ -115,15 +115,15 @@ data class CombinedQueue(
             val primaryWithoutCurrent = primary.list.without(primary.position).shuffled()
             primary.copy(list = listOf(current) + primaryWithoutCurrent, position = 0)
         } else primary
-        return CombinedQueue(p, nextUp, isPlayingNext)
+
+        return this.copy(primary = p)
     }
 
-    fun restoreSequential(backup: MusicPlayer.Queue): CombinedQueue {
-        return if (backup is StaticQueue) {
+    fun restoreSequential(backup: MusicPlayer.Queue): CombinedQueue =
+        if (backup is StaticQueue) {
             // find the current song in the backup list, and make that the position
-            CombinedQueue(backup.copy(position = backup.list.indexOf(primary.current)), nextUp, isPlayingNext)
+            this.copy(primary = backup.copy(position = backup.list.indexOf(primary.current)))
         } else {
             this
         }
-    }
 }

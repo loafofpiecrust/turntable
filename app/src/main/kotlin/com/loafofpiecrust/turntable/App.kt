@@ -19,7 +19,7 @@ import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.player.StaticQueue
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.OnlineSearchService
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.util.*
@@ -45,11 +45,11 @@ class App: Application() {
         private lateinit var _instance: WeakReference<App>
         val instance: App get() = _instance.get()!!
 
-        val kryo = InstancePool(3) {
+        val kryo by threadLocalLazy {
             Kryo().apply {
                 instantiatorStrategy = Kryo.DefaultInstantiatorStrategy(StdInstantiatorStrategy())
                 isRegistrationRequired = false
-                references = true
+                references = false
 
                 // TODO: Switch to CompatibleFieldSerializer or TagFieldSerializer once Song.artworkUrl is removed or any other refactoring goes down.
                 setDefaultSerializer(CompatibleFieldSerializer::class.java)

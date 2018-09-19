@@ -2,6 +2,7 @@ package com.loafofpiecrust.turntable.util
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
+import com.mcxiaoke.koi.ext.closeQuietly
 import okhttp3.*
 import java.io.IOException
 import java.util.concurrent.TimeUnit
@@ -102,5 +103,5 @@ object Http {
     }
 }
 
-val Response.text: String get() = body()!!.string()!!
-val Response.gson: JsonElement get() = JsonParser().parse(body()!!.charStream()!!)
+val Response.text: String get() = body()!!.string()!!.also { closeQuietly() }
+val Response.gson: JsonElement get() = JsonParser().parse(body()!!.charStream()!!).also { closeQuietly() }

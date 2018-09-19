@@ -23,6 +23,7 @@ import java.util.zip.Deflater
 import java.util.zip.DeflaterOutputStream
 import java.util.zip.Inflater
 import java.util.zip.InflaterInputStream
+import kotlin.coroutines.experimental.coroutineContext
 
 //
 // KRYO
@@ -37,12 +38,18 @@ private fun Kryo.concreteToBytes(obj: Any, expectedSize: Int = 256, compress: Bo
     }
 }
 
-fun Kryo.objectToBytes(obj: Any, expectedSize: Int = 256, compress: Boolean = false): ByteArray {
-    val baos = ByteArrayOutputStream(expectedSize)
-    val os = Output(if (compress) DeflaterOutputStream(baos) else baos)
-    writeClassAndObject(os, obj)
-    os.flush()
-    return baos.toByteArray().also { os.closeQuietly() }
+fun Kryo.objectToBytes(obj: Any, expectedSize: Int = 512, compress: Boolean = false): ByteArray {
+    if (compress) {
+        val baos = ByteArrayOutputStream(expectedSize)
+        val os = Output(DeflaterOutputStream(baos))
+        writeClassAndObject(os, obj)
+        os.closeQuietly()
+        return baos.toByteArray()
+    } else {
+        val os = Output(expectedSize, -1)
+        writeClassAndObject(os, obj)
+        return os.toBytes().also { os.closeQuietly() }
+    }
 }
 
 fun <T: Any> Kryo.objectFromBytes(bytes: ByteArray, decompress: Boolean = false): T {
@@ -78,7 +85,8 @@ suspend fun serialize(obj: Any): ByteArray {
 //    val output = fst.objectOutput
 //    output.writeObject(obj)
 //    return output.buffer
-    return App.kryo.acquire { it.objectToBytes(obj) }
+//    return App.kryo.acquire(coroutineContext) { it.objectToBytes(obj) }
+    return App.kryo.objectToBytes(obj)
 }
 
 suspend fun serialize(stream: OutputStream, obj: Any) {
@@ -86,16 +94,19 @@ suspend fun serialize(stream: OutputStream, obj: Any) {
 //    output.writeObject(obj)
 //    output.flush()
 //    stream.close()
-    val output = Output(stream)
-    App.kryo.acquire { it.writeClassAndObject(output, obj) }
-    output.flush()
-    output.close()
+//    App.kryo.acquire(coroutineContext) {
+    App.kryo.let {
+        val output = Output(stream)
+        it.writeClassAndObject(output, obj)
+        output.flush()
+        output.close()
+    }
 }
 
 suspend fun <T: Any> deserialize(bytes: ByteArray): T {
 //    @Suppress("UNCHECKED_CAST")
 //    return fst.asObject(bytes) as T
-    return App.kryo.acquire { it.objectFromBytes<T>(bytes) }
+    return App.kryo.let { it.objectFromBytes<T>(bytes) }
 }
 
 suspend fun <T: Any> deserialize(stream: InputStream): T {
@@ -104,10 +115,12 @@ suspend fun <T: Any> deserialize(stream: InputStream): T {
 //    return (input.readObject() as T).also {
 //        stream.close()
 //    }
-    val input = Input(stream)
-    @Suppress("UNCHECKED_CAST")
-    return (App.kryo.acquire { it.readClassAndObject(input) } as T).also {
+    return App.kryo.let {
+        val input = Input(stream)
+        @Suppress("UNCHECKED_CAST")
+        val res = it.readClassAndObject(input) as T
         input.close()
+        res
     }
 }
 
@@ -147,45 +160,3 @@ fun decompress(input: String): String {
     return String(decompressed, 0, len, Charsets.UTF_8)
 }
 
-
-class InstancePool<T: Any>(
-    private val capacity: Int,
-    private val creator: () -> T
-) {
-    private val instances = mutableMapOf<T, Job>()
-
-    inline fun <R> acquireBlocking(noinline block: suspend (T) -> R) = runBlocking { acquire(block) }
-
-    suspend fun <R> acquire(block: suspend (T) -> R): R {
-        for ((x, job) in instances) {
-            if (job.isCompleted) {
-                val newJob = async(BG_POOL) {
-                    block(x)
-                }
-                instances[x] = newJob
-                return newJob.await()
-            }
-        }
-
-        return if (instances.size < capacity) {
-            val x = creator.invoke()
-            async(BG_POOL) {
-                block(x)
-            }.let {
-                instances[x] = it
-                it.await()
-            }
-        } else select {
-            for ((x, job) in instances) {
-                job.onJoin {
-                    async(BG_POOL) {
-                        block(x)
-                    }.let {
-                        instances[x] = it
-                        it.await()
-                    }
-                }
-            }
-        }
-    }
-}

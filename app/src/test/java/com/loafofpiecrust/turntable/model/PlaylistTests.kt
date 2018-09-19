@@ -10,11 +10,12 @@ import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.util.deserialize
 import com.loafofpiecrust.turntable.util.serialize
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.firstOrNull
+import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.runBlocking
 import java.util.*
 import kotlin.test.Test
@@ -66,25 +67,26 @@ class PlaylistTests {
 
         // TODO: Make this international? Google what Japanse tape sides were called.
         val sides = mixtape.type.sideNames
-        assert(sides).contains.inOrder.only.entries(
+        expect(sides).contains.inOrder.only.entries(
             { contains("A") },
             { contains("B") }
         )
-        assert(mixtape.type.totalLength).toBe(60)
+        expect(mixtape.type.totalLength).toBe(60)
 
         val side1 = runBlocking { mixtape.tracksOnSide(0).firstOrNull() }
-        assert(side1!!).toBe(listOf(songs[0]))
+        expect(side1!!).toBe(listOf(songs[0]))
     }
 
-    @Test fun operations() {
+    @Test fun operations() = runBlocking {
         val playlist = CollaborativePlaylist(user, "All Good Things...", Color.GREEN, UUID.randomUUID())
         expect(playlist.add(songs[1])).toBe(true)
         expect(playlist.add(songs[0])).toBe(true)
-        expect(runBlocking { playlist.tracks.first() }).toBe(listOf(songs[1], songs[0]))
+        delay(10)
+        expect(playlist.tracks.first()).toBe(listOf(songs[1], songs[0]))
         playlist.move(1, 0)
         playlist.remove(0)
-        expect(runBlocking { playlist.tracks.first() }).toBe(listOf(songs[1]))
+        expect(playlist.tracks.first()).toBe(listOf(songs[1]))
         playlist.remove(0)
-        expect(runBlocking { playlist.tracks.first() }).isEmpty()
+        expect(playlist.tracks.first()).isEmpty()
     }
 }

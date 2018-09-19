@@ -28,7 +28,7 @@ interface SearchApi {
     companion object: SearchApi {
 
         /// All Music APIs in descending order of priority
-        private val APIS = listOf(
+        private val APIS = arrayOf(
             LocalApi,
             Discogs,
             MusicBrainz,

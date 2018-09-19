@@ -21,10 +21,11 @@ import com.loafofpiecrust.turntable.util.task
 import kotlinx.coroutines.experimental.CancellationException
 import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.Runnable
+import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.SendChannel
 import org.jetbrains.anko.*
-import org.jetbrains.anko.sdk25.coroutines.onClick
+import org.jetbrains.anko.sdk27.coroutines.onClick
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.coroutines.experimental.CoroutineContext
@@ -359,7 +360,7 @@ inline fun <T> tryOr(v: T, block: () -> T): T {
  */
 fun <T, R> Iterable<T>.parMap(context: CoroutineContext = BG_POOL, mapper: suspend (T) -> R): List<Deferred<R>> = run {
     this.map {
-        task(context) { mapper(it) }
+        async(context) { mapper(it) }
     }
 }
 

@@ -15,7 +15,7 @@ import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItem

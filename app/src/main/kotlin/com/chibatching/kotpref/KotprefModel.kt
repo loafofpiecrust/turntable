@@ -7,6 +7,7 @@ import com.chibatching.kotpref.filepref.BaseObjFilePref
 import com.chibatching.kotpref.filepref.objFilePref
 import com.chibatching.kotpref.pref.*
 import com.loafofpiecrust.turntable.awaitAllNotNull
+import com.loafofpiecrust.turntable.parMap
 import kotlinx.coroutines.experimental.awaitAll
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import java.util.*
@@ -230,7 +231,7 @@ abstract class KotprefModel {
     }
 
     suspend fun saveFiles() {
-        files.mapNotNull { it.save() }.awaitAll()
+        files.parMap { it.save() }.awaitAll()
     }
 }
 

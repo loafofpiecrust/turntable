@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable.service
+package com.loafofpiecrust.turntable.sync
 
 //import com.fasterxml.jackson.databind.JsonNode
 import android.app.PendingIntent
@@ -21,17 +21,13 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.model.album.AlbumId
-import com.loafofpiecrust.turntable.model.artist.ArtistId
-import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.model.song.MusicId
 import com.loafofpiecrust.turntable.model.song.SaveableMusic
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.model.song.SongId
+import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.ui.MainActivityStarter
 import com.loafofpiecrust.turntable.util.*
@@ -126,7 +122,7 @@ class SyncService : FirebaseMessagingService() {
                             launch(UI) {
                                 App.instance.toast("Connection to $name lost")
                             }
-                            SyncService.mode puts Mode.None()
+                            Companion.mode puts Mode.None()
                         }
                     }
                 }
@@ -247,7 +243,8 @@ class SyncService : FirebaseMessagingService() {
         }
 
         private suspend fun leaveGroup(): Boolean {
-            val mode = mode.value as? Mode.InGroup ?: return false
+            val mode = mode.value as? Mode.InGroup
+                ?: return false
             val group = mode.group
 
             val res = Http.post("https://android.googleapis.com/gcm/notification",
@@ -268,7 +265,7 @@ class SyncService : FirebaseMessagingService() {
                 println("sync: failed to leave group '${group.name}'")
                 false
             } else {
-                SyncService.mode puts Mode.None()
+                Companion.mode puts Mode.None()
                 true
             }
         }
@@ -282,7 +279,7 @@ class SyncService : FirebaseMessagingService() {
             send(Message.SyncRequest(), other)
         }
         fun confirmSync(other: User) {
-            SyncService.mode puts Mode.OneOnOne(other)
+            mode puts Mode.OneOnOne(other)
             send(Message.SyncResponse(true), other)
         }
 
@@ -529,7 +526,7 @@ class SyncService : FirebaseMessagingService() {
                 is Message.SyncResponse -> {
                     if (message.accept) {
                         // set sync mode and enable sync in MusicService
-                        SyncService.mode puts Mode.OneOnOne(sender)
+                        Companion.mode puts Mode.OneOnOne(sender)
                         task(UI) { toast("Now synced with ${sender.name}") }
                     } else {
                         task(UI) { toast("${sender.name} refused to sync") }
@@ -546,7 +543,7 @@ class SyncService : FirebaseMessagingService() {
                             task(UI) { toast("Left group '$name'?") }
                         }
                     }
-                    SyncService.mode puts Mode.None()
+                    Companion.mode puts Mode.None()
                 }
 
                 is Message.FriendRequest -> {

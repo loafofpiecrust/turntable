@@ -10,7 +10,6 @@ import android.view.ViewManager
 import android.widget.EditText
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.service.SyncService
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItem
@@ -22,7 +21,7 @@ import kotlinx.coroutines.experimental.channels.map
 import kotlinx.coroutines.experimental.withContext
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-import org.jetbrains.anko.sdk25.coroutines.onClick
+import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.support.v4.alert
 import org.jetbrains.anko.support.v4.ctx
 import org.jetbrains.anko.support.v4.toast

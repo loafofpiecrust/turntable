@@ -13,7 +13,7 @@ import org.jetbrains.anko.dimen
 import org.jetbrains.anko.dip
 import org.jetbrains.anko.frameLayout
 import org.jetbrains.anko.matchParent
-import org.jetbrains.anko.sdk25.coroutines.onClick
+import org.jetbrains.anko.sdk27.coroutines.onClick
 
 class MultiSheetView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : CoordinatorLayout(context, attrs, defStyleAttr) {
 

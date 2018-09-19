@@ -5,7 +5,7 @@ import android.view.View
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.*
 import kotlinx.coroutines.experimental.selects.whileSelect
-import org.jetbrains.anko.sdk25.coroutines.onAttachStateChangeListener
+import org.jetbrains.anko.sdk27.coroutines.onAttachStateChangeListener
 import kotlin.coroutines.experimental.CoroutineContext
 import kotlin.coroutines.experimental.coroutineContext
 

@@ -8,18 +8,18 @@ import android.text.InputType
 import android.view.View
 import android.view.ViewManager
 import android.widget.ArrayAdapter
+import android.widget.LinearLayout
 import android.widget.Spinner
 import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.PartialAlbum
 import com.loafofpiecrust.turntable.model.playlist.AlbumCollection
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.model.song.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.service.SyncService
+import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseActivity
@@ -28,8 +28,8 @@ import kotlinx.android.parcel.Parcelize
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.design.textInputLayout
-import org.jetbrains.anko.sdk25.coroutines.onClick
-import org.jetbrains.anko.sdk25.coroutines.onItemSelectedListener
+import org.jetbrains.anko.sdk27.coroutines.onClick
+import org.jetbrains.anko.sdk27.coroutines.onItemSelectedListener
 import java.util.*
 
 class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
@@ -46,7 +46,9 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
 
     private lateinit var toolbar: Toolbar
 
-    override fun ViewManager.createView() = verticalLayout {
+    override fun ViewManager.createView() = linearLayout {
+        orientation = LinearLayout.VERTICAL
+
         toolbar = toolbar {
             standardStyle()
             topPadding = dimen(R.dimen.statusbar_height)
@@ -155,7 +157,7 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
                             }
                             else -> kotlin.error("Unreachable")
                         }
-                        ctx.library.addPlaylist(pl)
+                        context.library.addPlaylist(pl)
                         finish()
                     }
                 }

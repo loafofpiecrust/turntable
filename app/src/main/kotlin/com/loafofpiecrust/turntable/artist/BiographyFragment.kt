@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.artist
 
 import android.view.ViewManager
+import android.widget.LinearLayout
 import android.widget.TextView
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.artist.Artist
@@ -23,7 +24,8 @@ class BiographyFragment: BaseDialogFragment() {
         }
     }
 
-    override fun ViewManager.createView() = verticalLayout {
+    override fun ViewManager.createView() = linearLayout {
+        orientation = LinearLayout.VERTICAL
         fitsSystemWindows = true
 
         // TODO: Add full-res artist image, as not-cropped as possible.

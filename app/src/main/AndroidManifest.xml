@@ -110,7 +110,7 @@
             </intent-filter>
         </service>
         <service
-            android:name=".service.SyncService"
+            android:name=".sync.SyncService"
             android:enabled="true"
             android:exported="false">
             <intent-filter>

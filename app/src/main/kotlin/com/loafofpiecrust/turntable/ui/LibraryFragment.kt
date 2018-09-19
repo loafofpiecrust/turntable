@@ -5,6 +5,7 @@ import android.support.design.widget.TabLayout
 import android.support.v4.app.FragmentPagerAdapter
 import android.view.View
 import android.view.ViewManager
+import android.widget.LinearLayout
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumsFragment
 import com.loafofpiecrust.turntable.artist.ArtistsFragment
@@ -56,7 +57,9 @@ class LibraryFragment: BaseFragment() {
     }
 
 
-    override fun ViewManager.createView(): View = verticalLayout {
+    override fun ViewManager.createView(): View = linearLayout {
+        orientation = LinearLayout.VERTICAL
+
         val tabFragments = { key: String -> when (key) {
             "Albums" -> AlbumsFragment.all()
             "Songs" -> SongsFragment.all() // all songs yo
