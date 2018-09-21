@@ -85,7 +85,7 @@ class ArtistDetailsFragment: BaseFragment() {
 
         if (!::albums.isInitialized) {
             albums = artist.openSubscription()
-                .map { it.albums }
+                .map(BG_POOL) { it.albums }
                 .broadcast(Channel.CONFLATED)
         }
 
@@ -98,6 +98,7 @@ class ArtistDetailsFragment: BaseFragment() {
         sharedElementReturnTransition = trans
 
         enterTransition = Fade()
+        exitTransition = Fade()
 //        exitTransition = Fade().setDuration(transDur / 3)
     }
 
@@ -107,6 +108,7 @@ class ArtistDetailsFragment: BaseFragment() {
         appBarLayout {
             id = R.id.app_bar
             backgroundColor = Color.TRANSPARENT
+            topPadding = dimen(R.dimen.statusbar_height)
 
             lateinit var image: ImageView
             collapsingToolbarLayout {
@@ -202,7 +204,7 @@ class ArtistDetailsFragment: BaseFragment() {
                 transitionName = artistId.nameTransition
                 artist.consumeEach(UI) {
                     menu.clear()
-                    it.optionsMenu(ctx, menu)
+                    it.optionsMenu(context, menu)
                 }
             }.lparams(width = matchParent) {
                 scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL and AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED

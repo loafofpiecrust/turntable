@@ -6,6 +6,7 @@ import android.os.Parcelable
 import android.view.Menu
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
+import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.signature.ObjectKey
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.browse.Spotify
@@ -46,7 +47,7 @@ class RemoteAlbum(
     override fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> {
         return remoteId.thumbnailUrl?.let {
             produce(BG_POOL) { send(req.load(it)) }
-        }?.map { it.apply(Library.ARTWORK_OPTIONS.signature(ObjectKey(id))) }
+        }?.map { it.apply(RequestOptions().signature(ObjectKey(id))) }
             ?: Library.instance.loadAlbumCover(req, id)
     }
 

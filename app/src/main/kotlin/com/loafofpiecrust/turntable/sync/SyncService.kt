@@ -117,7 +117,7 @@ class SyncService : FirebaseMessagingService() {
                             val name = when (mode) {
                                 is Mode.OneOnOne -> mode.other.name
                                 is Mode.InGroup -> mode.group.name
-                                else -> TODO()
+                                else -> "nobody"
                             }
                             launch(UI) {
                                 App.instance.toast("Connection to $name lost")
@@ -139,8 +139,8 @@ class SyncService : FirebaseMessagingService() {
         }
 
         fun send(msg: Message, to: User) = send(msg, Mode.OneOnOne(to))
-        fun send(msg: Message) = send(msg, mode.value).also {
-            if (msg !is Message.Ping) {
+        fun send(msg: Message) = send(msg, mode.value).then { wasSent ->
+            if (wasSent && msg !is Message.Ping) {
                 pinger.offer(MessageDir.SENT)
             }
         }
@@ -150,7 +150,7 @@ class SyncService : FirebaseMessagingService() {
             mode: Mode
         ) = task {
             val target = when (mode) {
-                is Mode.None -> return@task
+                is Mode.None -> return@task false
                 is Mode.OneOnOne -> mode.other.deviceId
                 is Mode.InGroup -> mode.group.key
                 is Mode.Topic -> "/topics/${mode.topic}"
@@ -183,6 +183,7 @@ class SyncService : FirebaseMessagingService() {
             debug { "Send response $res" }
             // TODO: Process messages that fail to send to part of a group.
             // TODO: Cache messages sent when there's no connection, then dispatch them once we regain connection.
+            true
         }
 
         suspend fun createGroup(name: String): Group? {

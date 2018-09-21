@@ -88,7 +88,7 @@
     <string name="album_shuffle">Shuffle</string>
     <string name="album_edit_metadata">Edit</string>
     <string name="album_added_library">Added album to library</string>
-    <string name="album_removed_library">Added album to library</string>
+    <string name="album_removed_library">Removed album from library</string>
 
     <!-- Album Editor -->
     <string name="album_title_hint">Title</string>

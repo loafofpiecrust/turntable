@@ -13,6 +13,7 @@ import android.view.View
 import android.widget.TextView
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
+import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.signature.ObjectKey
 import com.github.florent37.glidepalette.GlidePalette
 import com.loafofpiecrust.turntable.R
@@ -110,19 +111,19 @@ interface Album: Music {
             (it ?: SearchApi.fullArtwork(this, true)?.let {
                 req.load(it)
 //                    .thumbnail(req.load(remote?.thumbnailUrl).apply(Library.ARTWORK_OPTIONS))
-            })?.apply(Library.ARTWORK_OPTIONS
-                .signature(ObjectKey("${id}full"))
+            })?.apply(
+                RequestOptions().signature(ObjectKey("${id}full"))
             )
         }
 
     fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> = loadCover(req)
 
 
-    abstract class RemoteDetails(
-        open val thumbnailUrl: String? = null,
-        open val artworkUrl: String? = null
-    ): Serializable, Parcelable {
-        abstract suspend fun resolveTracks(album: AlbumId): List<Song>
+    interface RemoteDetails: Serializable, Parcelable {
+        val thumbnailUrl: String?
+        val artworkUrl: String?
+
+        suspend fun resolveTracks(album: AlbumId): List<Song>
 
         /// Priority of this entry, on a rough scale of [0, 100]
         /// where 100 is the best match possible.
@@ -130,7 +131,7 @@ interface Album: Music {
 }
 
 val Album.hasTrackGaps: Boolean get() =
-    tracks.zipWithNext().any { (lastSong, song) ->
+    tracks.asSequence().zipWithNext().any { (lastSong, song) ->
         (song.track - lastSong.track > 1)
     }
 

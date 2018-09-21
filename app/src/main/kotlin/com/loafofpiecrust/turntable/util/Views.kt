@@ -16,6 +16,7 @@ import com.lapism.searchview.widget.SearchView
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.style.rippleBorderless
 import com.lsjwzh.widget.recyclerviewpager.RecyclerViewPager
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import fr.castorflex.android.circularprogressbar.CircularProgressBar
@@ -40,7 +41,7 @@ inline fun ViewManager.iconView(block: ImageView.() -> Unit) = imageView {
 }
 
 inline fun ViewManager.iconButton(iconRes: Int, block: ImageButton.() -> Unit) = imageButton(iconRes) {
-    backgroundResource = R.drawable.round_selector_dark
+    rippleBorderless()
     padding = dimen(R.dimen.fab_margin)
     block()
 }

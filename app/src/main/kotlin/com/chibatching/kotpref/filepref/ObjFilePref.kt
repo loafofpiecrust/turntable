@@ -4,6 +4,7 @@ import android.content.SharedPreferences
 import com.chibatching.kotpref.KotprefModel
 import com.chibatching.kotpref.pref.AbstractPref
 import com.loafofpiecrust.turntable.App
+import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.android.UI
@@ -21,7 +22,8 @@ abstract class BaseObjFilePref<T: Any>(
 ): AbstractPref<T>(default) {
     private var lastWrite = 0L
     protected var lastModify = 0L
-    var name: String? = null
+    private var className: String? = null
+    private var name: String? = null
 
 //    private sealed class Action {
 //        object Save: Action()
@@ -37,12 +39,13 @@ abstract class BaseObjFilePref<T: Any>(
 //        }
 //    }
 
+    protected val fileName: String get() = "$className.$name.prop"
 
     @Synchronized
     fun save() {
-        if (name == null) return
+        if (name == null || className == null) return
         try {
-            val file = App.instance.filesDir.resolve("$name.prop")
+            val file = App.instance.filesDir.resolve(fileName)
             if (!file.exists()) {
                 file.createNewFile()
             }
@@ -56,9 +59,12 @@ abstract class BaseObjFilePref<T: Any>(
     }
 
 
-    override fun getValue(thisRef: KotprefModel, property: KProperty<*>): ConflatedBroadcastChannel<T> {
+    override fun getValue(thisRef: Any, property: KProperty<*>): ConflatedBroadcastChannel<T> {
+        className = thisRef.javaClass.simpleName
+        name = property.name
+
         if (!subject.hasValue) {
-            getFromPreference(property, thisRef.kotprefPreference).also {
+            getFromPreference(property, UserPrefs.kotprefPreference).also {
                 subject.offer(it)
             }
         }
@@ -67,6 +73,11 @@ abstract class BaseObjFilePref<T: Any>(
 }
 
 class objFilePref<T: Any>(default: T): BaseObjFilePref<T>(default) {
+    override fun setToPreference(property: KProperty<*>, value: T, preference: SharedPreferences) {
+    }
+
+    override fun setToEditor(property: KProperty<*>, value: T, editor: SharedPreferences.Editor) {
+    }
 //    init {
 //        subject.consumeEach(BG_POOL) {
 //            lastModify = System.nanoTime()
@@ -74,9 +85,8 @@ class objFilePref<T: Any>(default: T): BaseObjFilePref<T>(default) {
 //    }
 
     override fun getFromPreference(property: KProperty<*>, preference: SharedPreferences): T {
-        name = property.name
         val res = try {
-            val file = App.instance.filesDir.resolve("$name.prop")
+            val file = App.instance.filesDir.resolve(fileName)
             if (file.exists()) {
                 runBlocking { deserialize<T>(file.inputStream()) }
             } else default
@@ -86,43 +96,5 @@ class objFilePref<T: Any>(default: T): BaseObjFilePref<T>(default) {
         }
 
         return res!!
-//        return preference.getString(property.id, null)?.let {
-//            try {
-//                val input = Input(it.toByteArray(Charsets.ISO_8859_1))
-//                val res = App.kryo.readClassAndObject(input) as? T
-//                input.close()
-//                res
-//            } catch(e: Exception) {
-//                default
-//            }
-//        } ?: default
-    }
-
-    override fun setToPreference(property: KProperty<*>, value: T, preference: SharedPreferences) {
-//        lastValue = value
-        name = property.name
-//        val now = System.nanoTime()
-//        if ((now - lastWrite) > TimeUnit.SECONDS.toNanos(10)) {
-//            save()
-//        }
-//        val os = Output(2048, -1)
-//        App.kryo.writeClassAndObject(os, value)
-//        preference.edit()
-//            .putString(property.id, os.buffer.toString(Charsets.ISO_8859_1))
-//            .apply()
-//        os.closeQuietly()
-    }
-
-    override fun setToEditor(property: KProperty<*>, value: T, editor: SharedPreferences.Editor) {
-//        lastValue = value
-//        val os = Output(2048, -1)
-//        App.kryo.writeClassAndObject(os, value)
-//        editor.putString(property.id, os.buffer.toString(Charsets.ISO_8859_1))
-//        os.closeQuietly()
-        name = property.name
-//        val now = System.nanoTime()
-//        if ((now - lastWrite) > TimeUnit.SECONDS.toNanos(10)) {
-//            save()
-//        }
     }
 }

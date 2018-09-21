@@ -19,6 +19,8 @@ import com.loafofpiecrust.turntable.model.song.HistoryEntry
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.task
+import com.loafofpiecrust.turntable.util.with
+import com.loafofpiecrust.turntable.util.without
 import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.async
@@ -29,6 +31,7 @@ import kotlinx.coroutines.experimental.channels.produce
 import kotlinx.coroutines.experimental.delay
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
+import org.jetbrains.anko.error
 import org.jetbrains.anko.info
 
 class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
@@ -163,22 +166,22 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         // This means the current song couldn't be loaded.
         // In this case, delete the DB entry for the current song.
         // Then, try again to play it.
-        info { "player err: $error" }
+        error(error.message, error.cause)
 
         // if the error is a SOURCE error 404 or 403,
         // clear streams and try again
         // if that fails the 2nd time, skip to the next track in the MediaSource.
         if (error.type == ExoPlaybackException.TYPE_SOURCE) {
-            errorCount++
-            if (errorCount < 2) async(BG_POOL) {
-                OnlineSearchService.instance.reloadSongStreams(_queue.value.current!!.id)
-
-                // TODO: Ensure this works vs resetting the media source entirely.
-                player.seekToDefaultPosition(player.currentWindowIndex)
-            } else {
-                errorCount = 0
-                playNext()
-            }
+//            errorCount++
+//            if (errorCount < 2) async(BG_POOL) {
+//                OnlineSearchService.instance.reloadSongStreams(_queue.value.current!!.id)
+//
+//                // TODO: Ensure this works vs resetting the media source entirely.
+//                player.seekToDefaultPosition(player.currentWindowIndex)
+//            } else {
+//                errorCount = 0
+//                playNext()
+//            }
         }
 
 //        if (currentSong.value.remote != null) {

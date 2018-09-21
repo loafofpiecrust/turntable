@@ -25,7 +25,9 @@ import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.cancelChildren
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
+import kotlinx.coroutines.experimental.isActive
 import org.jetbrains.anko.*
+import kotlin.coroutines.experimental.coroutineContext
 
 
 //@EActivity
@@ -55,7 +57,7 @@ open class SearchFragment : BaseFragment() {
     private var songsList : SongsAdapter? = null
 
     private var prevQuery = ""
-    private var searchJob = Job()
+    private var searchJob: Job? = null
 
 
     override fun onCreate() {
@@ -64,11 +66,6 @@ open class SearchFragment : BaseFragment() {
 //            slideEdge = Gravity.BOTTOM
 //        }
         allowEnterTransitionOverlap = true
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        searchJob.cancelChildren()
     }
 
     override fun onDestroy() {
@@ -107,6 +104,9 @@ open class SearchFragment : BaseFragment() {
 
             setOnQueryTextListener(object : Search.OnQueryTextListener {
                 override fun onQueryTextChange(newText: CharSequence) {
+                    if (newText.isEmpty()) {
+                        prevQuery = ""
+                    }
                 }
 
                 override fun onQueryTextSubmit(query: CharSequence): Boolean {
@@ -122,9 +122,9 @@ open class SearchFragment : BaseFragment() {
     private suspend fun doSearch(query: String, cat: Category<*>): ReceiveChannel<*> {
         lateinit var result: ReceiveChannel<*>
         when (cat) {
-            is Category.Albums -> cat.results puts SearchApi.searchAlbums(query)
-            is Category.Artists -> cat.results puts SearchApi.searchArtists(query)
-            is Category.Songs -> cat.results puts SearchApi.searchSongs(query)
+            is Category.Albums -> cat.results.send(SearchApi.searchAlbums(query))
+            is Category.Artists -> cat.results.send(SearchApi.searchArtists(query))
+            is Category.Songs -> cat.results.send(SearchApi.searchSongs(query))
         }
         return result
     }
@@ -133,8 +133,8 @@ open class SearchFragment : BaseFragment() {
         if (query != prevQuery) {
 //                        task(UI) { loadCircle.start() }
             prevQuery = query
-            searchJob.cancelChildren()
-            async(BG_POOL, parent = searchJob) { doSearch(query, category) }
+            searchJob?.cancel()
+            searchJob = async(BG_POOL + jobs) { doSearch(query, category) }
 //                            .always(UI) { loadCircle.progressiveStop() }
         }
     }

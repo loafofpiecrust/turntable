@@ -27,6 +27,8 @@ import org.jetbrains.anko.design.tabLayout
 import org.jetbrains.anko.design.themedAppBarLayout
 import org.jetbrains.anko.support.v4.onPageChangeListener
 import org.jetbrains.anko.support.v4.viewPager
+import java.lang.ref.Reference
+import java.lang.ref.SoftReference
 import java.lang.ref.WeakReference
 
 @MakeActivityStarter
@@ -39,7 +41,7 @@ class LibraryFragment: BaseFragment() {
 
     val currentTab get() = combineLatest(currentTabIdx.openSubscription(), tabs.openSubscription()) { idx, tabs -> tabs[idx] }
 
-    val fragments = mutableMapOf<String, WeakReference<BaseFragment>>()
+    val fragments = mutableMapOf<String, Reference<BaseFragment>>()
 
 //    private val currentTabFragment get() = currentTabIdx.openSubscription()
 //        .combineLatest(tabFragments.openSubscription()) { idx, tabs -> tabs[idx] }

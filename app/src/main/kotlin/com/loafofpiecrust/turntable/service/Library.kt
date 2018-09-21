@@ -41,12 +41,14 @@ import com.mcxiaoke.koi.ext.longValue
 import com.mcxiaoke.koi.ext.stringValue
 import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.awaitAll
 import kotlinx.coroutines.experimental.channels.*
 import kotlinx.coroutines.experimental.delay
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
+import org.jetbrains.anko.info
 import java.io.File
 import java.io.Serializable
 import java.util.*
@@ -268,15 +270,15 @@ class Library : Service() {
 
     fun loadAlbumCover(req: RequestManager, id: AlbumId): ReceiveChannel<RequestBuilder<Drawable>?> =
         findAlbumExtras(id).map {
-            given(it?.artworkUri) {
-                req.load(it).apply(ARTWORK_OPTIONS)
+            it?.artworkUri?.let {
+                req.load(it)
             }
         }
 
     fun loadArtistImage(req: RequestManager, id: ArtistId): ReceiveChannel<RequestBuilder<Drawable>?> =
         findArtistExtras(id).map {
-            given(it?.artworkUri) {
-                req.load(it).apply(ARTWORK_OPTIONS)
+            it?.artworkUri?.let {
+                req.load(it)
             }
         }
 
@@ -626,7 +628,7 @@ class Library : Service() {
 //                        val album = cur.stringValue(MediaStore.Audio.Media.ALBUM)
                         val data = cur.stringValue(MediaStore.Audio.Media.DATA)
                         val index = cur.intValue(MediaStore.Audio.Media.TRACK)
-                        val year = cur.intValue(MediaStore.Audio.Media.YEAR) provided { it > 0 }
+                        val year = cur.intValue(MediaStore.Audio.Media.YEAR).takeIf { it > 0 }
 
                         val (disc, track) = if (index >= 1000) {
                             // There may be multiple discs
@@ -652,23 +654,24 @@ class Library : Service() {
                         localSongSources[songId] = data
                     }
                 } catch (e: Throwable) {
+                    error(e.message, e)
                 }
             } while (cur.moveToNext())
         } catch (e: Throwable) {
+            error(e.message, e)
         } finally {
             cur.close()
         }
         return songs
     }
 
-    private fun updateSongs() {
+    private suspend fun updateSongs() {
+        // TODO: Add preference for including internal content (default = false)
         // Load the song library here
+//        val internal = async(BG_POOL) { compileSongsFrom(MediaStore.Audio.Media.INTERNAL_CONTENT_URI) }
         val external = compileSongsFrom(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
-//        val internal = task { compileSongsFrom(MediaStore.Audio.Media.INTERNAL_CONTENT_URI) }
-//        val songs = external.await() //+ internal.await()
-        // synchronized(this) {
-            localSongs.offer(external)
-        // }
+
+        localSongs.send(/*internal.await() +*/ external)
     }
 
 //    private fun updateLocalArtwork() = async(CommonPool) {
@@ -751,7 +754,7 @@ class Library : Service() {
     }
 
 
-    companion object: AnkoLogger {
+    companion object: AnkoLogger by AnkoLogger<Library>() {
         lateinit var instance: Library
             private set
 

@@ -7,6 +7,7 @@ import android.view.Menu
 import android.view.View
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
+import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.signature.ObjectKey
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.artist.ArtistsFragment
@@ -64,8 +65,8 @@ interface Artist: Music {
         Library.instance.loadArtistImage(req, id).map {
             (it ?: SearchApi.fullArtwork(this, true)?.let {
                 req.load(it)
-            })?.apply(Library.ARTWORK_OPTIONS
-                .signature(ObjectKey("${id}full"))
+            })?.apply(
+                RequestOptions().signature(ObjectKey("${id}full"))
             )
         }
 

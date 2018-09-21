@@ -18,6 +18,7 @@ import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.switchMap
 import kotlinx.coroutines.experimental.channels.filterNotNull
 import kotlinx.coroutines.experimental.channels.first
+import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.sdk27.coroutines.onClick
 
@@ -72,13 +73,7 @@ class MiniPlayerFragment: BaseFragment() {
             subLine.text = song.id.artist.displayName
 
             song.loadCover(Glide.with(cover)).first()
-                ?.listener(loadPalette(song.id.album) { palette, swatch ->
-                    given(swatch?.titleTextColor) {
-                        mainLine.textColor = it
-                        subLine.textColor = it
-                    }
-                    backgroundColor = swatch?.rgb ?: Color.TRANSPARENT
-                })?.into(cover) ?: run {
+                ?.listener(loadPalette(song.id.album, arrayOf(mainLine, subLine, this)))?.into(cover) ?: run {
                     cover.imageResource = R.drawable.ic_default_album
                 }
         }

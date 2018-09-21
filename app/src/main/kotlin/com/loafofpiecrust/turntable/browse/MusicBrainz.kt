@@ -34,7 +34,8 @@ object MusicBrainz: SearchApi, AnkoLogger {
         val artistId: String? = null,
         override val thumbnailUrl: String? = null,
         val listeners: Int? = null
-    ): Album.RemoteDetails() {
+    ): Album.RemoteDetails {
+        override val artworkUrl: String? get() = null
         override suspend fun resolveTracks(album: AlbumId): List<Song>
             = tracksOnAlbum(id) ?: listOf()
     }

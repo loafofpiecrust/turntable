@@ -4,6 +4,7 @@ import android.content.SharedPreferences
 import android.util.Base64
 import com.chibatching.kotpref.KotprefModel
 import com.chibatching.kotpref.pref.AbstractPref
+import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
@@ -12,10 +13,10 @@ import kotlin.reflect.KProperty
 
 
 class objPref<T: Any>(val default: T): AbstractPref<T>() {
-    override fun getValue(thisRef: KotprefModel, property: KProperty<*>): ConflatedBroadcastChannel<T> {
+    override fun getValue(thisRef: Any, property: KProperty<*>): ConflatedBroadcastChannel<T> {
         if (!subject.hasValue) {
             task(BG_POOL) {
-                getFromPreference(property, thisRef.kotprefPreference).also {
+                getFromPreference(property, UserPrefs.kotprefPreference).also {
                     subject.offer(it)
                 }
             }

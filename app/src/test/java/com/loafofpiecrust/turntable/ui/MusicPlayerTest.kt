@@ -69,11 +69,21 @@ class MusicPlayerTest {
         delay(50)
 
         val player = service.player
-        val q = runBlocking { player.queue.firstOrNull() }
+        var q = runBlocking { player.queue.firstOrNull() }
         expect(q).notToBeNull {
             property(subject::list).toBe(songs)
             property(subject::position).toBe(0)
             property(subject::current).notToBeNullBut(songs[0])
+        }
+
+        // go to next song
+        MusicService.enactNow(SyncService.Message.RelativePosition(1), false)
+        delay(100)
+        q = runBlocking { player.queue.firstOrNull() }
+        expect(q).notToBeNull {
+            property(subject::list).toBe(songs)
+            property(subject::position).toBe(1)
+            property(subject::current).notToBeNullBut(songs[1])
         }
     }
 }

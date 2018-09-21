@@ -78,7 +78,7 @@ class DetailsFragment(): BaseFragment() {
         super.onCreate()
 
         if (!::album.isInitialized) {
-            album = produceTask {
+            album = produceTask(BG_POOL) {
                 SearchApi.find(albumId)!!
             }.broadcast(Channel.CONFLATED)
         }
@@ -95,7 +95,7 @@ class DetailsFragment(): BaseFragment() {
         sharedElementReturnTransition = trans
 
         enterTransition = Fade().setDuration(transDur)
-        exitTransition = Fade().setDuration(1) // Just dissappear
+        exitTransition = Fade().setDuration(transDur) // Just dissappear
 //        exitTransition = Fade().setDuration(transDur / 3)
 //        postponeEnterTransition()
     }
@@ -277,7 +277,7 @@ class DetailsFragment(): BaseFragment() {
 //            }
         songsList(
             SongsFragment.Category.OnAlbum(albumId),
-            album.openSubscription().map { it.tracks }
+            album.openSubscription().map(BG_POOL) { it.tracks }
         ) {
             id = R.id.songs
         }.lparams(width = matchParent) {

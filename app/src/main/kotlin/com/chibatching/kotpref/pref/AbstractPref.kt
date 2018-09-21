@@ -2,6 +2,7 @@ package com.chibatching.kotpref.pref
 
 import android.content.SharedPreferences
 import com.chibatching.kotpref.KotprefModel
+import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
@@ -12,13 +13,13 @@ import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
 
-abstract class AbstractPref<T: Any?>(default: T? = null): ReadOnlyProperty<KotprefModel, ConflatedBroadcastChannel<T>> {
+abstract class AbstractPref<T: Any?>(default: T? = null): ReadOnlyProperty<Any, ConflatedBroadcastChannel<T>> {
     protected var subject = ConflatedBroadcastChannel<T>()
 
-    override operator fun getValue(thisRef: KotprefModel, property: KProperty<*>): ConflatedBroadcastChannel<T> {
+    override operator fun getValue(thisRef: Any, property: KProperty<*>): ConflatedBroadcastChannel<T> {
         if (!subject.hasValue) {
 //            launch(BG_POOL) {
-                getFromPreference(property, thisRef.kotprefPreference).also {
+                getFromPreference(property, UserPrefs.kotprefPreference).also {
                     subject.offer(it)
                 }
 //            }

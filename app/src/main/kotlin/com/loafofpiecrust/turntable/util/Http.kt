@@ -2,7 +2,10 @@ package com.loafofpiecrust.turntable.util
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
+import com.loafofpiecrust.turntable.tryOr
 import com.mcxiaoke.koi.ext.closeQuietly
+import kotlinx.coroutines.experimental.CancellationException
+import kotlinx.coroutines.experimental.suspendCancellableCoroutine
 import okhttp3.*
 import java.io.IOException
 import java.util.concurrent.TimeUnit
@@ -51,17 +54,7 @@ object Http {
                 }.build()
             ).build()
 
-        return suspendCoroutine { cont ->
-            val call = client.newCall(req)
-            call.enqueue(object: Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    cont.resumeWithException(e)
-                }
-                override fun onResponse(call: Call, response: Response) {
-                    cont.resume(response)
-                }
-            })
-        }
+        return client.newCall(req).executeSuspended()
     }
 
     suspend fun post(
@@ -89,18 +82,29 @@ object Http {
             .headers(Headers.of(headers))
             .build()
 
-        return suspendCoroutine { cont ->
-            val call = client.newCall(req)
-            call.enqueue(object: Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    cont.resumeWithException(e)
-                }
-                override fun onResponse(call: Call, response: Response) {
-                    cont.resume(response)
-                }
-            })
+        return client.newCall(req).executeSuspended()
+    }
+}
+
+suspend fun Call.executeSuspended(): Response = suspendCancellableCoroutine { cont ->
+    cont.invokeOnCancellation {
+        tryOr(Unit) {
+            cancel()
         }
     }
+
+    enqueue(object: Callback {
+        override fun onFailure(call: Call, e: IOException) {
+            cont.resumeWithException(e)
+        }
+        override fun onResponse(call: Call, response: Response) {
+            try {
+                cont.resume(response)
+            } catch (e: CancellationException) {
+                response.close()
+            }
+        }
+    })
 }
 
 val Response.text: String get() = body()!!.string()!!.also { closeQuietly() }

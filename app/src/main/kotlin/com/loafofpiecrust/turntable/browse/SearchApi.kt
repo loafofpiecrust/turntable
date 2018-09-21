@@ -10,6 +10,8 @@ import com.loafofpiecrust.turntable.provided
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.tryOr
+import kotlinx.coroutines.experimental.isActive
+import kotlin.coroutines.experimental.coroutineContext
 
 interface SearchApi {
     suspend fun searchArtists(query: String): List<Artist>
@@ -37,6 +39,8 @@ interface SearchApi {
 
         private suspend fun <R: Any> overApis(block: suspend SearchApi.() -> R?): R? {
             for (a in APIS) {
+                if (!coroutineContext.isActive) return null
+
                 val res = tryOr(null) { block(a) }
                 if (res != null) {
                     return res

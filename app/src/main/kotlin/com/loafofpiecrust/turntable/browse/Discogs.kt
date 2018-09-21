@@ -23,6 +23,7 @@ import kotlinx.coroutines.experimental.runBlocking
 import okhttp3.Response
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
+import org.jetbrains.anko.error
 import org.jetbrains.anko.info
 import org.jsoup.Jsoup
 
@@ -35,7 +36,7 @@ object Discogs: SearchApi, AnkoLogger {
         val id: String,
         override val thumbnailUrl: String? = null,
         override val artworkUrl: String? = null
-    ): Album.RemoteDetails() {
+    ): Album.RemoteDetails {
         override suspend fun resolveTracks(album: AlbumId) =
             tracksOnAlbum(id)
     }
@@ -88,7 +89,7 @@ object Discogs: SearchApi, AnkoLogger {
 
             res.gson.obj
         } catch (e: Exception) {
-            debug { e.stackTrace }
+            error(e.message, e)
             throw e
 //            error(e)
         }
@@ -112,7 +113,7 @@ object Discogs: SearchApi, AnkoLogger {
                 val artist = cleanArtistName(it["artists"][0]["name"].string)
                 RemoteAlbum(
                     AlbumId(it["name"].string, artist),
-                    AlbumDetails(it["type"].string + "s/" + it["id"].string)
+                    AlbumDetails("${it["type"].string}s/${it["id"].string}")
                 )
             }
         }

@@ -33,7 +33,7 @@ object Spotify: SearchApi {
         val id: String,
         override val thumbnailUrl: String? = null,
         override val artworkUrl: String? = null
-    ): Album.RemoteDetails() {
+    ): Album.RemoteDetails {
         /// TODO: Pagination
         override suspend fun resolveTracks(album: AlbumId): List<Song> {
             return apiRequest(

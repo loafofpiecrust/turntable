@@ -4,6 +4,8 @@ import android.support.annotation.UiThread
 import android.view.View
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.*
+import kotlinx.coroutines.experimental.selects.select
+import kotlinx.coroutines.experimental.selects.selectUnbiased
 import kotlinx.coroutines.experimental.selects.whileSelect
 import org.jetbrains.anko.sdk27.coroutines.onAttachStateChangeListener
 import kotlin.coroutines.experimental.CoroutineContext
@@ -13,22 +15,18 @@ import kotlin.coroutines.experimental.coroutineContext
 fun <T, R> ReceiveChannel<T>.switchMap(
     context: CoroutineContext = Unconfined,
     transform: suspend (T) -> ReceiveChannel<R>
-): ReceiveChannel<R> = produce(context, onCompletion = consumes()) {
-    val input = this@switchMap
-
-    var current: ReceiveChannel<R> = transform(input.receive())
-    val output = this
-
-    whileSelect {
-        input.onReceiveOrNull { t ->
-            t?.also { current = transform(it) } != null
-        }
-
-        current.onReceiveOrNull { r ->
-            r?.also { output.send(it) } != null
+): ReceiveChannel<R> = produce(context) {
+    var currentJob: Job? = null
+    consumeEach {
+        val newChan = transform(it)
+        currentJob?.cancel()
+        currentJob = async(coroutineContext) {
+            newChan.consumeEach {
+                send(it)
+            }
         }
     }
-    current.cancel()
+    currentJob?.cancel()
 }
 
 fun <T> ReceiveChannel<T>.replayOne(context: CoroutineContext = BG_POOL): ConflatedBroadcastChannel<T> {

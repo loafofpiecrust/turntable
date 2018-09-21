@@ -8,17 +8,22 @@ import android.view.Menu
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
 import com.loafofpiecrust.turntable.App
+import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.album.DetailsFragment
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.album.loadPalette
 import com.loafofpiecrust.turntable.model.artist.ArtistId
+import com.loafofpiecrust.turntable.playlist.PlaylistPickerDialog
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.OnlineSearchService
-import com.loafofpiecrust.turntable.util.produceTask
-import com.loafofpiecrust.turntable.util.switchMap
+import com.loafofpiecrust.turntable.ui.replaceMainContent
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
+import kotlinx.coroutines.experimental.withContext
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -43,7 +48,51 @@ data class Song(
     val discTrack: Int get() = disc * 1000 + track
 
 
-    override fun optionsMenu(ctx: Context, menu: Menu) {}
+    override fun optionsMenu(ctx: Context, menu: Menu) = menu.run {
+        menuItem(R.string.add_to_playlist).onClick {
+            PlaylistPickerDialog.forItem(this@Song).show(ctx)
+        }
+
+//        menuItem("Go to album").onClick(BG_POOL) {
+//            val album = Library.instance.findAlbumOfSong(this@Song).first()
+//            withContext(UI) {
+//                if (album != null) {
+//                    ctx.replaceMainContent(
+//                        DetailsFragment(album.id), true
+//                    )
+//                }
+//            }
+//        }
+//        menuItem("Go to artist").onClick {
+//            val artist = if (local is Song.LocalDetails.Downloaded) {
+//                Library.instance.findArtist(id.artist).first()
+//            } else {
+//                SearchApi.find(id.artist) ?: run {
+//                    ctx.toast("No remote artist for '${this@Song.id}'")
+//                    return@onClick
+//                }
+//            }
+//
+//            if (artist != null) {
+//                ctx.replaceMainContent(
+//                    ArtistDetailsFragment.fromArtist(artist), true
+//                )
+//            }
+//        }
+
+//        menuItem("Recommend").onClick {
+//            FriendPickerDialogStarter.newInstance(
+//                SyncService.Message.Recommendation(this@Song.id),
+//                "Send Recommendation"
+//            ).show(ctx)
+//        }
+//
+//        menuItem("Clear Streams").onClick {
+//            OnlineSearchService.instance.reloadSongStreams(this@Song.id)
+//            OnlineSearchService.instance.reloadAlbumStreams(this@Song.id.album)
+//        }
+
+    }
 
     suspend fun loadMedia(): Media? {
         val existing = Library.instance.sourceForSong(id)
@@ -81,7 +130,6 @@ data class Song(
                 // This album cover is either local or cached.
                 produceTask {
                     req.load(it?.artworkUri)
-                        .apply(Library.ARTWORK_OPTIONS)
                         .listener(loadPalette(id, cb))
                 }
             /*} else when {

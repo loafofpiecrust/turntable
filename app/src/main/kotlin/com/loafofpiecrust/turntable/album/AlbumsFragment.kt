@@ -6,6 +6,7 @@ import android.os.Parcelable
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.*
+import com.chibatching.kotpref.filepref.objFilePref
 import com.evernote.android.state.State
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.artist.*
@@ -38,7 +39,7 @@ class AlbumsFragment : BaseFragment() {
         abstract val channel: BroadcastChannel<List<Album>>
 
         @Parcelize class All: Category() {
-            override val channel get() = Library.instance.localAlbums.replayOne()
+            override val channel get() = Library.instance.albums
         }
         @Parcelize data class ByArtist(
             val artist: ArtistId,
@@ -83,6 +84,7 @@ class AlbumsFragment : BaseFragment() {
     @State var listState: Parcelable? = null
 
     lateinit var albums: BroadcastChannel<List<Album>>
+//    val gridSize by objFilePref(3)
 
     companion object {
         fun all() = AlbumsFragment().apply {

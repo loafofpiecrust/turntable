@@ -18,6 +18,7 @@
 #-keep class com.loafofpiecrust.turntable.**
 #-keep class com.loafofpiecrust.turntable.**$** { *; }
 -keep class com.loafofpiecrust.turntable.ui.*$** { *; }
+-keep class * extends com.bumptech.glide.module.AppGlideModule
 -keep class com.loafofpiecrust.**$Parcelable { *; }
 #-keep class com.frostwire.jlibtorrent.swig.** { *; }
 #-keep class com.google.firebase.provider.FirebaseInitProvider

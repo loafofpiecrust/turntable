@@ -47,25 +47,6 @@ class broadcastReceiver(val init: (Context, Intent) -> Unit): BroadcastReceiver(
     }
 }
 
-inline fun <T> List<T>.with(elem: T, pos: Int): List<T>
-    = take(pos) + elem + drop(pos)
-inline fun <T> List<T>.with(sub: List<T>, pos: Int = size): List<T>
-    = take(pos) + sub + drop(pos)
-inline fun <T> List<T>.without(pos: Int): List<T>
-    = take(pos) + drop(pos + 1)
-inline fun <T> List<T>.withoutFirst(picker: (T) -> Boolean): List<T> {
-    val pos = indexOfFirst(picker)
-    return without(pos)
-}
-fun <T> List<T>.withoutElem(elem: T): List<T> {
-    val idx = indexOfFirst { it === elem }
-    return if (idx >= 0) {
-        this.without(idx)
-    } else this
-}
-fun <T> List<T>.withReplaced(pos: Int, newVal: T): List<T>
-    = take(pos) + newVal + drop(pos + 1)
-
 fun <T> List<T>.dedup(pred: (T, T) -> Boolean = { a, b -> a == b }): List<T> =
     dedupMerge(pred) { a, b -> a }
 
