@@ -98,7 +98,7 @@ class App: Application() {
         super.onCreate()
         _instance = WeakReference(this)
 
-        FirebaseApp.initializeApp(this)
+//        FirebaseApp.initializeApp(this)
 
 //        if (LeakCanary.isInAnalyzerProcess(this)) {
 //            // This process is dedicated to LeakCanary for heap analysis.

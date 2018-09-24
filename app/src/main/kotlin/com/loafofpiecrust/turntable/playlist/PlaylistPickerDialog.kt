@@ -1,15 +1,12 @@
 package com.loafofpiecrust.turntable.playlist
 
-import activitystarter.ActivityStarter
 import android.app.AlertDialog
 import android.app.Dialog
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.PartialAlbum
-import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.playlist.AlbumCollection
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
@@ -17,10 +14,13 @@ import com.loafofpiecrust.turntable.model.playlist.add
 import com.loafofpiecrust.turntable.model.song.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
+import com.loafofpiecrust.turntable.util.arg
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.AnkoContext
+import org.jetbrains.anko.customView
 import org.jetbrains.anko.matchParent
 import org.jetbrains.anko.recyclerview.v7.recyclerView
+import org.jetbrains.anko.support.v4.alert
 import org.jetbrains.anko.support.v4.ctx
 import org.jetbrains.anko.support.v4.toast
 import org.jetbrains.anko.wrapContent
@@ -33,39 +33,32 @@ class PlaylistPickerDialog: BaseDialogFragment() {
         }
     }
 
-    lateinit var item: SaveableMusic
+    private var item: SaveableMusic by arg()
 
     override fun onStart() {
         super.onStart()
         dialog.window.setLayout(matchParent, wrapContent)
     }
 
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        ActivityStarter.fill(this)
-        val builder = AlertDialog.Builder(activity)
-        builder.setMessage("Add to playlist")
-            .setPositiveButton("New Playlist") { _, _ ->
-                AddPlaylistActivityStarter.start(ctx, AddPlaylistActivity.TrackList(listOf(item)))
-                dismiss()
+    override fun onCreateDialog(savedInstanceState: Bundle?) =
+        alert("Add to playlist") {
+            customView { createView() }
+
+            positiveButton("New Playlist") {
+                AddPlaylistDialog.withItems(listOf(item)).show(requireContext())
             }
-            .setNegativeButton("Cancel") { dialog, id ->
-                // User cancelled the dialog
-                dismiss()
-            }
-            .setView(AnkoContext.create(ctx, this).createView())
-        // Create the AlertDialog object and return it
-        return builder.create()
-    }
+            negativeButton("Cancel") {}
+        }.build()
 
     override fun ViewManager.createView() = recyclerView {
         fitsSystemWindows = true
-        layoutManager = LinearLayoutManager(ctx, LinearLayoutManager.VERTICAL, false)
+        layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
         adapter = PlaylistsFragment.Adapter { selected ->
             val item = item
             when (item) {
                 is Song -> {
                     when (selected) {
-                        is MixTape -> selected.add(ctx, item)
+                        is MixTape -> selected.add(context, item)
                         is CollaborativePlaylist -> toast(
                             if (selected.add(item)) ctx.getString(R.string.playlist_added_track, selected.name)
                             else ctx.getString(R.string.playlist_is_full, selected.name)

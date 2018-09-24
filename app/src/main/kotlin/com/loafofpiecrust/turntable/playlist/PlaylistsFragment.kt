@@ -40,7 +40,7 @@ class PlaylistsFragment: BaseFragment() {
         }
 
         menu.menuItem(R.string.playlist_new, R.drawable.ic_add, showIcon =true).onClick {
-            AddPlaylistActivityStarter.start(ctx)
+            AddPlaylistDialog().show(requireContext())
         }
     }
 

@@ -66,7 +66,7 @@ class BrowseFragment: BaseFragment() {
             button(R.string.show_more).lparams {
                 gravity = Gravity.END
             }.onClick {
-                ctx.replaceMainContent(SongsFragmentStarter.newInstance(
+                context.replaceMainContent(SongsFragment(
                     SongsFragment.Category.History()
                 ))
             }

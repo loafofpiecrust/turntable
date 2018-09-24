@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.playlist
 
 import activitystarter.Arg
+import android.app.DialogFragment
 import android.content.Context
 import android.os.Parcelable
 import android.support.v7.widget.Toolbar
@@ -23,6 +24,8 @@ import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseActivity
+import com.loafofpiecrust.turntable.ui.BaseDialogFragment
+import com.loafofpiecrust.turntable.util.arg
 import com.mcxiaoke.koi.ext.onTextChange
 import kotlinx.android.parcel.Parcelize
 import org.jetbrains.anko.*
@@ -31,26 +34,38 @@ import org.jetbrains.anko.design.textInputLayout
 import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.sdk27.coroutines.onItemSelectedListener
 import java.util.*
+import kotlin.reflect.KClass
 
-class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
+class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
+    companion object {
+        fun withItems(items: List<SaveableMusic>) = AddPlaylistDialog().apply {
+            startingTracks = TrackList(items)
+        }
+    }
 
     @Parcelize
-    data class TrackList(val tracks: List<SaveableMusic> = listOf()): Parcelable
-
-    @Arg(optional=true) var startingTracks = TrackList()
+    private data class TrackList(val tracks: List<SaveableMusic> = listOf()): Parcelable
+    private var startingTracks by arg { TrackList() }
 
     private var playlistName: String = ""
-    private var playlistType: String = "Playlist"
+    private var playlistType: KClass<*> = CollaborativePlaylist::class
     private var playlistColor: Int = UserPrefs.accentColor.value
     private var mixTapeType = MixTape.Type.C60
 
     private lateinit var toolbar: Toolbar
+
+    override fun onStart() {
+        super.onStart()
+        dialog.window.setLayout(matchParent, matchParent)
+        setStyle(DialogFragment.STYLE_NO_FRAME, 0)
+    }
 
     override fun ViewManager.createView() = linearLayout {
         orientation = LinearLayout.VERTICAL
 
         toolbar = toolbar {
             standardStyle()
+            setNavigationOnClickListener { dismiss() }
             topPadding = dimen(R.dimen.statusbar_height)
             title = "New Collection"
         }.lparams(width=matchParent)
@@ -72,30 +87,32 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
             button("Choose Color") {
                 onClick {
                     // Hide the keyboard if it's visible, we're picking a color here!
-                    inputMethodManager.hideSoftInputFromWindow(currentFocus.windowToken, 0)
+                    context.inputMethodManager.hideSoftInputFromWindow(activity!!.currentFocus.windowToken, 0)
                     ColorPickerDialog.newBuilder()
                         .setColor(playlistColor)
                         .setAllowCustom(true)
                         .setAllowPresets(true)
                         .setShowColorShades(true)
-                        .show(this@AddPlaylistActivity)
+                        .create().apply {
+                            setColorPickerDialogListener(this@AddPlaylistDialog)
+                        }.show(requireActivity().fragmentManager, "color-picker-dialog")
                 }
             }
 
             lateinit var mixTapeSpinner: Spinner
             spinner {
                 val choices = listOf(
-                    "Playlist",
-                    "Mixtape",
-                    "Album Collection"
+                    "Playlist" to CollaborativePlaylist::class,
+                    "Mixtape" to MixTape::class,
+                    "Album Collection" to AlbumCollection::class
                 )
-                adapter = ChoiceAdapter(ctx, choices)
+                adapter = ChoiceAdapter(context, choices.map { it.first })
 
                 onItemSelectedListener {
                     onItemSelected { adapter, view, pos, id ->
-                        val choice = choices[pos]
+                        val (_, choice) = choices[pos]
                         playlistType = choice
-                        mixTapeSpinner.visibility = if (choice == "Mixtape") {
+                        mixTapeSpinner.visibility = if (choice === MixTape::class) {
                             // Show different mixtape types.
                             View.VISIBLE
                         } else View.GONE
@@ -107,7 +124,7 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
             mixTapeSpinner = spinner {
                 visibility = View.GONE
                 val choices = MixTape.Type.values().toList()
-                adapter = ChoiceAdapter(ctx, choices)
+                adapter = ChoiceAdapter(context, choices)
                 onItemSelectedListener {
                     onItemSelected { adapter, view, pos, id ->
                         mixTapeType = choices[pos]
@@ -117,14 +134,14 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
 
             linearLayout {
                 button("Cancel").onClick {
-                    finish()
+                    dismiss()
                 }
                 button("Add Playlist") {
                     id = R.id.positive_button
                     onClick {
                         val pl = when (playlistType) {
                             // TODO: Use the actual user id string.
-                            "Mixtape" -> MixTape(
+                            MixTape::class -> MixTape(
                                 SyncService.selfUser,
                                 mixTapeType,
                                 playlistName,
@@ -135,7 +152,7 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
                                     (it as? Song)?.let { add(0, it) }
                                 }
                             }
-                            "Playlist" -> CollaborativePlaylist(
+                            CollaborativePlaylist::class -> CollaborativePlaylist(
                                 SyncService.selfUser,
                                 playlistName,
                                 playlistColor,
@@ -145,7 +162,7 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
                                     (it as? Song)?.let { add(it) }
                                 }
                             }
-                            "Album Collection" -> AlbumCollection(
+                            AlbumCollection::class -> AlbumCollection(
                                 SyncService.selfUser,
                                 playlistName,
                                 playlistColor,
@@ -158,7 +175,7 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
                             else -> kotlin.error("Unreachable")
                         }
                         context.library.addPlaylist(pl)
-                        finish()
+                        dismiss()
                     }
                 }
             }
@@ -176,11 +193,11 @@ class AddPlaylistActivity : BaseActivity(), ColorPickerDialogListener {
     }
 }
 
-class ChoiceAdapter<T>(ctx: Context, items: List<T>): ArrayAdapter<T>(ctx, R.layout.support_simple_spinner_dropdown_item, items) {
-//    override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup?): View {
-//        val item = getItem(position)
-//        return with(AnkoContext.create(context)) {
-//            textView(item.toString()) {}
-//        }
-//    }
+class ChoiceAdapter<T>(
+    ctx: Context,
+    items: List<T>
+): ArrayAdapter<T>(ctx, android.R.layout.simple_spinner_item, items) {
+    init {
+        setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+    }
 }

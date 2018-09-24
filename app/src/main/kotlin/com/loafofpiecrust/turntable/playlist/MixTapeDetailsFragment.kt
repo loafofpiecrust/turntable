@@ -17,11 +17,11 @@ import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.SongsFragment
-import com.loafofpiecrust.turntable.song.SongsFragmentStarter
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.ALT_BG_POOL
+import com.loafofpiecrust.turntable.util.replayOne
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.*
@@ -92,11 +92,10 @@ class MixTapeDetailsFragment: BaseFragment() {
             adapter = object : FragmentPagerAdapter(childFragmentManager) {
                 override fun getPageTitle(position: Int) = ('A' + position) + " Side"
 
-                override fun getItem(idx: Int) = SongsFragmentStarter.newInstance(
-                    SongsFragment.Category.Playlist(playlist.id, idx)
-                ).apply {
-//                    songs = playlist.tracksOnSide(idx).replayOne()
-                }
+                override fun getItem(idx: Int) = SongsFragment(
+                    SongsFragment.Category.Playlist(playlist.id, idx),
+                    playlist.tracksOnSide(idx).replayOne()
+                )
 
                 override fun getCount(): Int = playlist.type.sideCount
             }

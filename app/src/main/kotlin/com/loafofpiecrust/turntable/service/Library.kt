@@ -519,9 +519,7 @@ class Library : Service() {
             // Load all the songs from the MediaStore
             task {
                 updateSongs()
-            }.then {
                 updateLocalArtwork()
-            }.then {
                 fillMissingArtwork()
                 fillArtistArtwork()
             }

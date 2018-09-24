@@ -100,7 +100,7 @@ abstract class BaseDialogFragment: DialogFragment(), AnkoLogger {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         ActivityStarter.fill(this)
-        return AnkoContext.create(ctx, this).createView()
+        return AnkoContext.create(requireContext(), this).createView()
     }
 
     override fun onDestroyView() {

@@ -16,9 +16,6 @@ import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.util.fastScrollRecycler
-import com.loafofpiecrust.turntable.util.menuItem
-import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.service.Library
@@ -27,8 +24,7 @@ import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.style.turntableStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.replaceMainContent
-import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.replayOne
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.channels.BroadcastChannel
@@ -40,7 +36,14 @@ import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.ctx
 import java.util.*
 
-open class SongsFragment: BaseFragment() {
+open class SongsFragment(): BaseFragment() {
+    constructor(category: Category): this() {
+        this.category = category
+    }
+    constructor(category: Category, channel: BroadcastChannel<List<Song>>): this(category) {
+        this.songs = channel
+    }
+
     /// TODO: Separate display type from category!
     sealed class Category: Parcelable {
         @Parcelize class All: Category()
@@ -51,7 +54,7 @@ open class SongsFragment: BaseFragment() {
         @Parcelize data class Playlist(val id: UUID, val sideIdx: Int = 0): Category()
     }
 
-    @Arg lateinit var category: Category
+    private var category: Category by arg()
 
     private var retrieveTask: Deferred<List<Song>>? = null
 
@@ -59,12 +62,12 @@ open class SongsFragment: BaseFragment() {
 
     companion object {
         fun all(): SongsFragment {
-            return SongsFragmentStarter.newInstance(Category.All()).apply {
+            return SongsFragment(Category.All()).apply {
                 category = Category.All()
             }
         }
         fun onAlbum(id: AlbumId, album: ReceiveChannel<Album>): SongsFragment {
-            return SongsFragmentStarter.newInstance(Category.OnAlbum(id)).apply {
+            return SongsFragment(Category.OnAlbum(id)).apply {
                 songs = album.map(BG_POOL) { it.tracks }.replayOne()
             }
         }
@@ -89,9 +92,7 @@ open class SongsFragment: BaseFragment() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
         menu.menuItem(R.string.show_history).onClick {
             context?.replaceMainContent(
-                SongsFragmentStarter.newInstance(
-                    Category.History(null)
-                )
+                SongsFragment(Category.History(null))
             )
         }
     }

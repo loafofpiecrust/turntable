@@ -90,7 +90,6 @@
         </activity>
 
         <activity android:name=".ui.SettingsActivity" />
-        <activity android:name=".playlist.AddPlaylistActivity" />
         <activity android:name=".ui.AlbumEditorActivity" />
 
         <service

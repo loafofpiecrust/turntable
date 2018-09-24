@@ -17,7 +17,7 @@ import kotlin.reflect.KProperty
  *
  * Inspired by Adam Powell, he mentioned it during his IO/17 talk about Kotlin
  */
-class FragmentArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty<Fragment, T> {
+class FragmentArgument<T: Any>(private val defaultValue: (() -> T)?) : ReadWriteProperty<Fragment, T> {
     private var value: T? = null
 
     override operator fun getValue(thisRef: Fragment, property: KProperty<*>): T {
@@ -31,7 +31,7 @@ class FragmentArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty
                 value = (storedValue as? T) ?: runBlocking { deserialize<T>(storedValue as ByteArray) }
             } catch (e: Throwable) {
                 // If the argument wasn't provided, attempt to fallback on the default value.
-                value = defaultValue
+                value = defaultValue?.run { invoke() }
             }
         }
         return value ?: throw IllegalStateException("Property ${property.name} could not be read")
@@ -65,7 +65,9 @@ class FragmentArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty
     }
 }
 
-fun <T: Any> Fragment.arg(defaultValue: T? = null) = FragmentArgument(defaultValue)
+fun <T: Any> Fragment.arg() = FragmentArgument<T>(null)
+fun <T: Any> Fragment.arg(defaultValue: T) = FragmentArgument { defaultValue }
+fun <T: Any> Fragment.arg(defaultValue: () -> T) = FragmentArgument(defaultValue)
 
 
 

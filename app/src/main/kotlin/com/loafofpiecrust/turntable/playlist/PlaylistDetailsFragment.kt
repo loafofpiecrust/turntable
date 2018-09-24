@@ -13,7 +13,6 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.SongsFragment
-import com.loafofpiecrust.turntable.song.SongsFragmentStarter
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.ui.BaseFragment
@@ -63,8 +62,8 @@ class PlaylistDetailsFragment: BaseFragment() {
 //        fitsSystemWindows = true
 
         playlist = runBlocking {
-            ctx.library.findPlaylist(playlistId).first()
-                ?: ctx.library.findCachedPlaylist(playlistId).first()
+            context.library.findPlaylist(playlistId).first()
+                ?: context.library.findCachedPlaylist(playlistId).first()
         } as CollaborativePlaylist
 
         if (playlist.isPublished) {
@@ -172,10 +171,8 @@ class PlaylistDetailsFragment: BaseFragment() {
             frameLayout {
                 id = R.id.songs
                 fragment {
-                    SongsFragmentStarter.newInstance(
-                        SongsFragment.Category.Playlist(playlistId)
-                    ).apply {
-//                        songs = playlist.tracks.replayOne()
+                    SongsFragment(SongsFragment.Category.Playlist(playlistId)).apply {
+                        songs = playlist.tracks.replayOne()
                     }
                 }
             }.lparams(width = matchParent, height = matchParent) {

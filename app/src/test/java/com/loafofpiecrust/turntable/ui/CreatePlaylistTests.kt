@@ -11,14 +11,13 @@ import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
-import com.loafofpiecrust.turntable.playlist.AddPlaylistActivity
+import com.loafofpiecrust.turntable.playlist.AddPlaylistDialog
 import com.loafofpiecrust.turntable.playlist.AddPlaylistActivityStarter
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.sync.SyncService
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.firstOrNull
 import kotlinx.coroutines.experimental.runBlocking
-import org.jetbrains.anko.find
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -47,10 +46,10 @@ class CreatePlaylistTests {
 
     @Test fun `create playlist`() {
         val activity = Robolectric.buildActivity(
-            AddPlaylistActivity::class.java,
+            AddPlaylistDialog::class.java,
             AddPlaylistActivityStarter.getIntent(
                 App.instance,
-                AddPlaylistActivity.TrackList(listOf(track1, track2))
+                AddPlaylistDialog.TrackList(listOf(track1, track2))
             )
         ).setup().get()
 

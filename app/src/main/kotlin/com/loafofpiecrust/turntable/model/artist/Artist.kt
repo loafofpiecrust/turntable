@@ -60,7 +60,8 @@ interface Artist: Music {
 
     fun toPartial() = PartialArtist(id)
 
-    fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> = loadArtwork(req)
+    fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
+        Library.instance.loadArtistImage(req, id)
     fun loadArtwork(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
         Library.instance.loadArtistImage(req, id).map {
             (it ?: SearchApi.fullArtwork(this, true)?.let {

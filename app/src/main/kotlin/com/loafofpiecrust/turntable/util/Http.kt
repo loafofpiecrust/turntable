@@ -18,11 +18,22 @@ object Http {
         }.build()!!
     }
 
-    enum class CacheLevel {
+    enum class CacheLevel(val controller: CacheControl) {
         // 0 = no cache (?), 1 = few minutes (artists), 2 = hours (albums)
-        MINIMAL,
-        PAGE,
-        SESSION
+        MINIMAL(CacheControl.Builder()
+            .maxAge(10, TimeUnit.SECONDS)
+            .build()
+        ),
+        PAGE(CacheControl.Builder()
+            .maxAge(10, TimeUnit.MINUTES) // when we have internet
+            .maxStale(6, TimeUnit.HOURS) // if we can't get online
+            .build()
+        ),
+        SESSION(CacheControl.Builder()
+            .maxAge(1, TimeUnit.HOURS)
+            .maxStale(1, TimeUnit.DAYS)
+            .build()
+        )
     }
     
     suspend fun get(
@@ -31,28 +42,17 @@ object Http {
         headers: Map<String, String> = mapOf(),
         cacheLevel: CacheLevel = CacheLevel.MINIMAL
     ): Response {
-        val url = HttpUrl.parse(url)?.newBuilder()?.apply {
+        val url = HttpUrl.parse(url)!!.newBuilder().apply {
             params.forEach { k, v ->
                 addQueryParameter(k, v)
             }
-        }?.build()
+        }.build()
 
         val req = Request.Builder()
-            .url(url!!)
+            .url(url)
             .get()
             .headers(Headers.of(headers))
-            .cacheControl(
-                when (cacheLevel) {
-                    CacheLevel.MINIMAL -> CacheControl.Builder()
-                        .maxAge(10, TimeUnit.SECONDS)
-                    CacheLevel.SESSION -> CacheControl.Builder()
-                        .maxAge(1, TimeUnit.HOURS)
-                        .maxStale(1, TimeUnit.DAYS)
-                    CacheLevel.PAGE -> CacheControl.Builder()
-                        .maxAge(10, TimeUnit.MINUTES) // when we have internet
-                        .maxStale(6, TimeUnit.HOURS) // if we can't get online
-                }.build()
-            ).build()
+            .cacheControl(cacheLevel.controller).build()
 
         return client.newCall(req).executeSuspended()
     }

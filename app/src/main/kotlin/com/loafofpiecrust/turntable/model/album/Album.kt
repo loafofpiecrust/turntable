@@ -116,7 +116,8 @@ interface Album: Music {
             )
         }
 
-    fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> = loadCover(req)
+    fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
+        Library.instance.loadAlbumCover(req, id)
 
 
     interface RemoteDetails: Serializable, Parcelable {

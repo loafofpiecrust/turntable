@@ -5,7 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.support.v7.widget.PopupMenu
+import android.widget.PopupMenu
 import android.view.*
 import android.widget.ImageButton
 import com.github.daemontus.Option
