@@ -13,14 +13,14 @@ import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.browse.LocalApi
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.awaitAll
+import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.runBlocking
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import org.jetbrains.anko.*
@@ -41,7 +41,7 @@ class AlbumEditorActivity : BaseActivity() {
     private lateinit var yearEdit: EditText
 
     override fun ViewManager.createView() = constraintLayout {
-        val album = runBlocking { Library.instance.findAlbum(albumId).first() }!!
+        val album = runBlocking { LocalApi.find(albumId)!! }
 
         val artwork = imageView {
             album.loadCover(Glide.with(this)).consumeEach(UI) {

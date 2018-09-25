@@ -6,26 +6,40 @@ import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.model.song.SongId
 import kotlinx.coroutines.experimental.channels.first
+import me.xdrop.fuzzywuzzy.FuzzySearch
 
 
 object LocalApi: SearchApi {
-    override suspend fun searchArtists(query: String) = emptyList<Artist>()
+    private val library: Library get() = Library.instance
 
-    override suspend fun searchAlbums(query: String) = emptyList<Album>()
+    override suspend fun searchArtists(query: String) = library.artists.value.filter {
+        FuzzySearch.partialRatio(it.id.displayName, query) > 80
+    }
 
-    override suspend fun searchSongs(query: String) = emptyList<Song>()
+    override suspend fun searchAlbums(query: String) = library.albums.value.filter {
+        FuzzySearch.partialRatio(it.id.displayName, query) > 80
+    }
+
+    override suspend fun searchSongs(query: String) = library.songs.value.filter {
+        FuzzySearch.partialRatio(it.id.displayName, query) > 80
+    }
 
     override suspend fun find(album: AlbumId): Album? {
-        return Library.instance.findAlbum(album).first()
+        return library.findAlbum(album).first()
     }
 
     override suspend fun find(artist: ArtistId): Artist? {
-        return Library.instance.findArtist(artist).first()
+        return library.findArtist(artist).first()
+    }
+
+    override suspend fun find(song: SongId): Song? {
+        return library.findSong(song).first()
     }
 
     override suspend fun fullArtwork(album: Album, search: Boolean): String? {
-        return Library.instance.findAlbumExtras(album.id).first()?.artworkUri
+        return library.findAlbumExtras(album.id).first()?.artworkUri
     }
 
     override suspend fun fullArtwork(artist: Artist, search: Boolean): String? {

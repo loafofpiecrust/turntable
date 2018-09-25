@@ -52,10 +52,18 @@
         <item name="android:popupTheme">@style/AppTheme.PopupOverlay</item>
     </style>
 
-    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Dark">
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light">
         <item name="android:popupBackground">@color/background</item>
         <item name="android:overlapAnchor">true</item>
     </style>
+
+    <!--<style name="AppTheme.FullScreenDialog" parent="AppTheme">-->
+        <!--<item name="android:paddingRight">0dp</item>-->
+        <!--<item name="android:paddingLeft">0dp</item>-->
+        <!--<item name="android:layout_width">match_parent</item>-->
+        <!--<item name="android:layout_height">match_parent</item>-->
+        <!--<item name="android:windowNoTitle">true</item>-->
+    <!--</style>-->
 
     <!--<stidname="AppTheme.SearchBox">-->
         <!--&lt;!&ndash; Background for the search bar &ndash;&gt;-->

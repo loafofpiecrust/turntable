@@ -30,11 +30,11 @@ import org.jetbrains.anko.textColor
 open class SongsAdapter(
     private val category: SongsFragment.Category? = null,
     private val listener: (List<Song>, Int) -> Unit
-): RecyclerAdapter<Song, RecyclerListItemOptimized>(
-    itemsSame = { a, b, aIdx, bIdx -> a.id == b.id },
-    contentsSame = { a, b, aIdx, bIdx -> a == b }
-), FastScrollRecyclerView.SectionedAdapter {
+): RecyclerAdapter<Song, RecyclerListItemOptimized>(), FastScrollRecyclerView.SectionedAdapter {
     protected val progressSubs = HashMap<RecyclerListItemOptimized, Job>()
+
+    override fun itemsSame(a: Song, b: Song, aIdx: Int, bIdx: Int) =
+        a.id == b.id
 
     override fun getSectionName(position: Int): String
         = data[position].id.name.first().toUpperCase().toString()

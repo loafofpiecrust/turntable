@@ -156,12 +156,7 @@ class ArtistsFragment : BaseFragment() {
 
 class ArtistsAdapter(
     private val listener: (RecyclerItem, List<Artist>, Int) -> Unit
-) : RecyclerAdapter<Artist, RecyclerItem>(
-    itemsSame = { a, b, aIdx, bIdx -> a.id == b.id },
-    contentsSame = { a, b, aIdx, bIdx -> a.id == b.id /*&& a.artworkUrl == b.artworkUrl && a.remote == b.remote*/ }
-),
-    FastScrollRecyclerView.SectionedAdapter
-{
+): RecyclerAdapter<Artist, RecyclerItem>(), FastScrollRecyclerView.SectionedAdapter {
     var gridSize: Int = 3
 
     override fun getSectionName(position: Int)
@@ -216,4 +211,10 @@ class ArtistsAdapter(
         imageJobs.forEach { (holder, job) -> job.cancel() }
         imageJobs.clear()
     }
+
+    override fun itemsSame(a: Artist, b: Artist, aIdx: Int, bIdx: Int) =
+        a.id == b.id
+
+    override fun contentsSame(a: Artist, b: Artist, aIdx: Int, bIdx: Int) =
+        a.id == b.id /*&& a.artworkUrl == b.artworkUrl && a.remote == b.remote*/
 }

@@ -55,8 +55,8 @@ object Discogs: SearchApi, AnkoLogger {
     }
 
 
-    private val ARTIST_OF_MANY by lazy { Regex("\\(\\d+\\)$") }
-    private val ARTIST_ALT_NAME by lazy { Regex("\\*$") }
+    private val ARTIST_OF_MANY = Regex("\\(\\d+\\)$")
+    private val ARTIST_ALT_NAME = Regex("\\*$")
     private fun cleanArtistName(artist: String) = ArtistId(
         artist.replace(ARTIST_OF_MANY, "")
             .replace(ARTIST_ALT_NAME, "")

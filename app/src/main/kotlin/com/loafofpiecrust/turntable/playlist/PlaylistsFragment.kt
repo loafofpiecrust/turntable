@@ -65,10 +65,7 @@ class PlaylistsFragment: BaseFragment() {
 
     class Adapter(
         val listener: (Playlist) -> Unit
-    ): RecyclerAdapter<Playlist, RecyclerListItem>(
-        itemsSame = { a, b, aIdx, bIdx -> a.id == b.id },
-        contentsSame = { a, b, aIdx, bIdx -> a == b }
-    ) {
+    ): RecyclerAdapter<Playlist, RecyclerListItem>() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerListItem
             = RecyclerListItem(parent, 3, useIcon = true)
 
@@ -100,6 +97,10 @@ class PlaylistsFragment: BaseFragment() {
             holder.card.setOnClickListener {
                 listener.invoke(item)
             }
+        }
+
+        override fun itemsSame(a: Playlist, b: Playlist, aIdx: Int, bIdx: Int): Boolean {
+            return a.id == b.id
         }
     }
 }

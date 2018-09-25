@@ -1,12 +1,12 @@
 package com.loafofpiecrust.turntable.ui
 
-import android.content.Context
 import android.graphics.Rect
 import android.graphics.Typeface
 import android.support.constraint.ConstraintSet
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
+import android.support.v7.widget.helper.ItemTouchHelper
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -20,6 +20,7 @@ import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.runBlocking
@@ -34,24 +35,15 @@ import org.jetbrains.anko.sdk27.coroutines.textChangedListener
 import java.util.*
 
 // TODO: Make interface for music data types that has their shared qualities: mainly an id. Then, maybe that'll allow some other generalization too.
-abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
-    val itemsSame: RecyclerAdapter<T, VH>.(T, T, Int, Int) -> Boolean = { a, b, aIdx, bIdx -> a === b },
-    val contentsSame: RecyclerAdapter<T, VH>.(T, T, Int, Int) -> Boolean = { a, b, aIdx, bIdx -> a == b }
-): RecyclerView.Adapter<VH>() {
+abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>: RecyclerView.Adapter<VH>() {
     protected var data: List<T> = listOf()
-//    private var diffTask: Job? = null
     private val pendingUpdates = ArrayDeque<List<T>>()
-    protected var _subscription: Job? = null
+    protected var dataUpdateJob: Job? = null
 
     override fun getItemCount(): Int = data.size
 
-    open fun addItem(item: T) = synchronized(this) {
-        updateData(if (pendingUpdates.isNotEmpty()) {
-            pendingUpdates.last
-        } else {
-            data
-        } + item)
-    }
+    open fun itemsSame(a: T, b: T, aIdx: Int, bIdx: Int) = (a === b)
+    open fun contentsSame(a: T, b: T, aIdx: Int, bIdx: Int) = (a == b)
 
     protected inner class Differ(val old: List<T>, val new: List<T>) : DiffUtil.Callback() {
         override fun getOldListSize() = old.size
@@ -66,44 +58,44 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
             = contentsSame(old[oldIdx], new[newIdx], oldIdx, newIdx)
     }
 
-    open fun updateData(newData: List<T>, cb: () -> Unit = {}) {
-        synchronized(this) {
-            pendingUpdates.addLast(newData)
-            if (pendingUpdates.size == 1) {
-                internalUpdate()
-            }
-        }
-    }
+//    open fun updateData(newData: List<T>, cb: () -> Unit = {}) {
+//        synchronized(this) {
+//            pendingUpdates.addLast(newData)
+//            if (pendingUpdates.size == 1) {
+//                internalUpdate()
+//            }
+//        }
+//    }
 
-    private fun internalUpdate(): Unit = run {
-        val newData = pendingUpdates.first ?: return
-        if (data.isNotEmpty()) {
-            task {
-                synchronized(this) {
-                    DiffUtil.calculateDiff(Differ(data, newData))
-                }
-            }.then(UI) { diff ->
-                data = newData
-                diff.dispatchUpdatesTo(this@RecyclerAdapter)
-                pendingUpdates.removeFirst()
-                if (pendingUpdates.isNotEmpty()) {
-//                if (pendingUpdates.size > 1) { // more than one update queued
-//                    val lastList = pendingUpdates.last
-//                    pendingUpdates.clear()
-//                    pendingUpdates.add(lastList)
+//    private fun internalUpdate(): Unit = run {
+//        val newData = pendingUpdates.first ?: return
+//        if (data.isNotEmpty()) {
+//            task {
+//                synchronized(this) {
+//                    DiffUtil.calculateDiff(Differ(data, newData))
 //                }
-                    internalUpdate()
-                }
-            }
-        } else runBlocking(UI) {
-            data = newData
-            notifyItemRangeInserted(0, newData.size)
-            pendingUpdates.removeFirst()
-            if (pendingUpdates.isNotEmpty()) {
-                internalUpdate()
-            }
-        }
-    }
+//            }.then(UI) { diff ->
+//                data = newData
+//                diff.dispatchUpdatesTo(this@RecyclerAdapter)
+//                pendingUpdates.removeFirst()
+//                if (pendingUpdates.isNotEmpty()) {
+////                if (pendingUpdates.size > 1) { // more than one update queued
+////                    val lastList = pendingUpdates.last
+////                    pendingUpdates.clear()
+////                    pendingUpdates.add(lastList)
+////                }
+//                    internalUpdate()
+//                }
+//            }
+//        } else runBlocking(UI) {
+//            data = newData
+//            notifyItemRangeInserted(0, newData.size)
+//            pendingUpdates.removeFirst()
+//            if (pendingUpdates.isNotEmpty()) {
+//                internalUpdate()
+//            }
+//        }
+//    }
 
     fun replaceData(newData: List<T>) = task(UI) {
         val newSize = newData.size
@@ -131,14 +123,12 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
     }
 
     fun subscribeData(obs: ReceiveChannel<List<T>>) {
-        _subscription?.cancel()
+        dataUpdateJob?.cancel()
         if (!obs.isEmpty && !obs.isClosedForReceive) {
             println("recycler restoring data?")
             data = runBlocking { obs.receive() }
-        } else {
-            println("recycler newly subscribing to data")
         }
-        _subscription = task(BG_POOL) {
+        dataUpdateJob = async(BG_POOL) {
             obs.consumeEach { newData ->
                 val diff = DiffUtil.calculateDiff(Differ(data, newData))
                 withContext(UI) {
@@ -151,30 +141,74 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
         super.onDetachedFromRecyclerView(recyclerView)
-        _subscription?.cancel()
-        _subscription = null
-    }
-
-    fun onItemMove(fromIdx: Int, toIdx: Int) {
-        updateData(data.shifted(fromIdx, toIdx))
-    }
-
-    fun onItemDismiss(idx: Int) {
-        updateData(data.without(idx))
+        dataUpdateJob?.cancel()
+        dataUpdateJob = null
     }
 }
 
-class StaticRecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
-    private val ctx: Context,
-    private val viewHolder: VH
-): RecyclerAdapter<T, VH>() {
-    override fun onBindViewHolder(holder: VH, position: Int) {
+abstract class RecyclerBroadcastAdapter<T, VH: RecyclerView.ViewHolder>: RecyclerAdapter<T, VH>() {
+    abstract val channel: ReceiveChannel<List<T>>
+    abstract val moveEnabled: Boolean
+    abstract val dismissEnabled: Boolean
 
+    init {
+        subscribeData(channel)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
-        ctx.kryo.let { it.copy(viewHolder) }
+    open fun onItemMove(fromIdx: Int, toIdx: Int) {}
+    open fun canMoveItem(index: Int): Boolean = true
+    open fun canMoveItem(fromIdx: Int, toIdx: Int): Boolean = true
+    open fun onItemDismiss(idx: Int) {}
 
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        if (moveEnabled || dismissEnabled) {
+            ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+                ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+                ItemTouchHelper.START or ItemTouchHelper.END
+            ) {
+                private var dragFrom = -1
+                private var dragTo = -1
+
+                override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
+                    val pos = viewHolder.adapterPosition
+                    return if (canMoveItem(pos)) {
+                        super.getMovementFlags(recyclerView, viewHolder)
+                    } else 0
+                }
+
+                override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                    if (dragFrom == -1) {
+                        dragFrom = viewHolder.adapterPosition
+                    }
+                    dragTo = target.adapterPosition
+                    return true
+                }
+
+                override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                    onItemDismiss(viewHolder.adapterPosition)
+                }
+
+                override fun isLongPressDragEnabled() = moveEnabled
+                override fun isItemViewSwipeEnabled() = dismissEnabled
+
+                override fun canDropOver(recyclerView: RecyclerView, current: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                    if (dragFrom == -1) {
+                        dragFrom = current.adapterPosition
+                    }
+                    return canMoveItem(target.adapterPosition) && canMoveItem(dragFrom, target.adapterPosition)
+                }
+
+                override fun clearView(recyclerView: RecyclerView?, viewHolder: RecyclerView.ViewHolder?) {
+                    super.clearView(recyclerView, viewHolder)
+                    if (dragFrom != -1 && dragTo != -1) {
+                        onItemMove(dragFrom, dragTo)
+                    }
+                    dragFrom = -1
+                    dragTo = -1
+                }
+            }).attachToRecyclerView(recyclerView)
+        }
+    }
 }
 
 open class RecyclerItem(view: View) : SectionedViewHolder(view) {

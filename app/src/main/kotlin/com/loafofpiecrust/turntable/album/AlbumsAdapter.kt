@@ -42,10 +42,10 @@ import org.jetbrains.anko.*
 class AlbumsAdapter(
     private val byArtist: Boolean,
     private val listener: ((RecyclerItem, Album) -> Unit)?
-) : RecyclerAdapter<Album, RecyclerItem>(
-    itemsSame = { a, b, aIdx, bIdx -> a.id == b.id },
-    contentsSame = { a, b, aIdx, bIdx -> a == b }
-), FastScrollRecyclerView.SectionedAdapter {
+) : RecyclerAdapter<Album, RecyclerItem>(), FastScrollRecyclerView.SectionedAdapter {
+    override fun itemsSame(a: Album, b: Album, aIdx: Int, bIdx: Int) =
+        a.id == b.id
+
     override fun getSectionName(position: Int): String
         = data[position].id.sortChar.toString()
 

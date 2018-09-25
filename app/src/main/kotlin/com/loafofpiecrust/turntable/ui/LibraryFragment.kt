@@ -87,11 +87,9 @@ class LibraryFragment: BaseFragment() {
 
                 title = "Turntable"
                 popupTheme = R.style.AppTheme_PopupOverlay
-                task(UI) {
-                    currentTab.consumeEach {
-                        menu.clear()
-                        fragments[it]?.get()?.onCreateOptionsMenu(menu, null)
-                    }
+                currentTab.consumeEach(UI) {
+                    menu.clear()
+                    fragments[it]?.get()?.onCreateOptionsMenu(menu, null)
                 }
 //
 //                subMenu("Grid size") {

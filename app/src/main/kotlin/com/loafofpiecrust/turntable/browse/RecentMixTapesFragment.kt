@@ -25,8 +25,12 @@ class RecentMixTapesFragment: BaseFragment() {
 
         frameLayout {
             recyclerView {
-                layoutManager = LinearLayoutManager(ctx)
+                layoutManager = LinearLayoutManager(context)
                 adapter = object : RecyclerAdapter<MixTape, RecyclerItem>() {
+                    init {
+                        subscribeData(mixtapes)
+                    }
+
                     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerItem =
                         RecyclerListItem(parent, 3, true)
 
@@ -36,14 +40,12 @@ class RecentMixTapesFragment: BaseFragment() {
                         holder.subLine.text = mt.type.name
                         given(mt.color) { holder.card.backgroundColor = it }
 
-                        holder.card.setOnClickListener {
-                            ctx.library.cachePlaylist(mt)
+                        holder.card.setOnClickListener { v ->
+                            v.context.library.cachePlaylist(mt)
                             val frag = PlaylistDetailsFragmentStarter.newInstance(mt.id, mt.name)
-                            ctx.replaceMainContent(frag, true)
+                            v.context.replaceMainContent(frag, true)
                         }
                     }
-                }.apply {
-                    subscribeData(mixtapes)
                 }
             }
         }

@@ -10,6 +10,7 @@ import com.chibatching.kotpref.filepref.objFilePref
 import com.evernote.android.state.State
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.artist.*
+import com.loafofpiecrust.turntable.browse.LocalApi
 import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.artist.Artist
@@ -61,7 +62,7 @@ class AlbumsFragment : BaseFragment() {
                             when (mode) {
                                 ArtistDetailsFragment.Mode.LIBRARY -> it
                                 ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE ->
-                                    Library.instance.findArtist(artist).firstOrNull()?.let { remote -> MergedArtist(it!!, remote) } ?: it
+                                    LocalApi.find(artist)?.let { local -> MergedArtist(it!!, local) } ?: it
                                 ArtistDetailsFragment.Mode.REMOTE -> it // use case?
                             }
                         }

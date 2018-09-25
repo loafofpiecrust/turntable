@@ -126,3 +126,6 @@ data class CombinedQueue(
             this
         }
 }
+
+fun CombinedQueue.indexWithinUpNext(index: Int): Boolean =
+    index > position && index <= position + nextUp.size

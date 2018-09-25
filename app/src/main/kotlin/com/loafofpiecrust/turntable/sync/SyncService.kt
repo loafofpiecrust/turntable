@@ -349,6 +349,10 @@ class SyncService : FirebaseMessagingService() {
             val songs: List<Song>,
             val mode: MusicPlayer.EnqueueMode
         ): Message()
+        data class ShiftQueueItem(
+            val fromIdx: Int,
+            val toIdx: Int
+        ): Message()
         data class RemoveFromQueue(val pos: Int): Message()
         data class PlaySongs(
             val songs: List<Song>,
