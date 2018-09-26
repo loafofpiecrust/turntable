@@ -7,10 +7,7 @@ import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.sync.SyncService
-import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.serialize
-import com.loafofpiecrust.turntable.util.toObject
-import com.loafofpiecrust.turntable.util.without
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.map
@@ -37,8 +34,8 @@ class AlbumCollection(
 
     override val tracks: ReceiveChannel<List<Song>>
         get() = albums.map {
-            it.asSequence().flatMap {
-                it.tracks.asSequence()
+            it.lazy.flatMap {
+                it.tracks.lazy
             }.toList()
         }
 

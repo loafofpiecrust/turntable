@@ -1,5 +1,7 @@
 package com.loafofpiecrust.turntable.util
 
+import kotlin.coroutines.experimental.buildSequence
+
 
 inline fun <T> List<T>.with(elem: T, pos: Int): List<T>
     = ListWith(this, listOf(elem), pos)
@@ -19,6 +21,15 @@ fun <T> List<T>.withoutElem(elem: T): List<T> {
 }
 fun <T> List<T>.withReplaced(pos: Int, newVal: T): List<T>
     = take(pos) + newVal + drop(pos + 1)
+
+fun <T> Sequence<T>.with(sub: Sequence<T>, pos: Int) =
+    sequenceOf(take(pos), sub, drop(pos)).flatten()
+fun <T> Sequence<T>.with(elem: T, pos: Int) = with(sequenceOf(elem), pos)
+fun <T> Sequence<T>.without(pos: Int) = take(pos) + drop(pos + 1)
+fun <T> Sequence<T>.replace(pos: Int, newVal: T): Sequence<T> =
+    sequenceOf(take(pos), sequenceOf(newVal), drop(pos + 1)).flatten()
+
+val <T> Iterable<T>.lazy inline get() = asSequence()
 
 
 

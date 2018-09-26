@@ -24,6 +24,7 @@ import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.async
 import org.jetbrains.anko.*
 import org.jetbrains.anko.custom.ankoView
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.experimental.CoroutineContext
 
 
@@ -162,4 +163,11 @@ fun MenuItem.onClick(
         }
         true
     }
+}
+
+inline fun <T> measureTime(tag: CharSequence, block: () -> T): T {
+    val start = System.nanoTime()
+    val res = block()
+    println("$tag took ${TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)}ms")
+    return res
 }

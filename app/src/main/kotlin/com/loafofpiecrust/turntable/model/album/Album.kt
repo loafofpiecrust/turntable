@@ -22,9 +22,6 @@ import com.loafofpiecrust.turntable.model.song.Music
 import com.loafofpiecrust.turntable.model.song.MusicId
 import com.loafofpiecrust.turntable.model.song.SaveableMusic
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.util.getColorCompat
-import com.loafofpiecrust.turntable.util.menuItem
-import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.PlaylistPickerDialog
@@ -32,8 +29,7 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
-import com.loafofpiecrust.turntable.util.task
-import com.loafofpiecrust.turntable.util.then
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
@@ -132,7 +128,7 @@ interface Album: Music {
 }
 
 val Album.hasTrackGaps: Boolean get() =
-    tracks.asSequence().zipWithNext().any { (lastSong, song) ->
+    tracks.lazy.zipWithNext().any { (lastSong, song) ->
         (song.track - lastSong.track > 1)
     }
 

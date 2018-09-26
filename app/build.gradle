@@ -10,6 +10,7 @@ apply plugin: 'kotlin-android-extensions'
 apply plugin: 'org.jmailen.kotlinter'
 apply plugin: 'com.getkeepsafe.dexcount'
 apply plugin: "com.vanniktech.dependency.graph.generator"
+//apply plugin: "de.mannodermaus.android-junit5"
 
 task copyTestClasses(type: Copy) {
     from "build/tmp/kotlin-classes/debug"
@@ -46,6 +47,8 @@ android {
     packagingOptions {
         pickFirst 'META-INF/DEPENDENCIES'
         pickFirst 'META-INF/app_debug.kotlin_module'
+        pickFirst 'META-INF/LICENSE.md'
+        pickFirst 'META-INF/LICENSE-notice.md'
     }
     defaultConfig {
         applicationId "com.loafofpiecrust.turntable"
@@ -322,6 +325,8 @@ dependencies {
     implementation "de.ruedigermoeller:fst:2.56"
     testImplementation "com.android.support.test:runner:1.0.2"
 
+    implementation 'com.github.andrewoma.dexx:kollection:0.7'
+
     // Better Recycler Adapter!
 
     //    implementation "eu.davidea:flexible-adapter:5.0.5"
@@ -331,9 +336,13 @@ dependencies {
     //    implementation "co.trikita:anvil-recyclerview-v7:0.5.1"
     testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5:$kotlin_version"
+//    androidTestImplementation "org.jetbrains.kotlin:kotlin-test-junit5:$kotlin_version"
     kaptTest "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
+//    kaptAndroidTest "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
     testImplementation "ch.tutteli.atrium:atrium-cc-en_GB-robstoll:0.7.0"
+//    androidTestImplementation "ch.tutteli.atrium:atrium-cc-en_GB-robstoll:0.7.0"
     testImplementation 'com.github.bright:shouldko:0.1.5'
+    testImplementation "io.mockk:mockk:1.8.7"
 //    testImplementation 'io.kotlintest:kotlintest-runner-junit5:3.1.10'
 //    testImplementation "org.mockito:mockito-core:2.+"
     testImplementation "org.robolectric:robolectric:3.8"

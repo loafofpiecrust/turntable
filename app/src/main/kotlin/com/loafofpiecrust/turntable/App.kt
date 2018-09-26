@@ -26,6 +26,9 @@ import com.loafofpiecrust.turntable.util.*
 import de.javakaffee.kryoserializers.ArraysAsListSerializer
 import de.javakaffee.kryoserializers.SubListSerializers
 import de.javakaffee.kryoserializers.UUIDSerializer
+import de.javakaffee.kryoserializers.dexx.ListSerializer
+import de.javakaffee.kryoserializers.dexx.MapSerializer
+import de.javakaffee.kryoserializers.dexx.SetSerializer
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.delay
@@ -56,23 +59,27 @@ class App: Application() {
                 addDefaultSerializer(ConflatedBroadcastChannel::class.java, CBCSerializer::class.java)
                 addDefaultSerializer(UUID::class.java, UUIDSerializer::class.java)
                 SubListSerializers.addDefaultSerializers(this)
+//                MapSerializer.registerSerializers(this)
+//                ListSerializer.registerSerializers(this)
+//                SetSerializer.registerSerializers(this)
 
-                register(SongId::class.java, 10)
-                register(AlbumId::class.java, 11)
-                register(ArtistId::class.java, 12)
+                register(SongId::class.java, 100)
+                register(AlbumId::class.java, 101)
+                register(ArtistId::class.java, 102)
 
-                register(Song::class.java, 13)
-                register(Album::class.java, 14)
+                register(Song::class.java, 103)
+                register(Album::class.java, 104)
 
-                register(emptyList<Nothing>().javaClass, 15)
-                register(UUID::class.java, UUIDSerializer(), 16)
-                register(ArrayList::class.java, 17)
-                register(Arrays.asList(0).javaClass, ArraysAsListSerializer(), 18)
+                register(emptyList<Nothing>().javaClass, 105)
+                register(UUID::class.java, UUIDSerializer(), 106)
+                register(ArrayList::class.java, 107)
+                register(Arrays.asList(0).javaClass, ArraysAsListSerializer(), 108)
 
-                register(SyncService.User::class.java, 19)
-                register(StaticQueue::class.java, 20)
-                register(SyncService.Friend::class.java, 21)
-                register(ConflatedBroadcastChannel::class.java, 22)
+                register(SyncService.User::class.java, 109)
+                register(StaticQueue::class.java, 110)
+                register(SyncService.Friend::class.java, 111)
+                register(ConflatedBroadcastChannel::class.java, 112)
+
             }
         }
 
@@ -98,7 +105,7 @@ class App: Application() {
         super.onCreate()
         _instance = WeakReference(this)
 
-//        FirebaseApp.initializeApp(this)
+        FirebaseApp.initializeApp(this)
 
 //        if (LeakCanary.isInAnalyzerProcess(this)) {
 //            // This process is dedicated to LeakCanary for heap analysis.

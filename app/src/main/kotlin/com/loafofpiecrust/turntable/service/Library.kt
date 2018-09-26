@@ -16,7 +16,7 @@ import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
-import com.esotericsoftware.minlog.Log
+import com.github.andrewoma.dexx.kollection.toImmutableSortedMap
 import com.github.salomonbrys.kotson.get
 import com.github.salomonbrys.kotson.nullString
 import com.github.salomonbrys.kotson.obj
@@ -35,24 +35,22 @@ import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.*
-import com.mcxiaoke.koi.ext.closeQuietly
 import com.mcxiaoke.koi.ext.intValue
 import com.mcxiaoke.koi.ext.longValue
 import com.mcxiaoke.koi.ext.stringValue
 import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.awaitAll
 import kotlinx.coroutines.experimental.channels.*
 import kotlinx.coroutines.experimental.delay
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
-import org.jetbrains.anko.info
 import java.io.File
 import java.io.Serializable
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.collections.LinkedHashMap
 import kotlin.coroutines.experimental.coroutineContext
 
 /// Manages all our music and album covers, including loading from MediaStore
@@ -93,20 +91,24 @@ class Library : Service() {
     val localSongs = ConflatedBroadcastChannel<List<Song>>(listOf())
     private val _albums = ConflatedBroadcastChannel<List<Album>>(listOf())
 
-    private val albumCovers = UserPrefs.albumMeta.openSubscription().map {
-        it.sortedWith(ALBUM_META_COMPARATOR).dedupMergeSorted({ a, b ->
-            ALBUM_META_COMPARATOR.compare(a, b) == 0
-        }, { a, b -> b })
-    }.replayOne()
+    private val albumCovers by lazy {
+        UserPrefs.albumMeta.openSubscription().map {
+            it.sortedWith(ALBUM_META_COMPARATOR).dedupMergeSorted({ a, b ->
+                ALBUM_META_COMPARATOR.compare(a, b) == 0
+            }, { a, b -> b })
+        }.replayOne()
+    }
 
-    private val artistMeta = UserPrefs.artistMeta.openSubscription().map {
-        it.sortedWith(ARTIST_META_COMPARATOR).dedupMergeSorted(
-            { a, b -> ARTIST_META_COMPARATOR.compare(a, b) == 0 },
-            { a, b -> b }
-        )
-    }.replayOne()
+    private val artistMeta by lazy {
+        UserPrefs.artistMeta.openSubscription().map {
+            it.sortedWith(ARTIST_META_COMPARATOR).dedupMergeSorted(
+                { a, b -> ARTIST_META_COMPARATOR.compare(a, b) == 0 },
+                { a, b -> b }
+            )
+        }.replayOne()
+    }
 
-    private val remoteAlbums = UserPrefs.remoteAlbums
+    val remoteAlbums get() = UserPrefs.remoteAlbums
 
     private val _cachedAlbums = ConflatedBroadcastChannel(listOf<Album>())
     private val cachedAlbums = _cachedAlbums.openSubscription().map {
@@ -128,12 +130,12 @@ class Library : Service() {
 //            (songs + remotes.flatMap { it.tracks }).sortedBy { it.searchKey }
 //        }
 
-    val localAlbums: ReceiveChannel<List<Album>> = localSongs.openSubscription().map {
-        it.groupBy {
+    val localAlbums: ReceiveChannel<List<Album>> get() = localSongs.openSubscription().map {
+        it.groupByTo(LinkedHashMap()) {
             (it.platformId as? LocalSongId)?.albumId
-        }.map {
-            val tracks = it.value.sortedBy { it.discTrack }
-            LocalAlbum(it.value.first().id.album, tracks)
+        }.values.map {
+            val tracks = it.sortedBy { it.discTrack }
+            LocalAlbum(it.first().id.album, tracks)
         }
     }
 
@@ -142,35 +144,39 @@ class Library : Service() {
      * Album sort key: name + artist
      * Song sort key: name + album + artist
      */
-    val albums: ConflatedBroadcastChannel<List<Album>> =
+    val albums: ConflatedBroadcastChannel<List<Album>> by lazy {
         combineLatest(localAlbums, remoteAlbums.openSubscription()) { a, b ->
-            (a + b).sortedBy { it.id }.dedupMergeSorted(
-                { a, b -> a.id == b.id },
-                { a, b -> MergedAlbum(a, b) }
-            )
+            measureTime("albumsLazy(${a.size + b.size})") {
+                (a.lazy + b.lazy).toListSortedBy { it.id }.dedupMergeSorted(
+                    { a, b -> a.id == b.id },
+                    { a, b -> MergedAlbum(a, b) }
+                )
+            }
         }.replayOne()
+    }
 
-
-    val songs: ConflatedBroadcastChannel<List<Song>> =
+    val songs: ConflatedBroadcastChannel<List<Song>> by lazy {
         albums.openSubscription().map {
-            // Doesn't make sense to sequence, b/c sorting allocates
-            it.flatMap { it.tracks }.sortedBy { it.id }
+            measureTime("songsLazy(${it.size} albums)") {
+                it.lazy.flatMap { it.tracks.lazy }.toListSortedBy { it.id }
+            }
         }.replayOne()
+    }
 
-    val artists: ConflatedBroadcastChannel<List<Artist>> = albums.openSubscription().map { albums ->
-        albums.groupBy { it.id.artist.displayName.toLowerCase() }.values.map { it: List<Album> ->
-            val firstAlbum = it.find { it is LocalAlbum } ?: it.first()
-//            val artistId = when (firstAlbum.local) {
-//                is Album.LocalDetails.Downloaded -> firstAlbum.local.artistId
-//                else -> 0
-//            }
-            // TODO: Use a dynamic sorting method: eg. sort by id, etc.
-            LocalArtist(
-                firstAlbum.id.artist,
-                it.sortedByDescending { it.year }
-            )
-        }.sortedBy { it.id }
-    }.replayOne()
+    val artists: ConflatedBroadcastChannel<List<Artist>> by lazy {
+        albums.openSubscription().map { albums ->
+            measureTime("artistsLazy(${albums.size} albums)") {
+                albums.groupBy { it.id.artist }.values.lazy.map { it: List<Album> ->
+                    val firstAlbum = it.find { it is LocalAlbum } ?: it.first()
+                    // TODO: Use a dynamic sorting method: eg. sort by id, etc.
+                    LocalArtist(
+                        firstAlbum.id.artist,
+                        it
+                    ) as Artist
+                }.toListSortedBy { it.id }
+            }
+        }.replayOne()
+    }
 
 
     private var updateTask: Deferred<Unit>? = null
@@ -580,7 +586,6 @@ class Library : Service() {
 //    }
 
     private fun compileSongsFrom(uri: Uri): List<Song> {
-        val songs = ArrayList<Song>()
         val cur = App.instance.contentResolver.query(
             uri,
             arrayOf(
@@ -601,6 +606,7 @@ class Library : Service() {
             null,
             null
         )
+        val songs = ArrayList<Song>(cur.count)
         if (cur == null) {
             error { "lopc: Cursor failed to load." }
         } else if (!cur.moveToFirst()) {
@@ -663,13 +669,13 @@ class Library : Service() {
         return songs
     }
 
-    private suspend fun updateSongs() {
+    private fun updateSongs() {
         // TODO: Add preference for including internal content (default = false)
         // Load the song library here
 //        val internal = async(BG_POOL) { compileSongsFrom(MediaStore.Audio.Media.INTERNAL_CONTENT_URI) }
         val external = compileSongsFrom(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
 
-        localSongs.send(/*internal.await() +*/ external)
+        localSongs.offer(/*internal.await() +*/ external)
     }
 
 //    private fun updateLocalArtwork() = async(CommonPool) {

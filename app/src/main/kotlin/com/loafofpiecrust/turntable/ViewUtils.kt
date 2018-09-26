@@ -29,6 +29,7 @@ import org.jetbrains.anko.sdk27.coroutines.onClick
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.coroutines.experimental.CoroutineContext
+import kotlin.coroutines.experimental.buildSequence
 import kotlin.coroutines.experimental.suspendCoroutine
 
 
@@ -68,16 +69,45 @@ inline fun <T> Collection<T>.dedupMergeSorted(isDup: (T, T) -> Boolean, merger: 
     val result = ArrayList<T>(this.size)
     var prev: T? = null
     this.forEach { curr ->
-        if (prev != null && isDup(prev!!, curr)) {
-            result.removeAt(result.size - 1)
-            result.add(merger(prev!!, curr))
+        prev = if (prev != null) {
+            if (isDup(prev!!, curr)) {
+                merger(prev!!, curr)
+            } else {
+                result.add(prev!!)
+                curr
+            }
         } else {
             result.add(curr)
+            curr
         }
-        prev = curr
     }
     return result.apply { trimToSize() }
 }
+
+inline fun <T> Sequence<T>.dedupMergeSorted(crossinline isDup: (T, T) -> Boolean, crossinline merger: (T, T) -> T) = buildSequence {
+    var prev: T? = null
+    forEach { curr ->
+        prev = if (prev != null) {
+            if (isDup(prev!!, curr)) {
+                merger(prev!!, curr)
+            } else {
+                yield(prev!!)
+                curr
+            }
+        } else {
+            yield(curr)
+            curr
+        }
+    }
+}
+
+inline fun <T, R : Comparable<R>> Sequence<T>.toListSortedBy(crossinline selector: (T) -> R?): List<T> {
+    val list = toMutableList()
+    list.sortWith(compareBy(selector))
+    return list
+}
+
+
 
 fun <T> List<T>.mergeSortDedup(other: List<T>, comp: Comparator<T>, merger: (T, T) -> T): List<T> {
     val result = ArrayList<T>(size + other.size)
@@ -139,6 +169,25 @@ fun <T> List<T>.shifted(from: Int, to: Int): List<T> = run {
         newList.add(finalTo, newList.removeAt(finalFrom))
         newList
     } else this
+}
+
+fun <T> Sequence<T>.shifted(from: Int, to: Int): Sequence<T> {
+    if (to == from) {
+        return this
+    } else if (to > from) {
+        val upToSource = take(from)
+        val source = upToSource.first()
+        return sequenceOf(
+            // up until the source
+            upToSource,
+            // after the source until the destination
+            drop(from + 1).take(to - from),
+            // the shifted element
+            sequenceOf(source),
+            // all after the destination
+            drop(to + 1)
+        ).flatten()
+    } else TODO()
 }
 
 fun <T> MutableList<T>.shift(from: Int, to: Int) {
