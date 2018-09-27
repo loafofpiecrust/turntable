@@ -30,8 +30,15 @@ import java.util.*
 
 
 class PlaylistDetailsFragment: BaseFragment() {
-    @Arg lateinit var playlistId: UUID
-    @Arg lateinit var playlistTitle: String
+    companion object {
+        fun newInstance(id: UUID, title: String) = PlaylistDetailsFragment().apply {
+            this.playlistId = id
+            this.playlistTitle = title
+        }
+    }
+
+    private var playlistId: UUID by arg()
+    private var playlistTitle: String by arg()
 
     lateinit var playlist: CollaborativePlaylist
 

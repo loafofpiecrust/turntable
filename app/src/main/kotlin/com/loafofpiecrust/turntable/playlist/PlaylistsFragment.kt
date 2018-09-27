@@ -21,6 +21,7 @@ import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItem
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.BG_POOL
+import com.loafofpiecrust.turntable.util.arg
 import kotlinx.coroutines.experimental.channels.produce
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.imageResource
@@ -30,8 +31,14 @@ import org.jetbrains.anko.textColor
 
 
 class PlaylistsFragment: BaseFragment() {
-    @Arg(optional=true) var user: SyncService.User? = null
-    @Arg(optional=true) var columnCount: Int = 0
+    companion object {
+        fun newInstance(user: SyncService.User? = null, columnCount: Int = 0) = PlaylistsFragment().apply {
+            this.user = user
+            this.columnCount = columnCount
+        }
+    }
+    var user: SyncService.User? by arg()
+    var columnCount: Int by arg()
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
         super.onCreateOptionsMenu(menu, inflater)
@@ -50,9 +57,9 @@ class PlaylistsFragment: BaseFragment() {
             println("playlist: opening '${playlist.name}'")
             ctx.replaceMainContent(
                 when(playlist) {
-                    is MixTape -> MixTapeDetailsFragmentStarter.newInstance(playlist.id, playlist.name)
+                    is MixTape -> MixTapeDetailsFragment.newInstance(playlist.id, playlist.name)
                     is AlbumCollection -> AlbumsFragment.fromChan(playlist.albums)
-                    else -> PlaylistDetailsFragmentStarter.newInstance(playlist.id, playlist.name)
+                    else -> PlaylistDetailsFragment.newInstance(playlist.id, playlist.name)
                 },
                 true
             )

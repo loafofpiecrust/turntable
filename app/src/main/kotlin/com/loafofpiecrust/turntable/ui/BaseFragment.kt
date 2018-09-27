@@ -47,7 +47,7 @@ abstract class BaseFragment: Fragment(), AnkoLogger {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ActivityStarter.fill(this)
+//        ActivityStarter.fill(this)
         onCreate()
     }
 

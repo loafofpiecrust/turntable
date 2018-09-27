@@ -444,9 +444,9 @@ inline fun <T> ConflatedBroadcastChannel<T>.repeat() {
 }
 
 
-fun View.popupMenu(block: Menu.() -> Unit) {
+fun View.popupMenu(gravity: Int = Gravity.CENTER, block: Menu.() -> Unit) {
     val popup = PopupMenu(
-        context, this, Gravity.CENTER,
+        context, this, gravity,
         0, R.style.AppTheme_PopupOverlay
     )
     block(popup.menu)

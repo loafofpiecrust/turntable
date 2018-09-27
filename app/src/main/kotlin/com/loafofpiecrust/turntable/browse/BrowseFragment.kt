@@ -15,7 +15,7 @@ import com.loafofpiecrust.turntable.model.song.Music
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.playlist.Playlist
-import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragmentStarter
+import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragment
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.song.*
@@ -141,7 +141,7 @@ class MusicAdapter(
                 holder.subLine.text = ctx.getString(R.string.playlist_author, item.owner, null)
                 holder.card.onClick {
                     ctx.replaceMainContent(
-                        PlaylistDetailsFragmentStarter.newInstance(item.id, item.name)
+                        PlaylistDetailsFragment.newInstance(item.id, item.name)
                     )
                 }
             }

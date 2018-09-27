@@ -38,7 +38,7 @@ private fun Kryo.concreteToBytes(obj: Any, expectedSize: Int = 256, compress: Bo
     }
 }
 
-fun Kryo.objectToBytes(obj: Any, expectedSize: Int = 512, compress: Boolean = false): ByteArray {
+fun Kryo.objectToBytes(obj: Any?, expectedSize: Int = 512, compress: Boolean = false): ByteArray {
     if (compress) {
         val baos = ByteArrayOutputStream(expectedSize)
         val os = Output(DeflaterOutputStream(baos))
@@ -52,14 +52,14 @@ fun Kryo.objectToBytes(obj: Any, expectedSize: Int = 512, compress: Boolean = fa
     }
 }
 
-fun <T: Any> Kryo.objectFromBytes(bytes: ByteArray, decompress: Boolean = false): T {
+fun <T> Kryo.objectFromBytes(bytes: ByteArray, decompress: Boolean = false): T {
     val input = if (decompress) {
         Input(InflaterInputStream(ByteArrayInputStream(bytes)))
     } else Input(bytes)
     return (readClassAndObject(input) as T).also { input.closeQuietly() }
 }
 
-private inline fun <reified T: Any> Kryo.concreteFromBytes(bytes: ByteArray, decompress: Boolean = false): T {
+private inline fun <reified T> Kryo.concreteFromBytes(bytes: ByteArray, decompress: Boolean = false): T {
     val input = if (decompress) {
         Input(InflaterInputStream(ByteArrayInputStream(bytes)))
     } else Input(bytes)
@@ -81,7 +81,7 @@ private val fst by lazy {
         )
     }
 }
-suspend fun serialize(obj: Any): ByteArray {
+suspend fun serialize(obj: Any?): ByteArray {
 //    val output = fst.objectOutput
 //    output.writeObject(obj)
 //    return output.buffer
@@ -103,13 +103,13 @@ suspend fun serialize(stream: OutputStream, obj: Any) {
     }
 }
 
-suspend fun <T: Any> deserialize(bytes: ByteArray): T {
+suspend fun <T> deserialize(bytes: ByteArray): T {
 //    @Suppress("UNCHECKED_CAST")
 //    return fst.asObject(bytes) as T
     return App.kryo.let { it.objectFromBytes<T>(bytes) }
 }
 
-suspend fun <T: Any> deserialize(stream: InputStream): T {
+suspend fun <T> deserialize(stream: InputStream): T {
 //    val input = fst.getObjectInput(stream)
 //    @Suppress("UNCHECKED_CAST")
 //    return (input.readObject() as T).also {

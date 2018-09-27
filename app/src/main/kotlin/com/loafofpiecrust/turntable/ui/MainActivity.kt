@@ -102,6 +102,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                     gravity = Gravity.START
                 }
             }
+            drawers!!
         }
         firstSheet {
             backgroundResource = R.color.background

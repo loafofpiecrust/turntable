@@ -30,15 +30,14 @@ interface SearchApi {
     companion object: SearchApi {
 
         /// All Music APIs in descending order of priority
-        private val APIS = arrayOf(
-            LocalApi,
+        val DEFAULT_APIS = arrayOf(
             Discogs,
             MusicBrainz,
             Spotify
         )
 
         private suspend fun <R: Any> overApis(block: suspend SearchApi.() -> R?): R? {
-            for (a in APIS) {
+            for (a in DEFAULT_APIS) {
                 if (!coroutineContext.isActive) return null
 
                 val res = tryOr(null) { block(a) }
@@ -50,10 +49,10 @@ interface SearchApi {
         }
 
         override suspend fun find(album: AlbumId): Album?
-            = overApis { find(album) }
+            = LocalApi.find(album) ?: overApis { find(album) }
 
         override suspend fun find(artist: ArtistId): Artist?
-            = overApis { find(artist) }
+            = LocalApi.find(artist) ?: overApis { find(artist) }
 
 //        override suspend fun find(song: Song): Song.RemoteDetails?
 //            = overApis { find(song) }

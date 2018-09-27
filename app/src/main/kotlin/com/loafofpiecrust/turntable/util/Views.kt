@@ -22,6 +22,7 @@ import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import fr.castorflex.android.circularprogressbar.CircularProgressBar
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.custom.ankoView
 import java.util.concurrent.TimeUnit
@@ -70,13 +71,13 @@ inline fun Toolbar.menuItem(
 }
 
 inline fun Menu.menuItem(
-    @StringRes titleRes: Int,
+    title: String,
     @DrawableRes iconId: Int? = null,
     @ColorInt color: Int? = null,
     showIcon: Boolean = false,
     init: MenuItem.() -> Unit = {}
 ): MenuItem {
-    val item = add(App.instance.getString(titleRes))
+    val item = add(title)
     if (iconId != null) {
         item.icon = App.instance.getDrawable(iconId)
         // TODO: Contrast with primary color instead?
@@ -93,6 +94,14 @@ inline fun Menu.menuItem(
     )
     return item
 }
+
+inline fun Menu.menuItem(
+    @StringRes titleRes: Int,
+    @DrawableRes iconId: Int? = null,
+    @ColorInt color: Int? = null,
+    showIcon: Boolean = false,
+    init: MenuItem.() -> Unit = {}
+) = menuItem(App.instance.getString(titleRes), iconId, color, showIcon, init)
 
 inline fun Toolbar.subMenu(title: String, init: SubMenu.() -> Unit) {
     val sub = menu.addSubMenu(title)
@@ -158,7 +167,7 @@ fun MenuItem.onClick(
     handler: suspend (v: MenuItem) -> Unit
 ) {
     setOnMenuItemClickListener { v ->
-        async(context) {
+        launch(context) {
             handler(v)
         }
         true

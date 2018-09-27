@@ -17,7 +17,7 @@ import kotlin.reflect.KProperty
  *
  * Inspired by Adam Powell, he mentioned it during his IO/17 talk about Kotlin
  */
-class FragmentArgument<T: Any>(private val defaultValue: (() -> T)?) : ReadWriteProperty<Fragment, T> {
+class FragmentArgument<T>(private val defaultValue: (() -> T)?) : ReadWriteProperty<Fragment, T> {
     private var value: T? = null
 
     override operator fun getValue(thisRef: Fragment, property: KProperty<*>): T {
@@ -65,9 +65,9 @@ class FragmentArgument<T: Any>(private val defaultValue: (() -> T)?) : ReadWrite
     }
 }
 
-fun <T: Any> Fragment.arg() = FragmentArgument<T>(null)
-fun <T: Any> Fragment.arg(defaultValue: T) = FragmentArgument { defaultValue }
-fun <T: Any> Fragment.arg(defaultValue: () -> T) = FragmentArgument(defaultValue)
+fun <T> Fragment.arg() = FragmentArgument<T>(null)
+fun <T> Fragment.arg(defaultValue: T) = FragmentArgument { defaultValue }
+fun <T> Fragment.arg(defaultValue: () -> T) = FragmentArgument(defaultValue)
 
 
 

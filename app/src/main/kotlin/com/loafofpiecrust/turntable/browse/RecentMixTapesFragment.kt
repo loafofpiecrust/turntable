@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.model.playlist.MixTape
-import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragmentStarter
+import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragment
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.util.produceTask
@@ -42,7 +42,7 @@ class RecentMixTapesFragment: BaseFragment() {
 
                         holder.card.setOnClickListener { v ->
                             v.context.library.cachePlaylist(mt)
-                            val frag = PlaylistDetailsFragmentStarter.newInstance(mt.id, mt.name)
+                            val frag = PlaylistDetailsFragment.newInstance(mt.id, mt.name)
                             v.context.replaceMainContent(frag, true)
                         }
                     }

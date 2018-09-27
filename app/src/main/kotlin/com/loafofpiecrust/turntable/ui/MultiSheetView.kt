@@ -6,6 +6,7 @@ import android.support.design.widget.BottomSheetBehavior
 import android.support.design.widget.CoordinatorLayout
 import android.util.AttributeSet
 import android.view.View
+import android.view.ViewManager
 import android.widget.FrameLayout
 import com.loafofpiecrust.turntable.R
 import org.jetbrains.anko.design.coordinatorLayout
@@ -21,12 +22,11 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
         block = init
         block.invoke(this)
 
-        mainContainer = frameLayout {
-            mainContentInit?.invoke(this)
+        mainContainer = mainContentInit?.invoke(this)?.apply {
             layoutParams = CoordinatorLayout.LayoutParams(matchParent, matchParent).apply {
                 bottomMargin = sheet1PeekHeight
             }
-        }
+        }!!
 
         sheet1 = frameLayout {
             sheet1Container = frameLayout {
@@ -39,6 +39,20 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
             }.lparams(width=matchParent, height=sheet1PeekHeight)
 
             coordinatorLayout {
+//                sheet2 = frameLayout {
+//                    sheet2Container = frameLayout {
+//                        secondSheetInit?.invoke(this)
+//                    }.lparams(matchParent, matchParent)
+//
+//                    sheet2Peek = frameLayout {
+//                        secondSheetPeekInit?.invoke(this)
+//                    }.lparams(width=matchParent, height=sheet2PeekHeight)
+//                }.lparams(width=matchParent, height=sheet2PeekHeight*3) {
+//                    behavior = CustomBottomSheetBehavior<FrameLayout>().apply {
+//                        peekHeight = sheet2PeekHeight
+//                    }.also { bottomSheetBehavior2 = it }
+//                }
+
                 sheet2 = frameLayout {
                     sheet2Container = frameLayout {
                         secondSheetInit?.invoke(this)
@@ -151,7 +165,7 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
     }
 
 
-    fun mainContent(init: FrameLayout.() -> Unit) {
+    fun mainContent(init: ViewManager.() -> View) {
         mainContentInit = init
     }
 
@@ -170,7 +184,7 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
     }
 
 
-    private var mainContentInit: (FrameLayout.() -> Unit)? = null
+    private var mainContentInit: (ViewManager.() -> View)? = null
     private var firstSheetInit: (FrameLayout.() -> Unit)? = null
     private var firstSheetPeekInit: (FrameLayout.() -> Unit)? = null
     private var secondSheetInit: (FrameLayout.() -> Unit)? = null

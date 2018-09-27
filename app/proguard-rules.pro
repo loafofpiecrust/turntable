@@ -15,9 +15,9 @@
 # debugging stack traces.
 -keepattributes SourceFile,LineNumberTable
 #-keep com.sothree.slidinguppanel.*
-#-keep class com.loafofpiecrust.turntable.**
+-keep class com.loafofpiecrust.turntable.** { *; }
 #-keep class com.loafofpiecrust.turntable.**$** { *; }
--keep class com.loafofpiecrust.turntable.ui.*$** { *; }
+#-keep class com.loafofpiecrust.turntable.ui.*$** { *; }
 -keep class * extends com.bumptech.glide.module.AppGlideModule
 -keep class com.loafofpiecrust.**$Parcelable { *; }
 #-keep class com.frostwire.jlibtorrent.swig.** { *; }
@@ -103,6 +103,8 @@
 #-keep class com.android.tools.profiler.agent.okhttp.OkHttp3Interceptor { *; }
 
 -keepclassmembers class com.esotericsoftware.kryo.serializers.** { *; }
+
+-keep class okhttp3.Headers { *; }
 
 #-keepnames class kotlin.reflect.**
 #-keepclassmembers class java.util.** { <init>(...); }

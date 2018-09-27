@@ -87,17 +87,24 @@ object Http {
 }
 
 suspend fun Call.executeSuspended(): Response = suspendCancellableCoroutine { cont ->
+    var completed = false
     cont.invokeOnCancellation {
-        tryOr(Unit) {
+        if (!isCanceled && !completed) {
             cancel()
         }
     }
 
     enqueue(object: Callback {
         override fun onFailure(call: Call, e: IOException) {
-            cont.resumeWithException(e)
+            completed = true
+            if (call.isCanceled) {
+                cont.cancel()
+            } else {
+                cont.resumeWithException(e)
+            }
         }
         override fun onResponse(call: Call, response: Response) {
+            completed = true
             try {
                 cont.resume(response)
             } catch (e: CancellationException) {

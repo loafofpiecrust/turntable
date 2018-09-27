@@ -15,7 +15,7 @@ import com.loafofpiecrust.turntable.model.song.Music
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
-import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragmentStarter
+import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragment
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.tryOr
 import com.loafofpiecrust.turntable.ui.replaceMainContent
@@ -363,7 +363,7 @@ object Spotify: SearchApi {
 
         task(UI) {
             ctx.replaceMainContent(
-                PlaylistDetailsFragmentStarter.newInstance(newPl.id, newPl.name),
+                PlaylistDetailsFragment.newInstance(newPl.id, newPl.name),
                 true
             )
         }

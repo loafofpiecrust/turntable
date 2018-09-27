@@ -10,8 +10,6 @@ import android.view.ViewManager
 import android.widget.LinearLayout
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.playlist.MixTape
-import com.loafofpiecrust.turntable.util.menuItem
-import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.SyncService
@@ -20,8 +18,7 @@ import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.util.ALT_BG_POOL
-import com.loafofpiecrust.turntable.util.replayOne
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.*
@@ -35,8 +32,15 @@ import java.util.*
 
 
 class MixTapeDetailsFragment: BaseFragment() {
-    @Arg lateinit var playlistId: UUID
-    @Arg lateinit var playlistTitle: String
+    companion object {
+        fun newInstance(id: UUID, title: String) = MixTapeDetailsFragment().apply {
+            this.playlistId = id
+            this.playlistTitle = title
+        }
+    }
+
+    private var playlistId: UUID by arg()
+    private var playlistTitle: String by arg()
 
     private lateinit var tabs: TabLayout
     private lateinit var playlist: MixTape
