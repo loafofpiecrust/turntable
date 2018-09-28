@@ -42,6 +42,8 @@ import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.experimental.channels.consumeEach
+import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.*
 import org.jetbrains.anko.design.navigationView
@@ -155,22 +157,25 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
 
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
-                .replace(R.id.mainContentContainer, LibraryFragmentStarter.newInstance())
+                .replace(R.id.mainContentContainer, LibraryFragment())
                 .commit()
         }
 
         // Start out with collapsed sheets
 //        sheets.hide(true, false)
 
-        MusicService.instance.switchMap {
-            it.player.queue
-        }.consumeEach(UI) { q ->
-            if (q.current == null) {
-                if (!sheets.isHidden) {
-                    sheets.hide(true, true)
+
+        launch {
+            MusicService.instance.switchMap {
+                it.player.queue
+            }.consumeEach { q ->
+                if (q.current == null) {
+                    if (!sheets.isHidden) {
+                        sheets.hide(true, true)
+                    }
+                } else if (sheets.isHidden) {
+                    sheets.unhide(true)
                 }
-            } else if (sheets.isHidden) {
-                sheets.unhide(true)
             }
         }
 
@@ -266,7 +271,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        ActivityStarter.fill(this)
+        ActivityStarter.fill(this, intent.extras)
 
         val action = action
         when (action) {

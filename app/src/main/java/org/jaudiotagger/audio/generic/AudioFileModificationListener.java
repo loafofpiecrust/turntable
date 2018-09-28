@@ -18,8 +18,6 @@
  */
 package org.jaudiotagger.audio.generic;
 
-import android.support.v4.provider.DocumentFile;
-
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.exceptions.ModifyVetoException;
 

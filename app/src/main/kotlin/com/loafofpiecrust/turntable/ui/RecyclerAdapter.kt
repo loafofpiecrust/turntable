@@ -198,7 +198,7 @@ abstract class RecyclerBroadcastAdapter<T, VH: RecyclerView.ViewHolder>: Recycle
                     return canMoveItem(target.adapterPosition) && canMoveItem(dragFrom, target.adapterPosition)
                 }
 
-                override fun clearView(recyclerView: RecyclerView?, viewHolder: RecyclerView.ViewHolder?) {
+                override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
                     super.clearView(recyclerView, viewHolder)
                     if (dragFrom != -1 && dragTo != -1) {
                         onItemMove(dragFrom, dragTo)

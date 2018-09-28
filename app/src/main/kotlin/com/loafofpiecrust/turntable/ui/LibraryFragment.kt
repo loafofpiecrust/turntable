@@ -14,13 +14,11 @@ import com.loafofpiecrust.turntable.playlist.PlaylistsFragment
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.sync.SyncTabFragment
-import com.loafofpiecrust.turntable.util.combineLatest
-import com.loafofpiecrust.turntable.util.consumeEach
-import com.loafofpiecrust.turntable.util.replayOne
-import com.loafofpiecrust.turntable.util.task
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.map
+import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.design.tabLayout
@@ -77,17 +75,12 @@ class LibraryFragment: BaseFragment() {
         themedAppBarLayout(R.style.AppTheme_AppBarOverlay) {
             topPadding = dimen(R.dimen.statusbar_height)
 
-            UserPrefs.primaryColor.consumeEach(UI) {
-                backgroundColor = it
-            }
-            toolbar {
-                UserPrefs.primaryColor.consumeEach(UI) {
-                    backgroundColor = it
-                }
+            UserPrefs.primaryColor.bindTo(::backgroundColor)
 
+            toolbar {
                 title = "Turntable"
                 popupTheme = R.style.AppTheme_PopupOverlay
-                currentTab.consumeEach(UI) {
+                currentTab.consumeEachAsync {
                     menu.clear()
                     fragments[it]?.get()?.onCreateOptionsMenu(menu, null)
                 }
@@ -148,12 +141,14 @@ class LibraryFragment: BaseFragment() {
 
         val pager = viewPager {
             id = R.id.container
-            this@LibraryFragment.tabs.openSubscription().consumeEach(UI) { tabs ->
+
+            this@LibraryFragment.tabs.consumeEachAsync { tabs ->
                 adapter = TabsPager(tabs, tabFragments)
                 invalidate()
                 requestLayout()
                 currentTabIdx.offer(currentItem)
             }
+
             onPageChangeListener {
                 onPageSelected {
                     currentTabIdx.offer(it)

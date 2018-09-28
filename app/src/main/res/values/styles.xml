@@ -20,9 +20,9 @@
         <!--<iidname="android:splitMotionEvents">false</item>-->
         <!--<iidname="android:windowEnterTransition">@transition/explode</item>-->
         <!--<iidname="android:windowExitTransition">@transition/explode</item>-->
-        <item name="android:toolbarStyle">@style/AppTheme.AppBarOverlay</item>
-        <item name="android:popupMenuStyle">@style/AppTheme.PopupOverlay</item>
-        <item name="android:popupTheme">@style/AppTheme.PopupOverlay</item>
+        <item name="toolbarStyle">@style/AppTheme.AppBarOverlay</item>
+        <item name="popupMenuStyle">@style/AppTheme.PopupOverlay</item>
+        <item name="popupTheme">@style/AppTheme.PopupOverlay</item>
         <item name="android:popupElevation">@dimen/high_elevation</item>
         <item name="android:windowTranslucentStatus">true</item>
         <!--<item name="android:fitsSystemWindows">false</item>-->
@@ -39,7 +39,7 @@
         <item name="android:layout_height">48dp</item>
         <!--<iidname="android:minHeight">48dp</item>-->
         <!--<iidname="android:paddingLeft">16dp</item>-->
-        <item name="android:popupTheme">@style/AppTheme.PopupOverlay</item>
+        <item name="popupTheme">@style/AppTheme.PopupOverlay</item>
         <!--<iidname="android:textSize">@dimen/title_text_size</item>-->
         <!--<iidname="android:paddingTop">8dp</item>-->
         <!--<iidname="android:backgro">@color/colorPrimary</item>-->
@@ -49,12 +49,12 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">72dp</item>
         <!--<iidname="android:minHeight">72dp</item>-->
-        <item name="android:popupTheme">@style/AppTheme.PopupOverlay</item>
+        <item name="popupTheme">@style/AppTheme.PopupOverlay</item>
     </style>
 
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light">
         <item name="android:popupBackground">@color/background</item>
-        <item name="android:overlapAnchor">true</item>
+        <item name="overlapAnchor">true</item>
     </style>
 
     <!--<style name="AppTheme.FullScreenDialog" parent="AppTheme">-->

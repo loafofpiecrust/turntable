@@ -8,7 +8,10 @@ import kotlinx.coroutines.experimental.channels.BroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
 import org.jetbrains.anko.support.v4.onPageChangeListener
+import kotlin.reflect.KFunction
+import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KMutableProperty0
+import kotlin.reflect.KProperty
 
 
 fun <T> bindOneWay(obs: ReceiveChannel<T>, ctx: Job, setter: (T) -> Unit) = run {
@@ -37,4 +40,15 @@ fun ViewPager.bindCurrentPage(obs: BroadcastChannel<Int>, ctx: Job) = run {
 
 fun TextView.bindText(chan: ReceiveChannel<String>, ctx: Job) {
     bindOneWay(chan, ctx) { text = it }
+}
+
+suspend inline fun <T> ReceiveChannel<T>.bindTo(prop: KMutableProperty0<T>) {
+    consumeEach {
+        prop.setter.call(it)
+    }
+}
+suspend inline fun <T> ReceiveChannel<T>.bindTo(prop: KFunction<T>) {
+    consumeEach {
+        prop.call(it)
+    }
 }

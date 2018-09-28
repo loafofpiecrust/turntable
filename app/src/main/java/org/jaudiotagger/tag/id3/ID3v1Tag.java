@@ -23,18 +23,14 @@
  */
 package org.jaudiotagger.tag.id3;
 
-import android.support.v4.provider.DocumentFile;
-
 import org.jaudiotagger.audio.generic.Utils;
 import org.jaudiotagger.audio.mp3.MP3File;
 import org.jaudiotagger.logging.ErrorMessage;
 import org.jaudiotagger.tag.*;
 import org.jaudiotagger.tag.images.Artwork;
 import org.jaudiotagger.tag.reference.GenreTypes;
-import org.jaudiotagger.tag.vorbiscomment.VorbisCommentFieldKey;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;

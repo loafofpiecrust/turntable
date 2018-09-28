@@ -40,7 +40,6 @@ import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.mp4.Mp4Tag;
 import org.jaudiotagger.tag.vorbiscomment.VorbisCommentTag;
 import org.jaudiotagger.tag.flac.FlacTag;
-import org.w3c.dom.Document;
 
 /**
  * <p>This is the main object manipulated by the user representing an audiofile, its properties and its tag.

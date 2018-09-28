@@ -14,14 +14,21 @@ import android.view.ViewGroup
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.util.FragmentArgument
-import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.Main
+import kotlinx.coroutines.experimental.channels.BroadcastChannel
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
+import kotlinx.coroutines.experimental.channels.consumeEach
 import org.jetbrains.anko.AnkoContext
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.info
 import org.jetbrains.anko.support.v4.ctx
 import java.lang.ref.WeakReference
+import kotlin.coroutines.experimental.CoroutineContext
+import kotlin.coroutines.experimental.EmptyCoroutineContext
+import kotlin.reflect.KMutableProperty0
 
-abstract class BaseFragment: Fragment(), AnkoLogger {
+abstract class BaseFragment: Fragment(), AnkoLogger, CoroutineScope {
     /**
      * Allows abstraction over managing channel closing.
      * Use cases (bound to lifecycle):
@@ -38,8 +45,8 @@ abstract class BaseFragment: Fragment(), AnkoLogger {
      *   but `UI` is the absolute most common case and we almost *never* want a
      *   UI task that isn't bound to the lifecycle. Background tasks are more ambiguous.
      */
-    protected val jobs = Job()
-    protected val UI = kotlinx.coroutines.experimental.android.UI + jobs
+    protected val jobs = SupervisorJob()
+    override val coroutineContext: CoroutineContext get() = Dispatchers.Main + jobs
 
     abstract fun ViewManager.createView(): View
 
@@ -82,11 +89,34 @@ abstract class BaseFragment: Fragment(), AnkoLogger {
                 .commit()
         }
     }
+
+    inline fun <T> ReceiveChannel<T>.consumeEachAsync(
+        context: CoroutineContext = EmptyCoroutineContext,
+        crossinline action: suspend (T) -> Unit
+    ) {
+        launch(context) {
+            consumeEach { action(it) }
+        }
+    }
+    inline fun <T> BroadcastChannel<T>.consumeEachAsync(
+        context: CoroutineContext = EmptyCoroutineContext,
+        crossinline action: suspend (T) -> Unit
+    ) = openSubscription().consumeEachAsync(context, action)
+
+    inline fun <T> BroadcastChannel<T>.bindTo(prop: KMutableProperty0<T>) =
+        openSubscription().bindTo(prop)
+    inline fun <T> ReceiveChannel<T>.bindTo(prop: KMutableProperty0<T>) {
+        consumeEachAsync {
+            prop.setter.call(it)
+        }
+    }
 }
 
-abstract class BaseDialogFragment: DialogFragment(), AnkoLogger {
-    private val jobs = Job()
-    val UI get() = kotlinx.coroutines.experimental.android.UI + jobs
+abstract class BaseDialogFragment: DialogFragment(), AnkoLogger, CoroutineScope {
+    private val jobs = SupervisorJob()
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Main + jobs
+
     abstract fun ViewManager.createView(): View?
 
     open fun onCreate() {}
@@ -94,12 +124,12 @@ abstract class BaseDialogFragment: DialogFragment(), AnkoLogger {
     override fun onCreate(savedInstanceState: Bundle?) {
 //        existingContentView = null
         super.onCreate(savedInstanceState)
-        ActivityStarter.fill(this)
+//        ActivityStarter.fill(this)
         onCreate()
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        ActivityStarter.fill(this)
+//        ActivityStarter.fill(this)
         return AnkoContext.create(requireContext(), this).createView()
     }
 
@@ -115,13 +145,14 @@ abstract class BaseDialogFragment: DialogFragment(), AnkoLogger {
     }
 }
 
-abstract class BaseActivity: AppCompatActivity(), AnkoLogger {
-    private val jobs = Job()
-    val UI get() = kotlinx.coroutines.experimental.android.UI + jobs
+abstract class BaseActivity: AppCompatActivity(), AnkoLogger, CoroutineScope {
+    private val jobs = SupervisorJob()
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Main + jobs
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ActivityStarter.fill(this)
+        ActivityStarter.fill(this, savedInstanceState)
         setTheme(R.style.AppTheme)
         setContentView(AnkoContext.create(this, this).createView())
     }

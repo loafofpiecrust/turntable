@@ -3,6 +3,7 @@ package com.loafofpiecrust.turntable.ui
 import android.arch.lifecycle.Lifecycle
 import android.arch.lifecycle.LifecycleObserver
 import android.arch.lifecycle.OnLifecycleEvent
+import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.Unconfined
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.*
@@ -58,7 +59,7 @@ class LifeObserver<T>(val chan: SendChannel<T>): LifecycleObserver {
 }
 fun <T> ReceiveChannel<T>.connect(
     lifecycle: WeakReference<Lifecycle>,
-    context: CoroutineContext = Unconfined
+    context: CoroutineContext = Dispatchers.Unconfined
 ): ReceiveChannel<T> = produce(context) {
     val obs = LifeObserver(this)
     withContext(UI) { lifecycle.get()?.addObserver(obs) }
@@ -74,5 +75,5 @@ fun <T> ReceiveChannel<T>.connect(
 
 fun <T> BroadcastChannel<T>.connect(
     lifecycle: WeakReference<Lifecycle>,
-    context: CoroutineContext = Unconfined
+    context: CoroutineContext = Dispatchers.Unconfined
 ) = openSubscription().connect(lifecycle, context)

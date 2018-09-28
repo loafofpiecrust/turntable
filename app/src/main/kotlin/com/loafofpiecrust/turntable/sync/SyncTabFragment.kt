@@ -16,9 +16,9 @@ import com.loafofpiecrust.turntable.ui.RecyclerListItem
 import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.closeQuietly
 import com.mcxiaoke.koi.ext.stringValue
-import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.channels.map
-import kotlinx.coroutines.experimental.withContext
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.sdk27.coroutines.onClick
@@ -35,10 +35,10 @@ class SyncTabFragment: BaseFragment() {
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
         val choices = listOf(
-            ctx.getString(R.string.friend_from_contacts) to {
+            context!!.getString(R.string.friend_from_contacts) to {
                 pickContact()
             },
-            ctx.getString(R.string.friend_from_email) to {
+            context!!.getString(R.string.friend_from_email) to {
                 alert(R.string.friend_add) {
                     lateinit var textBox: EditText
                     customView {
@@ -52,7 +52,7 @@ class SyncTabFragment: BaseFragment() {
                     }
                     positiveButton(R.string.user_befriend) {
                         val key = textBox.text.toString()
-                        async(UI) {
+                        async {
                             val user = withContext(BG_POOL) { SyncService.User.resolve(key) }
                             // TODO: Use localized strings in xml
                             toast(if (user != null) {
@@ -102,18 +102,19 @@ class SyncTabFragment: BaseFragment() {
             println("friends: adding $id:$name at $email")
 
             cursor.closeQuietly()
-            task {
-                SyncService.User.resolve(email)
-            }.then(UI) { user ->
-                toast(if (user != null) {
-                    if (SyncService.requestFriendship(user)) {
-                        ctx.getString(R.string.friend_request_sent, user.name)
+            launch(BG_POOL) {
+                val user = SyncService.User.resolve(email)
+                withContext(Dispatchers.Main) {
+                    toast(if (user != null) {
+                        if (SyncService.requestFriendship(user)) {
+                            ctx.getString(R.string.friend_request_sent, user.name)
+                        } else {
+                            ctx.getString(R.string.friend_request_already_added, user.name)
+                        }
                     } else {
-                        ctx.getString(R.string.friend_request_already_added, user.name)
-                    }
-                } else {
-                    "$name isn't on Turntable yet"
-                })
+                        "$name isn't on Turntable yet"
+                    })
+                }
             }
         }
     }
@@ -123,7 +124,7 @@ class SyncTabFragment: BaseFragment() {
 
         // list of friends
         recyclerView {
-            layoutManager = LinearLayoutManager(ctx)
+            layoutManager = LinearLayoutManager(context)
             adapter = object : RecyclerAdapter<SyncService.Friend, RecyclerListItem>() {
                 override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
                     RecyclerListItem(parent, useIcon = true)

@@ -11,7 +11,7 @@ import kotlin.coroutines.experimental.suspendCoroutine
 
 val BG_POOL: CoroutineDispatcher = if (Runtime.getRuntime().availableProcessors() <= 2) {
     newFixedThreadPoolContext(2 * Runtime.getRuntime().availableProcessors(), "bg")
-} else CommonPool
+} else Dispatchers.Default
 val ALT_BG_POOL = newSingleThreadContext("alt-bg")
 
 
@@ -44,6 +44,8 @@ fun <T> produceSingle(v: T): ReceiveChannel<T> {
 }
 
 class ReceiveImmediateChannel<E>(val value: E): ReceiveChannel<E> {
+    override fun cancel(): Boolean = false
+
     private var usedUp = false
 
     override val isClosedForReceive: Boolean get() = usedUp
@@ -79,6 +81,8 @@ class ReceiveImmediateChannel<E>(val value: E): ReceiveChannel<E> {
 }
 
 class ReceiveDeferredChannel<E>(val deferred: Deferred<E>): ReceiveChannel<E> {
+    override fun cancel(): Boolean = false
+
     private var usedUp = false
 
     override val isClosedForReceive: Boolean

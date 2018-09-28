@@ -25,6 +25,7 @@ import com.loafofpiecrust.turntable.style.detailsStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.channels.*
+import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
@@ -138,7 +139,7 @@ class DetailsFragment(): BaseFragment() {
 //                        backgroundColor = Color.BLACK
                         backgroundResource = R.drawable.rounded_rect
 
-                        album.consumeEach(UI) {
+                        album.consumeEachAsync {
                             text = when (it) {
                                 is LocalAlbum -> if (it.hasTrackGaps) {
                                     getString(R.string.album_partial)
@@ -150,7 +151,7 @@ class DetailsFragment(): BaseFragment() {
 
                     // Year
                     val year = textView {
-                        album.consumeEach(UI) { album ->
+                        album.consumeEachAsync { album ->
                             if (album?.year != null) {
                                 text = album.year.toString()
                             } else {
@@ -221,7 +222,7 @@ class DetailsFragment(): BaseFragment() {
                         maxLines = 1
                     }
 
-                    album.consumeEach(UI) { album ->
+                    album.consumeEachAsync { album ->
                         album.loadCover(Glide.with(image)).consumeEach {
                             it?.transition(DrawableTransitionOptions().crossFade(200))
                                 ?.listener(album.loadPalette(this@toolbar, mainLine, subLine, collapser))
@@ -231,9 +232,11 @@ class DetailsFragment(): BaseFragment() {
                     }
                 }.lparams(height = matchParent)
 
-                album.consumeEach(UI) {
-                    menu.clear()
-                    it.optionsMenu(context, menu)
+                launch {
+                    album.consumeEach {
+                        menu.clear()
+                        it.optionsMenu(context, menu)
+                    }
                 }
 
 //                if (album is RemoteAlbum) { // is remote album

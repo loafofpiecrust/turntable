@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.support.design.widget.CollapsingToolbarLayout
 import android.widget.PopupMenu
 import android.view.*
 import android.widget.ImageButton
@@ -241,9 +242,9 @@ fun <T: kotlin.Comparable<T>> clamp(x: T, min: T, max: T): T
 
 fun <T : android.view.View> T.collapsingToolbarlparams(
     width: kotlin.Int = wrapContent, height: kotlin.Int = wrapContent,
-    init: android.support.design.widget.CollapsingToolbarLayout.LayoutParams.() -> kotlin.Unit = {}): T
+    init: CollapsingToolbarLayout.LayoutParams.() -> kotlin.Unit = {}): T
 {
-    val layoutParams = android.support.design.widget.CollapsingToolbarLayout.LayoutParams(width, height)
+    val layoutParams = CollapsingToolbarLayout.LayoutParams(width, height)
     layoutParams.init()
     this.layoutParams = layoutParams
     return this

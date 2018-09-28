@@ -2,6 +2,7 @@ package com.chibatching.kotpref
 
 import android.annotation.TargetApi
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Build
 import com.chibatching.kotpref.filepref.BaseObjFilePref
 import com.chibatching.kotpref.filepref.objFilePref
@@ -42,14 +43,14 @@ abstract class KotprefModel {
      * Internal shared preference.
      * This property will be initialized on use.
      */
-    internal val kotprefPreference: KotprefPreferences by lazy {
-        KotprefPreferences(context.getSharedPreferences(kotprefName, kotprefMode))
+    internal val kotprefPreference: SharedPreferences by lazy {
+        context.getSharedPreferences(kotprefName, kotprefMode)
     }
 
     /**
      * Internal shared preference editor.
      */
-    internal var kotprefEditor: KotprefPreferences.KotprefEditor? = null
+    internal var kotprefEditor: SharedPreferences.Editor? = null
 
     /**
      * Clear all preferences in this model
@@ -203,7 +204,7 @@ abstract class KotprefModel {
     fun beginBulkEdit() {
         kotprefInTransaction = true
         kotprefTransactionStartTime = System.currentTimeMillis()
-        kotprefEditor = kotprefPreference.KotprefEditor(kotprefPreference.edit())
+        kotprefEditor = kotprefPreference.edit()
     }
 
     /**

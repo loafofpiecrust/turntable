@@ -1,12 +1,8 @@
 package com.loafofpiecrust.turntable
 
 import android.app.Application
-import android.arch.lifecycle.ViewModelProvider
-import android.arch.lifecycle.ViewModelStore
 import android.content.Context
 import android.net.*
-import android.support.annotation.MainThread
-import android.support.v4.app.Fragment
 import android.util.DisplayMetrics
 import com.chibatching.kotpref.Kotpref
 import com.esotericsoftware.kryo.Kryo
@@ -193,37 +189,37 @@ val Context.screenSize get(): Size {
 /**
  * Pass ID from parent to child fragment that identifies the ViewModel to use?????????
  */
-object MusicModelProviders {
-    private val viewModelStores = mutableListOf<Pair<Int, WeakReference<ViewModelStore>>>()
-
-    @MainThread
-    fun of(fragment: Fragment, newScope: Boolean = true): ViewModelProvider {
-        val application = fragment.activity!!.application!!
-        val factory = ViewModelProvider.AndroidViewModelFactory.getInstance(application)
-
-        fun makeNewScope(): ViewModelProvider {
-            return ViewModelProvider(
-                fragment.viewModelStore.also {
-                    if (viewModelStores.last().first != fragment.id) {
-                        viewModelStores.add(fragment.id to WeakReference(it))
-                    }
-                },
-                factory
-            )
-        }
-
-        return if (newScope) {
-            makeNewScope()
-        } else {
-            viewModelStores.removeAll { it.second.get() == null }
-            // find most recent modelStore not associated with the given fragment
-            // this should represent the fragment that created this one
-            val existing = viewModelStores.findLast { it.first != fragment.id }?.second?.get()
-            if (existing != null) {
-                ViewModelProvider(existing, factory)
-            } else {
-                makeNewScope()
-            }
-        }
-    }
-}
+//object MusicModelProviders {
+//    private val viewModelStores = mutableListOf<Pair<Int, WeakReference<ViewModelStore>>>()
+//
+//    @MainThread
+//    fun of(fragment: Fragment, newScope: Boolean = true): ViewModelProvider {
+//        val application = fragment.activity!!.application!!
+//        val factory = ViewModelProvider.AndroidViewModelFactory.getInstance(application)
+//
+//        fun makeNewScope(): ViewModelProvider {
+//            return ViewModelProvider(
+//                fragment.viewModelStore.also {
+//                    if (viewModelStores.last().first != fragment.id) {
+//                        viewModelStores.add(fragment.id to WeakReference(it))
+//                    }
+//                },
+//                factory
+//            )
+//        }
+//
+//        return if (newScope) {
+//            makeNewScope()
+//        } else {
+//            viewModelStores.removeAll { it.second.get() == null }
+//            // find most recent modelStore not associated with the given fragment
+//            // this should represent the fragment that created this one
+//            val existing = viewModelStores.findLast { it.first != fragment.id }?.second?.get()
+//            if (existing != null) {
+//                ViewModelProvider(existing, factory)
+//            } else {
+//                makeNewScope()
+//            }
+//        }
+//    }
+//}

@@ -8,13 +8,18 @@ import com.loafofpiecrust.turntable.util.bind
 import com.loafofpiecrust.turntable.util.consumeEach
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import com.simplecityapps.recyclerview_fastscroll.views.FastScroller
+import kotlinx.coroutines.experimental.Dispatchers
+import kotlinx.coroutines.experimental.GlobalScope
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.channels.consumeEach
+import kotlinx.coroutines.experimental.launch
 
 
 inline fun FastScrollRecyclerView.turntableStyle() {
     (RecyclerView::turntableStyle)(this)
 
-    UserPrefs.secondaryColor.bind(this).consumeEach(UI) {
+    UserPrefs.secondaryColor.bind(this@turntableStyle).consumeEach(Dispatchers.Main) {
         setThumbColor(it)
         setPopupBgColor(it)
     }

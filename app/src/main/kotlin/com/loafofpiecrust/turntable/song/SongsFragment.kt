@@ -155,7 +155,7 @@ fun ViewManager.songsList(
                     }
                 }
 
-                override fun getMoveThreshold(viewHolder: RecyclerView.ViewHolder?)
+                override fun getMoveThreshold(viewHolder: RecyclerView.ViewHolder)
                     = 0.2f
 
                 override fun isLongPressDragEnabled() = true

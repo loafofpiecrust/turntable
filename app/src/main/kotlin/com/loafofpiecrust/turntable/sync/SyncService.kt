@@ -32,13 +32,11 @@ import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.ui.MainActivityStarter
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.actor
 import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
 import java.lang.ref.WeakReference
 import java.util.*
@@ -53,7 +51,7 @@ class SyncService : FirebaseMessagingService() {
         private const val SERVER_KEY = BuildConfig.FIREBASE_SERVER_KEY
 
         /// Amount of time (milliseconds) to keep a session alive without hearing a response.
-        private const val TIMEOUT = 20_000
+        private const val TIMEOUT = 20_000L
 
         val selfUser = User()
 
@@ -79,20 +77,22 @@ class SyncService : FirebaseMessagingService() {
 
         val mode: ConflatedBroadcastChannel<Mode> by lazy {
             ConflatedBroadcastChannel<Mode>(Mode.None()).also {
-                it.openSubscription()
-                    .changes()
-                    .consumeEach(BG_POOL) { (prev, value) ->
-                        if (prev is Mode.InGroup) {
-                            leaveGroup()
-                        } else if (prev is Mode.Topic) {
-                            FirebaseMessaging.getInstance().unsubscribeFromTopic(prev.topic)
-                        }
+                GlobalScope.launch(BG_POOL) {
+                    it.openSubscription()
+                        .changes()
+                        .consumeEach { (prev, value) ->
+                            if (prev is Mode.InGroup) {
+                                leaveGroup()
+                            } else if (prev is Mode.Topic) {
+                                FirebaseMessaging.getInstance().unsubscribeFromTopic(prev.topic)
+                            }
 
-                        if (value is Mode.Topic) {
-                            FirebaseMessaging.getInstance().subscribeToTopic(value.topic)
+                            if (value is Mode.Topic) {
+                                FirebaseMessaging.getInstance().subscribeToTopic(value.topic)
+                            }
+                            instance?.get()?.updateNotification()
                         }
-                        instance?.get()?.updateNotification()
-                    }
+                }
             }
         }
 

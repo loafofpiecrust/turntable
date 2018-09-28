@@ -18,6 +18,7 @@ import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.map
+import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
 import org.jetbrains.anko.constraint.layout.applyConstraintSet
@@ -34,7 +35,7 @@ open class NowPlayingFragment : BaseFragment() {
 
         MusicService.instance.switchMap {
             it.player.isPlaying
-        }.consumeEach(UI) {
+        }.consumeEachAsync {
             if (it) {
                 playButton.imageResource = R.drawable.ic_pause
                 playButton.onClick {
@@ -48,27 +49,25 @@ open class NowPlayingFragment : BaseFragment() {
             }
         }
 
-        async(UI) {
-            MusicService.instance.switchMap {
-                it.player.currentSong
-            }.switchMap { song ->
-                song?.loadCover(Glide.with(this@constraintLayout))?.map { req ->
-                    song to req
-                } ?: produceSingle(null to null)
-            }.consumeEach { (song, req) ->
-                if (song != null && req != null) {
-                    req.listener(loadPalette(song.id.album) { palette, swatch ->
-                        backgroundColor = swatch?.rgb ?: context.getColorCompat(R.color.background)
-                        val c =
-                            (palette?.mutedSwatch
-                                ?: palette?.darkMutedSwatch
-                                ?: palette?.darkVibrantSwatch)?.rgb
-                                ?: Color.BLACK
-                        playButton.backgroundColor = c
-                    }).preload()
-                } else {
-                    // reset playButton color.
-                }
+        MusicService.instance.switchMap {
+            it.player.currentSong
+        }.switchMap { song ->
+            song?.loadCover(Glide.with(this@constraintLayout))?.map { req ->
+                song to req
+            } ?: produceSingle(null to null)
+        }.consumeEachAsync { (song, req) ->
+            if (song != null && req != null) {
+                req.listener(loadPalette(song.id.album) { palette, swatch ->
+                    backgroundColor = swatch?.rgb ?: context.getColorCompat(R.color.background)
+                    val c =
+                        (palette?.mutedSwatch
+                            ?: palette?.darkMutedSwatch
+                            ?: palette?.darkVibrantSwatch)?.rgb
+                            ?: Color.BLACK
+                    playButton.backgroundColor = c
+                }).preload()
+            } else {
+                // reset playButton color.
             }
         }
 
@@ -108,22 +107,24 @@ open class NowPlayingFragment : BaseFragment() {
                 }
             })
 
-            MusicService.instance.switchMap {
-                it.player.bufferState
-            }.consumeEach(UI) {
-                max = it.duration.toInt()
+            launch {
+                MusicService.instance.switchMap {
+                    it.player.bufferState
+                }.consumeEach {
+                    max = it.duration.toInt()
 
-                // Allows seeking while the song is playing without weird skipping.
-                if (!isSeeking) {
-                    progress = it.position.toInt()
+                    // Allows seeking while the song is playing without weird skipping.
+                    if (!isSeeking) {
+                        progress = it.position.toInt()
+                    }
+                    secondaryProgress = it.bufferedPosition.toInt()
                 }
-                secondaryProgress = it.bufferedPosition.toInt()
             }
         }
 
         val syncBtn = iconButton(R.drawable.ic_cast) {
             tintResource = R.color.md_white_1000
-            SyncService.mode.consumeEach(UI) {
+            SyncService.mode.consumeEachAsync {
                 imageResource = if (it is SyncService.Mode.None) {
                     onClick { v ->
                         // Open sync options: contact choice

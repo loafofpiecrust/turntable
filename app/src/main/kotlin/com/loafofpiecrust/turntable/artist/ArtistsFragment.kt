@@ -120,7 +120,7 @@ class ArtistsFragment : BaseFragment() {
 
         recycler.apply {
             adapter = ArtistsAdapter { holder, artists, idx ->
-                listState = layoutManager.onSaveInstanceState()
+                listState = layoutManager!!.onSaveInstanceState()
                 // smoothly transition the cover image!
                 holder.itemView.context.replaceMainContent(
                     ArtistDetailsFragment.fromArtist(artists[idx], ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE), true,

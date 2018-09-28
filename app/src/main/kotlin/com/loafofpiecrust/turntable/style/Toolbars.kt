@@ -6,7 +6,12 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.ui.popMainContent
 import com.loafofpiecrust.turntable.util.bind
 import com.loafofpiecrust.turntable.util.consumeEach
+import kotlinx.coroutines.experimental.Dispatchers
+import kotlinx.coroutines.experimental.GlobalScope
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.channels.consumeEach
 import org.jetbrains.anko.appcompat.v7.navigationIconResource
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.dimen
@@ -14,8 +19,10 @@ import org.jetbrains.anko.matchParent
 
 fun Toolbar.standardStyle(useDefaultColor: Boolean = false) {
     if (useDefaultColor) {
-        UserPrefs.primaryColor.bind(this).consumeEach(UI) {
-            backgroundColor = it
+        GlobalScope.async(Dispatchers.Main) {
+            UserPrefs.primaryColor.bind(this@standardStyle).consumeEach {
+                backgroundColor = it
+            }
         }
     }
     minimumHeight = dimen(R.dimen.toolbar_height)

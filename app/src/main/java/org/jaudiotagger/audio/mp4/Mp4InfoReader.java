@@ -18,8 +18,6 @@
  */
 package org.jaudiotagger.audio.mp4;
 
-import android.support.v4.provider.DocumentFile;
-
 import org.jaudiotagger.audio.exceptions.CannotReadException;
 import org.jaudiotagger.audio.exceptions.CannotReadVideoException;
 import org.jaudiotagger.audio.generic.GenericAudioHeader;
@@ -27,7 +25,6 @@ import org.jaudiotagger.audio.mp4.atom.*;
 import org.jaudiotagger.logging.ErrorMessage;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;

@@ -1,11 +1,11 @@
 package com.loafofpiecrust.turntable.util
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Binder
 import android.os.Bundle
 import android.support.v4.app.BundleCompat
 import android.support.v4.app.Fragment
+import android.support.v7.app.AppCompatActivity
 import kotlinx.coroutines.experimental.runBlocking
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
@@ -71,10 +71,10 @@ fun <T> Fragment.arg(defaultValue: () -> T) = FragmentArgument(defaultValue)
 
 
 
-class ActivityArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty<Activity, T> {
+class ActivityArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty<AppCompatActivity, T> {
     private var value: T? = null
 
-    override operator fun getValue(thisRef: Activity, property: KProperty<*>): T {
+    override operator fun getValue(thisRef: AppCompatActivity, property: KProperty<*>): T {
         if (value == null) {
             try {
                 val args = thisRef.intent.extras
@@ -91,7 +91,7 @@ class ActivityArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty
         return value ?: throw IllegalStateException("Property ${property.name} could not be read")
     }
 
-    override operator fun setValue(thisRef: Activity, property: KProperty<*>, value: T) {
+    override operator fun setValue(thisRef: AppCompatActivity, property: KProperty<*>, value: T) {
         if (thisRef.intent == null) thisRef.intent = Intent()
         val args = thisRef.intent
         val key = property.name

@@ -1,7 +1,5 @@
 package com.loafofpiecrust.turntable.playlist
 
-import android.app.AlertDialog
-import android.app.Dialog
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.view.ViewManager
@@ -16,12 +14,10 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
 import com.loafofpiecrust.turntable.util.arg
 import kotlinx.coroutines.experimental.channels.map
-import org.jetbrains.anko.AnkoContext
 import org.jetbrains.anko.customView
 import org.jetbrains.anko.matchParent
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.alert
-import org.jetbrains.anko.support.v4.ctx
 import org.jetbrains.anko.support.v4.toast
 import org.jetbrains.anko.wrapContent
 
@@ -60,8 +56,8 @@ class PlaylistPickerDialog: BaseDialogFragment() {
                     when (selected) {
                         is MixTape -> selected.add(context, item)
                         is CollaborativePlaylist -> toast(
-                            if (selected.add(item)) ctx.getString(R.string.playlist_added_track, selected.name)
-                            else ctx.getString(R.string.playlist_is_full, selected.name)
+                            if (selected.add(item)) context.getString(R.string.playlist_added_track, selected.name)
+                            else context.getString(R.string.playlist_is_full, selected.name)
                         )
                     }
                 }

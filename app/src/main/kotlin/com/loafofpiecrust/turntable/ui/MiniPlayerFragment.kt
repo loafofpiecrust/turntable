@@ -52,11 +52,11 @@ class MiniPlayerFragment: BaseFragment() {
         iconButton(R.drawable.ic_play_arrow) {
             MusicService.instance.switchMap {
                 it.player.isPlaying
-            }.consumeEach(UI) {
-                imageResource = if (it) {
+            }.map {
+                if (it) {
                     R.drawable.ic_pause
                 } else R.drawable.ic_play_arrow
-            }
+            }.bindTo(::imageResource)
 
             onClick {
                 MusicService.enact(SyncService.Message.TogglePause())
@@ -68,7 +68,7 @@ class MiniPlayerFragment: BaseFragment() {
 
         MusicService.instance.switchMap {
             it.player.currentSong.filterNotNull()
-        }.consumeEach(UI) { song ->
+        }.consumeEachAsync { song ->
             mainLine.text = song.id.displayName
             subLine.text = song.id.artist.displayName
 

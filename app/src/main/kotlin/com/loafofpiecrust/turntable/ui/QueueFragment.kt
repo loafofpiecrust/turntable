@@ -92,7 +92,7 @@ class QueueFragment : BaseFragment() {
             val queue = { MusicService.instance.switchMap { it.player.queue } }
             queueAdapter?.subscribeData(queue().map { it.list })
             queueAdapter?.subscribePos(queue().map { it.position })
-            queue().consumeEach(UI) { q ->
+            queue().consumeEachAsync { q ->
                 val song = q.current
                 currentItem.mainLine.text = song?.id?.displayName ?: ""
                 currentItem.subLine.text = song?.id?.artist?.displayName ?: ""

@@ -5,6 +5,7 @@ import android.graphics.PorterDuff
 import android.support.annotation.ColorInt
 import android.support.annotation.DrawableRes
 import android.support.annotation.StringRes
+import android.support.constraint.ConstraintLayout
 import android.support.v7.widget.Toolbar
 import android.view.Menu
 import android.view.MenuItem
@@ -20,8 +21,10 @@ import com.loafofpiecrust.turntable.style.rippleBorderless
 import com.lsjwzh.widget.recyclerviewpager.RecyclerViewPager
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import fr.castorflex.android.circularprogressbar.CircularProgressBar
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.CoroutineScope
+import kotlinx.coroutines.experimental.Dispatchers
+import kotlinx.coroutines.experimental.GlobalScope
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.custom.ankoView
@@ -59,6 +62,7 @@ inline fun ViewManager.searchBar(theme: Int = 0, init: SearchView.() -> Unit = {
 
 inline fun ViewManager.circularProgressBar(theme: Int = 0, init: @AnkoViewDslMarker CircularProgressBar.() -> Unit = {}): CircularProgressBar =
     ankoView({ CircularProgressBar(it) }, theme = theme, init = init)
+
 
 inline fun Toolbar.menuItem(
     @StringRes titleRes: Int,
@@ -163,11 +167,11 @@ inline fun Menu.group(
 }
 
 fun MenuItem.onClick(
-    context: CoroutineContext = UI,
+    context: CoroutineContext = Dispatchers.Main,
     handler: suspend (v: MenuItem) -> Unit
 ) {
     setOnMenuItemClickListener { v ->
-        launch(context) {
+        GlobalScope.launch(context) {
             handler(v)
         }
         true

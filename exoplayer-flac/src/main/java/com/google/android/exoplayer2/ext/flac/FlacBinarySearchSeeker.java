@@ -16,6 +16,7 @@
 package com.google.android.exoplayer2.ext.flac;
 
 import android.support.annotation.Nullable;
+
 import com.google.android.exoplayer2.extractor.Extractor;
 import com.google.android.exoplayer2.extractor.ExtractorInput;
 import com.google.android.exoplayer2.extractor.PositionHolder;
@@ -50,7 +51,8 @@ import java.nio.ByteBuffer;
   private final long inputLength;
   private final long approxBytesPerFrame;
 
-  private @Nullable SeekOperationParams pendingSeekOperationParams;
+  @Nullable
+  private SeekOperationParams pendingSeekOperationParams;
 
   public FlacBinarySearchSeeker(
       FlacStreamInfo streamInfo,

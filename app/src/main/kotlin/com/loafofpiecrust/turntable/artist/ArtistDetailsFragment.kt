@@ -26,6 +26,7 @@ import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.channels.*
+import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
@@ -126,7 +127,7 @@ class ArtistDetailsFragment: BaseFragment() {
                     val year = textView {
                         backgroundResource = R.drawable.rounded_rect
                         textSizeDimen = R.dimen.small_text_size
-                        artist.consumeEach(UI) { artist ->
+                        artist.consumeEachAsync { artist ->
                             val start = artist.startYear
                             val end = artist.endYear
                             if (start != null && start != end) {
@@ -147,14 +148,14 @@ class ArtistDetailsFragment: BaseFragment() {
                         backgroundResource = R.drawable.rounded_rect
                         textSizeDimen = R.dimen.small_text_size
 
-                        currentMode.consumeEach(UI) { mode ->
+                        currentMode.consumeEachAsync { mode ->
                             text = getString(
                                 R.string.artist_content_source,
                                 getString(mode.titleRes)
                             )
                         }
 
-                        onClick(UI) {
+                        onClick {
                             currentMode puts context.selector(
                                 getString(R.string.artist_pick_source),
                                 Mode.values().toList(),
@@ -202,7 +203,7 @@ class ArtistDetailsFragment: BaseFragment() {
                 standardStyle()
                 title = artistId.displayName
                 transitionName = artistId.nameTransition
-                artist.consumeEach(UI) {
+                artist.consumeEachAsync {
                     menu.clear()
                     it.optionsMenu(context, menu)
                 }
@@ -214,7 +215,7 @@ class ArtistDetailsFragment: BaseFragment() {
                 artist.loadArtwork(Glide.with(image)).map {
                     it?.listener(artist.loadPalette(toolbar))
                 }
-            }.consumeEach(UI) {
+            }.consumeEachAsync {
                 it?.into(image) ?: run {
                     image.imageResource = R.drawable.ic_default_album
                 }

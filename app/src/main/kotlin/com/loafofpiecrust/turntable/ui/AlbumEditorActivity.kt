@@ -20,6 +20,7 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.first
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
@@ -44,9 +45,11 @@ class AlbumEditorActivity : BaseActivity() {
         val album = runBlocking { LocalApi.find(albumId)!! }
 
         val artwork = imageView {
-            album.loadCover(Glide.with(this)).consumeEach(UI) {
-                it?.into(this) ?: run {
-                    imageResource = R.drawable.ic_default_album
+            launch {
+                album.loadCover(Glide.with(context)).consumeEach {
+                    it?.into(this@imageView) ?: run {
+                        imageResource = R.drawable.ic_default_album
+                    }
                 }
             }
         }
@@ -153,11 +156,11 @@ class AlbumEditorActivity : BaseActivity() {
                         val uri = Uri.parse(UserPrefs.sdCardUri.value).buildUpon()
                         var doc = DocumentFile.fromTreeUri(ctx, Uri.parse(UserPrefs.sdCardUri.value))
                         parts.forEach {
-                            println("tags: doc = ${doc.uri}")
-                            doc = doc.findFile(it)
+                            println("tags: doc = ${doc?.uri}")
+                            doc = doc?.findFile(it)
                         }
-                        println("tags: exists? ${doc.exists()}, uri = ${doc.uri}")
-                        AudioFileIO.read(ctx, doc)
+                        println("tags: exists? ${doc?.exists()}, uri = ${doc?.uri}")
+                        AudioFileIO.read(this, doc)
                     }
                     val tag = f.tag
                     tag.setField(FieldKey.ALBUM, title)
@@ -165,7 +168,7 @@ class AlbumEditorActivity : BaseActivity() {
                     tag.setField(FieldKey.ALBUM_ARTIST, artist)
                     tag.setField(FieldKey.DISC_NO, song.disc.toString())
                     tag.setField(FieldKey.YEAR, year)
-                    f.commit(ctx)
+                    f.commit(this)
                 }
                 task(UI) { dialog.incrementProgressBy(1) }
                 Unit

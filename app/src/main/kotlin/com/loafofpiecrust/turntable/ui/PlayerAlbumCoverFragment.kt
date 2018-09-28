@@ -29,37 +29,35 @@ class PlayerAlbumCoverFragment : BaseFragment() {
     //    private val subs = ArrayList<Disposable>()
 //    var slidingPanel: SlidingUpPanelLayout? = null
 
-    override fun ViewManager.createView(): View {
-        return recyclerViewPager {
-            layoutManager = LinearLayoutManager(activity, LinearLayoutManager.HORIZONTAL, false)
-            adapter = Adapter()
-            triggerOffset = 0.2f
-            isSinglePageFling = true
-            isClickable = true
-            clipToPadding = false
-            clipToOutline = false
+    override fun ViewManager.createView(): View = recyclerViewPager {
+        layoutManager = LinearLayoutManager(activity, LinearLayoutManager.HORIZONTAL, false)
+        adapter = Adapter()
+        triggerOffset = 0.2f
+        isSinglePageFling = true
+        isClickable = true
+        clipToPadding = false
+        clipToOutline = false
 
-            var fromInteraction = true
-            addOnPageChangedListener { prev, curr ->
-                if (fromInteraction) {
-                    MusicService.enact(SyncService.Message.QueuePosition(curr))
-                }
+        var fromInteraction = true
+        addOnPageChangedListener { prev, curr ->
+            if (fromInteraction) {
+                MusicService.enact(SyncService.Message.QueuePosition(curr))
             }
+        }
 
-            var prev = 0
-            MusicService.instance.switchMap {
-                it.player.queue
-            }.consumeEach(UI) { q ->
-                (adapter as Adapter).updateData(q.list, q.position)
-                fromInteraction = false
-                if (Math.abs(q.position - prev) > 8) { // smooth scroll would take too long
-                    scrollToPosition(q.position)
-                } else {
-                    smoothScrollToPosition(q.position)
-                }
-                fromInteraction = true
-                prev = q.position
+        var prev = 0
+        MusicService.instance.switchMap {
+            it.player.queue
+        }.consumeEachAsync { q ->
+            (adapter as Adapter).updateData(q.list, q.position)
+            fromInteraction = false
+            if (Math.abs(q.position - prev) > 8) { // smooth scroll would take too long
+                scrollToPosition(q.position)
+            } else {
+                smoothScrollToPosition(q.position)
             }
+            fromInteraction = true
+            prev = q.position
         }
     }
 

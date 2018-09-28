@@ -187,7 +187,7 @@ val <T> ConflatedBroadcastChannel<T>.hasValue inline get() = (valueOrNull != nul
 inline fun <E> BroadcastChannel<E>.consumeEach(
     ctx: CoroutineContext,
     crossinline action: suspend (E) -> Unit
-): Job = async(ctx) { consumeEach {
+): Job = GlobalScope.async(ctx) { consumeEach {
     try { action(it) } catch (e: Throwable) {
         e.printStackTrace()
     }
@@ -202,7 +202,7 @@ inline fun <E> BroadcastChannel<E>.consumeEach(
 inline fun <E> ReceiveChannel<E>.consumeEach(
     ctx: CoroutineContext,
     crossinline action: suspend (E) -> Unit
-): Job = async(ctx) { consumeEach {
+): Job = GlobalScope.async(ctx) { consumeEach {
     try {
         action(it)
     } catch (e: Throwable) {
@@ -229,3 +229,5 @@ fun <T> ReceiveChannel<T>.bind(view: View) = apply {
         }
     }
 }
+
+inline operator fun <T> BroadcastChannel<T>.iterator(): ChannelIterator<T> = openSubscription().iterator()

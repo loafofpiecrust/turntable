@@ -8,7 +8,7 @@ import android.view.View
 class CustomBottomSheetBehavior<V : View> : BottomSheetBehavior<V>() {
     var allowDragging = true
 
-    override fun onInterceptTouchEvent(parent: CoordinatorLayout?, child: V, event: MotionEvent?): Boolean {
+    override fun onInterceptTouchEvent(parent: CoordinatorLayout, child: V, event: MotionEvent): Boolean {
         return allowDragging && super.onInterceptTouchEvent(parent, child, event)
     }
 }

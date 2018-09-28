@@ -42,8 +42,8 @@ android {
             storePassword 'pok101'
         }
     }
-    compileSdkVersion 27
-    buildToolsVersion '27.0.3'
+    compileSdkVersion 28
+    buildToolsVersion '28.0.2'
     packagingOptions {
         pickFirst 'META-INF/DEPENDENCIES'
         pickFirst 'META-INF/app_debug.kotlin_module'
@@ -53,10 +53,10 @@ android {
     defaultConfig {
         applicationId "com.loafofpiecrust.turntable"
         minSdkVersion 22
-        targetSdkVersion 27
+        targetSdkVersion 28
         versionCode 3
         versionName "0.1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled false
         ndk {
             abiFilters 'x86', 'x86_64', 'armeabi', 'armeabi-v7a', 'arm64-v8a'
@@ -134,8 +134,8 @@ dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation project(':exoplayer-flac')
 
-    implementation "io.arrow-kt:arrow-core:$arrow_version"
-    implementation "io.arrow-kt:arrow-syntax:$arrow_version"
+//    implementation "io.arrow-kt:arrow-core:$arrow_version"
+//    implementation "io.arrow-kt:arrow-syntax:$arrow_version"
 
     implementation "de.ruedigermoeller:fst:2.56"
 
@@ -153,7 +153,7 @@ dependencies {
     implementation "com.google.android.gms:play-services-auth:16.0.0"
 
     //    implementation 'com.google.android.gms:play-services-gcm:11.2.2'
-    implementation 'com.google.firebase:firebase-messaging:17.3.1'
+    implementation 'com.google.firebase:firebase-messaging:17.3.2'
     implementation 'com.google.firebase:firebase-firestore:17.1.0'
     implementation 'com.google.firebase:firebase-core:16.0.3'
 
@@ -180,7 +180,7 @@ dependencies {
     ////        exclude group: 'com.google.android.gms'
 
     //    }
-    androidTestImplementation('com.android.support.test.espresso:espresso-core:3.0.2', {
+    androidTestImplementation('androidx.test.espresso:espresso-core:3.1.0-alpha4', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
 
@@ -219,7 +219,8 @@ dependencies {
 
     // TODO: Evaluate method count here...
     implementation 'com.karumi:dexter:4.1.0'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:0.24.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:0.30.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:0.30.0'
 
     //    implementation 'org.jetbrains.kotlinx:kotlinx-collections-immutable:0.1'
 
@@ -242,8 +243,8 @@ dependencies {
 
     //    implementation 'co.zsmb:materialdrawer-kt:1.0.6'
     implementation 'org.jsoup:jsoup:1.11.3'
-    implementation 'com.github.marcinmoskala.activitystarter:activitystarter:1.01'
-    kapt 'com.github.marcinmoskala.activitystarter:activitystarter-compiler:1.01'
+    implementation 'com.github.MarcinMoskala.ActivityStarter:activitystarter:master-SNAPSHOT'
+    kapt 'com.github.MarcinMoskala.ActivityStarter:activitystarter-compiler:master-SNAPSHOT'
     def JLIBTORRENT_VERSION = '1.2.0.10'
     implementation 'com.frostwire:jlibtorrent:' + JLIBTORRENT_VERSION
     implementation "com.frostwire:jlibtorrent-android-arm:" + JLIBTORRENT_VERSION
@@ -254,7 +255,7 @@ dependencies {
 
     //    implementation 'com.github.Commit451:YouTubeExtractor:4.2.0'
     implementation 'com.github.salomonbrys.kotson:kotson:2.5.0'
-    implementation 'com.github.lsjwzh.RecyclerViewPager:lib:v1.1.2@aar'
+    implementation 'com.github.lsjwzh.RecyclerViewPager:lib:v1.1.2'
     implementation 'me.xdrop:fuzzywuzzy:1.1.8'
     implementation 'com.google.android.exoplayer:exoplayer-core:2.8.1'
     implementation 'com.github.daemontus:kotlin-option-result:1.0.1'

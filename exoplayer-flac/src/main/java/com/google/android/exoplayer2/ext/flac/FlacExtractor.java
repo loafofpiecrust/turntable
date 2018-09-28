@@ -15,10 +15,11 @@
  */
 package com.google.android.exoplayer2.ext.flac;
 
-import static com.google.android.exoplayer2.util.Util.getPcmEncoding;
-
 import android.support.annotation.IntDef;
 import android.support.annotation.Nullable;
+
+import static com.google.android.exoplayer2.util.Util.getPcmEncoding;
+
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.extractor.Extractor;
