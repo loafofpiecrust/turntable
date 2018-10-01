@@ -75,7 +75,9 @@ class LibraryFragment: BaseFragment() {
         themedAppBarLayout(R.style.AppTheme_AppBarOverlay) {
             topPadding = dimen(R.dimen.statusbar_height)
 
-            UserPrefs.primaryColor.bindTo(::backgroundColor)
+            UserPrefs.primaryColor.consumeEachAsync {
+                backgroundColor = it
+            }
 
             toolbar {
                 title = "Turntable"

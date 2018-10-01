@@ -243,6 +243,9 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
             is SyncService.Message.ShiftQueueItem -> {
                 player.shiftQueueItem(msg.fromIdx, msg.toIdx)
             }
+            is SyncService.Message.RemoveFromQueue -> {
+                player.removeFromQueue(msg.pos)
+            }
         }
         if (success && shouldSync) {
             SyncService.send(msg)

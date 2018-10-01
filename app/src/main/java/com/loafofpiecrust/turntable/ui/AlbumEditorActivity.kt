@@ -20,6 +20,7 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.first
 import org.jaudiotagger.audio.AudioFileIO
@@ -88,10 +89,10 @@ class AlbumEditorActivity : BaseActivity() {
 
                 task {
                     saveTags(album, dialog)
-                }.fail(UI) { e: Throwable ->
+                }.fail(Dispatchers.Main) { e: Throwable ->
                     e.printStackTrace()
                     toast("Failed to save tags")
-                }.always(UI) {
+                }.always(Dispatchers.Main) {
                     dialog.dismiss()
                     finish()
                 }
@@ -170,7 +171,7 @@ class AlbumEditorActivity : BaseActivity() {
                     tag.setField(FieldKey.YEAR, year)
                     f.commit(this)
                 }
-                task(UI) { dialog.incrementProgressBy(1) }
+                task(Dispatchers.Main) { dialog.incrementProgressBy(1) }
                 Unit
             }
         }.awaitAll()

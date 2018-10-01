@@ -90,7 +90,6 @@ class QueueFragment : BaseFragment() {
 
             // Hook up our UI to the queue!
             val queue = { MusicService.instance.switchMap { it.player.queue } }
-            queueAdapter?.subscribeData(queue().map { it.list })
             queueAdapter?.subscribePos(queue().map { it.position })
             queue().consumeEachAsync { q ->
                 val song = q.current
@@ -135,6 +134,10 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>()
             queue = it
             it.list
         }
+
+    init {
+        subscribeData(channel)
+    }
 
     override val moveEnabled get() = true
     override val dismissEnabled get() = true

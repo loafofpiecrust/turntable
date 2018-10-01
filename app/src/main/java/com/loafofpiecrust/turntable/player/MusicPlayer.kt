@@ -14,13 +14,11 @@ import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.model.queue.CombinedQueue
+import com.loafofpiecrust.turntable.model.queue.indexWithinUpNext
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.model.song.HistoryEntry
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.task
-import com.loafofpiecrust.turntable.util.with
-import com.loafofpiecrust.turntable.util.without
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
@@ -354,7 +352,11 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
     fun removeFromQueue(position: Int) {
         // TODO: Start with removing from nextUp, then from anywhere else if from StaticQueue (new interface method?)
 
-//        _queue putsMapped { q -> StaticQueue(q.list.without(position), q.position) }
+        _queue putsMapped { q ->
+            if (q.indexWithinUpNext(position)) {
+                q.copy(nextUp = q.nextUp.without(position - q.position))
+            } else q
+        }
     }
 
     fun playNext() = task {

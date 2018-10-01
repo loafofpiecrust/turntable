@@ -37,12 +37,7 @@
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">48dp</item>
-        <!--<iidname="android:minHeight">48dp</item>-->
-        <!--<iidname="android:paddingLeft">16dp</item>-->
         <item name="popupTheme">@style/AppTheme.PopupOverlay</item>
-        <!--<iidname="android:textSize">@dimen/title_text_size</item>-->
-        <!--<iidname="android:paddingTop">8dp</item>-->
-        <!--<iidname="android:backgro">@color/colorPrimary</item>-->
     </style>
 
     <style name="AppTheme.DetailsToolbar" parent="AppTheme.AppBarOverlay">
@@ -56,42 +51,4 @@
         <item name="android:popupBackground">@color/background</item>
         <item name="overlapAnchor">true</item>
     </style>
-
-    <!--<style name="AppTheme.FullScreenDialog" parent="AppTheme">-->
-        <!--<item name="android:paddingRight">0dp</item>-->
-        <!--<item name="android:paddingLeft">0dp</item>-->
-        <!--<item name="android:layout_width">match_parent</item>-->
-        <!--<item name="android:layout_height">match_parent</item>-->
-        <!--<item name="android:windowNoTitle">true</item>-->
-    <!--</style>-->
-
-    <!--<stidname="AppTheme.SearchBox">-->
-        <!--&lt;!&ndash; Background for the search bar &ndash;&gt;-->
-        <!--<iidname="searchBackground">@color/primary</item>-->
-
-        <!--&lt;!&ndash; Change voice icon &ndash;&gt;-->
-        <!--<iidname="searchVoiceIcon">@drawable/ic_action_voice_search_inverted</item>-->
-
-        <!--&lt;!&ndash; Change clear text icon &ndash;&gt;-->
-        <!--<iidname="searchCloseIcon">@drawable/ic_action_navigation_close_inverted</item>-->
-
-        <!--&lt;!&ndash; Change up icon &ndash;&gt;-->
-        <!--<iidname="searchBackIcon">@drawable/ic_action_navigation_arrow_back_inverted</item>-->
-
-        <!--&lt;!&ndash; Change icon for the suggestions &ndash;&gt;-->
-        <!--<iidname="searchSuggestionIcon">@drawable/ic_suggestion</item>-->
-
-        <!--&lt;!&ndash; Change background for the suggestions list view &ndash;&gt;-->
-        <!--<iidname="searchSuggestionBackground">@android:color/white</item>-->
-
-        <!--&lt;!&ndash; Change text color for edit text. This will also be the color of the cursor &ndash;&gt;-->
-        <!--<iidname="android:textColor">@color/text</item>-->
-
-        <!--&lt;!&ndash; Change hint text color for edit text &ndash;&gt;-->
-        <!--<iidname="android:textColorHint">@color/md_blue_grey_50</item>-->
-
-        <!--&lt;!&ndash; Hint for edit text &ndash;&gt;-->
-        <!--<iidname="android:hint">@string/search_hint</item>-->
-    <!--</style>-->
-
 </resources>

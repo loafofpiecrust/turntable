@@ -8,6 +8,8 @@ import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
 import com.loafofpiecrust.turntable.util.consumeEach
+import kotlinx.coroutines.experimental.Dispatchers
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
@@ -41,7 +43,7 @@ class BiographyFragment: BaseDialogFragment() {
             bioText = textView()
         }.lparams(matchParent, matchParent)
 
-        artist.consumeEach(UI) { artist ->
+        artist.consumeEach(Dispatchers.Main) { artist ->
             toolbar.title = artist.id.displayName
             bioText.text = artist.biography
         }

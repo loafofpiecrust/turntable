@@ -151,13 +151,9 @@ abstract class RecyclerBroadcastAdapter<T, VH: RecyclerView.ViewHolder>: Recycle
     abstract val moveEnabled: Boolean
     abstract val dismissEnabled: Boolean
 
-    init {
-        subscribeData(channel)
-    }
-
     open fun onItemMove(fromIdx: Int, toIdx: Int) {}
-    open fun canMoveItem(index: Int): Boolean = true
-    open fun canMoveItem(fromIdx: Int, toIdx: Int): Boolean = true
+    open fun canMoveItem(index: Int): Boolean = false
+    open fun canMoveItem(fromIdx: Int, toIdx: Int): Boolean = false
     open fun onItemDismiss(idx: Int) {}
 
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {

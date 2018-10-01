@@ -56,7 +56,9 @@ class MiniPlayerFragment: BaseFragment() {
                 if (it) {
                     R.drawable.ic_pause
                 } else R.drawable.ic_play_arrow
-            }.bindTo(::imageResource)
+            }.consumeEachAsync {
+                imageResource = it
+            }
 
             onClick {
                 MusicService.enact(SyncService.Message.TogglePause())

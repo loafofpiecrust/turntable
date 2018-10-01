@@ -24,6 +24,7 @@
     <item name="results" type="id" />
     <item name="collapser" type="id" />
     <item name="app_bar" type="id" />
+    <item name="seekBar" type="id" />
 
     <item name="positive_button" type="id" />
     <item name="cancel_button" type="id" />

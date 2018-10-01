@@ -1,5 +1,6 @@
 package com.loafofpiecrust.turntable.artist
 
+import android.graphics.Color
 import android.os.Parcelable
 import android.support.v7.widget.CardView
 import android.support.v7.widget.GridLayoutManager
@@ -27,11 +28,9 @@ import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.*
-import org.jetbrains.anko.dimen
-import org.jetbrains.anko.imageResource
-import org.jetbrains.anko.matchParent
-import org.jetbrains.anko.padding
+import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
+import org.jetbrains.anko.sdk27.coroutines.onLayoutChange
 import org.jetbrains.anko.support.v4.act
 
 class ArtistsFragment : BaseFragment() {
@@ -81,10 +80,27 @@ class ArtistsFragment : BaseFragment() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
         menu.menuItem(R.string.search, R.drawable.ic_search, showIcon = true) {
             onClick {
-                act.replaceMainContent(
-                    SearchFragment.newInstance(SearchFragment.Category.Artists()),
+                val search = SearchFragment.newInstance(SearchFragment.Category.Artists())
+                requireContext().replaceMainContent(
+                    search,
                     true
                 )
+
+                // TODO: Implement generic circular reveal for fragment.
+//                search.view?.let { view ->
+//
+//                    //                view.background = null
+//                    view.backgroundColor = Color.WHITE
+//                    val listener = object: View.OnLayoutChangeListener {
+//                        override fun onLayoutChange(v: View, left: Int, top: Int, right: Int, bottom: Int, oldLeft: Int, oldTop: Int, oldRight: Int, oldBottom: Int) {
+//                            v.removeOnLayoutChangeListener(this)
+//                            ViewAnimationUtils.createCircularReveal(v, 0, 0, 0f, v.height.toFloat())
+//                                .setDuration(1500)
+//                                .start()
+//                        }
+//                    }
+//                    view.addOnLayoutChangeListener(listener)
+//                }
             }
         }
 

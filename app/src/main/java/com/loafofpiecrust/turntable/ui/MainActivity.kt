@@ -448,6 +448,7 @@ fun FragmentManager.replaceMainContent(fragment: Fragment, allowBackNav: Boolean
         }
         commit()
     }
+    executePendingTransactions()
 }
 
 fun Context.replaceMainContent(fragment: Fragment, allowBackNav: Boolean = true, sharedElems: List<View>? = null) {

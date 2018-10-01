@@ -23,6 +23,7 @@
 #-keep class com.frostwire.jlibtorrent.swig.** { *; }
 #-keep class com.google.firebase.provider.FirebaseInitProvider
 -keep class * extends android.content.ContentProvider
+-keep class com.loafofpiecrust.turntable.R
 # If you keep the line number information, uncomment this to
 # hide the original source file id.
 #-renamesourcefileattribute SourceFile
