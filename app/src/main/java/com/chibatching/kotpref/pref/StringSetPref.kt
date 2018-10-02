@@ -5,11 +5,12 @@ import android.os.Build
 import com.chibatching.kotpref.KotprefModel
 import com.loafofpiecrust.turntable.util.distinctSeq
 import com.loafofpiecrust.turntable.util.skip
-import com.loafofpiecrust.turntable.util.task
+import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.distinct
 import kotlinx.coroutines.experimental.channels.take
+import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
@@ -170,7 +171,7 @@ internal class StringSetPref(val default: () -> Set<String>, val key: String?) :
         if (obsSet.valueOrNull == null) {
             val prefSet = thisRef.kotprefPreference.getStringSet(key ?: property.name, null)
             val stringSet = prefSet ?: default.invoke().toMutableSet()
-            task {
+            GlobalScope.launch {
                 obsSet.send(stringSet)
                 obsSet.openSubscription().skip(1).distinctSeq().consumeEach { value ->
                     if (thisRef.kotprefInTransaction) {

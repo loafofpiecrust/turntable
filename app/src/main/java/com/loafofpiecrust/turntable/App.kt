@@ -25,14 +25,16 @@ import de.javakaffee.kryoserializers.UUIDSerializer
 import de.javakaffee.kryoserializers.dexx.ListSerializer
 import de.javakaffee.kryoserializers.dexx.MapSerializer
 import de.javakaffee.kryoserializers.dexx.SetSerializer
+import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.delay
 import org.jetbrains.anko.connectivityManager
 import org.jetbrains.anko.windowManager
 import org.objenesis.strategy.StdInstantiatorStrategy
 import java.lang.ref.WeakReference
 import java.util.*
+import kotlin.coroutines.experimental.CoroutineContext
 
 
 class App: Application() {
@@ -40,7 +42,10 @@ class App: Application() {
         UNLIMITED, LIMITED, OFFLINE
     }
 
-    companion object {
+    companion object: CoroutineScope {
+        override val coroutineContext: CoroutineContext
+            get() = Dispatchers.Main
+
         private lateinit var _instance: WeakReference<App>
         val instance: App get() = _instance.get()!!
 
@@ -48,7 +53,7 @@ class App: Application() {
             Kryo().apply {
                 instantiatorStrategy = Kryo.DefaultInstantiatorStrategy(StdInstantiatorStrategy())
                 isRegistrationRequired = false
-                references = false
+                references = true
 
                 // TODO: Switch to CompatibleFieldSerializer or TagFieldSerializer once Song.artworkUrl is removed or any other refactoring goes down.
                 setDefaultSerializer(CompatibleFieldSerializer::class.java)
@@ -75,7 +80,6 @@ class App: Application() {
                 register(StaticQueue::class.java, 110)
                 register(SyncService.Friend::class.java, 111)
                 register(ConflatedBroadcastChannel::class.java, 112)
-
             }
         }
 
@@ -132,7 +136,7 @@ class App: Application() {
 //        val currNet = connectivityManager.getNetworkCapabilities(connectivityManager.isActiveNetworkMetered)
 
         // Initial internet status
-        task(UI) {
+        launch {
             delay(500)
 
             val cm = connectivityManager
@@ -183,43 +187,3 @@ val Context.screenSize get(): Size {
     windowManager.defaultDisplay.getMetrics(metrics)
     return Size(metrics.widthPixels, metrics.heightPixels)
 }
-
-//val Context.music get() = MusicService.waitForIt(this)
-
-/**
- * Pass ID from parent to child fragment that identifies the ViewModel to use?????????
- */
-//object MusicModelProviders {
-//    private val viewModelStores = mutableListOf<Pair<Int, WeakReference<ViewModelStore>>>()
-//
-//    @MainThread
-//    fun of(fragment: Fragment, newScope: Boolean = true): ViewModelProvider {
-//        val application = fragment.activity!!.application!!
-//        val factory = ViewModelProvider.AndroidViewModelFactory.getInstance(application)
-//
-//        fun makeNewScope(): ViewModelProvider {
-//            return ViewModelProvider(
-//                fragment.viewModelStore.also {
-//                    if (viewModelStores.last().first != fragment.id) {
-//                        viewModelStores.add(fragment.id to WeakReference(it))
-//                    }
-//                },
-//                factory
-//            )
-//        }
-//
-//        return if (newScope) {
-//            makeNewScope()
-//        } else {
-//            viewModelStores.removeAll { it.second.get() == null }
-//            // find most recent modelStore not associated with the given fragment
-//            // this should represent the fragment that created this one
-//            val existing = viewModelStores.findLast { it.first != fragment.id }?.second?.get()
-//            if (existing != null) {
-//                ViewModelProvider(existing, factory)
-//            } else {
-//                makeNewScope()
-//            }
-//        }
-//    }
-//}

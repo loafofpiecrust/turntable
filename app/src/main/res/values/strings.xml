@@ -59,6 +59,7 @@
     <string name="request_decline">Decline</string>
     <string name="user_nonexistent">User \'%1$s\' doesn\'t exist.</string>
     <string name="friend_add">Add Friend</string>
+    <string name="friend_pick">Choose a Friend</string>
     <string name="friend_request_sent">Befriending %1$s</string>
     <string name="friend_request_sent_line">Friendship request sent</string>
     <string name="friend_request_already_added">%1$s is already a friend</string>

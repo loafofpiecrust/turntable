@@ -2,27 +2,39 @@ package com.loafofpiecrust.turntable.playlist
 
 import activitystarter.Arg
 import android.support.transition.Slide
+import android.support.v7.widget.LinearLayoutManager
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewManager
 import android.widget.EditText
 import android.widget.LinearLayout
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
+import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.SongsFragment
+import com.loafofpiecrust.turntable.song.songsList
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.ui.BaseFragment
+import com.loafofpiecrust.turntable.ui.RecyclerBroadcastAdapter
+import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
 import com.loafofpiecrust.turntable.ui.popMainContent
 import com.loafofpiecrust.turntable.util.*
+import kotlinx.coroutines.experimental.Dispatchers
+import kotlinx.coroutines.experimental.GlobalScope
+import kotlinx.coroutines.experimental.channels.Channel.Factory.CONFLATED
+import kotlinx.coroutines.experimental.channels.broadcast
 import kotlinx.coroutines.experimental.channels.first
+import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.design.appBarLayout
+import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.alert
 import org.jetbrains.anko.support.v4.ctx
 import org.jetbrains.anko.support.v4.toast
@@ -62,9 +74,11 @@ class PlaylistDetailsFragment: BaseFragment() {
     override fun onCreate() {
         enterTransition = Slide()
         exitTransition = Slide()
+        returnTransition = Slide()
     }
 
     override fun ViewManager.createView(): View = linearLayout {
+        backgroundColorResource = R.color.background
         orientation = LinearLayout.VERTICAL
 //        fitsSystemWindows = true
 
@@ -126,7 +140,7 @@ class PlaylistDetailsFragment: BaseFragment() {
                     menuItem(R.string.playlist_delete, showIcon = false).onClick {
                         alert("Delete playlist '${playlist.name}'") {
                             positiveButton("Delete") {
-                                task {
+                                GlobalScope.launch {
                                     UserPrefs.playlists putsMapped {
                                         it.withoutFirst { it.id == playlistId }
                                     }
@@ -145,13 +159,14 @@ class PlaylistDetailsFragment: BaseFragment() {
                             toast("Playlist isn't published")
                         }
                     }
-                    menuItem(R.string.playlist_generate_similar, showIcon = false).onClick(BG_POOL) {
+                    menuItem(R.string.playlist_generate_similar, showIcon = false).onClick(Dispatchers.Default) {
                         val r = Random()
                         val tracks = playlist.tracks.first()
-                        val tracksToUse = (0..minOf(5, tracks.size))
+                        val tracksToUse = (0..minOf(5, tracks.size)).lazy
                             .map { r.nextInt(tracks.size) }
                             .mapNotNull { tracks.getOrNull(it)?.id }
-                        Spotify.openRecommendationsPlaylist(ctx, songs = tracksToUse)
+                            .toList()
+                        Spotify.openRecommendationsPlaylist(context, songs = tracksToUse)
                     }
 
                     menuItem(R.string.share, showIcon = false).onClick {
@@ -175,22 +190,20 @@ class PlaylistDetailsFragment: BaseFragment() {
                 }
             }.lparams(width= matchParent)
 
-            frameLayout {
-                id = R.id.songs
-                fragment {
-                    SongsFragment(SongsFragment.Category.Playlist(playlistId)).apply {
-                        songs = playlist.tracks.replayOne()
-                    }
-                }
-            }.lparams(width = matchParent, height = matchParent) {
-//                behavior = AppBarLayout.ScrollingViewBehavior()
-            }
-
-//            songList(
-//                SongsFragment.Category.Playlist(playlistId),
-//                subscriptions
-//            ).apply {
+//            frameLayout {
+//                id = R.id.songs
+//                songsList(
+//                    SongsFragment.Category.Playlist(playlistId),
+//                    playlist.tracks.broadcast(CONFLATED)
+//                )
+//            }.lparams(width = matchParent, height = matchParent) {
+////                behavior = AppBarLayout.ScrollingViewBehavior()
 //            }
+
+            recyclerView {
+                layoutManager = LinearLayoutManager(context)
+                adapter = PlaylistTracksAdapter(playlist)
+            }
         }
 
 }

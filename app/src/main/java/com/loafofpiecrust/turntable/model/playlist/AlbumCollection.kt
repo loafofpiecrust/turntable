@@ -8,6 +8,7 @@ import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.util.*
+import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.map
@@ -88,7 +89,7 @@ class AlbumCollection(
     }
 
     override fun publish() {
-        launch(BG_POOL) {
+        GlobalScope.launch {
             val db = FirebaseFirestore.getInstance()
             db.collection("playlists")
                 .document(id.toString())

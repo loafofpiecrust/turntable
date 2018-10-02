@@ -13,8 +13,10 @@ import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.util.consumeEach
-import com.loafofpiecrust.turntable.util.task
+import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jetbrains.anko.AnkoLogger
@@ -33,7 +35,7 @@ sealed class ArtistDownload(val quality: OnlineSearchService.Quality): MusicDown
     companion object {
         fun search(artist: Artist) : ArtistDownload? {
 //            val tpb = async(CommonPool) { TPBAlbum.search(album) }
-            val ru = task { RuTrackerArtist.search(artist) }
+            val ru = GlobalScope.async { RuTrackerArtist.search(artist) }
 //            val yt = async(CommonPool) { YouTubeAlbum.search(album) }
 
 //            val torrents = listOf(tpb, ru).map { it.await() }.filterNotNull()

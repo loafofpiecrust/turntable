@@ -14,11 +14,12 @@ import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.model.queue.CombinedQueue
-import com.loafofpiecrust.turntable.model.queue.indexWithinUpNext
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.model.song.HistoryEntry
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.util.BG_POOL
+import com.loafofpiecrust.turntable.util.with
+import com.loafofpiecrust.turntable.util.without
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
@@ -28,8 +29,11 @@ import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
 import org.jetbrains.anko.error
 import org.jetbrains.anko.info
+import kotlin.coroutines.experimental.CoroutineContext
 
-class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
+class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScope {
+    override val coroutineContext: CoroutineContext = SupervisorJob()
+
     enum class EnqueueMode {
         NEXT, // Adds to the end of an "Up Next" section of the queue just after the current song.
         IMMEDIATELY_NEXT, // Will play _immediately_ after the current song
@@ -112,18 +116,17 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
 
 
     data class BufferState(val duration: Long, val position: Long, val bufferedPosition: Long)
-    val bufferState: ReceiveChannel<BufferState> get() =
-        produce(BG_POOL + subs) {
-            while (isActive) {
-                try {
-                    if (player.currentTimeline != null && player.currentTimeline.windowCount > 0) {
-                        send(BufferState(player.duration, player.currentPosition, player.bufferedPosition))
-                    }
-                } finally {
+    val bufferState: ReceiveChannel<BufferState> get() = produce {
+        while (isActive) {
+            try {
+                if (player.currentTimeline != null && player.currentTimeline.windowCount > 0) {
+                    send(BufferState(player.duration, player.currentPosition, player.bufferedPosition))
                 }
-                delay(350)
+            } finally {
             }
+            delay(350)
         }
+    }
 
     private val _isPlaying: ConflatedBroadcastChannel<Boolean> = ConflatedBroadcastChannel(false)
     val isPlaying get() = _isPlaying.openSubscription()
@@ -147,6 +150,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
     fun release() {
         subs.cancel()
         player.release()
+        coroutineContext.cancel()
     }
 
     override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters?) {
@@ -161,12 +165,17 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         // This means the current song couldn't be loaded.
         // In this case, delete the DB entry for the current song.
         // Then, try again to play it.
-        error(error.message, error.cause)
+        error(error.type, error)
 
         // if the error is a SOURCE error 404 or 403,
         // clear streams and try again
         // if that fails the 2nd time, skip to the next track in the MediaSource.
         if (error.type == ExoPlaybackException.TYPE_SOURCE) {
+            player.stop(true)
+            // to retry, we have to rebuild the MediaSource
+            playNext()
+            prepareSource()
+
 //            errorCount++
 //            if (errorCount < 2) async(BG_POOL) {
 //                OnlineSearchService.instance.reloadSongStreams(_queue.value.current!!.id)
@@ -269,7 +278,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
 
     private var mediaSource: ConcatenatingMediaSource? = null
 
-    fun playSongs(songs: List<Song>, position: Int = 0, mode: OrderMode = OrderMode.SEQUENTIAL) = task {
+    fun playSongs(songs: List<Song>, position: Int = 0, mode: OrderMode = OrderMode.SEQUENTIAL) {
         shouldAutoplay = true
 
         when (mode) {
@@ -291,9 +300,12 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
                 }
             }
         }
-//    }.then(UI) {
+        prepareSource()
+    }
+
+    private fun prepareSource() {
         val q = _queue.value
-//        player.stop()
+        player.stop(true)
         mediaSource = ConcatenatingMediaSource().apply {
             addMediaSources(q.list.mapIndexed { index, song ->
                 val cb: ((Boolean) -> Unit)? = if (index == q.position) {
@@ -308,7 +320,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         player.seekToDefaultPosition(q.position)
         player.prepare(mediaSource, false, true)
         player.playWhenReady = true
-        player.shuffleModeEnabled = mode == OrderMode.SHUFFLE
+        player.shuffleModeEnabled = orderMode == OrderMode.SHUFFLE
     }
 
     fun clearQueue() {
@@ -352,14 +364,10 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
     fun removeFromQueue(position: Int) {
         // TODO: Start with removing from nextUp, then from anywhere else if from StaticQueue (new interface method?)
 
-        _queue putsMapped { q ->
-            if (q.indexWithinUpNext(position)) {
-                q.copy(nextUp = q.nextUp.without(position - q.position))
-            } else q
-        }
+//        _queue putsMapped { q -> StaticQueue(q.list.without(position), q.position) }
     }
 
-    fun playNext() = task {
+    fun playNext() {
         addCurrentToHistory()
         val q = _queue.value.next()
         _queue puts q as CombinedQueue
@@ -370,7 +378,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         }
     }
 
-    fun playPrevious() = task {
+    fun playPrevious() {
         addCurrentToHistory()
         val q = _queue.value.prev()
         _queue puts q as CombinedQueue
@@ -413,7 +421,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger {
         }
     }
 
-    fun shiftQueueItem(from: Int, to: Int) = task {
+    fun shiftQueueItem(from: Int, to: Int) {
         _queue putsMapped { q ->
             q.shifted(from, to) as CombinedQueue
         }

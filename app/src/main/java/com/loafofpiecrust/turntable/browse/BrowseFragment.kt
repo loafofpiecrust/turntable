@@ -23,11 +23,10 @@ import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItem
 import com.loafofpiecrust.turntable.ui.replaceMainContent
-import com.loafofpiecrust.turntable.util.task
-import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.map
+import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.sdk27.coroutines.onClick
@@ -46,7 +45,7 @@ class BrowseFragment: BaseFragment() {
             button(R.string.show_more).lparams {
                 gravity = Gravity.END
             }.onClick {
-                ctx.replaceMainContent(RecommendationsFragment())
+                context.replaceMainContent(RecommendationsFragment())
             }
         }
         recyclerView {
@@ -114,7 +113,7 @@ class MusicAdapter(
             is Album -> {
                 holder.subLine.text = item.id.artist.displayName
                 if (holder.coverImage != null) {
-                    task(UI) {
+                    launch {
                         item.loadCover(Glide.with(holder.coverImage)).first()
                             ?.into(holder.coverImage)
                             ?: run {

@@ -108,11 +108,11 @@ suspend fun Call.executeSuspended(): Response = suspendCancellableCoroutine { co
             try {
                 cont.resume(response)
             } catch (e: CancellationException) {
-                response.close()
+                response.closeQuietly()
             }
         }
     })
 }
 
-val Response.text: String get() = body()!!.string()!!.also { closeQuietly() }
-val Response.gson: JsonElement get() = JsonParser().parse(body()!!.charStream()!!).also { closeQuietly() }
+val Response.text: String get() = body()!!.string()!!
+val Response.gson: JsonElement get() = JsonParser().parse(body()!!.charStream()!!)

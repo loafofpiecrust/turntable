@@ -15,12 +15,17 @@ import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
+import com.loafofpiecrust.turntable.ui.RecyclerBroadcastAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
 import com.loafofpiecrust.turntable.util.*
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
+import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.first
+import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.image
 import org.jetbrains.anko.sdk27.coroutines.onClick
@@ -31,7 +36,7 @@ open class SongsAdapter(
     private val category: SongsFragment.Category? = null,
     private val listener: (List<Song>, Int) -> Unit
 ): RecyclerAdapter<Song, RecyclerListItemOptimized>(), FastScrollRecyclerView.SectionedAdapter {
-    protected val progressSubs = HashMap<RecyclerListItemOptimized, Job>()
+    protected val progressSubs = mutableMapOf<RecyclerListItemOptimized, Job>()
 
     override fun itemsSame(a: Song, b: Song, aIdx: Int, bIdx: Int) =
         a.id == b.id
@@ -69,8 +74,8 @@ open class SongsAdapter(
         val song = data[position]
         val ctx = holder.card.context
 
-        val subs = Job()
-        progressSubs.put(holder, subs)?.cancelSafely()
+        val subs = Job(supervisor)
+        progressSubs.put(holder, subs)?.cancel()
 
 //        holder.item = song
         holder.mainLine.text = song.id.displayName
@@ -130,36 +135,40 @@ open class SongsAdapter(
 //            }
 //        }
 
-        MusicService.instance.switchMap {
-            it?.let {
-                combineLatest(it.player.queue, App.instance.internetStatus)
-            } ?: produceSingle(null to null)
-        }.consumeEach(UI + subs) { (q, internet) ->
-            if (song.id == q?.current?.id) {
-                // This is the currently playing song.
+        launch(Dispatchers.Main + subs) {
+            MusicService.instance.switchMap {
+                it?.let {
+                    combineLatest(it.player.queue, App.instance.internetStatus)
+                }
+            }.consumeEach { (q, internet) ->
+                if (song.id == q.current?.id) {
+                    // This is the currently playing song.
 //                holder.playingIcon.visibility = View.VISIBLE
-                holder.track.visibility = View.INVISIBLE
+//                    holder.track.visibility = View.INVISIBLE
 
-                val c = UserPrefs.accentColor.value
-                holder.mainLine.textColor = c
-                holder.subLine.textColor = c
-            } else {
-                holder.track.visibility = View.VISIBLE
+                    val c = UserPrefs.accentColor.value
+                    holder.mainLine.textColor = c
+                    holder.subLine.textColor = c
+                    holder.track.textColor = c
+                } else {
+//                    holder.track.visibility = View.VISIBLE
 //                holder.playingIcon.visibility = View.GONE
 
-                // This is any other song
+                    // This is any other song
 //                if (song.local != null) {
 //                    holder.statusIcon.visibility = View.VISIBLE
 //                } else {
 //                    holder.statusIcon.visibility = View.GONE
 //                }
 
-                val isLocal = Library.instance.sourceForSong(song.id) != null
-                val c = ctx.getColorCompat(if (internet == App.InternetStatus.OFFLINE && !isLocal) {
-                    R.color.text_unavailable
-                } else R.color.text)
-                holder.mainLine.textColor = c
-                holder.subLine.textColor = c
+                    val isLocal = Library.instance.sourceForSong(song.id) != null
+                    val c = ctx.getColorCompat(if (internet == App.InternetStatus.OFFLINE && !isLocal) {
+                        R.color.text_unavailable
+                    } else R.color.text)
+                    holder.mainLine.textColor = c
+                    holder.subLine.textColor = c
+                    holder.track.textColor = c
+                }
             }
         }
 
@@ -193,7 +202,7 @@ open class SongsAdapter(
             false
         }
 
-        holder.card.onClick(BG_POOL) {
+        holder.card.onClick {
             val pos = if (data[position] === song) position else data.indexOf(song)
             val song = data[pos]
 //            if (App.instance.internetStatus.first() != App.InternetStatus.OFFLINE
@@ -228,7 +237,8 @@ open class SongsAdapter(
     }
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
-        progressSubs.forEach { (holder, job) -> job.cancel() }
+        super.onDetachedFromRecyclerView(recyclerView)
         progressSubs.clear()
     }
 }
+

@@ -17,9 +17,9 @@ import com.loafofpiecrust.turntable.screenSize
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.consumeEach
 import org.jetbrains.anko.*
 import org.jetbrains.anko.cardview.v7.cardView
@@ -47,7 +47,7 @@ class PlayerAlbumCoverFragment : BaseFragment() {
 
         var prev = 0
         MusicService.instance.switchMap {
-            it.player.queue
+            it?.player?.queue
         }.consumeEachAsync { q ->
             (adapter as Adapter).updateData(q.list, q.position)
             fromInteraction = false
@@ -109,13 +109,14 @@ class PlayerAlbumCoverFragment : BaseFragment() {
 
             // Don't halt any UI
             // Run diff in background thread
-            task {
-                DiffUtil.calculateDiff(Differ(q, newSongs))
-            }.then(UI) { diff ->
-                // go back to UI thread to update the view
-                list = newSongs
-                this.position = position
-                diff.dispatchUpdatesTo(this@Adapter)
+            launch(Dispatchers.Default) {
+                val diff = DiffUtil.calculateDiff(Differ(q, newSongs))
+                launch(Dispatchers.Main) {
+                    // go back to UI thread to update the view
+                    list = newSongs
+                    this@Adapter.position = position
+                    diff.dispatchUpdatesTo(this@Adapter)
+                }
             }
         }
 

@@ -12,16 +12,14 @@ import com.loafofpiecrust.turntable.model.playlist.AlbumCollection
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.model.playlist.Playlist
-import com.loafofpiecrust.turntable.util.menuItem
-import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItem
 import com.loafofpiecrust.turntable.ui.replaceMainContent
-import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.arg
+import com.loafofpiecrust.turntable.util.*
+import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.channels.produce
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.imageResource
@@ -32,18 +30,21 @@ import org.jetbrains.anko.textColor
 
 class PlaylistsFragment: BaseFragment() {
     companion object {
-        fun newInstance(user: SyncService.User? = null, columnCount: Int = 0) = PlaylistsFragment().apply {
-            this.user = user
+        fun newInstance(
+            user: SyncService.User? = null,
+            columnCount: Int = 0
+        ) = PlaylistsFragment().apply {
+            user?.let { this.user = it }
             this.columnCount = columnCount
         }
     }
-    var user: SyncService.User? by arg()
-    var columnCount: Int by arg()
+    private var user: SyncService.User by arg { SyncService.selfUser }
+    private var columnCount: Int by arg()
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
         super.onCreateOptionsMenu(menu, inflater)
         menu.menuItem(R.string.mixtapes_recent).onClick {
-            ctx.replaceMainContent(RecentMixTapesFragment(), true)
+            context?.replaceMainContent(RecentMixTapesFragment(), true)
         }
 
         menu.menuItem(R.string.playlist_new, R.drawable.ic_add, showIcon =true).onClick {
@@ -52,10 +53,10 @@ class PlaylistsFragment: BaseFragment() {
     }
 
     override fun ViewManager.createView() = recyclerView {
-        layoutManager = LinearLayoutManager(ctx, LinearLayoutManager.VERTICAL, false)
+        layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
         adapter = Adapter { playlist ->
             println("playlist: opening '${playlist.name}'")
-            ctx.replaceMainContent(
+            context.replaceMainContent(
                 when(playlist) {
                     is MixTape -> MixTapeDetailsFragment.newInstance(playlist.id, playlist.name)
                     is AlbumCollection -> AlbumsFragment.fromChan(playlist.albums)
@@ -64,11 +65,14 @@ class PlaylistsFragment: BaseFragment() {
                 true
             )
         }.also { adapter ->
-            adapter.subscribeData(user?.let { user ->
-                produce(BG_POOL) { send(MixTape.allFromUser(user)) }
-            } ?: UserPrefs.playlists.openSubscription())
+            adapter.subscribeData(if (user === SyncService.selfUser) {
+                UserPrefs.playlists.openSubscription()
+            } else {
+                produceSingle(Dispatchers.Default) { MixTape.allFromUser(user) }
+            })
         }
     }
+
 
     class Adapter(
         val listener: (Playlist) -> Unit

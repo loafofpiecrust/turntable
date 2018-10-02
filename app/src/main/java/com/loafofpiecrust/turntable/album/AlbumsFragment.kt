@@ -22,35 +22,40 @@ import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.turntableStyle
 import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.util.*
-import fr.castorflex.android.circularprogressbar.CircularProgressDrawable
+import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.experimental.Dispatchers
+import kotlinx.coroutines.experimental.IO
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.channels.BroadcastChannel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.firstOrNull
-import kotlinx.coroutines.experimental.channels.map
+import kotlinx.coroutines.experimental.channels.*
+import kotlinx.coroutines.experimental.channels.Channel.Factory.CONFLATED
+import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.dimen
 import org.jetbrains.anko.frameLayout
+import org.jetbrains.anko.info
 import org.jetbrains.anko.padding
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.act
+import org.jetbrains.anko.support.v4.swipeRefreshLayout
 
 class AlbumsFragment : BaseFragment() {
     sealed class Category: Parcelable {
         abstract val channel: BroadcastChannel<List<Album>>
 
-        @Parcelize class All: Category() {
+        @Parcelize object All : Category() {
             override val channel get() = Library.instance.albums
         }
         @Parcelize data class ByArtist(
             val artist: ArtistId,
             val mode: ArtistDetailsFragment.Mode
         ): Category() {
+            @IgnoredOnParcel
             var artistChannel: ReceiveChannel<Artist>? = null
 
             override val channel get() =
                 (artistChannel ?: Library.instance.findArtist(artist)
-                    .map(BG_POOL) {
+                    .map(Dispatchers.IO) {
                         if (it is LocalArtist) {
                             when (mode) {
                                 ArtistDetailsFragment.Mode.LIBRARY -> it
@@ -67,7 +72,7 @@ class AlbumsFragment : BaseFragment() {
                             }
                         }
                     })
-                    .map(BG_POOL) { it?.albums ?: emptyList() }
+                    .map(Dispatchers.IO) { it?.albums ?: emptyList() }
                     .replayOne()
         }
     }
@@ -82,14 +87,14 @@ class AlbumsFragment : BaseFragment() {
     private var category: Category by arg()
     private var sortBy: SortBy by arg(SortBy.NONE)
     private var columnCount: Int by arg(3)
-    @State var listState: Parcelable? = null
+//    @State var listState: Parcelable? = null
 
     lateinit var albums: BroadcastChannel<List<Album>>
 //    val gridSize by objFilePref(3)
 
     companion object {
         fun all() = AlbumsFragment().apply {
-            category = Category.All()
+            category = Category.All
         }
 
         fun fromChan(
@@ -97,14 +102,14 @@ class AlbumsFragment : BaseFragment() {
             sortBy: SortBy? = null,
             columnCount: Int? = null
         ) = AlbumsFragment().apply {
-            category = Category.All()
+            category = Category.All
             if (sortBy != null) {
                 this.sortBy = sortBy
             }
             if (columnCount != null) {
                 this.columnCount = columnCount
             }
-            albums = channel.replayOne()//.broadcast(Channel.CONFLATED, start = CoroutineStart.DEFAULT)
+            albums = channel.broadcast(CONFLATED)
         }
 
         fun byArtist(artistId: ArtistId, artist: ReceiveChannel<Artist>) = AlbumsFragment().apply {
@@ -112,40 +117,12 @@ class AlbumsFragment : BaseFragment() {
                 artistChannel = artist
             }
         }
-
-
-//        fun fromArtist(artist: ReceiveChannel<Artist>, mode: ReceiveChannel<ArtistDetailsFragment.Mode>): AlbumsFragment {
-//            val cat = Category.ByArtist(artist.id, mode)
-//            return AlbumsFragmentStarter.newInstance(cat).apply {
-//                albums = mode.switchMap { mode ->
-//                    when (cat) {
-//                        is Category.All -> Library.instance.albums.openSubscription()
-//                        is Category.ByArtist -> {
-////                            withContext(UI) {
-////                                circleProgress.visibility = View.VISIBLE
-////                                loadCircle.start()
-////                            }
-//
-//                            when (cat.mode) {
-//                                ArtistDetailsFragment.Mode.REMOTE -> produceTask(BG_POOL) {
-//                                    artist.resolveAlbums(false)
-//                                }
-//                                ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE -> produceTask(BG_POOL) {
-//                                    artist.resolveAlbums(true)
-//                                }
-//                                else -> Library.instance.albumsByArtist(cat.artist)
-//                            }
-//                        }
-//                        // is Category.Custom -> produceSingle(cat.albums)
-//                    }
-//                }
-//            }
-//        }
     }
 
     override fun onCreate() {
         super.onCreate()
         if (!::albums.isInitialized) {
+            info { "Grabbing new albums channel $category" }
             albums = category.channel
         }
     }
@@ -220,7 +197,11 @@ fun ViewManager.albumList(
     sortBy: AlbumsFragment.SortBy,
     columnCount: Int,
     block: RecyclerView.() -> Unit = {}
-) = frameLayout {
+) = swipeRefreshLayout {
+    val scope = ViewScope(this)
+
+    isEnabled = false
+
     val grid = GridLayoutManager(context, 3)
 
     val goToAlbum = { item: RecyclerItem, album: Album ->
@@ -230,13 +211,14 @@ fun ViewManager.albumList(
             item.transitionViews
         )
     }
-    val adapter = if (category is AlbumsFragment.Category.ByArtist) {
-        AlbumSectionAdapter(goToAlbum).apply {
-            setLayoutManager(grid)
-        }
-    } else {
-        AlbumsAdapter(false, goToAlbum)
-    }
+    val adapter: RecyclerView.Adapter<*> =
+//        if (category is AlbumsFragment.Category.ByArtist) {
+//            AlbumSectionAdapter(goToAlbum).apply {
+//                setLayoutManager(grid)
+//            }
+//        } else {
+            AlbumsAdapter(category is AlbumsFragment.Category.ByArtist, goToAlbum)
+//        }
 
     val recycler = if (category is AlbumsFragment.Category.All) {
         fastScrollRecycler {
@@ -244,22 +226,6 @@ fun ViewManager.albumList(
         }
     } else recyclerView {
         turntableStyle()
-    }
-
-    val loadCircle = CircularProgressDrawable.Builder(context)
-        .color(UserPrefs.primaryColor.value)
-        .rotationSpeed(3f)
-        .strokeWidth(dimen(R.dimen.load_circle_thickness).toFloat())
-        .build()
-        .apply { start() }
-
-    val circleProgress = circularProgressBar {
-        visibility = View.VISIBLE
-        isIndeterminate = true
-        indeterminateDrawable = loadCircle
-    }.lparams(dimen(R.dimen.load_circle_size), dimen(R.dimen.load_circle_size)) {
-        topMargin = dimen(R.dimen.text_content_margin)
-        gravity = Gravity.CENTER_HORIZONTAL
     }
 
 
@@ -276,9 +242,11 @@ fun ViewManager.albumList(
         if (columnCount > 0) {
             grid.spanCount = columnCount
         } else {
-            UserPrefs.albumGridColumns.bind(this)
-                .distinctSeq()
-                .consumeEach(UI) { grid.spanCount = it }
+            scope.launch {
+                UserPrefs.albumGridColumns.openSubscription()
+                    .distinctSeq()
+                    .consumeEach { grid.spanCount = it }
+            }
         }
 
         addItemDecoration(ItemOffsetDecoration(dimen(R.dimen.grid_gutter)))
@@ -298,17 +266,23 @@ fun ViewManager.albumList(
         if (adapter is AlbumsAdapter) {
             adapter.subscribeData(sub)
         } else if (adapter is AlbumSectionAdapter) {
-            sub.bind(this).consumeEach(UI) {
-                adapter.replaceData(it)
+            scope.launch {
+                sub.consumeEach {
+                    adapter.replaceData(it)
+                }
             }
         }
 
         block()
     }
 
-    albums.bind(recycler).consume(UI) {
-        while(receive().isEmpty()) {}
-        loadCircle.progressiveStop()
-        circleProgress.visibility = View.INVISIBLE
+    scope.launch {
+        albums.consume {
+            if (isEmpty) {
+                isRefreshing = true
+                receive()
+                isRefreshing = false
+            }
+        }
     }
 }

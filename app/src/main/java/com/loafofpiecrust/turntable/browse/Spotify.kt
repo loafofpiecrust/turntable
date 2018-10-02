@@ -3,6 +3,7 @@ package com.loafofpiecrust.turntable.browse
 import android.content.Context
 import android.util.Base64
 import com.github.salomonbrys.kotson.*
+import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
@@ -21,13 +22,17 @@ import com.loafofpiecrust.turntable.tryOr
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
-import com.loafofpiecrust.turntable.util.task
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.runBlocking
+import org.jetbrains.anko.AnkoLogger
+import org.jetbrains.anko.debug
+import org.jetbrains.anko.error
+import org.jetbrains.anko.info
 
 
-object Spotify: SearchApi {
+object Spotify: SearchApi, AnkoLogger {
     @Parcelize
     data class AlbumDetails(
         val id: String,
@@ -139,7 +144,7 @@ object Spotify: SearchApi {
 
     private suspend fun login() {
         val authKey = Base64.encodeToString("$clientId:$clientSecret".toByteArray(), Base64.NO_WRAP)
-        task(UI) { println("recs: key = $authKey") }
+        debug { "recs: key = $authKey" }
         try {
             val res = Http.post("https://accounts.spotify.com/api/token",
                 body = mapOf("grant_type" to "client_credentials"),
@@ -148,11 +153,11 @@ object Spotify: SearchApi {
 //            task(UI) { println("recs: res = ${t.text}") }
 //            val res = JsonParser().parse(t.text)
             accessToken = res["access_token"].nullString
-            task(UI) { println("recs: token = $accessToken") }
+            debug { "recs: token = $accessToken" }
             tokenTimestamp = System.currentTimeMillis()
             tokenLifespan = res["expires_in"].long * 1000
-        } catch (e: Exception) {
-            task(UI) { e.printStackTrace() }
+        } catch (e: Throwable) {
+            error("Spotify failed to login", e)
         }
     }
 
@@ -361,7 +366,7 @@ object Spotify: SearchApi {
         recs.forEach { newPl.add(it) }
         ctx.library.cachePlaylist(newPl)
 
-        task(UI) {
+        App.launch {
             ctx.replaceMainContent(
                 PlaylistDetailsFragment.newInstance(newPl.id, newPl.name),
                 true

@@ -1,45 +1,42 @@
 package com.loafofpiecrust.turntable.ui
 
+import android.os.Bundle
 import android.os.Parcelable
-import android.support.constraint.ConstraintSet.PARENT_ID
 import android.view.Gravity
+import android.view.View
+import android.view.ViewAnimationUtils
 import android.view.ViewManager
+import com.evernote.android.state.State
 import com.lapism.searchview.Search
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.album.AlbumsAdapter
 import com.loafofpiecrust.turntable.album.AlbumsFragment
+import com.loafofpiecrust.turntable.album.albumList
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistsAdapter
 import com.loafofpiecrust.turntable.artist.ArtistsFragment
-import com.loafofpiecrust.turntable.browse.Discogs
+import com.loafofpiecrust.turntable.artist.artistList
+import com.loafofpiecrust.turntable.browse.LocalApi
 import com.loafofpiecrust.turntable.browse.SearchApi
-import com.loafofpiecrust.turntable.browse.Spotify
-import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.popupMenu
 import com.loafofpiecrust.turntable.song.SongsAdapter
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.song.songsList
+import com.loafofpiecrust.turntable.util.arg
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.cancelChildren
+import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.isActive
 import org.jetbrains.anko.*
-import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
-import org.jetbrains.anko.constraint.layout.applyConstraintSet
-import org.jetbrains.anko.constraint.layout.constraintLayout
 import org.jetbrains.anko.support.v4.toast
-import kotlin.coroutines.experimental.coroutineContext
+import kotlin.math.max
 
 
-//@EActivity
-open class SearchFragment : BaseFragment() {
-
+class SearchFragment : BaseFragment() {
 //    enum class Category {
 //        ARTISTS,
 //        ALBUMS,
@@ -63,7 +60,7 @@ open class SearchFragment : BaseFragment() {
     private var artistsGrid : ArtistsAdapter? = null
     private var songsList : SongsAdapter? = null
 
-    private var prevQuery = ""
+    @State var prevQuery = ""
     private var searchJob: Job? = null
 
     private var searchApi: SearchApi = SearchApi.Companion
@@ -75,6 +72,17 @@ open class SearchFragment : BaseFragment() {
 //            slideEdge = Gravity.BOTTOM
 //        }
         allowEnterTransitionOverlap = true
+
+        // Upon restoring with a query, restore the results.
+        if (prevQuery != "") {
+            onSearchAction(prevQuery)
+        }
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        val finalRadius = max(view.width, view.height).toFloat()
+        val anim = ViewAnimationUtils.createCircularReveal(view, 0, 0, 0f, finalRadius)
+        anim.start()
     }
 
     override fun onDestroy() {
@@ -89,17 +97,26 @@ open class SearchFragment : BaseFragment() {
         topPadding = dimen(R.dimen.statusbar_height)
         clipToPadding = false
 
+        val cat = category
         frameLayout {
             id = R.id.results
             topPadding = dip(64)
-
-            val cat = category
             when (cat) {
-                is Category.Artists -> fragment {
-                    ArtistsFragment.fromChan(cat.results.openSubscription())
-                }
-                is Category.Albums -> fragment { AlbumsFragment.fromChan(cat.results.openSubscription()) }
-                is Category.Songs -> fragment { SongsFragment.all().apply { songs = cat.results } }
+                is Category.Songs -> songsList(
+                    SongsFragment.Category.All,
+                    cat.results
+                )
+                is Category.Albums -> albumList(
+                    cat.results,
+                    AlbumsFragment.Category.All,
+                    AlbumsFragment.SortBy.NONE,
+                    3
+                )
+                is Category.Artists -> artistList(
+                    cat.results,
+                    ArtistsFragment.Category.All(),
+                    3
+                )
             }
         }.lparams(matchParent, matchParent)
 
@@ -129,6 +146,11 @@ open class SearchFragment : BaseFragment() {
             setMenuIcon(context.getDrawable(R.drawable.ic_cake))
             setOnMenuClickListener {
                 popupMenu(Gravity.END) {
+                    menuItem("Local").onClick {
+                        toast("Searching local music")
+                        searchApi = LocalApi
+                    }
+
                     for (api in SearchApi.DEFAULT_APIS) {
                         val name = api.javaClass.simpleName
                         menuItem(name).onClick {
@@ -157,7 +179,7 @@ open class SearchFragment : BaseFragment() {
 //                        task(UI) { loadCircle.start() }
             prevQuery = query
             searchJob?.cancel()
-            searchJob = async(BG_POOL + jobs) { doSearch(query, category) }
+            searchJob = async(Dispatchers.IO) { doSearch(query, category) }
 //                            .always(UI) { loadCircle.progressiveStop() }
         }
     }

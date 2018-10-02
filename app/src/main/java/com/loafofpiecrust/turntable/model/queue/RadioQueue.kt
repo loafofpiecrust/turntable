@@ -5,8 +5,9 @@ import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.model.song.Music
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.util.task
+import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import kotlin.math.max
 
@@ -48,7 +49,7 @@ class RadioQueue private constructor(
             seed,
             newRecs.also { recs ->
                 if (recs.size < lookAhead) {
-                    job = task {
+                    job = GlobalScope.launch {
                         recs.addAll(Spotify.recommendationsFor(seed.shuffled().take(5)))
                     }
                 }
@@ -90,7 +91,7 @@ class RadioQueue private constructor(
                 seed,
                 newRecs.also { recs ->
                     if (recs.size < lookAhead) {
-                        job = task {
+                        job = GlobalScope.launch {
                             recs.addAll(Spotify.recommendationsFor(seed.shuffled().take(5)))
                         }
                     }

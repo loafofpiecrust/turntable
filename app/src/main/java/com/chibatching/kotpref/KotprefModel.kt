@@ -232,7 +232,7 @@ abstract class KotprefModel {
     }
 
     suspend fun saveFiles() {
-        files.parMap { it.save() }.awaitAll()
+        files.map { it.save() }
     }
 }
 

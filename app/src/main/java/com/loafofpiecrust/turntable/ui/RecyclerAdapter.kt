@@ -18,13 +18,10 @@ import android.widget.TextView
 import com.afollestad.sectionedrecyclerview.SectionedViewHolder
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.runBlocking
-import kotlinx.coroutines.experimental.withContext
 import org.jetbrains.anko.*
 import org.jetbrains.anko.cardview.v7.cardView
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
@@ -33,9 +30,14 @@ import org.jetbrains.anko.constraint.layout.constraintLayout
 import org.jetbrains.anko.constraint.layout.matchConstraint
 import org.jetbrains.anko.sdk27.coroutines.textChangedListener
 import java.util.*
+import kotlin.coroutines.experimental.CoroutineContext
 
 // TODO: Make interface for music data types that has their shared qualities: mainly an id. Then, maybe that'll allow some other generalization too.
-abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>: RecyclerView.Adapter<VH>() {
+abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>: RecyclerView.Adapter<VH>(), CoroutineScope {
+    protected val supervisor = SupervisorJob()
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Default + supervisor
+
     protected var data: List<T> = listOf()
     private val pendingUpdates = ArrayDeque<List<T>>()
     protected var dataUpdateJob: Job? = null
@@ -97,7 +99,7 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>: RecyclerView.Ada
 //        }
 //    }
 
-    fun replaceData(newData: List<T>) = task(UI) {
+    fun replaceData(newData: List<T>) = launch(Dispatchers.Main) {
         val newSize = newData.size
         val prevSize = data.size
         data = newData
@@ -128,10 +130,10 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>: RecyclerView.Ada
             println("recycler restoring data?")
             data = runBlocking { obs.receive() }
         }
-        dataUpdateJob = async(BG_POOL) {
+        dataUpdateJob = async {
             obs.consumeEach { newData ->
                 val diff = DiffUtil.calculateDiff(Differ(data, newData))
-                withContext(UI) {
+                withContext(Dispatchers.Main) {
                     data = newData
                     diff.dispatchUpdatesTo(this@RecyclerAdapter)
                 }
@@ -143,20 +145,38 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>: RecyclerView.Ada
         super.onDetachedFromRecyclerView(recyclerView)
         dataUpdateJob?.cancel()
         dataUpdateJob = null
+        supervisor.cancel()
     }
 }
 
 abstract class RecyclerBroadcastAdapter<T, VH: RecyclerView.ViewHolder>: RecyclerAdapter<T, VH>() {
-    abstract val channel: ReceiveChannel<List<T>>
+    private val itemJobs = mutableMapOf<VH, Job>()
+
     abstract val moveEnabled: Boolean
     abstract val dismissEnabled: Boolean
 
     open fun onItemMove(fromIdx: Int, toIdx: Int) {}
     open fun canMoveItem(index: Int): Boolean = false
-    open fun canMoveItem(fromIdx: Int, toIdx: Int): Boolean = false
+    open fun canMoveItem(fromIdx: Int, toIdx: Int): Boolean = canMoveItem(fromIdx) && canMoveItem(toIdx)
     open fun onItemDismiss(idx: Int) {}
 
-    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+    override fun getItemCount(): Int = data.size
+
+    final override fun onBindViewHolder(holder: VH, position: Int) {
+        val job = Job(supervisor)
+        itemJobs.put(holder, job)?.cancel()
+        data.getOrNull(position)?.let { item ->
+            holder.onBind(item, position, job)
+        }
+    }
+
+    final override fun onBindViewHolder(holder: VH, position: Int, payloads: MutableList<Any>) {
+        super.onBindViewHolder(holder, position, payloads)
+    }
+
+    abstract fun VH.onBind(item: T, position: Int, job: Job)
+
+    final override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
         if (moveEnabled || dismissEnabled) {
             ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
                 ItemTouchHelper.UP or ItemTouchHelper.DOWN,
@@ -173,14 +193,21 @@ abstract class RecyclerBroadcastAdapter<T, VH: RecyclerView.ViewHolder>: Recycle
                 }
 
                 override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                    val currFrom = viewHolder.adapterPosition
+                    val currTo = target.adapterPosition
                     if (dragFrom == -1) {
-                        dragFrom = viewHolder.adapterPosition
+                        dragFrom = currFrom
                     }
-                    dragTo = target.adapterPosition
+                    dragTo = currTo
+                    data = data.shifted(currFrom, currTo)
+                    notifyItemMoved(currFrom, currTo)
                     return true
                 }
 
                 override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                    val position = viewHolder.adapterPosition
+                    data = data.without(position)
+                    notifyItemRemoved(position)
                     onItemDismiss(viewHolder.adapterPosition)
                 }
 
@@ -191,7 +218,14 @@ abstract class RecyclerBroadcastAdapter<T, VH: RecyclerView.ViewHolder>: Recycle
                     if (dragFrom == -1) {
                         dragFrom = current.adapterPosition
                     }
-                    return canMoveItem(target.adapterPosition) && canMoveItem(dragFrom, target.adapterPosition)
+                    val res = canMoveItem(dragFrom, target.adapterPosition)
+                    if (!res) {
+                        // if we can't move the item,
+                        // put it back where it started
+                        data = data.shifted(dragTo, dragFrom)
+                        notifyItemMoved(dragTo, dragFrom)
+                    }
+                    return res
                 }
 
                 override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
@@ -215,7 +249,7 @@ open class RecyclerItem(view: View) : SectionedViewHolder(view) {
     val header: View = itemView.findOptional(R.id.title) ?: mainLine
 
     open val transitionViews: List<View> get() = if (coverImage != null) {
-        listOf(coverImage, header)
+        listOf(coverImage/*, header*/)
     } else listOf(header)
 
     override fun toString() = "${super.toString()} '${mainLine.text}'"

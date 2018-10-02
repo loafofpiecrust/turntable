@@ -42,9 +42,8 @@ import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.*
 import org.jetbrains.anko.design.navigationView
 import org.jetbrains.anko.support.v4.drawerLayout
@@ -97,7 +96,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                         }
                         menuItem(R.string.action_settings).onClick {
                             this@drawerLayout.closeDrawers()
-                            SettingsActivityStarter.start(ctx)
+                            SettingsActivityStarter.start(context)
                         }
                     }
                 }.lparams(width = dimen(R.dimen.drawer_width), height = matchParent) {
@@ -167,7 +166,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
 
         launch {
             MusicService.instance.switchMap {
-                it.player.queue
+                it?.player?.queue
             }.consumeEach { q ->
                 if (q.current == null) {
                     if (!sheets.isHidden) {
@@ -330,7 +329,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                     intent.getStringExtra(MediaStore.EXTRA_MEDIA_TITLE)
                 } else null
 //                if (title != null && album != null && artist != null) {
-                    task {
+                    GlobalScope.launch {
                         val song = Spotify.searchSongs(query).firstOrNull()
                         if (song != null) {
                             MusicService.enact(SyncService.Message.PlaySongs(listOf(song)))
@@ -384,7 +383,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
         }
     }
 
-    private fun handleLink(url: Uri) = task {
+    private fun handleLink(url: Uri) = launch(Dispatchers.Default) {
         // Possible urls (recommendations, sync)
         // turntable://album?name=*&artist=*
         // turntable://artist?id=*
@@ -433,12 +432,12 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
     override fun onSaveInstanceState(outState: Bundle?) {
         super.onSaveInstanceState(outState)
         // Save preference files here!
-        runBlocking { UserPrefs.saveFiles() }
+        runBlocking(Dispatchers.IO) { UserPrefs.saveFiles() }
     }
 }
 
 fun FragmentManager.replaceMainContent(fragment: Fragment, allowBackNav: Boolean, sharedElems: List<View>? = null) {
-    beginTransaction().setReorderingAllowed(true).apply {
+    beginTransaction().apply {
         sharedElems?.forEach {
             addSharedElement(it, it.transitionName)
         }

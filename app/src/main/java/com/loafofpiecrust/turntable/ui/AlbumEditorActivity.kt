@@ -20,7 +20,6 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.first
 import org.jaudiotagger.audio.AudioFileIO
@@ -87,15 +86,17 @@ class AlbumEditorActivity : BaseActivity() {
                     max = album.tracks.size
                 }.apply { show() }
 
-                task {
-                    saveTags(album, dialog)
-                }.fail(Dispatchers.Main) { e: Throwable ->
-                    e.printStackTrace()
+                try {
+                    withContext(Dispatchers.Default) {
+                        saveTags(album, dialog)
+                    }
+                } catch (e: Throwable) {
+                    error("Failed to save tags", e)
                     toast("Failed to save tags")
-                }.always(Dispatchers.Main) {
-                    dialog.dismiss()
-                    finish()
                 }
+
+                dialog.dismiss()
+                finish()
             }
         }
 
@@ -138,6 +139,7 @@ class AlbumEditorActivity : BaseActivity() {
         }
     }
 
+    // TODO: Don't use modal dialog.
     private suspend fun saveTags(album: Album, dialog: ProgressDialog) = run {
         val title = titleEdit.text.toString()
         val artist = artistEdit.text.toString()
@@ -155,7 +157,7 @@ class AlbumEditorActivity : BaseActivity() {
                     } else {
                         val parts = path.splitToSequence('/').drop(3)
                         val uri = Uri.parse(UserPrefs.sdCardUri.value).buildUpon()
-                        var doc = DocumentFile.fromTreeUri(ctx, Uri.parse(UserPrefs.sdCardUri.value))
+                        var doc = DocumentFile.fromTreeUri(this, Uri.parse(UserPrefs.sdCardUri.value))
                         parts.forEach {
                             println("tags: doc = ${doc?.uri}")
                             doc = doc?.findFile(it)
@@ -171,7 +173,7 @@ class AlbumEditorActivity : BaseActivity() {
                     tag.setField(FieldKey.YEAR, year)
                     f.commit(this)
                 }
-                task(Dispatchers.Main) { dialog.incrementProgressBy(1) }
+                launch { dialog.incrementProgressBy(1) }
                 Unit
             }
         }.awaitAll()

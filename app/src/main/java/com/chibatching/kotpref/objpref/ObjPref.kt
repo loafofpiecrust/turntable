@@ -6,16 +6,19 @@ import com.chibatching.kotpref.KotprefModel
 import com.chibatching.kotpref.pref.AbstractPref
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.*
+import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
+import org.jetbrains.anko.error
 import kotlin.reflect.KProperty
 
 
 class objPref<T: Any>(val default: T): AbstractPref<T>() {
     override fun getValue(thisRef: Any, property: KProperty<*>): ConflatedBroadcastChannel<T> {
         if (!subject.hasValue) {
-            task(BG_POOL) {
+            GlobalScope.launch(BG_POOL) {
                 getFromPreference(property, UserPrefs.kotprefPreference).also {
                     subject.offer(it)
                 }
@@ -30,7 +33,7 @@ class objPref<T: Any>(val default: T): AbstractPref<T>() {
 //                App.kryo.objectFromBytes<T>(it.toByteArray(Charsets.ISO_8859_1))
                 runBlocking { deserialize<T>(it) }
             } catch(e: Throwable) {
-                task(UI) { e.printStackTrace() }
+                error("Property ${property.name} failed to load, using default value.", e)
                 default
             }
         } ?: default
@@ -44,7 +47,7 @@ class objPref<T: Any>(val default: T): AbstractPref<T>() {
                 .putString(property.name, bytes)
                 .apply()
         } catch (e: Throwable) {
-            task(UI) { e.printStackTrace() }
+            error(null, e)
         }
     }
 
@@ -53,7 +56,7 @@ class objPref<T: Any>(val default: T): AbstractPref<T>() {
             val bytes = runBlocking { serializeToString(value) }
             editor.putString(property.name, bytes)
         } catch (e: Throwable) {
-            task(UI) { e.printStackTrace() }
+            error(null, e)
         }
     }
 }

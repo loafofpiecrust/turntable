@@ -30,7 +30,7 @@ interface SearchApi {
     companion object: SearchApi {
 
         /// All Music APIs in descending order of priority
-        val DEFAULT_APIS = arrayOf(
+        val DEFAULT_APIS = arrayOf<SearchApi>(
             Discogs,
             MusicBrainz,
             Spotify

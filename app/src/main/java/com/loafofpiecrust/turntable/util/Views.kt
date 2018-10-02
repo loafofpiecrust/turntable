@@ -20,7 +20,6 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.style.rippleBorderless
 import com.lsjwzh.widget.recyclerviewpager.RecyclerViewPager
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
-import fr.castorflex.android.circularprogressbar.CircularProgressBar
 import kotlinx.coroutines.experimental.CoroutineScope
 import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.GlobalScope
@@ -59,9 +58,6 @@ inline fun ViewManager.recyclerViewPager(init: @AnkoViewDslMarker RecyclerViewPa
 
 inline fun ViewManager.searchBar(theme: Int = 0, init: SearchView.() -> Unit = {}): SearchView =
     ankoView({ SearchView(it) }, theme, init)
-
-inline fun ViewManager.circularProgressBar(theme: Int = 0, init: @AnkoViewDslMarker CircularProgressBar.() -> Unit = {}): CircularProgressBar =
-    ankoView({ CircularProgressBar(it) }, theme = theme, init = init)
 
 
 inline fun Toolbar.menuItem(

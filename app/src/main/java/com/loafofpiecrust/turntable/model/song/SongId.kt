@@ -62,12 +62,13 @@ data class SongId(
     }
 
     companion object {
-        val COMPARATOR = compareByIgnoreCase<SongId>(
-            { it.name }
-        ).thenBy { it.album }
+        val COMPARATOR = compareBy<SongId, String>(AlbumId.COLLATOR) {
+            it.displayName
+        }.thenBy { it.album }
 
-        val FEATURE_PAT by lazy {
-            Regex("\\(?\\b(ft|feat|featuring|features)\\.?\\s+(([^,&)]+,?\\s*&?\\s*)*)\\)?$", RegexOption.IGNORE_CASE)
-        }
+        val FEATURE_PAT = Regex(
+            "\\(?\\b(ft|feat|featuring|features)\\.\\s+(([^,&)]+(,|&|,\\s+&)\\s*)*[^,&)]+)\\b\\)?$",
+            RegexOption.IGNORE_CASE
+        )
     }
 }

@@ -33,6 +33,7 @@ import com.loafofpiecrust.turntable.ui.MainActivityStarter
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.actor
@@ -41,9 +42,13 @@ import org.jetbrains.anko.*
 import java.lang.ref.WeakReference
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.experimental.CoroutineContext
 
 
-class SyncService : FirebaseMessagingService() {
+class SyncService : FirebaseMessagingService(), CoroutineScope {
+    override val coroutineContext: CoroutineContext
+        get() = SupervisorJob()
+
     companion object: AnkoLogger by AnkoLogger<SyncService>() {
         private var instance: WeakReference<SyncService>? = null
         private const val API_KEY = BuildConfig.FIREBASE_API_KEY
@@ -77,7 +82,7 @@ class SyncService : FirebaseMessagingService() {
 
         val mode: ConflatedBroadcastChannel<Mode> by lazy {
             ConflatedBroadcastChannel<Mode>(Mode.None()).also {
-                GlobalScope.launch(BG_POOL) {
+                launch {
                     it.openSubscription()
                         .changes()
                         .consumeEach { (prev, value) ->
@@ -98,7 +103,7 @@ class SyncService : FirebaseMessagingService() {
 
         /// when a message hasn't been received in TIMEOUT seconds, end sync session.
         private enum class MessageDir { SENT, RECEIVED }
-        private val pinger = actor<MessageDir>(BG_POOL) {
+        private val pinger = GlobalScope.actor<MessageDir> {
             var timer: Job? = null
             var lastSent: Long = 0
             consumeEach { dir -> when (dir) {
@@ -110,7 +115,7 @@ class SyncService : FirebaseMessagingService() {
                 MessageDir.SENT -> {
                     if (timer == null || timer!!.isCompleted) {
                         lastSent = System.currentTimeMillis()
-                        timer = launch(BG_POOL) {
+                        timer = launch {
                             delay(TIMEOUT)
 
                             val mode = mode.value
@@ -119,7 +124,7 @@ class SyncService : FirebaseMessagingService() {
                                 is Mode.InGroup -> mode.group.name
                                 else -> "nobody"
                             }
-                            launch(UI) {
+                            launch(Dispatchers.Main) {
                                 App.instance.toast("Connection to $name lost")
                             }
                             Companion.mode puts Mode.None()
@@ -139,7 +144,8 @@ class SyncService : FirebaseMessagingService() {
         }
 
         fun send(msg: Message, to: User) = send(msg, Mode.OneOnOne(to))
-        fun send(msg: Message) = send(msg, mode.value).then { wasSent ->
+        fun send(msg: Message) = GlobalScope.async {
+            val wasSent = send(msg, mode.value).await()
             if (wasSent && msg !is Message.Ping) {
                 pinger.offer(MessageDir.SENT)
             }
@@ -148,9 +154,9 @@ class SyncService : FirebaseMessagingService() {
         fun send(
             msg: Message,
             mode: Mode
-        ) = task {
+        ) = GlobalScope.async {
             val target = when (mode) {
-                is Mode.None -> return@task false
+                is Mode.None -> return@async false
                 is Mode.OneOnOne -> mode.other.deviceId
                 is Mode.InGroup -> mode.group.key
                 is Mode.Topic -> "/topics/${mode.topic}"
@@ -298,7 +304,7 @@ class SyncService : FirebaseMessagingService() {
             }
         }
 
-        fun shareFriendshipLink() = task(UI) {
+        fun shareFriendshipLink() = App.launch {
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 val uri = Uri.parse("turntable://lets-be-friends").buildUpon()
@@ -410,17 +416,17 @@ class SyncService : FirebaseMessagingService() {
             if (username.isBlank()) return
 
             println("sync: saving user info under $username")
-            task {
+            GlobalScope.launch {
                 val db = OnlineSearchService.instance.dbMapper
                 try {
                     db.save(this@User)
-                } catch (e: Exception) {
-                    task(UI) { e.printStackTrace() }
+                } catch (e: Throwable) {
+                    error("Failed uploading user data", e)
                 }
             }
         }
 
-        fun refresh() = task {
+        fun refresh() = GlobalScope.async {
             val db = OnlineSearchService.instance.dbMapper
             val remote = db.load(User::class.java, username)
             deviceId = remote.deviceId
@@ -464,7 +470,7 @@ class SyncService : FirebaseMessagingService() {
         }
     }
 
-    fun shareSyncLink() = task(UI) {
+    fun shareSyncLink() = App.launch {
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             val uri = Uri.Builder().appendPath("turntable://sync-request")
@@ -479,7 +485,7 @@ class SyncService : FirebaseMessagingService() {
     override fun onMessageReceived(msg: RemoteMessage) {
         val mode = mode.value
 
-        launch(BG_POOL) {
+        launch {
             val sender = deserialize<User>(msg.data["sender"]!!)
 
             if (!msg.data.containsKey("action") || sender.deviceId == selfUser.deviceId /*|| mode is Mode.None*/) {
@@ -532,20 +538,26 @@ class SyncService : FirebaseMessagingService() {
                     if (message.accept) {
                         // set sync mode and enable sync in MusicService
                         Companion.mode puts Mode.OneOnOne(sender)
-                        task(UI) { toast("Now synced with ${sender.name}") }
-                    } else {
-                        task(UI) { toast("${sender.name} refused to sync") }
+                    }
+
+                    launch(Dispatchers.Main) {
+                        val text = if (message.accept) {
+                            "Now synced with ${sender.name}"
+                        } else {
+                            "${sender.name} refused to sync"
+                        }
+                        toast(text)
                     }
                 }
                 is Message.EndSync -> {
                     when (mode) {
                         is Mode.OneOnOne -> {
                             val name = mode.other.displayName ?: mode.other.username
-                            task(UI) { toast("Sync ended by $name") }
+                            launch(Dispatchers.Main) { toast("Sync ended by $name") }
                         }
                         is Mode.InGroup -> {
                             val name = mode.group.name ?: mode.group.key
-                            task(UI) { toast("Left group '$name'?") }
+                            launch(Dispatchers.Main) { toast("Left group '$name'?") }
                         }
                     }
                     Companion.mode puts Mode.None()
@@ -572,8 +584,8 @@ class SyncService : FirebaseMessagingService() {
                             setOngoing(true)
 
                             setContentIntent(PendingIntent.getActivity(
-                                ctx, 6978,
-                                MainActivityStarter.getIntent(ctx, MainActivity.Action.FriendRequest(sender)),
+                                this@SyncService, 6978,
+                                MainActivityStarter.getIntent(this@SyncService, MainActivity.Action.FriendRequest(sender)),
                                 0
                             ))
                         }.build())
@@ -589,10 +601,10 @@ class SyncService : FirebaseMessagingService() {
                     val existingIdx = friends.indexOfFirst { it.user == sender }
                     if (message.accept) {
                         UserPrefs.friends puts friends.withReplaced(existingIdx, Friend(sender, Friend.Status.CONFIRMED))
-                        task(UI) { toast("Friendship fostered with ${sender.name}") }
+                        launch(Dispatchers.Main) { toast("Friendship fostered with ${sender.name}") }
                     } else {
                         UserPrefs.friends puts friends.without(existingIdx)
-                        task(UI) { toast("${sender.name} declined friendship :(") }
+                        launch(Dispatchers.Main) { toast("${sender.name} declined friendship :(") }
                     }
                 }
 

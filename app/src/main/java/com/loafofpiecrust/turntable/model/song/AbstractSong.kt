@@ -20,9 +20,13 @@ import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
+import kotlinx.coroutines.experimental.channels.map
+import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.withContext
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -125,13 +129,13 @@ data class Song(
     }
 
     fun loadCover(req: RequestManager, cb: (Palette?, Palette.Swatch?) -> Unit = { a, b -> }): ReceiveChannel<RequestBuilder<Drawable>?> = run {
-        Library.instance.findAlbumExtras(id.album).switchMap {
+        Library.instance.findAlbumExtras(id.album).map {
             //if (it != null) {
                 // This album cover is either local or cached.
-                produceTask {
+//                GlobalScope.produceSingle {
                     req.load(it?.artworkUri)
                         .listener(loadPalette(id, cb))
-                }
+//                }
             /*} else when {
                 // The song happens to know its artwork url.
                 artworkUrl != null -> produceTask {

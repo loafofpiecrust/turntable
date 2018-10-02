@@ -1,8 +1,6 @@
 package com.loafofpiecrust.turntable.service
 
 import android.app.DownloadManager
-import android.app.Service
-import android.content.Intent
 import android.net.Uri
 import android.util.Range
 import android.util.SparseArray
@@ -30,14 +28,17 @@ import com.loafofpiecrust.turntable.model.album.LocalAlbum
 import com.loafofpiecrust.turntable.model.album.selfTitledAlbum
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
+import com.loafofpiecrust.turntable.ui.BaseService
 import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.addToMediaStore
 import com.mcxiaoke.koi.ext.intValue
 import com.mcxiaoke.koi.ext.stringValue
+import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.map
 import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.experimental.launch
 import okhttp3.Cookie
 import okhttp3.HttpUrl
 import org.jaudiotagger.audio.AudioFileIO
@@ -51,7 +52,7 @@ import java.util.regex.Pattern
 import kotlin.coroutines.experimental.Continuation
 
 
-class OnlineSearchService : Service(), AnkoLogger {
+class OnlineSearchService : BaseService(), AnkoLogger {
     enum class OrderBy(val code: Int) {
         DATE(1),
         NAME(2),
@@ -225,7 +226,7 @@ class OnlineSearchService : Service(), AnkoLogger {
         DynamoDBMapper(database)
     }
 
-    fun saveYouTubeStreamUrl(entry: SongDBEntry) = task {
+    fun saveYouTubeStreamUrl(entry: SongDBEntry) = async {
         try {
             dbMapper.save(SongDBEntry(
                 entry.id.toLowerCase(),
@@ -279,7 +280,7 @@ class OnlineSearchService : Service(), AnkoLogger {
     }
 
     private suspend fun createEntry(key: String, videoId: String): StreamStatus {
-        return suspendedTask<StreamStatus> { cont ->
+        return suspendAsync<StreamStatus> { cont ->
             YTExtractor(key, videoId, cont)
                 .extract("https://youtube.com/watch?v=$videoId", true, true)
         }.await()
@@ -713,10 +714,8 @@ class OnlineSearchService : Service(), AnkoLogger {
 //        App.instance.registerReceiver(DownloadReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
     }
 
-    override fun onBind(intent: Intent) = null
-
     private fun updateDownloads() {
-        task(ALT_BG_POOL) {
+        launch {
             delay(500)
 
 //            val toRemove = mutableListOf<SongDownload>()

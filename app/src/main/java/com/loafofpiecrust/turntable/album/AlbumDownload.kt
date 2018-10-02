@@ -22,6 +22,7 @@ import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.runBlocking
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jetbrains.anko.AnkoLogger
+import org.jetbrains.anko.debug
 import org.jetbrains.anko.info
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -420,7 +421,7 @@ class TPBAlbum(
             val res = Jsoup.parse(Http.get(
                 "https://thepiratebay.org/search/$query/0/7/100"//,
 //                timeout = 10.0
-            ).text)
+            ).use { it.text })
 
             // TODO: Add check for no results
             val table = res.getElementById("searchResult").child(1)
@@ -769,7 +770,7 @@ data class YouTubeFullAlbum(
                 val titles = videoTracks.map { it.title.trim() }
                 val suffix = titles.longestSharedSuffix(true) ?: ""
                 val prefix = titles.longestSharedPrefix(true) ?: ""
-                task(UI) { println("youtube: prefix = $prefix, suffix = $suffix, titles: $titles") }
+                debug { "youtube: prefix = $prefix, suffix = $suffix, titles: $titles" }
 //                    var longestCommonSuffix = -1
 //                    val first = videoTracks[0]
 //                    do {

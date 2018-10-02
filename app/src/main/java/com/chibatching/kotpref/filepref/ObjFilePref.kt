@@ -14,12 +14,14 @@ import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.actor
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.runBlocking
+import org.jetbrains.anko.AnkoLogger
+import org.jetbrains.anko.error
 import java.io.FileOutputStream
 import kotlin.reflect.KProperty
 
 abstract class BaseObjFilePref<T: Any>(
     open val default: T? = null
-): AbstractPref<T>(default) {
+): AbstractPref<T>(default), AnkoLogger {
     private var lastWrite = 0L
     protected var lastModify = 0L
     private var className: String? = null
@@ -53,7 +55,7 @@ abstract class BaseObjFilePref<T: Any>(
             runBlocking { serialize(file.outputStream(), subject.value) }
             lastWrite = System.nanoTime()
         } catch (e: Throwable) {
-            task(UI) { e.printStackTrace() }
+            error("Preference '$name' failed to save.", e)
         }
 //        return runBlocking { saveActor.send(Action.Save) }
     }
@@ -90,8 +92,8 @@ class objFilePref<T: Any>(default: T): BaseObjFilePref<T>(default) {
             if (file.exists()) {
                 runBlocking { deserialize<T>(file.inputStream()) }
             } else default
-        } catch (e: Exception) {
-            task(UI) { e.printStackTrace() }
+        } catch (e: Throwable) {
+            error("Preference '${property.name}' failed to load.", e)
             default
         }
 

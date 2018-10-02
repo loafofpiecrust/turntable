@@ -16,6 +16,7 @@ import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.util.textStyle
 import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.switchMap
+import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.filterNotNull
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.map
@@ -51,13 +52,11 @@ class MiniPlayerFragment: BaseFragment() {
 
         iconButton(R.drawable.ic_play_arrow) {
             MusicService.instance.switchMap {
-                it.player.isPlaying
-            }.map {
-                if (it) {
+                it?.player?.isPlaying
+            }.consumeEachAsync {
+                imageResource = if (it) {
                     R.drawable.ic_pause
                 } else R.drawable.ic_play_arrow
-            }.consumeEachAsync {
-                imageResource = it
             }
 
             onClick {
@@ -69,16 +68,17 @@ class MiniPlayerFragment: BaseFragment() {
 
 
         MusicService.instance.switchMap {
-            it.player.currentSong.filterNotNull()
-        }.consumeEachAsync { song ->
+            it?.let { it.player.currentSong.filterNotNull() }
+        }.switchMap { song ->
             mainLine.text = song.id.displayName
             subLine.text = song.id.artist.displayName
 
-            song.loadCover(Glide.with(cover)).first()
-                ?.listener(loadPalette(song.id.album, arrayOf(mainLine, subLine, this)))?.into(cover) ?: run {
-                    cover.imageResource = R.drawable.ic_default_album
-                }
+            song.loadCover(Glide.with(this@MiniPlayerFragment)).map {
+                song to it
+            }
+        }.consumeEachAsync { (song, req) ->
+            req?.addListener(loadPalette(song.id.album, arrayOf(mainLine, subLine, this)))
+                ?.into(cover)
         }
     }
-
 }

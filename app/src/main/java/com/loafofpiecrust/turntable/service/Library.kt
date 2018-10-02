@@ -34,18 +34,20 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.ui.BaseService
 import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.intValue
 import com.mcxiaoke.koi.ext.longValue
 import com.mcxiaoke.koi.ext.stringValue
-import kotlinx.coroutines.experimental.Deferred
+import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.awaitAll
 import kotlinx.coroutines.experimental.channels.*
-import kotlinx.coroutines.experimental.delay
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
+import org.jetbrains.anko.info
 import java.io.File
 import java.io.Serializable
 import java.util.*
@@ -54,7 +56,7 @@ import kotlin.collections.LinkedHashMap
 import kotlin.coroutines.experimental.coroutineContext
 
 /// Manages all our music and album covers, including loading from MediaStore
-class Library : Service() {
+class Library : BaseService() {
     init {
         instance = this
     }
@@ -88,8 +90,8 @@ class Library : Service() {
     /// Map of SongId to local file path for that song.
     private val localSongSources = TreeMap<SongId, String>()
 
-    val localSongs = ConflatedBroadcastChannel<List<Song>>(listOf())
-    private val _albums = ConflatedBroadcastChannel<List<Album>>(listOf())
+    val localSongs = ConflatedBroadcastChannel<List<Song>>()
+//    private val _albums = ConflatedBroadcastChannel<List<Album>>(listOf())
 
     private val albumCovers by lazy {
         UserPrefs.albumMeta.openSubscription().map {
@@ -144,7 +146,7 @@ class Library : Service() {
      * Album sort key: name + artist
      * Song sort key: name + album + artist
      */
-    val albums: ConflatedBroadcastChannel<List<Album>> by lazy {
+    val albums: ConflatedBroadcastChannel<List<Album>> = run {
         combineLatest(localAlbums, remoteAlbums.openSubscription()) { a, b ->
             measureTime("albumsLazy(${a.size + b.size})") {
                 (a.lazy + b.lazy).toListSortedBy { it.id }.dedupMergeSorted(
@@ -155,7 +157,11 @@ class Library : Service() {
         }.replayOne()
     }
 
-    val songs: ConflatedBroadcastChannel<List<Song>> by lazy {
+    val songs: ConflatedBroadcastChannel<List<Song>> = run {
+//        combineLatest(localSongs.openSubscription(), remoteAlbums.openSubscription()) { songs, albums ->
+//            measureTime("songsLazy(${songs.size} songs, ${albums.size} remote albums)") {
+//                (songs.lazy + albums.lazy.flatMap { it.tracks.lazy }).toListSortedBy { it.id }
+//            }
         albums.openSubscription().map {
             measureTime("songsLazy(${it.size} albums)") {
                 it.lazy.flatMap { it.tracks.lazy }.toListSortedBy { it.id }
@@ -163,7 +169,7 @@ class Library : Service() {
         }.replayOne()
     }
 
-    val artists: ConflatedBroadcastChannel<List<Artist>> by lazy {
+    val artists: ConflatedBroadcastChannel<List<Artist>> = run {
         albums.openSubscription().map { albums ->
             measureTime("artistsLazy(${albums.size} albums)") {
                 albums.groupBy { it.id.artist }.values.lazy.map { it: List<Album> ->
@@ -184,7 +190,6 @@ class Library : Service() {
 
 
     class Binder(val music: Library) : android.os.Binder()
-    override fun onBind(intent: Intent): IBinder? = Binder(this)
 
     /// TODO: Find nearest and do fuzzy compare
     fun sourceForSong(id: SongId): String? = localSongSources[id]
@@ -212,13 +217,13 @@ class Library : Service() {
     fun findCachedAlbumNow(album: AlbumId): ReceiveChannel<Album?> = findAlbum(album).switchMap {
         if (it == null) {
             cachedAlbums.openSubscription().map { it.binarySearchElem(album) { it.id } }
-        } else produceTask { it }
+        } else produceSingle(it)
     }
 
     fun findCachedAlbum(album: AlbumId): ReceiveChannel<Album?>
         = findAlbum(album).switchMap {
             if (it != null) {
-                produce(coroutineContext) { send(it) }
+                produceSingle(it)
             } else {
                 cachedAlbums.openSubscription().map { it.binarySearchElem(album) { it.id } }
             }
@@ -299,7 +304,7 @@ class Library : Service() {
     }
 
 
-    private fun fillMissingArtwork() = task {
+    private fun fillMissingArtwork() = async {
         val albums = albums.openSubscription().first()
         val cache = albumCovers.openSubscription().first()
 //        val addedCache = listOf<AlbumMetadata>()
@@ -383,7 +388,7 @@ class Library : Service() {
         }
     }
 
-    private fun fillArtistArtwork() = task {
+    private fun fillArtistArtwork() = async {
         val cache = artistMeta.openSubscription().first()
         artists.openSubscription().first().forEach { artist ->
             val key = ArtistMetadata(artist.id, null)
@@ -415,15 +420,16 @@ class Library : Service() {
             if (res.has("artist")) {
                 val uri = tryOr(null) { res["artist"]["image"][3]["#text"].string }
                 if (uri != null && uri.isNotEmpty()) {
-                    task {
+                    launch {
                         synchronized(UserPrefs.artistMeta) {
                             UserPrefs.artistMeta appends key.copy(artworkUri = uri)
                         }
-                    }.then(UI) {
-                        Glide.with(App.instance)
-                            .load(uri)
+                        launch(Dispatchers.Main) {
+                            Glide.with(App.instance)
+                                .load(uri)
 //                                .apply(Library.ARTWORK_OPTIONS.signature(ObjectKey(key)))
-                            .preload()
+                                .preload()
+                        }
                     }
                 } else {
                     UserPrefs.artistMeta appends key
@@ -436,23 +442,20 @@ class Library : Service() {
         }
     }
 
-    fun addRemoteAlbum(album: Album) = task {
+    fun addRemoteAlbum(album: Album) = async {
         val existing = findAlbum(album.id).first()
-        if (existing != null) {
-            return@task
-        }
-
-        if (album.tracks.isEmpty()) {
-            given(findCachedRemoteAlbum(album.id).first()) {
-                UserPrefs.remoteAlbums appends it
+        if (existing == null) {
+            if (album.tracks.isEmpty()) {
+                given(findCachedRemoteAlbum(album.id).first()) {
+                    UserPrefs.remoteAlbums appends it
+                }
+            } else {
+                UserPrefs.remoteAlbums appends album
             }
-        } else {
-            UserPrefs.remoteAlbums appends album
         }
-//        UserPrefs.remoteAlbumsFile.save()
     }
 
-    fun removeRemoteAlbum(album: Album) = task {
+    fun removeRemoteAlbum(album: Album) = async {
         val all = UserPrefs.remoteAlbums.value
         val idx = all.indexOfFirst { it.id == album.id }
         if (idx != -1) {
@@ -466,7 +469,7 @@ class Library : Service() {
      * but does _not_ add it to the user's library.
      * The cache holds a limited history of albums that's cleared when the app is restarted.
      */
-    fun cacheRemoteAlbum(album: Album) = task {
+    fun cacheRemoteAlbum(album: Album) = async {
         val cache = _cachedAlbums.value.toMutableList()
         if (cache.size >= REMOTE_ALBUM_CACHE_LIMIT) {
             cache.removeAt(0)
@@ -480,7 +483,7 @@ class Library : Service() {
             it.binarySearchElem(album) { it.id }
         }
 
-    fun cacheRemoteArtist(artist: Artist) = task {
+    fun cacheRemoteArtist(artist: Artist) = async {
         val cache = _cachedArtists.value.toMutableList()
         if (cache.size >= REMOTE_ARTIST_CACHE_LIMIT) {
             cache.removeAt(0)
@@ -500,7 +503,7 @@ class Library : Service() {
                 ?: UserPrefs.recommendations.value.mapNotNull { it as? Playlist }.find { it.id == id }
 
             if (r != null) {
-                produceTask { r }
+                produceSingle(r)
             } else findCachedPlaylist(id)
         }
 
@@ -510,20 +513,23 @@ class Library : Service() {
         }
 
     fun addPlaylist(pl: Playlist) {
-        task { UserPrefs.playlists appends pl }
+        launch { UserPrefs.playlists appends pl }
     }
     fun cachePlaylist(pl: Playlist) {
-        task { cachedPlaylists appends pl }
+        launch { cachedPlaylists appends pl }
     }
 
 //    fun loadArtistImage(req: RequestManager, id: Long) =
 
     fun initData() {
+        info { "maybe loading local data" }
         if (!initialized) {
             initialized = true
 
+            info { "loading local data" }
+
             // Load all the songs from the MediaStore
-            task {
+            launch {
                 updateSongs()
                 updateLocalArtwork()
                 fillMissingArtwork()
@@ -542,7 +548,7 @@ class Library : Service() {
                         updateTask?.let {
                             if (it.isActive) it.cancelSafely()
                         }
-                        updateTask = task {
+                        updateTask = async {
                             delay(1500)
                             updateSongs()
                         }
@@ -606,12 +612,14 @@ class Library : Service() {
             null,
             null
         )
-        val songs = ArrayList<Song>(cur.count)
         if (cur == null) {
             error { "lopc: Cursor failed to load." }
+            return emptyList()
         } else if (!cur.moveToFirst()) {
             error { "lopc: No music" }
-        } else try {
+            return emptyList()
+        } else cur.use {
+            val songs = ArrayList<Song>(cur.count)
             do {
                 try {
                     val duration = cur.intValue(MediaStore.Audio.Media.DURATION)
@@ -658,22 +666,27 @@ class Library : Service() {
                         localSongSources[songId] = data
                     }
                 } catch (e: Throwable) {
-                    error(e.message, e)
+                    error("Failed to compile song", e)
+                    break
                 }
             } while (cur.moveToNext())
-        } catch (e: Throwable) {
-            error(e.message, e)
-        } finally {
-            cur.close()
+            return songs
         }
-        return songs
     }
 
     private fun updateSongs() {
         // TODO: Add preference for including internal content (default = false)
         // Load the song library here
 //        val internal = async(BG_POOL) { compileSongsFrom(MediaStore.Audio.Media.INTERNAL_CONTENT_URI) }
-        val external = compileSongsFrom(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
+        info { "compiling songs on sd card" }
+        val external = try {
+            compileSongsFrom(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
+        } catch (e: Throwable) {
+            error(e.message, e)
+            emptyList<Song>()
+        }
+
+        info { "songs: $external" }
 
         localSongs.offer(/*internal.await() +*/ external)
     }

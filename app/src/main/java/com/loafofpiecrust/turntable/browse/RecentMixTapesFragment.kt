@@ -9,7 +9,9 @@ import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragment
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.ui.*
-import com.loafofpiecrust.turntable.util.produceTask
+import com.loafofpiecrust.turntable.util.produceSingle
+import com.loafofpiecrust.turntable.util.toChannel
+import kotlinx.coroutines.experimental.async
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.frameLayout
 import org.jetbrains.anko.recyclerview.v7.recyclerView
@@ -19,7 +21,7 @@ import java.util.concurrent.TimeUnit
 
 class RecentMixTapesFragment: BaseFragment() {
     override fun ViewManager.createView(): View = with(this) {
-        val mixtapes = produceTask {
+        val mixtapes = produceSingle {
             MixTape.queryMostRecent(TimeUnit.DAYS.toMillis(10))
         }
 

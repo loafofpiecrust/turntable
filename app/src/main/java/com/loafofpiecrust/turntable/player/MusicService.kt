@@ -22,26 +22,27 @@ import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.tryOr
+import com.loafofpiecrust.turntable.ui.BaseService
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.*
-import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.*
 import java.lang.ref.WeakReference
 
 /// Plays the music to the speakers and manages the _queue, that's it.
 @MakeActivityStarter
-class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
+class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
     companion object {
         private val _instance = ConflatedBroadcastChannel<WeakReference<MusicService>>()
-        val instance get() = _instance.openSubscription().map { it.get() }.filterNotNull()
+        val instance get() = _instance.openSubscription().map { it.get() }
 
-        private val actions = actor<Pair<SyncService.Message, Boolean>>(BG_POOL, capacity = Channel.UNLIMITED) {
+        private val actions = GlobalScope.actor<Pair<SyncService.Message, Boolean>>(capacity = Channel.UNLIMITED) {
             for ((action, synced) in channel) {
                 val service = _instance.valueOrNull?.get() ?: run {
                     MusicServiceStarter.start(App.instance)
-                    instance.first()
+                    instance.filterNotNull().first()
                 }
                 service.doAction(action, synced)
             }
@@ -139,33 +140,39 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
         super.onCreate()
         player = MusicPlayer(this)
 
-        combineLatest(player.queue, player.isPlaying)
-            .consumeEach(UI + subs) { (q, playing) ->
-                showNotification(q.current, playing)
+        launch(Dispatchers.Main) {
+            combineLatest(
+                player.queue.map { it.current }.distinctInstanceSeq(),
+                player.isPlaying.distinctSeq()
+            ).consumeEach { (song, playing) ->
+                showNotification(song, playing)
             }
+        }
 
-        player.isPlaying.skip(1)
-            .distinctSeq()
-            .consumeEach(BG_POOL + subs) { isPlaying ->
-                if (player.isStreaming) {
-                    // Playing remote song
+        launch {
+            player.isPlaying.skip(1)
+                .distinctSeq()
+                .consumeEach { isPlaying ->
+                    if (player.isStreaming) {
+                        // Playing remote song
+                        if (isPlaying) {
+                            wifiLock.acquire()
+                        } else if (wifiLock.isHeld) {
+                            wifiLock.release()
+                        }
+                    }
                     if (isPlaying) {
-                        wifiLock.acquire()
-                    } else if (wifiLock.isHeld) {
-                        wifiLock.release()
+                        val buffer = player.bufferState.firstOrNull()
+                        if (buffer != null) {
+                            wakeLock.acquire(buffer.duration - buffer.position)
+                        } else {
+                            wakeLock.acquire()
+                        }
+                    } else if (wakeLock.isHeld) {
+                        wakeLock.release()
                     }
                 }
-                if (isPlaying) {
-                    val buffer = player.bufferState.firstOrNull()
-                    if (buffer != null) {
-                        wakeLock.acquire(buffer.duration - buffer.position)
-                    } else {
-                        wakeLock.acquire()
-                    }
-                } else if (wakeLock.isHeld) {
-                    wakeLock.release()
-                }
-            }
+        }
 
         registerReceiver(noisyReceiver, IntentFilter(ACTION_AUDIO_BECOMING_NOISY))
         registerReceiver(plugReceiver, IntentFilter(ACTION_HEADSET_PLUG))
@@ -291,6 +298,4 @@ class MusicService : Service(), OnAudioFocusChangeListener, AnkoLogger {
     private fun showNotification(song: Song?, playing: Boolean) {
         notification.show(song, playing)
     }
-
-    override fun onBind(intent: Intent): IBinder? = null
 }

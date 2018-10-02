@@ -8,6 +8,7 @@ import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.util.*
+import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
@@ -67,7 +68,7 @@ data class MixTape(
         }
 
         suspend fun queryMostRecent(daysOld: Long, limit: Int = 100): List<MixTape> {
-            return suspendedTask<List<MixTape>> { cont ->
+            return GlobalScope.suspendAsync<List<MixTape>> { cont ->
                 val db = FirebaseFirestore.getInstance()
                 val now = System.currentTimeMillis()
                 db.collection("playlists")
@@ -85,7 +86,7 @@ data class MixTape(
         }
 
         suspend fun allFromUser(owner: SyncService.User): List<MixTape> {
-            return suspendedTask<List<MixTape>> { cont ->
+            return GlobalScope.suspendAsync<List<MixTape>> { cont ->
                 val db = FirebaseFirestore.getInstance()
                 val now = System.currentTimeMillis()
                 db.collection("playlists")
@@ -183,7 +184,7 @@ data class MixTape(
      * A mixtape's published version can only be modified by the original author republishing it.
      */
     override fun publish() {
-        launch(BG_POOL) {
+        GlobalScope.launch {
             val db = FirebaseFirestore.getInstance()
             db.collection("playlists").document(id.toString())
                 .set(mapOf(

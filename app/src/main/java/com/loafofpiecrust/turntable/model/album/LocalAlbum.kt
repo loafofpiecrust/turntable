@@ -26,11 +26,11 @@ data class LocalAlbum(
         }
     }
 
-    override fun optionsMenu(ctx: Context, menu: Menu) {
-        super.optionsMenu(ctx, menu)
+    override fun optionsMenu(context: Context, menu: Menu) {
+        super.optionsMenu(context, menu)
 
         menu.menuItem(R.string.album_edit_metadata).onClick {
-            AlbumEditorActivityStarter.start(ctx, id)
+            AlbumEditorActivityStarter.start(context, id)
         }
     }
 }

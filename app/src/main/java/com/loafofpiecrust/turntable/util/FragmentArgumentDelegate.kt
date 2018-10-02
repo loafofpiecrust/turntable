@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.support.v4.app.BundleCompat
 import android.support.v4.app.Fragment
 import android.support.v7.app.AppCompatActivity
+import com.loafofpiecrust.turntable.tryOr
 import kotlinx.coroutines.experimental.runBlocking
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
@@ -17,22 +18,19 @@ import kotlin.reflect.KProperty
  *
  * Inspired by Adam Powell, he mentioned it during his IO/17 talk about Kotlin
  */
-class FragmentArgument<T>(private val defaultValue: (() -> T)?) : ReadWriteProperty<Fragment, T> {
+class FragmentArgument<T: Any>(private val defaultValue: (() -> T)?) : ReadWriteProperty<Fragment, T> {
     private var value: T? = null
 
     override operator fun getValue(thisRef: Fragment, property: KProperty<*>): T {
         if (value == null) {
-            try {
-                val args = thisRef.arguments
-                    ?: throw IllegalStateException("Cannot read property ${property.name} if no arguments have been set")
-                val storedValue = args[property.name]
-
-                @Suppress("UNCHECKED_CAST")
-                value = (storedValue as? T) ?: runBlocking { deserialize<T>(storedValue as ByteArray) }
-            } catch (e: Throwable) {
-                // If the argument wasn't provided, attempt to fallback on the default value.
-                value = defaultValue?.run { invoke() }
-            }
+            value = thisRef.arguments?.get(property.name)?.let { storedValue ->
+                try {
+                    @Suppress("UNCHECKED_CAST")
+                    (storedValue as? T) ?: runBlocking { deserialize<T>(storedValue as ByteArray) }
+                } catch (e: Throwable) {
+                    defaultValue?.invoke()
+                }
+            } ?: defaultValue?.invoke()
         }
         return value ?: throw IllegalStateException("Property ${property.name} could not be read")
     }
@@ -65,9 +63,9 @@ class FragmentArgument<T>(private val defaultValue: (() -> T)?) : ReadWritePrope
     }
 }
 
-fun <T> Fragment.arg() = FragmentArgument<T>(null)
-fun <T> Fragment.arg(defaultValue: T) = FragmentArgument { defaultValue }
-fun <T> Fragment.arg(defaultValue: () -> T) = FragmentArgument(defaultValue)
+fun <T: Any> Fragment.arg() = FragmentArgument<T>(null)
+fun <T: Any> Fragment.arg(defaultValue: T) = FragmentArgument { defaultValue }
+fun <T: Any> Fragment.arg(defaultValue: () -> T) = FragmentArgument(defaultValue)
 
 
 

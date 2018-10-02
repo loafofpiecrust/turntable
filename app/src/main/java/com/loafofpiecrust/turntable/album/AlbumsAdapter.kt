@@ -25,11 +25,10 @@ import com.loafofpiecrust.turntable.ui.SectionedRecyclerAdapter
 import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.cancelSafely
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
-import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.withContext
 import org.jetbrains.anko.*
 
 // Album categories: All, ByArtist
@@ -86,13 +85,13 @@ class AlbumsAdapter(
 
         if (holder.coverImage != null) {
             holder.coverImage.imageResource = R.drawable.ic_default_album
-            val job = async(BG_POOL) {
+            val job = GlobalScope.async {
                 album.loadThumbnail(Glide.with(holder.card.context)).consumeEach {
                     val req = it?.apply(opts)
                         ?.transition(DrawableTransitionOptions().crossFade(200))
                         ?.listener(album.loadPalette(holder.card, holder.mainLine, holder.subLine))
 
-                    withContext(UI) {
+                    withContext(Dispatchers.Main) {
                         req?.into(holder.coverImage) ?: run {
                             holder.coverImage.imageResource = R.drawable.ic_default_album
                         }

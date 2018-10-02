@@ -9,8 +9,8 @@ import com.loafofpiecrust.turntable.repeat
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SaveableMusic
-import com.loafofpiecrust.turntable.util.suspendedTask
-import com.loafofpiecrust.turntable.util.task
+import com.loafofpiecrust.turntable.util.suspendAsync
+import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import java.util.*
 
@@ -66,7 +66,7 @@ abstract class Playlist: SaveableMusic {
 
     open fun updateLastModified() {
         lastModified = Date()
-        task { UserPrefs.playlists.repeat() }
+        UserPrefs.playlists.repeat()
     }
 
 
@@ -78,7 +78,7 @@ abstract class Playlist: SaveableMusic {
     companion object {
         suspend fun allByUser(owner: SyncService.User): List<Playlist> {
             val db = FirebaseFirestore.getInstance()
-            return suspendedTask<List<Playlist>> { cont ->
+            return GlobalScope.suspendAsync<List<Playlist>> { cont ->
                 db.collection("playlists")
                     .whereEqualTo("owner", owner.username)
                     .get()

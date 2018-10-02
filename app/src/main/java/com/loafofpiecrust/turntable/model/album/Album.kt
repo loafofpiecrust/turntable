@@ -32,6 +32,7 @@ import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.map
@@ -76,15 +77,12 @@ interface Album: Music {
     fun toPartial() = PartialAlbum(id, year, type)
 
     /// TODO: Can we pull this out of the class...?
-    override fun optionsMenu(ctx: Context, menu: Menu) {
-        menu.menuItem(R.string.album_shuffle, R.drawable.ic_shuffle, showIcon =false).onClick {
-            task {
-                Library.instance.songsOnAlbum(id).first()
-            }.then { tracks ->
-                tracks?.let {
-                    if (it.isNotEmpty()) {
-                        MusicService.enact(SyncService.Message.PlaySongs(it, mode = MusicPlayer.OrderMode.SHUFFLE))
-                    }
+    override fun optionsMenu(context: Context, menu: Menu) {
+        menu.menuItem(R.string.album_shuffle, R.drawable.ic_shuffle, showIcon =false).onClick(Dispatchers.Default) {
+            val tracks = Library.instance.songsOnAlbum(id).first()
+            tracks?.let {
+                if (it.isNotEmpty()) {
+                    MusicService.enact(SyncService.Message.PlaySongs(it, mode = MusicPlayer.OrderMode.SHUFFLE))
                 }
             }
         }
@@ -92,12 +90,12 @@ interface Album: Music {
         menu.menuItem(R.string.recommend).onClick {
             FriendPickerDialog(
                 SyncService.Message.Recommendation(toPartial()),
-                "Send Recommendation"
-            ).show(ctx)
+                context.getString(R.string.recommend)
+            ).show(context)
         }
 
         menu.menuItem(R.string.add_to_playlist).onClick {
-            PlaylistPickerDialog.forItem(toPartial()).show(ctx)
+            PlaylistPickerDialog.forItem(toPartial()).show(context)
         }
     }
 
@@ -113,7 +111,9 @@ interface Album: Music {
         }
 
     fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
-        Library.instance.loadAlbumCover(req, id)
+        Library.instance.loadAlbumCover(req, id).map {
+            it?.apply(RequestOptions().signature(ObjectKey("${id}thumbnail")))
+        }
 
 
     interface RemoteDetails: Serializable, Parcelable {

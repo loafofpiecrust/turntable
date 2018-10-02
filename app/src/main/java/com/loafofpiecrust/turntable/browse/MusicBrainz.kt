@@ -15,12 +15,9 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
-import com.loafofpiecrust.turntable.util.task
 import com.loafofpiecrust.turntable.util.text
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.awaitAll
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.experimental.*
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
 import org.jetbrains.anko.info
@@ -62,7 +59,7 @@ object MusicBrainz: SearchApi, AnkoLogger {
             val name = it["name"].string
             val artistName = it["artist-credit"][0]["artist"]["name"].string
             val mbid = it["id"].string
-            val task = task {
+            val task = GlobalScope.async {
                 tryOr(null) {
                     // Check for potential release year here. Maybe grab tracks too
                     val res = Http.get("http://ws.audioscrobbler.com/2.0", params = mapOf(

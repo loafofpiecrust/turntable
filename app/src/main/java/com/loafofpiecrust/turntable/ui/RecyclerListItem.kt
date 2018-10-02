@@ -14,6 +14,7 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.first
+import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
 import org.jetbrains.anko.constraint.layout.applyConstraintSet
@@ -59,7 +60,7 @@ class RecyclerListItem(
                 imageView {
                     scaleType = ImageView.ScaleType.FIT_CENTER
                     imageResource = R.drawable.ic_sd_storage
-                    task(UI) {
+                    ViewScope(this).launch {
                         setColorFilter(UserPrefs.accentColor.openSubscription().first())
                     }
                 }.lparams(width = iconSize, height = iconSize)
@@ -98,7 +99,7 @@ class RecyclerListItem(
                     iconView(R.drawable.ic_play_circle_outline) {
                         id = R.id.playing_icon
                         visibility = View.GONE
-                        task(UI) {
+                        ViewScope(this).launch {
                             setColorFilter(UserPrefs.accentColor.openSubscription().first())
                         }
                     }.lparams(width = iconSize, height = iconSize)
@@ -212,7 +213,7 @@ class RecyclerListItem(
 //}
 
 
-class RecyclerListItemOptimized(
+open class RecyclerListItemOptimized(
     parent: ViewGroup,
     maxTextLines: Int = 3,
     useIcon: Boolean = false
@@ -252,6 +253,7 @@ class RecyclerListItemOptimized(
 
     val overflow = iconButton(R.drawable.ic_overflow) {
         id = R.id.itemMenuDots
+        tintResource = R.color.text
     }
 
     val iconSize = dimen(R.dimen.icon_size)

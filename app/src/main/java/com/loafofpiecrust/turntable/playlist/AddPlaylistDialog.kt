@@ -8,6 +8,7 @@ import android.support.v7.widget.Toolbar
 import android.text.InputType
 import android.view.View
 import android.view.ViewManager
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.LinearLayout
 import android.widget.Spinner
@@ -108,9 +109,12 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
                 )
                 adapter = ChoiceAdapter(context, choices.map { it.first })
 
-                onItemSelectedListener {
-                    onItemSelected { adapter, view, pos, id ->
-                        val (_, choice) = choices[pos]
+                onItemSelectedListener = object: AdapterView.OnItemSelectedListener {
+                    override fun onNothingSelected(parent: AdapterView<*>) {
+                    }
+
+                    override fun onItemSelected(parent: AdapterView<*>, view: View, position: Int, id: Long) {
+                        val (_, choice) = choices[position]
                         playlistType = choice
                         mixTapeSpinner.visibility = if (choice === MixTape::class) {
                             // Show different mixtape types.

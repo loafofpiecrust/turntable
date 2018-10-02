@@ -9,6 +9,7 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.util.*
+import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.channels.*
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
@@ -49,7 +50,7 @@ class CollaborativePlaylist(
         ): Operation(timestamp)
         data class Move(
             override val songId: SongId,
-            val to: Int,
+            val replacing: SongId,
             override val timestamp: Long = System.currentTimeMillis()
         ): Operation(timestamp)
     }
@@ -138,22 +139,27 @@ class CollaborativePlaylist(
 
     val operations = ConflatedBroadcastChannel(listOf<Operation>())
 
-    @Transient
-    private val _tracks: ConflatedBroadcastChannel<List<Song>> = this.operations.openSubscription().map { ops ->
-        val songs = mutableListOf<Song>()
-        ops.forEach { op ->
-            val idx = songs.indexOfFirst { it.id == op.songId }
-            when (op) {
-                is Operation.Add -> if (idx == -1) songs.add(op.song)
-                is Operation.Remove -> if (idx != -1) songs.removeAt(idx)
-                is Operation.Move -> if (idx != -1) songs.shift(idx, op.to)
-            }
-        }
-        songs
-    }.replayOne()
+    @delegate:Transient
+    private val _tracks: ConflatedBroadcastChannel<List<Song>> by lazy {
+        tracks.replayOne()
+    }
 
     override val tracks: ReceiveChannel<List<Song>>
-        get() = _tracks.openSubscription()
+        get() = operations.openSubscription().map { ops ->
+            val songs = mutableListOf<Song>()
+            ops.forEach { op ->
+                val idx = songs.indexOfFirst { it.id == op.songId }
+                when (op) {
+                    is Operation.Add -> if (idx == -1) songs.add(op.song)
+                    is Operation.Remove -> if (idx != -1) songs.removeAt(idx)
+                    is Operation.Move -> if (idx != -1) {
+                        val dest = songs.indexOfFirst { it.id == op.replacing }
+                        songs.shift(idx, dest)
+                    }
+                }
+            }
+            songs as List<Song>
+        }
 
     constructor(): this(SyncService.User(), "", null, UUID.randomUUID())
 
@@ -185,19 +191,25 @@ class CollaborativePlaylist(
         }
     }
 
+    fun move(from: SongId, to: SongId) {
+        val op = Operation.Move(from, to)
+        val lastOp = operations.value.last()
+        if (lastOp is Operation.Move && lastOp.songId == from) {
+            operations putsMapped { ops ->
+                ops.withReplaced(ops.lastIndex, op)
+            }
+        } else {
+            operations appends op
+        }
+        updateLastModified()
+    }
+
     fun move(from: Int, to: Int) {
         val song = _tracks.value.getOrNull(from)
-        if (song != null) {
-            val op = Operation.Move(song.id, to)
-            val lastOp = operations.value.last()
-            if (lastOp is Operation.Move && lastOp.songId == song.id) {
-                operations putsMapped { ops ->
-                    ops.withReplaced(ops.lastIndex, op)
-                }
-            } else {
-                operations appends op
-            }
-            updateLastModified()
+        val dest = _tracks.value.getOrNull(to)
+        if (song != null && dest != null) {
+            println("playlist: moving ${song.id} to where ${dest.id} was")
+            move(song.id, dest.id)
         }
     }
 
@@ -225,8 +237,9 @@ class CollaborativePlaylist(
         return false
     }
 
+    // TODO: Pass in Fragment scope
     override fun publish() {
-        launch(BG_POOL) {
+        GlobalScope.launch {
             val db = FirebaseFirestore.getInstance()
 //        val batch = db.batch()
             val doc = db.collection("playlists").document(id.toString())

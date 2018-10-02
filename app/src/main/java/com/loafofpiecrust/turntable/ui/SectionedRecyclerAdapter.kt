@@ -3,16 +3,24 @@ package com.loafofpiecrust.turntable.ui
 import android.support.v7.util.DiffUtil
 import com.afollestad.sectionedrecyclerview.SectionedRecyclerViewAdapter
 import com.afollestad.sectionedrecyclerview.SectionedViewHolder
-import com.loafofpiecrust.turntable.util.task
+import kotlinx.coroutines.experimental.CoroutineScope
+import kotlinx.coroutines.experimental.Dispatchers
+import kotlinx.coroutines.experimental.SupervisorJob
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.launch
 import java.util.*
+import kotlin.coroutines.experimental.CoroutineContext
 
 
 abstract class SectionedRecyclerAdapter<T, R: Comparable<R>, VH: SectionedViewHolder>(
     val groupBy: (T) -> R,
     val itemsSame: SectionedRecyclerAdapter<T, R, VH>.(T, T, Int, Int) -> Boolean = { a, b, aIdx, bIdx -> a === b },
     val contentsSame: SectionedRecyclerAdapter<T, R, VH>.(T, T, Int, Int) -> Boolean = { a, b, aIdx, bIdx -> a == b }
-): SectionedRecyclerViewAdapter<VH>() {
+): SectionedRecyclerViewAdapter<VH>(), CoroutineScope {
+    override val coroutineContext: CoroutineContext
+        get() = SupervisorJob()
+
     protected var data: List<T> = listOf()
         set(value) {
             groupedData = value.groupBy(groupBy).toList().sortedBy { it.first }
@@ -58,11 +66,11 @@ abstract class SectionedRecyclerAdapter<T, R: Comparable<R>, VH: SectionedViewHo
         }
     }
 
-    private fun internalUpdate() { task {
-        val newData = pendingUpdates.first ?: return@task
+    private fun internalUpdate() { launch {
+        val newData = pendingUpdates.first ?: return@launch
         if (data.isNotEmpty()) {
             val diff = DiffUtil.calculateDiff(Differ(data, newData))
-            task(UI) {
+            launch(Dispatchers.Main) {
                 data = newData
                 diff.dispatchUpdatesTo(this@SectionedRecyclerAdapter)
                 pendingUpdates.removeFirst()
@@ -76,7 +84,7 @@ abstract class SectionedRecyclerAdapter<T, R: Comparable<R>, VH: SectionedViewHo
                 }
             }
         } else {
-            task(UI) {
+            launch(Dispatchers.Main) {
                 data = newData
                 notifyItemRangeInserted(0, newData.size)
                 pendingUpdates.removeFirst()

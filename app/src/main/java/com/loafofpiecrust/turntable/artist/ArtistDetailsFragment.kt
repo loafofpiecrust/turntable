@@ -5,6 +5,9 @@ import android.support.annotation.StringRes
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.AppBarLayout
 import android.support.design.widget.CollapsingToolbarLayout
+import android.support.design.widget.CollapsingToolbarLayout.LayoutParams.COLLAPSE_MODE_OFF
+import android.support.design.widget.CollapsingToolbarLayout.LayoutParams.COLLAPSE_MODE_PIN
+import android.support.v7.widget.Toolbar
 import android.transition.*
 import android.view.Gravity
 import android.view.View
@@ -25,6 +28,8 @@ import com.loafofpiecrust.turntable.model.song.nameTransition
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.*
+import kotlinx.coroutines.experimental.Dispatchers
+import kotlinx.coroutines.experimental.IO
 import kotlinx.coroutines.experimental.channels.*
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
@@ -86,7 +91,7 @@ class ArtistDetailsFragment: BaseFragment() {
 
         if (!::albums.isInitialized) {
             albums = artist.openSubscription()
-                .map(BG_POOL) { it.albums }
+                .map(Dispatchers.IO) { it.albums }
                 .broadcast(Channel.CONFLATED)
         }
 
@@ -96,26 +101,26 @@ class ArtistDetailsFragment: BaseFragment() {
             .addTransition(ChangeClipBounds())
 
         sharedElementEnterTransition = trans
-        sharedElementReturnTransition = trans
+//        sharedElementReturnTransition = trans
 
         enterTransition = Fade()
-        exitTransition = Fade()
-//        exitTransition = Fade().setDuration(transDur / 3)
+//        exitTransition = Fade()
     }
 
     override fun ViewManager.createView() = coordinatorLayout {
+//        fitsSystemWindows = true
         id = R.id.container
 
         appBarLayout {
             id = R.id.app_bar
-            backgroundColor = Color.TRANSPARENT
+//            fitsSystemWindows = true
             topPadding = dimen(R.dimen.statusbar_height)
 
             lateinit var image: ImageView
-            collapsingToolbarLayout {
+            val collapser = collapsingToolbarLayout {
                 id = R.id.collapser
-                collapsedTitleGravity = Gravity.BOTTOM
-                expandedTitleGravity = Gravity.BOTTOM
+                collapsedTitleGravity = Gravity.TOP
+                expandedTitleGravity = Gravity.TOP
 
                 constraintLayout {
                     image = imageView {
@@ -190,13 +195,15 @@ class ArtistDetailsFragment: BaseFragment() {
                             )
                         }
                     }
-                }.collapsingToolbarlparams {
-                    collapseMode = CollapsingToolbarLayout.LayoutParams.COLLAPSE_MODE_OFF
-                    width = matchParent
+                }.collapsingToolbarlparams(width = matchParent) {
+                    collapseMode = COLLAPSE_MODE_PIN
                 }
+
             }.lparams {
                 width = matchParent
                 height = matchParent
+                scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
+                    AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
             }
 
             val toolbar = toolbar {
@@ -208,12 +215,12 @@ class ArtistDetailsFragment: BaseFragment() {
                     it.optionsMenu(context, menu)
                 }
             }.lparams(width = matchParent) {
-                scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL and AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
+                gravity = Gravity.TOP
             }
 
             artist.openSubscription().switchMap { artist ->
                 artist.loadArtwork(Glide.with(image)).map {
-                    it?.listener(artist.loadPalette(toolbar))
+                    it?.listener(artist.loadPalette(toolbar, collapser, this@appBarLayout))
                 }
             }.consumeEachAsync {
                 it?.into(image) ?: run {
@@ -224,6 +231,7 @@ class ArtistDetailsFragment: BaseFragment() {
         }.lparams(width = matchParent, height = wrapContent)
 
 
+        // Albums by this artist
         albumList(
             albums,
             AlbumsFragment.Category.ByArtist(artistId, currentMode.value),

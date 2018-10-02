@@ -24,7 +24,11 @@ import com.loafofpiecrust.turntable.song.songsList
 import com.loafofpiecrust.turntable.style.detailsStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.*
+import kotlinx.coroutines.experimental.Dispatchers
+import kotlinx.coroutines.experimental.IO
+import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.*
+import kotlinx.coroutines.experimental.channels.Channel.Factory.CONFLATED
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
@@ -79,7 +83,7 @@ class DetailsFragment(): BaseFragment() {
         super.onCreate()
 
         if (!::album.isInitialized) {
-            album = produceTask(BG_POOL) {
+            album = produceSingle(Dispatchers.IO) {
                 SearchApi.find(albumId)!!
             }.broadcast(Channel.CONFLATED)
         }
@@ -88,16 +92,14 @@ class DetailsFragment(): BaseFragment() {
 
         val trans = TransitionSet()
             .addTransition(ChangeBounds())
-            .addTransition(ChangeImageTransform())
             .addTransition(ChangeTransform())
-//            .addTransition(ChangeClipBounds())
+            .addTransition(ChangeClipBounds())
 
         sharedElementEnterTransition = trans
         sharedElementReturnTransition = trans
 
         enterTransition = Fade().setDuration(transDur)
-        exitTransition = Fade().setDuration(transDur) // Just dissappear
-//        exitTransition = Fade().setDuration(transDur / 3)
+//        exitTransition = Fade().setDuration(transDur) // Just dissappear
 //        postponeEnterTransition()
     }
 
@@ -127,6 +129,7 @@ class DetailsFragment(): BaseFragment() {
 
                     image = imageView {
                         fitsSystemWindows = false
+                        adjustViewBounds = false
                         scaleType = ImageView.ScaleType.CENTER_CROP
                         transitionName = albumId.imageTransition
                     }
@@ -152,7 +155,7 @@ class DetailsFragment(): BaseFragment() {
                     // Year
                     val year = textView {
                         album.consumeEachAsync { album ->
-                            if (album?.year != null) {
+                            if (album.year != null) {
                                 text = album.year.toString()
                             } else {
                                 visibility = View.GONE
@@ -202,7 +205,6 @@ class DetailsFragment(): BaseFragment() {
                 size = matchParent
                 scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
                     AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
-//                topPadding = -dimen(R.dimen.statusbar_height)
             }
 
 
@@ -222,65 +224,37 @@ class DetailsFragment(): BaseFragment() {
                         maxLines = 1
                     }
 
-                    album.consumeEachAsync { album ->
-                        album.loadCover(Glide.with(image)).consumeEach {
-                            it?.transition(DrawableTransitionOptions().crossFade(200))
+                    album.openSubscription()
+                        .switchMap(Dispatchers.IO) { album ->
+                            album.loadCover(Glide.with(image))
+                                .map { album to it }
+                        }
+                        .consumeEachAsync { (album, req) ->
+                            req?.transition(DrawableTransitionOptions().crossFade(200))
                                 ?.listener(album.loadPalette(this@toolbar, mainLine, subLine, collapser))
                                 ?.into(image)
                                 ?: run { image.imageResource = R.drawable.ic_default_album }
                         }
-                    }
                 }.lparams(height = matchParent)
 
-                launch {
-                    album.consumeEach {
-                        menu.clear()
-                        it.optionsMenu(context, menu)
-                    }
+                album.consumeEachAsync {
+                    menu.clear()
+                    it.optionsMenu(context, menu)
                 }
-
-//                if (album is RemoteAlbum) { // is remote album
-//                    // Option to mark the album for offline listening
-//                    // First, see if it's already marked
-//                    menuItem("Favorite", R.drawable.ic_turned_in_not, showIcon=true) {
-//                        ctx.library.findAlbum(album.id).consumeEach(UI) { existing ->
-//                            if (existing != null) {
-//                                icon = ctx.getDrawable(R.drawable.ic_turned_in)
-//                                setOnMenuItemClickListener {
-//                                    // Remove remote album from library
-//                                    ctx.library.removeRemoteAlbum(existing)
-//                                    toast("Removed album to library")
-//                                    true
-//                                }
-//                            } else {
-//                                icon = ctx.getDrawable(R.drawable.ic_turned_in_not)
-//                                setOnMenuItemClickListener {
-//                                    ctx.library.addRemoteAlbum(album)
-//                                    toast("Added album to library")
-//                                    true
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-
-//                album.optionsMenu(popupMenu)
 
             }.lparams {
                 minimumHeight = dimen(R.dimen.details_toolbar_height)
-//                height = dimen(R.dimen.details_toolbar_height)
                 width = matchParent
             }
 
         }.lparams(width = matchParent)
 
-
-//            fragment {
-//                SongsFragment.onAlbum(albumId, album.openSubscription())
-//            }
+        // Display tracks on this album.
         songsList(
             SongsFragment.Category.OnAlbum(albumId),
-            album.openSubscription().map(BG_POOL) { it.tracks }
+            album.openSubscription()
+                .map(Dispatchers.IO) { it.tracks }
+                .broadcast(CONFLATED)
         ) {
             id = R.id.songs
         }.lparams(width = matchParent) {

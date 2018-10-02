@@ -1,8 +1,11 @@
 package com.loafofpiecrust.turntable.ui
 
 import activitystarter.ActivityStarter
+import android.app.Service
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.os.IBinder
 import android.support.v4.app.DialogFragment
 import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentActivity
@@ -13,7 +16,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.util.FragmentArgument
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.channels.BroadcastChannel
@@ -22,31 +24,47 @@ import kotlinx.coroutines.experimental.channels.consumeEach
 import org.jetbrains.anko.AnkoContext
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.info
-import org.jetbrains.anko.support.v4.ctx
-import java.lang.ref.WeakReference
 import kotlin.coroutines.experimental.CoroutineContext
 import kotlin.coroutines.experimental.EmptyCoroutineContext
 import kotlin.reflect.KMutableProperty0
 
-abstract class BaseFragment: Fragment(), AnkoLogger, CoroutineScope {
+interface ViewComponentScope: CoroutineScope {
+    val job: Job
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Main + job
+
+    fun <T> ReceiveChannel<T>.consumeEachAsync(
+        context: CoroutineContext = EmptyCoroutineContext,
+        action: suspend (T) -> Unit
+    ) {
+        launch(context) {
+            consumeEach { action(it) }
+        }
+    }
+    fun <T> BroadcastChannel<T>.consumeEachAsync(
+        context: CoroutineContext = EmptyCoroutineContext,
+        action: suspend (T) -> Unit
+    ) = openSubscription().consumeEachAsync(context, action)
+}
+
+abstract class BaseFragment: Fragment(), AnkoLogger, ViewComponentScope {
     /**
      * Allows abstraction over managing channel closing.
      * Use cases (bound to lifecycle):
      * - albums.consumeEach(UI) { ... }
-     * - images.map(BG_POOL + jobs) { ...process... }.consumeEach(UI) { ... }
-     * - thing.onClick(BG_POOL + jobs) { ...network activity... }
-     * - async(BG_POOL + jobs) { ...search stuff... }.then(UI) { ...display... }
+     * - images.map(BG_POOL + job) { ...process... }.consumeEach(UI) { ... }
+     * - thing.onClick(BG_POOL + job) { ...network activity... }
+     * - async(BG_POOL + job) { ...search stuff... }.then(UI) { ...display... }
      *
      * This implementation still allows coroutines *not* bound to the lifecycle:
      * - thing.onClick(BG_POOL) { ...long processing outlives fragment... }
      *
      * Alternative Considerations:
-     * - We could provide versions of other contexts here, like BG_POOL + jobs,
+     * - We could provide versions of other contexts here, like BG_POOL + job,
      *   but `UI` is the absolute most common case and we almost *never* want a
      *   UI task that isn't bound to the lifecycle. Background tasks are more ambiguous.
      */
-    protected val jobs = SupervisorJob()
-    override val coroutineContext: CoroutineContext get() = Dispatchers.Main + jobs
+    override val job = SupervisorJob()
 
     abstract fun ViewManager.createView(): View
 
@@ -63,13 +81,13 @@ abstract class BaseFragment: Fragment(), AnkoLogger, CoroutineScope {
         if (savedInstanceState != null) {
             isFirstInit = false
         }
-        return view ?: AnkoContext.create(requireContext(), this).createView()
+        return (view ?: AnkoContext.create(requireContext(), this).createView())
             .also { isFirstInit = false }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        jobs.cancel()
+        job.cancel()
     }
 
     /**
@@ -89,33 +107,10 @@ abstract class BaseFragment: Fragment(), AnkoLogger, CoroutineScope {
                 .commit()
         }
     }
-
-    inline fun <T> ReceiveChannel<T>.consumeEachAsync(
-        context: CoroutineContext = EmptyCoroutineContext,
-        crossinline action: suspend (T) -> Unit
-    ) {
-        launch(context) {
-            consumeEach { action(it) }
-        }
-    }
-    inline fun <T> BroadcastChannel<T>.consumeEachAsync(
-        context: CoroutineContext = EmptyCoroutineContext,
-        crossinline action: suspend (T) -> Unit
-    ) = openSubscription().consumeEachAsync(context, action)
-
-    inline fun <T> BroadcastChannel<T>.bindTo(prop: KMutableProperty0<T>) =
-        openSubscription().bindTo(prop)
-    inline fun <T> ReceiveChannel<T>.bindTo(prop: KMutableProperty0<T>) {
-        consumeEachAsync {
-            prop.setter.call(it)
-        }
-    }
 }
 
-abstract class BaseDialogFragment: DialogFragment(), AnkoLogger, CoroutineScope {
-    private val jobs = SupervisorJob()
-    override val coroutineContext: CoroutineContext
-        get() = Dispatchers.Main + jobs
+abstract class BaseDialogFragment: DialogFragment(), AnkoLogger, ViewComponentScope {
+    override val job = SupervisorJob()
 
     abstract fun ViewManager.createView(): View?
 
@@ -135,7 +130,7 @@ abstract class BaseDialogFragment: DialogFragment(), AnkoLogger, CoroutineScope 
 
     override fun onDestroyView() {
         super.onDestroyView()
-        jobs.cancel()
+        job.cancel()
     }
 
     fun show(ctx: Context) {
@@ -145,10 +140,8 @@ abstract class BaseDialogFragment: DialogFragment(), AnkoLogger, CoroutineScope 
     }
 }
 
-abstract class BaseActivity: AppCompatActivity(), AnkoLogger, CoroutineScope {
-    private val jobs = SupervisorJob()
-    override val coroutineContext: CoroutineContext
-        get() = Dispatchers.Main + jobs
+abstract class BaseActivity: AppCompatActivity(), AnkoLogger, ViewComponentScope {
+    override val job = SupervisorJob()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -161,7 +154,7 @@ abstract class BaseActivity: AppCompatActivity(), AnkoLogger, CoroutineScope {
 
     override fun onDestroy() {
         super.onDestroy()
-        jobs.cancel()
+        job.cancel()
     }
 
     inline fun <reified T: Fragment> View.fragment(
@@ -175,5 +168,18 @@ abstract class BaseActivity: AppCompatActivity(), AnkoLogger, CoroutineScope {
             ?.add(this.id, fragment)
             ?.commit()
         return fragment
+    }
+}
+
+abstract class BaseService: Service(), CoroutineScope {
+    private val job = SupervisorJob()
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Default + job
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onDestroy() {
+        super.onDestroy()
+        job.cancel()
     }
 }

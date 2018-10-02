@@ -14,8 +14,8 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
-import com.loafofpiecrust.turntable.util.task
 import com.loafofpiecrust.turntable.util.text
+import com.mcxiaoke.koi.ext.closeQuietly
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.delay
@@ -79,15 +79,16 @@ object Discogs: SearchApi, AnkoLogger {
                     "User-Agent" to "com.loafofpiecrust.turntable/0.1alpha"
                 ))
                 if (res.code() == 429) {
-                    delay(2000)
+                    res.closeQuietly()
+                    delay(4000)
                 }
             } while (res.code() > 400 && reqCount > 0)
             val rem = res.header("X-Discogs-Ratelimit-Remaining")!!.toInt()
             if (rem <= 5) {
-                delay(400)
+                delay(500)
             }
 
-            res.gson.obj
+            res.use { it.gson.obj }
         } catch (e: Exception) {
             error(e.message, e)
             throw e
@@ -365,9 +366,9 @@ object Discogs: SearchApi, AnkoLogger {
             }.map { it.first }
 
             val common = subRels.groupingBy { it.type }
-                .eachCount().also { task(UI) {
-                    println("discogs: for ${master.id.displayName}, $it")
-                } }
+                .eachCount().also {
+                    debug { "discogs: for ${master.id.displayName}, $it" }
+                }
                 .maxBy {
                     if (it.key != Album.Type.OTHER) {
                         it.value
@@ -382,7 +383,7 @@ object Discogs: SearchApi, AnkoLogger {
             )
         }.awaitAllNotNull()
 
-        task(UI) { println("discogs: requested $totalMasterReqs masters") }
+        debug { "discogs: requested $totalMasterReqs masters" }
 
         return (masters + releases.map { it.first })//.dedupMerge(
 //            { a, b -> a.id == b.id },
@@ -426,7 +427,7 @@ object Discogs: SearchApi, AnkoLogger {
         var start = System.nanoTime()
         val txt = Http.get("https://www.discogs.com/artist/$id", mapOf(
             "limit" to "100"
-        )).text
+        )).use { it.text }
         info { "discography request took ${System.nanoTime() - start}ns" }
         start = System.nanoTime()
         val res = Jsoup.parse(txt).body()

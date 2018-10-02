@@ -9,11 +9,14 @@ import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.sendBlocking
 import kotlinx.coroutines.experimental.launch
+import org.jetbrains.anko.AnkoLogger
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
 
-abstract class AbstractPref<T: Any?>(default: T? = null): ReadOnlyProperty<Any, ConflatedBroadcastChannel<T>> {
+abstract class AbstractPref<T: Any?>(
+    default: T? = null
+): ReadOnlyProperty<Any, ConflatedBroadcastChannel<T>>, AnkoLogger {
     protected var subject = ConflatedBroadcastChannel<T>()
 
     override operator fun getValue(thisRef: Any, property: KProperty<*>): ConflatedBroadcastChannel<T> {

@@ -53,7 +53,7 @@ class SyncTabFragment: BaseFragment() {
                     positiveButton(R.string.user_befriend) {
                         val key = textBox.text.toString()
                         async {
-                            val user = withContext(BG_POOL) { SyncService.User.resolve(key) }
+                            val user = withContext(Dispatchers.IO) { SyncService.User.resolve(key) }
                             // TODO: Use localized strings in xml
                             toast(if (user != null) {
                                 if (SyncService.requestFriendship(user)) {
@@ -86,7 +86,7 @@ class SyncTabFragment: BaseFragment() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == RESULT_PICK_CONTACT && data?.data != null) {
-            val cursor = ctx.contentResolver.query(
+            val cursor = context!!.contentResolver.query(
                 data.data,
                 arrayOf(
                     ContactsContract.Contacts._ID,
@@ -102,14 +102,14 @@ class SyncTabFragment: BaseFragment() {
             println("friends: adding $id:$name at $email")
 
             cursor.closeQuietly()
-            launch(BG_POOL) {
+            launch(Dispatchers.Default) {
                 val user = SyncService.User.resolve(email)
                 withContext(Dispatchers.Main) {
                     toast(if (user != null) {
                         if (SyncService.requestFriendship(user)) {
-                            ctx.getString(R.string.friend_request_sent, user.name)
+                            getString(R.string.friend_request_sent, user.name)
                         } else {
-                            ctx.getString(R.string.friend_request_already_added, user.name)
+                            getString(R.string.friend_request_already_added, user.name)
                         }
                     } else {
                         "$name isn't on Turntable yet"
@@ -141,8 +141,9 @@ class SyncTabFragment: BaseFragment() {
                         val choices = when (friend.status) {
                             SyncService.Friend.Status.CONFIRMED -> listOf(
                                 ctx.getString(R.string.friend_request_sync) to {
-                                    friend.user.refresh().then {
-                                        SyncService.requestSync(it)
+                                    val user = friend.user.refresh()
+                                    launch {
+                                        SyncService.requestSync(user.await())
                                     }
                                     toast("Requested sync with ${friend.user.name}")
                                 }

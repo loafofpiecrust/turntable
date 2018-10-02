@@ -1,7 +1,6 @@
 package com.loafofpiecrust.turntable.song
 
 //import com.loafofpiecrust.turntable.service.MusicService2
-import activitystarter.Arg
 import android.os.Parcelable
 import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.LinearLayoutManager
@@ -26,14 +25,10 @@ import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.Deferred
-import kotlinx.coroutines.experimental.channels.BroadcastChannel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.channels.map
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.channels.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-import org.jetbrains.anko.support.v4.ctx
+import org.jetbrains.anko.support.v4.swipeRefreshLayout
 import java.util.*
 
 open class SongsFragment(): BaseFragment() {
@@ -46,7 +41,7 @@ open class SongsFragment(): BaseFragment() {
 
     /// TODO: Separate display type from category!
     sealed class Category: Parcelable {
-        @Parcelize class All: Category()
+        @Parcelize object All : Category()
         @Parcelize data class History(val limit: Int? = null): Category()
         @Parcelize data class ByArtist(val artist: ArtistId): Category()
         @Parcelize data class OnAlbum(val album: AlbumId, val isPartial: Boolean = false): Category()
@@ -62,13 +57,13 @@ open class SongsFragment(): BaseFragment() {
 
     companion object {
         fun all(): SongsFragment {
-            return SongsFragment(Category.All()).apply {
-                category = Category.All()
+            return SongsFragment(Category.All).apply {
+                category = Category.All
             }
         }
         fun onAlbum(id: AlbumId, album: ReceiveChannel<Album>): SongsFragment {
             return SongsFragment(Category.OnAlbum(id)).apply {
-                songs = album.map(BG_POOL) { it.tracks }.replayOne()
+                songs = album.map(Dispatchers.IO) { it.tracks }.replayOne()
             }
         }
 //        fun onPlaylist(id: UUID, playlist: Playlist, sideIdx: Int): SongsFragment {
@@ -97,15 +92,28 @@ open class SongsFragment(): BaseFragment() {
         }
     }
 
-    override fun ViewManager.createView(): View = songsList(category, songs.openSubscription())
+    override fun ViewManager.createView(): View = songsList(category, songs)
 }
 
 
 fun ViewManager.songsList(
     category: SongsFragment.Category,
-    songs: ReceiveChannel<List<Song>>,
+    songs: BroadcastChannel<List<Song>>,
     block: RecyclerView.() -> Unit = {}
-) = with(this) {
+) = swipeRefreshLayout {
+    val scope = ViewScope(this)
+
+    isEnabled = false
+    scope.launch {
+        songs.consume {
+            if (isEmpty) {
+                isRefreshing = true
+                receive()
+                isRefreshing = false
+            }
+        }
+    }
+
     val cat = category
     val adapter = SongsAdapter(cat) { songs, idx ->
         MusicService.enact(SyncService.Message.PlaySongs(songs, idx))
@@ -169,7 +177,7 @@ fun ViewManager.songsList(
         })
 
 
-        adapter.subscribeData(songs)
+        adapter.subscribeData(songs.openSubscription())
         block.invoke(this)
     }
 }

@@ -18,20 +18,14 @@ import com.github.salomonbrys.kotson.registerTypeAdapter
 import com.google.gson.GsonBuilder
 import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.hasValue
-import com.loafofpiecrust.turntable.util.task
-import kotlinx.coroutines.experimental.CancellationException
-import kotlinx.coroutines.experimental.Deferred
-import kotlinx.coroutines.experimental.Runnable
-import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.SendChannel
 import org.jetbrains.anko.*
 import org.jetbrains.anko.sdk27.coroutines.onClick
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.coroutines.experimental.CoroutineContext
-import kotlin.coroutines.experimental.buildSequence
-import kotlin.coroutines.experimental.suspendCoroutine
+import kotlin.coroutines.experimental.*
 
 
 fun msToTimeString(ms: Int): String {
@@ -386,11 +380,10 @@ inline fun <T> tryOr(v: T, block: () -> T): T {
     }
 }
 
-/**
- * Parallel map using Kovenant promises
- */
-fun <T, R> Iterable<T>.parMap(context: CoroutineContext = BG_POOL, mapper: suspend (T) -> R): List<Deferred<R>> = run {
+
+fun <T, R> Iterable<T>.parMap(context: CoroutineContext = EmptyCoroutineContext, mapper: suspend (T) -> R): List<Deferred<R>> = run {
     this.map {
+        GlobalScope.async(context) { mapper(it) }
         async(context) { mapper(it) }
     }
 }
@@ -436,6 +429,20 @@ infix fun <T> ConflatedBroadcastChannel<List<T>>.appends(toAdd: T) {
             this.value + toAdd
         } else {
             listOf(toAdd)
+        })
+    }
+}
+
+fun <K, T> ConflatedBroadcastChannel<TreeMap<K, T>>.appends(key: K, value: T) {
+    synchronized(this) {
+        offer(if (hasValue) {
+            TreeMap(this.value).apply {
+                put(key, value)
+            }
+        } else {
+            TreeMap<K, T>().apply {
+                put(key, value)
+            }
         })
     }
 }

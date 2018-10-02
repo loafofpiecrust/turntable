@@ -9,30 +9,33 @@ import kotlinx.coroutines.experimental.selects.selectUnbiased
 import kotlinx.coroutines.experimental.selects.whileSelect
 import org.jetbrains.anko.sdk27.coroutines.onAttachStateChangeListener
 import kotlin.coroutines.experimental.CoroutineContext
+import kotlin.coroutines.experimental.EmptyCoroutineContext
 import kotlin.coroutines.experimental.coroutineContext
 
 
 fun <T, R> ReceiveChannel<T>.switchMap(
     context: CoroutineContext = Unconfined,
-    transform: suspend (T) -> ReceiveChannel<R>
-): ReceiveChannel<R> = produce(context) {
+    transform: suspend (T) -> ReceiveChannel<R>?
+): ReceiveChannel<R> = GlobalScope.produce(context) {
     var currentJob: Job? = null
     consumeEach {
-        val newChan = transform(it)
         currentJob?.cancel()
-        currentJob = async(coroutineContext) {
-            newChan.consumeEach {
-                send(it)
+        transform(it)?.let { newChan ->
+            currentJob = async(coroutineContext) {
+                newChan.consumeEach {
+                    send(it)
+                }
             }
         }
     }
     currentJob?.cancel()
 }
 
-fun <T> ReceiveChannel<T>.replayOne(context: CoroutineContext = BG_POOL): ConflatedBroadcastChannel<T> {
+fun <T> ReceiveChannel<T>.replayOne(context: CoroutineContext = Dispatchers.Unconfined): ConflatedBroadcastChannel<T> {
 //    return broadcast(Channel.CONFLATED) as ConflatedBroadcastChannel<T>
+
     val chan = ConflatedBroadcastChannel<T>()
-    launch(context) {
+    GlobalScope.launch(context) {
         consumeEach {
             chan.send(it)
         }
@@ -158,14 +161,23 @@ fun <T> ReceiveChannel<T>.interrupt(context: CoroutineContext = Unconfined): Rec
     }
 }
 
-fun <T> ReceiveChannel<T>.distinctSeq(context: CoroutineContext = Unconfined): ReceiveChannel<T> {
-    return produce(context) {
-        consume {
-            var prev = receive().also { send(it) }
-            for (elem in this) {
-                if (elem != prev) send(elem)
-                prev = elem
-            }
+fun <T> ReceiveChannel<T>.distinctSeq(
+    context: CoroutineContext = Dispatchers.Unconfined
+): ReceiveChannel<T> = distinctBySeq { a, b -> a == b }
+
+fun <T> ReceiveChannel<T>.distinctInstanceSeq(
+    context: CoroutineContext = Dispatchers.Unconfined
+): ReceiveChannel<T> = distinctBySeq { a, b -> a === b }
+
+fun <T> ReceiveChannel<T>.distinctBySeq(
+    context: CoroutineContext = Dispatchers.Unconfined,
+    areSame: suspend (T, T) -> Boolean
+): ReceiveChannel<T> = GlobalScope.produce(context) {
+    consume {
+        var prev = receive().also { send(it) }
+        for (elem in this) {
+            if (!areSame(elem, prev)) send(elem)
+            prev = elem
         }
     }
 }

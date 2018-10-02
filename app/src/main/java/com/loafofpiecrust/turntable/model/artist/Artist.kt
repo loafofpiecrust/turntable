@@ -28,6 +28,7 @@ import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.produceSingle
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.toast
@@ -61,7 +62,10 @@ interface Artist: Music {
     fun toPartial() = PartialArtist(id)
 
     fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
-        Library.instance.loadArtistImage(req, id)
+        Library.instance.loadArtistImage(req, id).map {
+            it?.apply(RequestOptions().signature(ObjectKey("${id}thumbnail")))
+        }
+
     fun loadArtwork(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
         Library.instance.loadArtistImage(req, id).map {
             (it ?: SearchApi.fullArtwork(this, true)?.let {
@@ -89,7 +93,7 @@ interface Artist: Music {
 
         // TODO: Sync with radios...
         // TODO: Sync with any type of queue!
-        menuItem(R.string.radio_start).onClick(BG_POOL) {
+        menuItem(R.string.radio_start).onClick(Dispatchers.Default) {
             MusicService.enact(SyncService.Message.Pause(), false)
 
             val radio = RadioQueue.fromSeed(listOf(this@Artist))
@@ -101,7 +105,7 @@ interface Artist: Music {
             }
         }
 
-        menuItem(R.string.artist_biography).onClick(BG_POOL) {
+        menuItem(R.string.artist_biography).onClick(Dispatchers.Default) {
             BiographyFragment.fromChan(produceSingle(this@Artist)).show(ctx)
         }
     }

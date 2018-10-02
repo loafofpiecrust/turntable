@@ -9,7 +9,11 @@ import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.arg
-import com.loafofpiecrust.turntable.util.produceTask
+import com.loafofpiecrust.turntable.util.produceSingle
+import com.loafofpiecrust.turntable.util.toChannel
+import kotlinx.coroutines.experimental.Dispatchers
+import kotlinx.coroutines.experimental.IO
+import kotlinx.coroutines.experimental.async
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.ctx
 
@@ -23,16 +27,17 @@ class RelatedArtistsFragment(): BaseFragment() {
     override fun ViewManager.createView(): View = recyclerView {
         // TODO: dynamic grid size
         layoutManager = GridLayoutManager(context, 3)
-        adapter = ArtistsAdapter { view, artists, pos ->
+        val artists = produceSingle(Dispatchers.IO) {
+            Spotify.similarTo(artistId)
+        }
+        adapter = ArtistsAdapter(artists) { view, artists, pos ->
             // smoothly transition the cover image!
             val artist = artists[pos]
-            ctx.replaceMainContent(
+            context.replaceMainContent(
                 ArtistDetailsFragment.fromArtist(artist, ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE),
                 true,
                 view.transitionViews
             )
-        }.apply {
-            subscribeData(produceTask(BG_POOL + jobs) { Spotify.similarTo(artistId) })
         }
     }
 }

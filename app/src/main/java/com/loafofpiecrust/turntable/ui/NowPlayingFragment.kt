@@ -2,8 +2,10 @@ package com.loafofpiecrust.turntable.ui
 
 //import com.loafofpiecrust.turntable.service.MusicService2
 //import me.angrybyte.circularslider.CircularSlider
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.support.constraint.ConstraintSet.PARENT_ID
+import android.support.design.widget.FloatingActionButton
 import android.view.ViewManager
 import android.widget.ImageButton
 import android.widget.SeekBar
@@ -31,10 +33,10 @@ import org.jetbrains.anko.support.v4.ctx
 open class NowPlayingFragment : BaseFragment() {
 
     override fun ViewManager.createView() = constraintLayout {
-        lateinit var playButton: ImageButton
+        lateinit var playButton: FloatingActionButton
 
         MusicService.instance.switchMap {
-            it.player.isPlaying
+            it?.player?.isPlaying
         }.consumeEachAsync {
             if (it) {
                 playButton.imageResource = R.drawable.ic_pause
@@ -50,11 +52,11 @@ open class NowPlayingFragment : BaseFragment() {
         }
 
         MusicService.instance.switchMap {
-            it.player.currentSong
+            it?.player?.currentSong
         }.switchMap { song ->
             song?.loadCover(Glide.with(this@constraintLayout))?.map { req ->
                 song to req
-            } ?: produceSingle(null to null)
+            }
         }.consumeEachAsync { (song, req) ->
             if (song != null && req != null) {
                 req.listener(loadPalette(song.id.album) { palette, swatch ->
@@ -64,7 +66,7 @@ open class NowPlayingFragment : BaseFragment() {
                             ?: palette?.darkMutedSwatch
                             ?: palette?.darkVibrantSwatch)?.rgb
                             ?: Color.BLACK
-                    playButton.backgroundColor = c
+                    playButton.backgroundTintList = ColorStateList.valueOf(c)
                 }).preload()
             } else {
                 // reset playButton color.
@@ -81,6 +83,7 @@ open class NowPlayingFragment : BaseFragment() {
         val songCarousel = frameLayout {
             clipToOutline = false
             clipToPadding = false
+            clipChildren = false
             id = R.id.albums
             fragment { PlayerAlbumCoverFragment() }
         }
@@ -109,7 +112,7 @@ open class NowPlayingFragment : BaseFragment() {
 
             launch {
                 MusicService.instance.switchMap {
-                    it.player.bufferState
+                    it?.player?.bufferState
                 }.consumeEach {
                     max = it.duration.toInt()
 

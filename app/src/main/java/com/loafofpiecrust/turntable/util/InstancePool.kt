@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.util
 
 import android.support.v4.util.Pools
+import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.Channel
@@ -10,6 +11,7 @@ import kotlinx.coroutines.experimental.runBlocking
 import kotlinx.coroutines.experimental.selects.select
 import java.util.*
 import kotlin.coroutines.experimental.CoroutineContext
+import kotlin.coroutines.experimental.EmptyCoroutineContext
 import kotlin.coroutines.experimental.suspendCoroutine
 
 /* Copyright (c) 2008-2018, Nathan Sweet
@@ -44,7 +46,7 @@ class InstancePool<T: Any>(
         val context: CoroutineContext,
         val block: suspend (T) -> Unit
     )
-    private val box = actor<Task>(BG_POOL, capacity = Channel.UNLIMITED) {
+    private val box = GlobalScope.actor<Task>(capacity = Channel.UNLIMITED) {
         // events are an acquisition request
         consumeEach { task ->
             val x = if (instances.size < capacity) {
@@ -63,9 +65,9 @@ class InstancePool<T: Any>(
         }
     }
 
-    fun <R> acquireBlocking(block: suspend (T) -> R) = runBlocking { acquire(BG_POOL, block) }
+    fun <R> acquireBlocking(block: suspend (T) -> R) = runBlocking { acquire(block=block) }
 
-    suspend fun <R> acquire(context: CoroutineContext = BG_POOL, block: suspend (T) -> R): R {
+    suspend fun <R> acquire(context: CoroutineContext = EmptyCoroutineContext, block: suspend (T) -> R): R {
         return suspendCoroutine { cont ->
             box.offer(Task(context) {
                 cont.resume(block(it))

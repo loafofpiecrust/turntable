@@ -7,6 +7,6 @@ import org.jetbrains.anko.backgroundResource
 
 fun View.rippleBorderless() {
     val itemBg = TypedValue()
-    context.theme.resolveAttribute(R.attr.selectableItemBackgroundBorderless, itemBg, true)
+    context.theme.resolveAttribute(R.attr.selectableItemBackground, itemBg, true)
     backgroundResource = itemBg.resourceId
 }

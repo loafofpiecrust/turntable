@@ -19,6 +19,7 @@ import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.*
+import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.*
@@ -65,7 +66,7 @@ class MixTapeDetailsFragment: BaseFragment() {
                 title = playlistTitle
                 transitionName = playlistId.toString()
 
-                menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = true).onClick(ALT_BG_POOL) {
+                menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = true).onClick(Dispatchers.Default) {
 //                    playlist.tracks.first()
 //                        .filter { ctx.library.findSong(it.id).first() == null }
 //                        .forEach { it.download() }
@@ -75,10 +76,10 @@ class MixTapeDetailsFragment: BaseFragment() {
                     FriendPickerDialog(
                         SyncService.Message.Playlist(playlistId),
                         "Share"
-                    ).show(ctx)
+                    ).show(context)
                 }
 
-                menuItem(R.string.playlist_publish).onClick {
+                menuItem(R.string.playlist_publish).onClick(coroutineContext) {
                     alert("Publish this mixtape?") {
                         positiveButton("Publish") {
                             playlist.publish()

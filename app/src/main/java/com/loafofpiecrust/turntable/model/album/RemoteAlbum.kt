@@ -17,6 +17,8 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.experimental.Dispatchers
+import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
@@ -46,40 +48,40 @@ class RemoteAlbum(
 
     override fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> {
         return remoteId.thumbnailUrl?.let {
-            produce(BG_POOL) { send(req.load(it)) }
+            produceSingle(req.load(it))
         }?.map { it.apply(RequestOptions().signature(ObjectKey(id))) }
             ?: Library.instance.loadAlbumCover(req, id)
     }
 
-    override fun optionsMenu(ctx: Context, menu: Menu) {
-        super.optionsMenu(ctx, menu)
+    override fun optionsMenu(context: Context, menu: Menu) {
+        super.optionsMenu(context, menu)
 
-        menu.menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = false).onClick(ALT_BG_POOL) {
+        menu.menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = false).onClick(Dispatchers.Default) {
             if (App.instance.hasInternet) {
-                ctx.library.findCachedAlbum(id).first()?.tracks?.let { tracks ->
+                context.library.findCachedAlbum(id).first()?.tracks?.let { tracks ->
 //                    tracks.filter {
-//                        ctx.library.findSong(it.id).first()?.local == null
+//                        context.library.findSong(it.id).first()?.local == null
 //                    }.forEach { it.download() }
                 }
             } else {
-                ctx.toast(R.string.no_internet)
+                context.toast(R.string.no_internet)
             }
         }
 
         menu.menuItem(R.string.add_to_library, R.drawable.ic_turned_in_not, showIcon = true) {
-            ctx.library.findAlbum(id).consumeEach(UI) { existing ->
+            context.library.findAlbum(id).consumeEach(UI) { existing ->
                 if (existing != null) {
-                    icon = ctx.getDrawable(R.drawable.ic_turned_in)
+                    icon = context.getDrawable(R.drawable.ic_turned_in)
                     onClick {
                         // Remove remote album from library
-                        ctx.library.removeRemoteAlbum(existing)
-                        ctx.toast(R.string.album_removed_library)
+                        context.library.removeRemoteAlbum(existing)
+                        context.toast(R.string.album_removed_library)
                     }
                 } else {
-                    icon = ctx.getDrawable(R.drawable.ic_turned_in_not)
+                    icon = context.getDrawable(R.drawable.ic_turned_in_not)
                     onClick {
-                        ctx.library.addRemoteAlbum(this@RemoteAlbum)
-                        ctx.toast(R.string.album_added_library)
+                        context.library.addRemoteAlbum(this@RemoteAlbum)
+                        context.toast(R.string.album_added_library)
                     }
                 }
             }

@@ -21,6 +21,7 @@ import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.*
 import org.jetbrains.anko.*
@@ -84,12 +85,12 @@ class QueueFragment : BaseFragment() {
                 }
 
                 addItemDecoration(DividerItemDecoration(context, linear.orientation).apply {
-                    setDrawable(context.getDrawable(R.drawable.song_divider))
+                    setDrawable(context.getDrawable(R.drawable.song_divider)!!)
                 })
             }.lparams(matchParent, matchParent)
 
             // Hook up our UI to the queue!
-            val queue = { MusicService.instance.switchMap { it.player.queue } }
+            val queue = { MusicService.instance.switchMap { it?.player?.queue } }
             queueAdapter?.subscribePos(queue().map { it.position })
             queue().consumeEachAsync { q ->
                 val song = q.current
@@ -127,9 +128,9 @@ class QueueFragment : BaseFragment() {
 
 class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>() {
     private var queue: CombinedQueue? = null
-    override val channel: ReceiveChannel<List<Song>>
+    val channel: ReceiveChannel<List<Song>>
         get() = MusicService.instance.switchMap {
-            it.player.queue
+            it?.player?.queue
         }.map {
             queue = it
             it.list
@@ -175,7 +176,7 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>()
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
         RecyclerListItemOptimized(parent, 3)
 
-    override fun onBindViewHolder(holder: RecyclerListItemOptimized, index: Int) = holder.run {
+    override fun RecyclerListItemOptimized.onBind(item: Song, index: Int, job: Job) {
         coverImage?.visibility = View.GONE
 
         if (index >= data.size) {
@@ -221,7 +222,7 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>()
             menu.onClick { v ->
                 v?.popupMenu {
                     // TODO: Abstract this out to a MusicService method that adds queue-specific options!
-                    given(runBlocking { MusicService.instance.first() }) { music ->
+                    given(runBlocking { MusicService.instance.filterNotNull().first() }) { music ->
                         val q = runBlocking { music.player.queue.first() }
                         if (q.primary is StaticQueue) {
                             menuItem(R.string.queue_remove).onClick {
@@ -242,7 +243,7 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>()
 //        if (!channel.isEmpty) {
 //            currentPosition = runBlocking { channel.receive() }
 //        }
-        launch(UI, parent = posJob) {
+        launch(Dispatchers.Main + posJob) {
             channel.consumeEach { pos ->
                 currentPosition = pos
                 notifyItemRangeChanged(0, data.size)

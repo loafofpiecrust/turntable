@@ -7,7 +7,9 @@ import com.loafofpiecrust.turntable.util.compareByIgnoreCase
 import com.loafofpiecrust.turntable.util.compareTo
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
+import java.text.Collator
 import java.util.*
+import kotlin.Comparator
 
 
 @Parcelize
@@ -69,13 +71,18 @@ data class AlbumId(
             && this.artist == other.artist
     } ?: false
     override fun hashCode() = Objects.hash(displayName.toLowerCase(), artist)
-    override fun compareTo(other: AlbumId) = COMPARATOR.compare(this, other)
+    override fun compareTo(other: AlbumId) =
+        COMPARATOR.compare(this, other)
 
 
     companion object {
-        val COMPARATOR = compareByIgnoreCase<AlbumId>(
-            { it.sortName }
-        ).thenBy { it.artist }
+        val COLLATOR = Collator.getInstance().apply {
+            strength = Collator.PRIMARY
+        }
+        val COMPARATOR = compareBy<AlbumId, String>(COLLATOR) {
+            it.displayName
+        }.thenBy { it.artist }
+
         private val TYPE_SUFFIX_PAT = Regex(
             "\\b\\s*[-]?\\s*[(\\[]?(EP|Single|LP)[)\\]]?$",
             RegexOption.IGNORE_CASE
