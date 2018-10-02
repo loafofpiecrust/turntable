@@ -2,6 +2,7 @@ package com.loafofpiecrust.turntable.artist
 
 import android.graphics.Color
 import android.support.annotation.StringRes
+import android.support.constraint.ConstraintSet
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.AppBarLayout
 import android.support.design.widget.CollapsingToolbarLayout
@@ -108,12 +109,10 @@ class ArtistDetailsFragment: BaseFragment() {
     }
 
     override fun ViewManager.createView() = coordinatorLayout {
-//        fitsSystemWindows = true
         id = R.id.container
 
         appBarLayout {
             id = R.id.app_bar
-//            fitsSystemWindows = true
             topPadding = dimen(R.dimen.statusbar_height)
 
             lateinit var image: ImageView
@@ -173,25 +172,25 @@ class ArtistDetailsFragment: BaseFragment() {
                     applyConstraintSet {
                         val padBy = dimen(R.dimen.details_image_padding)
                         image {
+                            val inset = dip(16)
                             connect(
-                                TOP to TOP of PARENT_ID,
-                                BOTTOM to BOTTOM of PARENT_ID,
-                                START to START of PARENT_ID,
-                                END to END of PARENT_ID
+                                TOP to TOP of PARENT_ID margin inset,
+                                BOTTOM to BOTTOM of PARENT_ID margin inset,
+                                START to START of PARENT_ID margin inset
                             )
-                            size = matchConstraint
-                            dimensionRation = "H,2:1"
+                            size = dip(128)
                         }
                         year {
                             connect(
-                                BOTTOM to BOTTOM of PARENT_ID margin padBy,
-                                START to START of PARENT_ID margin padBy
+                                TOP to TOP of image margin padBy,
+                                START to END of image margin padBy
                             )
                         }
                         mode {
                             connect(
-                                BOTTOM to BOTTOM of PARENT_ID margin padBy,
-                                END to END of PARENT_ID margin padBy
+                                START to START of year,
+                                TOP to BOTTOM of year margin padBy,
+                                BOTTOM to BOTTOM of image margin padBy
                             )
                         }
                     }
