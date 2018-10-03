@@ -14,10 +14,7 @@ import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.sync.SyncService
-import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.ui.RecyclerAdapter
-import com.loafofpiecrust.turntable.ui.RecyclerListItem
-import com.loafofpiecrust.turntable.ui.replaceMainContent
+import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.channels.produce
@@ -76,11 +73,11 @@ class PlaylistsFragment: BaseFragment() {
 
     class Adapter(
         val listener: (Playlist) -> Unit
-    ): RecyclerAdapter<Playlist, RecyclerListItem>() {
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerListItem
-            = RecyclerListItem(parent, 3, useIcon = true)
+    ): RecyclerAdapter<Playlist, RecyclerListItemOptimized>() {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerListItemOptimized
+            = RecyclerListItemOptimized(parent, 3, useIcon = true)
 
-        override fun onBindViewHolder(holder: RecyclerListItem, position: Int) {
+        override fun onBindViewHolder(holder: RecyclerListItemOptimized, position: Int) {
             val item = data[position]
             val ctx = holder.itemView.context
             holder.mainLine.text = item.name
@@ -96,7 +93,8 @@ class PlaylistsFragment: BaseFragment() {
                 holder.card.backgroundColor = it
                 holder.mainLine.textColor = contrast
                 holder.subLine.textColor = contrast
-                holder.menu.setColorFilter(contrast)
+                // FIXME: set holder.menu to closest type.
+//                holder.menu.setColorFilter(contrast)
             }
 
             holder.coverImage?.imageResource = when (item) {

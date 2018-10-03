@@ -1,7 +1,7 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat.Light">
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryDark">@color/primary_dark</item>
@@ -20,7 +20,7 @@
         <!--<iidname="android:splitMotionEvents">false</item>-->
         <!--<iidname="android:windowEnterTransition">@transition/explode</item>-->
         <!--<iidname="android:windowExitTransition">@transition/explode</item>-->
-        <item name="toolbarStyle">@style/AppTheme.AppBarOverlay</item>
+        <!--<item name="toolbarStyle">@style/AppTheme.AppBarOverlay</item>-->
         <item name="popupMenuStyle">@style/AppTheme.PopupOverlay</item>
         <item name="popupTheme">@style/AppTheme.PopupOverlay</item>
         <item name="android:popupElevation">@dimen/high_elevation</item>
@@ -34,10 +34,11 @@
         <item name="windowNoTitle">true</item>
     </style>
 
-    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark">
         <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">48dp</item>
+        <!--<item name="android:layout_height">48dp</item>-->
         <item name="popupTheme">@style/AppTheme.PopupOverlay</item>
+        <item name="android:titleTextAppearance">@style/TextAppearance.Widget.AppCompat.Toolbar.Title</item>
     </style>
 
     <style name="AppTheme.DetailsToolbar" parent="AppTheme.AppBarOverlay">
@@ -48,7 +49,7 @@
     </style>
 
     <style name="AppTheme.PopupOverlay" parent="@style/Widget.AppCompat.PopupMenu.Overflow">
-        <item name="android:popupBackground">@color/background</item>
+        <!--<item name="android:popupBackground">@color/background</item>-->
         <item name="android:overlapAnchor">true</item>
     </style>
 </resources>

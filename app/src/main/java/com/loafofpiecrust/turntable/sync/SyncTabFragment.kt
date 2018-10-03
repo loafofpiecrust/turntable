@@ -12,7 +12,7 @@ import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
-import com.loafofpiecrust.turntable.ui.RecyclerListItem
+import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
 import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.closeQuietly
 import com.mcxiaoke.koi.ext.stringValue
@@ -35,10 +35,10 @@ class SyncTabFragment: BaseFragment() {
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
         val choices = listOf(
-            context!!.getString(R.string.friend_from_contacts) to {
+            getString(R.string.friend_from_contacts) to {
                 pickContact()
             },
-            context!!.getString(R.string.friend_from_email) to {
+            getString(R.string.friend_from_email) to {
                 alert(R.string.friend_add) {
                     lateinit var textBox: EditText
                     customView {
@@ -57,12 +57,12 @@ class SyncTabFragment: BaseFragment() {
                             // TODO: Use localized strings in xml
                             toast(if (user != null) {
                                 if (SyncService.requestFriendship(user)) {
-                                    ctx.getString(R.string.friend_request_sent, user.displayName)
+                                    getString(R.string.friend_request_sent, user.displayName)
                                 } else {
-                                    ctx.getString(R.string.friend_request_already_added, user.displayName)
+                                    getString(R.string.friend_request_already_added, user.displayName)
                                 }
                             } else {
-                                ctx.getString(R.string.user_nonexistent, key)
+                                getString(R.string.user_nonexistent, key)
                             })
                         }
                     }
@@ -71,9 +71,9 @@ class SyncTabFragment: BaseFragment() {
             }
         )
 
-        menu.menuItem(R.string.friend_add, R.drawable.ic_add, showIcon =true) {
+        menu.menuItem(R.string.friend_add, R.drawable.ic_add, showIcon = true) {
             onClick {
-                ctx.selector(ctx.getString(R.string.friend_add), choices)()
+                selector(getString(R.string.friend_add), choices).invoke()
             }
         }
     }
@@ -125,22 +125,22 @@ class SyncTabFragment: BaseFragment() {
         // list of friends
         recyclerView {
             layoutManager = LinearLayoutManager(context)
-            adapter = object : RecyclerAdapter<SyncService.Friend, RecyclerListItem>() {
+            adapter = object : RecyclerAdapter<SyncService.Friend, RecyclerListItemOptimized>() {
                 override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-                    RecyclerListItem(parent, useIcon = true)
+                    RecyclerListItemOptimized(parent, useIcon = true)
 
-                override fun onBindViewHolder(holder: RecyclerListItem, position: Int) {
+                override fun onBindViewHolder(holder: RecyclerListItemOptimized, position: Int) {
                     val friend = data[position]
                     holder.apply {
                         mainLine.text = friend.user.name
                         subLine.text = when (friend.status) {
                             SyncService.Friend.Status.CONFIRMED -> friend.user.deviceId
-                            SyncService.Friend.Status.RECEIVED_REQUEST -> ctx.getString(R.string.friend_request_received)
-                            SyncService.Friend.Status.SENT_REQUEST -> ctx.getString(R.string.friend_request_sent_line)
+                            SyncService.Friend.Status.RECEIVED_REQUEST -> getString(R.string.friend_request_received)
+                            SyncService.Friend.Status.SENT_REQUEST -> getString(R.string.friend_request_sent_line)
                         }
                         val choices = when (friend.status) {
                             SyncService.Friend.Status.CONFIRMED -> listOf(
-                                ctx.getString(R.string.friend_request_sync) to {
+                                getString(R.string.friend_request_sync) to {
                                     val user = friend.user.refresh()
                                     launch {
                                         SyncService.requestSync(user.await())
@@ -149,21 +149,21 @@ class SyncTabFragment: BaseFragment() {
                                 }
                             )
                             SyncService.Friend.Status.RECEIVED_REQUEST -> listOf(
-                                ctx.getString(R.string.friend_confirm) to {
+                                getString(R.string.friend_confirm) to {
                                     friend.respondToRequest(true)
                                 },
-                                ctx.getString(R.string.friend_reject) to {
+                                getString(R.string.friend_reject) to {
                                     friend.respondToRequest(false)
                                 }
                             )
                             SyncService.Friend.Status.SENT_REQUEST -> listOf(
-                                ctx.getString(R.string.friend_request_cancel) to {
+                                getString(R.string.friend_request_cancel) to {
                                     UserPrefs.friends putsMapped { it.without(position) }
                                 }
                             )
                         }
                         card.onClick {
-                            ctx.selector(ctx.getString(R.string.friend_do_what), choices)()
+                            selector(getString(R.string.friend_do_what), choices).invoke()
                         }
                     }
                 }

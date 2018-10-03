@@ -21,7 +21,7 @@ import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.song.*
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
-import com.loafofpiecrust.turntable.ui.RecyclerListItem
+import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
@@ -87,15 +87,15 @@ class BrowseFragment: BaseFragment() {
 
 class MusicAdapter(
     chan: ReceiveChannel<List<Music>>
-): RecyclerAdapter<Music, RecyclerListItem>() {
+): RecyclerAdapter<Music, RecyclerListItemOptimized>() {
     init {
         subscribeData(chan)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-        RecyclerListItem(parent, 3, false)
+        RecyclerListItemOptimized(parent, 3, false)
 
-    override fun onBindViewHolder(holder: RecyclerListItem, position: Int) {
+    override fun onBindViewHolder(holder: RecyclerListItemOptimized, position: Int) {
         val item = data[position]
 
         holder.mainLine.text = item.displayName

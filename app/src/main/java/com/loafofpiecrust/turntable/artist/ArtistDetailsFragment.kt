@@ -22,6 +22,7 @@ import com.loafofpiecrust.turntable.album.albumList
 import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
+import com.loafofpiecrust.turntable.model.artist.MergedArtist
 import com.loafofpiecrust.turntable.model.artist.loadPalette
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.model.song.imageTransition
@@ -32,6 +33,7 @@ import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.IO
 import kotlinx.coroutines.experimental.channels.*
+import kotlinx.coroutines.experimental.channels.Channel.Factory.CONFLATED
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
@@ -79,6 +81,8 @@ class ArtistDetailsFragment: BaseFragment() {
     private val currentMode by lazy { ConflatedBroadcastChannel(initialMode) }
 
 
+//    private var localArtist: ReceiveChannel<Artist>? = null
+//    private var remoteArtist: ReceiveChannel<Artist>? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -86,14 +90,27 @@ class ArtistDetailsFragment: BaseFragment() {
         // TODO: Generalize this some more
         if (!::artist.isInitialized) {
             artist = Library.instance.findArtist(artistId).map {
-                it ?: SearchApi.find(artistId)!!
-            }.broadcast(Channel.CONFLATED)
+                it ?: SearchApi.findOnline(artistId)!!
+            }.broadcast(CONFLATED)
         }
 
         if (!::albums.isInitialized) {
-            albums = artist.openSubscription()
-                .map(Dispatchers.IO) { it.albums }
-                .broadcast(Channel.CONFLATED)
+            albums = currentMode.openSubscription()
+                .switchMap { mode ->
+                    when (mode) {
+                        // TODO: Do some caching of remotes here. Do this inside SearchApi :)
+                        Mode.LIBRARY -> Library.instance.findArtist(artistId)
+                        Mode.REMOTE -> produceSingle { SearchApi.findOnline(artistId) }
+                        Mode.LIBRARY_AND_REMOTE -> Library.instance.findArtist(artistId).map { local ->
+                            val remote = SearchApi.findOnline(artistId)
+                            if (local != null && remote != null) {
+                                MergedArtist(local, remote)
+                            } else local ?: remote
+                        }
+                    }
+                }
+                .map(Dispatchers.IO) { it?.albums ?: emptyList() }
+                .broadcast(CONFLATED)
         }
 
         val trans = TransitionSet()
@@ -249,7 +266,7 @@ class ArtistDetailsFragment: BaseFragment() {
             this.artistId = id
         }
 
-        fun fromArtist(artist: Artist, mode: Mode = Mode.LIBRARY) = ArtistDetailsFragment().apply {
+        fun fromArtist(artist: Artist, mode: Mode) = ArtistDetailsFragment().apply {
             initialMode = mode
             artistId = artist.id
             this.artist = ConflatedBroadcastChannel(artist)

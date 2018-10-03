@@ -34,7 +34,7 @@ class RecentMixTapesFragment: BaseFragment() {
                     }
 
                     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerItem =
-                        RecyclerListItem(parent, 3, true)
+                        RecyclerListItemOptimized(parent, 3, true)
 
                     override fun onBindViewHolder(holder: RecyclerItem, position: Int) {
                         val mt = data[position]

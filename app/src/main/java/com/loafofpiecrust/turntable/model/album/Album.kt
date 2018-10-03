@@ -79,11 +79,8 @@ interface Album: Music {
     /// TODO: Can we pull this out of the class...?
     override fun optionsMenu(context: Context, menu: Menu) {
         menu.menuItem(R.string.album_shuffle, R.drawable.ic_shuffle, showIcon =false).onClick(Dispatchers.Default) {
-            val tracks = Library.instance.songsOnAlbum(id).first()
-            tracks?.let {
-                if (it.isNotEmpty()) {
-                    MusicService.enact(SyncService.Message.PlaySongs(it, mode = MusicPlayer.OrderMode.SHUFFLE))
-                }
+            if (tracks.isNotEmpty()) {
+                MusicService.enact(SyncService.Message.PlaySongs(tracks, mode = MusicPlayer.OrderMode.SHUFFLE))
             }
         }
 

@@ -9,6 +9,8 @@ import com.bumptech.glide.RequestManager
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.signature.ObjectKey
 import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.browse.LocalApi
+import com.loafofpiecrust.turntable.browse.SearchCache
 import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.service.Library
@@ -19,6 +21,7 @@ import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.GlobalScope
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
@@ -58,27 +61,25 @@ class RemoteAlbum(
 
         menu.menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = false).onClick(Dispatchers.Default) {
             if (App.instance.hasInternet) {
-                context.library.findCachedAlbum(id).first()?.tracks?.let { tracks ->
-//                    tracks.filter {
-//                        context.library.findSong(it.id).first()?.local == null
-//                    }.forEach { it.download() }
-                }
+//                tracks.filter {
+//                    LocalApi.find(it.id) == null
+//                }.forEach { it.download() }
             } else {
                 context.toast(R.string.no_internet)
             }
         }
 
         menu.menuItem(R.string.add_to_library, R.drawable.ic_turned_in_not, showIcon = true) {
-            context.library.findAlbum(id).consumeEach(UI) { existing ->
+            context.library.findAlbum(id).consumeEach(Dispatchers.Main) { existing ->
                 if (existing != null) {
-                    icon = context.getDrawable(R.drawable.ic_turned_in)
+                    setIcon(R.drawable.ic_turned_in)
                     onClick {
                         // Remove remote album from library
                         context.library.removeRemoteAlbum(existing)
                         context.toast(R.string.album_removed_library)
                     }
                 } else {
-                    icon = context.getDrawable(R.drawable.ic_turned_in_not)
+                    setIcon(R.drawable.ic_turned_in_not)
                     onClick {
                         context.library.addRemoteAlbum(this@RemoteAlbum)
                         context.toast(R.string.album_added_library)

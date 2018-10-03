@@ -8,7 +8,7 @@ import com.github.salomonbrys.kotson.*
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
-import com.loafofpiecrust.turntable.ui.RecyclerListItem
+import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
 import kotlinx.coroutines.experimental.runBlocking
@@ -52,15 +52,15 @@ class BrowseTagsFragment: BaseFragment() {
 
     class TagAdapter(
         initialData: List<Tag>
-    ): RecyclerAdapter<Tag, RecyclerListItem>() {
+    ): RecyclerAdapter<Tag, RecyclerListItemOptimized>() {
         init {
             replaceData(initialData)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-            RecyclerListItem(parent, 2)
+            RecyclerListItemOptimized(parent, 2)
 
-        override fun onBindViewHolder(holder: RecyclerListItem, position: Int) {
+        override fun onBindViewHolder(holder: RecyclerListItemOptimized, position: Int) {
             val tag = data[position]
             holder.mainLine.text = tag.name
         }

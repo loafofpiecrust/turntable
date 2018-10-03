@@ -69,7 +69,17 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
     private lateinit var sheets: MultiSheetView
     private var drawers: DrawerLayout? = null
 
-    override fun ViewManager.createView() = MultiSheetView(ctx) {
+    fun toggleDrawer() {
+        drawers?.let { drawers ->
+            if (drawers.isDrawerOpen(Gravity.START)) {
+                drawers.closeDrawer(Gravity.START)
+            } else {
+                drawers.openDrawer(Gravity.START, true)
+            }
+        }
+    }
+
+    override fun ViewManager.createView() = MultiSheetView(this@MainActivity) {
         backgroundResource = R.color.background
 
         mainContent {
@@ -89,9 +99,11 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                         true
                     }
                     menu.group(1, true, true) {
-                        menuItem(R.string.title_activity_library).onClick {
-                            this@drawerLayout.closeDrawers()
-                            while (supportFragmentManager.popBackStackImmediate()) {
+                        menuItem(R.string.title_activity_library) {
+                            isChecked = true
+                            onClick {
+                                this@drawerLayout.closeDrawers()
+                                supportFragmentManager.popAllBackStack()
                             }
                         }
                         menuItem(R.string.action_settings).onClick {
@@ -99,7 +111,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                             SettingsActivityStarter.start(context)
                         }
                     }
-                }.lparams(width = dimen(R.dimen.drawer_width), height = matchParent) {
+                }.lparams(height = matchParent) {
                     gravity = Gravity.START
                 }
             }
@@ -162,8 +174,6 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
 
         // Start out with collapsed sheets
 //        sheets.hide(true, false)
-
-
         launch {
             MusicService.instance.switchMap {
                 it?.player?.queue
@@ -462,6 +472,9 @@ fun Context.popMainContent() {
     if (this is BaseActivity) {
         supportFragmentManager.popBackStack()
     }
+}
+fun FragmentManager.popAllBackStack() {
+    popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)
 }
 
 val FragmentManager.currentFragment: Fragment? get() = findFragmentById(R.id.mainContentContainer)

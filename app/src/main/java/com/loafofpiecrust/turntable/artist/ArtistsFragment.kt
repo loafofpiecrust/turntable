@@ -32,19 +32,6 @@ import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.swipeRefreshLayout
 
 class ArtistsFragment : BaseFragment() {
-    sealed class Category: Parcelable {
-        @Parcelize class All: Category()
-        @Parcelize data class RelatedTo(val id: ArtistId): Category()
-        @Parcelize class Custom: Category()
-    }
-
-    private var category: Category by arg(Category.Custom())
-    private var detailsMode by arg(ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE)
-    private var columnCount: Int by arg(0)
-    @State var listState: Parcelable? = null
-
-    lateinit var artists: BroadcastChannel<List<Artist>>
-
     // TODO: Use Category!!
     companion object {
         fun all() = ArtistsFragment().apply {
@@ -58,6 +45,19 @@ class ArtistsFragment : BaseFragment() {
             artists = channel.replayOne()
         }
     }
+
+    sealed class Category: Parcelable {
+        @Parcelize class All: Category()
+        @Parcelize data class RelatedTo(val id: ArtistId): Category()
+        @Parcelize class Custom: Category()
+    }
+
+    private var category: Category by arg(Category.Custom())
+    private var detailsMode by arg(ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE)
+    private var columnCount: Int by arg(0)
+    @State var listState: Parcelable? = null
+
+    lateinit var artists: BroadcastChannel<List<Artist>>
 
     override fun onCreate() {
         super.onCreate()
@@ -119,6 +119,7 @@ class ArtistsFragment : BaseFragment() {
     override fun ViewManager.createView() = artistList(
         artists,
         category,
+        detailsMode,
         columnCount
     )
 }
@@ -126,6 +127,7 @@ class ArtistsFragment : BaseFragment() {
 fun ViewManager.artistList(
     artists: BroadcastChannel<List<Artist>>,
     cat: ArtistsFragment.Category,
+    detailsMode: ArtistDetailsFragment.Mode,
     columnCount: Int
 ) = swipeRefreshLayout {
     isEnabled = false
@@ -158,7 +160,7 @@ fun ViewManager.artistList(
         adapter = ArtistsAdapter(artists.openSubscription()) { holder, artists, idx ->
             // smoothly transition the cover image!
             holder.itemView.context.replaceMainContent(
-                ArtistDetailsFragment.fromArtist(artists[idx], ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE),
+                ArtistDetailsFragment.fromArtist(artists[idx], detailsMode),
                 true,
                 holder.transitionViews
             )
@@ -196,7 +198,7 @@ class ArtistsAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerItem =
         if (gridSize == 1) {
-            RecyclerListItem(parent, 3)
+            RecyclerListItemOptimized(parent, 3)
         } else RecyclerGridItem(parent, 3)
 
     private val imageJobs = mutableMapOf<RecyclerItem, Job>()

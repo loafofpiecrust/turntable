@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.support.design.widget.CollapsingToolbarLayout
+import android.support.v4.app.Fragment
 import android.widget.PopupMenu
 import android.view.*
 import android.widget.ImageButton
@@ -477,6 +478,10 @@ suspend fun <T: Any> Context.selector(
         show()
     }
 }
+suspend inline fun <T: Any> Fragment.selector(
+    prompt: CharSequence,
+    options: List<Pair<CharSequence, T>>
+) = requireContext().selector(prompt, options)
 
 suspend fun <T: Any> Context.selector(
     prompt: String,

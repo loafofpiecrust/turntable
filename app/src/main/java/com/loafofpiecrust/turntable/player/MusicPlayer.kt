@@ -14,6 +14,7 @@ import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.model.queue.CombinedQueue
+import com.loafofpiecrust.turntable.model.queue.indexWithinUpNext
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.model.song.HistoryEntry
 import com.loafofpiecrust.turntable.model.song.Song
@@ -51,9 +52,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
         fun peek(): Song? = list.getOrNull(position + 1)
     }
 
-
-
-    private val subs = Job()
 
     private val userAgent = "Mozilla/5.0 (X11; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0"
     private val bandwidthMeter = DefaultBandwidthMeter()
@@ -148,7 +146,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
 
 
     fun release() {
-        subs.cancel()
         player.release()
         coroutineContext.cancel()
     }
@@ -364,15 +361,19 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
     fun removeFromQueue(position: Int) {
         // TODO: Start with removing from nextUp, then from anywhere else if from StaticQueue (new interface method?)
 
-//        _queue putsMapped { q -> StaticQueue(q.list.without(position), q.position) }
+        if (_queue.value.indexWithinUpNext(position)) {
+            _queue putsMapped { q ->
+                val diff = if (q.isPlayingNext) 0 else 1
+                q.copy(nextUp = q.nextUp.without(position - q.position - diff))
+            }
+        }
     }
 
     fun playNext() {
         addCurrentToHistory()
         val q = _queue.value.next()
         _queue puts q as CombinedQueue
-//        q
-//    }.then(UI) { q ->
+
         if (q.position != player.currentWindowIndex) {
             player.seekToDefaultPosition(q.position)
         }

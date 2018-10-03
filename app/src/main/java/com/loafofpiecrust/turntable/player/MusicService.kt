@@ -30,6 +30,8 @@ import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.*
 import org.jetbrains.anko.*
 import java.lang.ref.WeakReference
+import kotlin.coroutines.experimental.CoroutineContext
+import kotlin.coroutines.experimental.EmptyCoroutineContext
 
 /// Plays the music to the speakers and manages the _queue, that's it.
 @MakeActivityStarter
@@ -38,21 +40,26 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
         private val _instance = ConflatedBroadcastChannel<WeakReference<MusicService>>()
         val instance get() = _instance.openSubscription().map { it.get() }
 
-        private val actions = GlobalScope.actor<Pair<SyncService.Message, Boolean>>(capacity = Channel.UNLIMITED) {
-            for ((action, synced) in channel) {
+        private data class SyncedAction(
+            val message: SyncService.Message,
+            val shouldSync: Boolean
+        )
+
+        private val actions = GlobalScope.actor<SyncedAction>(capacity = Channel.UNLIMITED) {
+            for (action in channel) {
                 val service = _instance.valueOrNull?.get() ?: run {
-                    MusicServiceStarter.start(App.instance)
+                    App.instance.startService<MusicService>()
                     instance.filterNotNull().first()
                 }
-                service.doAction(action, synced)
+                service.doAction(action.message, action.shouldSync)
             }
         }
 
         fun enact(msg: SyncService.Message, shouldSync: Boolean = true) {
-            actions.offer(msg to shouldSync)
+            actions.offer(SyncedAction(msg, shouldSync))
         }
         suspend fun enactNow(msg: SyncService.Message, shouldSync: Boolean = true) {
-            actions.send(msg to shouldSync)
+            actions.send(SyncedAction(msg, shouldSync))
         }
     }
 
@@ -73,7 +80,6 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
 
     lateinit var player: MusicPlayer
 
-    private val subs = Job()
     // TODO: Release wakelock when playback is stopped for a bit, then re-acquire when playback resumes.
     private val wakeLock: PowerManager.WakeLock by lazy {
         powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "com.loafofpiecrust.turntable:musicWakeLock")
@@ -162,12 +168,12 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
                         }
                     }
                     if (isPlaying) {
-                        val buffer = player.bufferState.firstOrNull()
-                        if (buffer != null) {
+                        val buffer = player.bufferState.consume { receive() }
+//                        if (buffer != null) {
                             wakeLock.acquire(buffer.duration - buffer.position)
-                        } else {
-                            wakeLock.acquire()
-                        }
+//                        } else {
+//                            wakeLock.acquire()
+//                        }
                     } else if (wakeLock.isHeld) {
                         wakeLock.release()
                     }
@@ -182,10 +188,10 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
     }
 
     override fun onDestroy() {
+        super.onDestroy()
         stopForeground(true)
         abandonFocus()
         player.release()
-        subs.cancel()
         if (wakeLock.isHeld) {
             wakeLock.release()
         }

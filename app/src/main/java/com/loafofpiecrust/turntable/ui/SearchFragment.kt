@@ -13,6 +13,7 @@ import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.album.AlbumsAdapter
 import com.loafofpiecrust.turntable.album.AlbumsFragment
 import com.loafofpiecrust.turntable.album.albumList
+import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistsAdapter
 import com.loafofpiecrust.turntable.artist.ArtistsFragment
@@ -115,6 +116,7 @@ class SearchFragment : BaseFragment() {
                 is Category.Artists -> artistList(
                     cat.results,
                     ArtistsFragment.Category.All(),
+                    ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE,
                     3
                 )
             }

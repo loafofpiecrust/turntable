@@ -149,7 +149,7 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>: RecyclerView.Ada
     }
 }
 
-abstract class RecyclerBroadcastAdapter<T, VH: RecyclerView.ViewHolder>: RecyclerAdapter<T, VH>() {
+abstract class RecyclerBroadcastAdapter<T, VH: RecyclerView.ViewHolder> : RecyclerAdapter<T, VH>() {
     private val itemJobs = mutableMapOf<VH, Job>()
 
     abstract val moveEnabled: Boolean
@@ -176,68 +176,67 @@ abstract class RecyclerBroadcastAdapter<T, VH: RecyclerView.ViewHolder>: Recycle
 
     abstract fun VH.onBind(item: T, position: Int, job: Job)
 
-    final override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
-        if (moveEnabled || dismissEnabled) {
-            ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
-                ItemTouchHelper.UP or ItemTouchHelper.DOWN,
-                ItemTouchHelper.START or ItemTouchHelper.END
-            ) {
-                private var dragFrom = -1
-                private var dragTo = -1
 
-                override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
-                    val pos = viewHolder.adapterPosition
-                    return if (canMoveItem(pos)) {
-                        super.getMovementFlags(recyclerView, viewHolder)
-                    } else 0
-                }
+    private inner class TouchCallback : ItemTouchHelper.Callback() {
+        private var dragFrom = -1
+        private var dragTo = -1
 
-                override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
-                    val currFrom = viewHolder.adapterPosition
-                    val currTo = target.adapterPosition
-                    if (dragFrom == -1) {
-                        dragFrom = currFrom
-                    }
-                    dragTo = currTo
-                    data = data.shifted(currFrom, currTo)
-                    notifyItemMoved(currFrom, currTo)
-                    return true
-                }
-
-                override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                    val position = viewHolder.adapterPosition
-                    data = data.without(position)
-                    notifyItemRemoved(position)
-                    onItemDismiss(viewHolder.adapterPosition)
-                }
-
-                override fun isLongPressDragEnabled() = moveEnabled
-                override fun isItemViewSwipeEnabled() = dismissEnabled
-
-                override fun canDropOver(recyclerView: RecyclerView, current: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
-                    if (dragFrom == -1) {
-                        dragFrom = current.adapterPosition
-                    }
-                    val res = canMoveItem(dragFrom, target.adapterPosition)
-                    if (!res) {
-                        // if we can't move the item,
-                        // put it back where it started
-                        data = data.shifted(dragTo, dragFrom)
-                        notifyItemMoved(dragTo, dragFrom)
-                    }
-                    return res
-                }
-
-                override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
-                    super.clearView(recyclerView, viewHolder)
-                    if (dragFrom != -1 && dragTo != -1) {
-                        onItemMove(dragFrom, dragTo)
-                    }
-                    dragFrom = -1
-                    dragTo = -1
-                }
-            }).attachToRecyclerView(recyclerView)
+        override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
+            return if (canMoveItem(viewHolder.adapterPosition)) {
+                return makeMovementFlags(
+                    ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+                    ItemTouchHelper.START or ItemTouchHelper.END
+                )
+            } else 0
         }
+
+        override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+            val currFrom = viewHolder.adapterPosition
+            val currTo = target.adapterPosition
+            if (dragFrom == -1) {
+                dragFrom = currFrom
+            }
+            dragTo = currTo
+            return if (canMoveItem(dragFrom, dragTo)) {
+                data = data.shifted(currFrom, currTo)
+                notifyItemMoved(currFrom, currTo)
+                return true
+            } else false
+        }
+
+        override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+            val position = viewHolder.adapterPosition
+            if (canMoveItem(position)) {
+                data = data.without(position)
+                notifyItemRemoved(position)
+                onItemDismiss(viewHolder.adapterPosition)
+            }
+        }
+
+        override fun isLongPressDragEnabled() = moveEnabled
+        override fun isItemViewSwipeEnabled() = dismissEnabled
+
+        override fun canDropOver(recyclerView: RecyclerView, current: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+            if (dragFrom == -1) {
+                dragFrom = current.adapterPosition
+            }
+            return canMoveItem(dragFrom, target.adapterPosition)
+        }
+
+        override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+            super.clearView(recyclerView, viewHolder)
+            if (dragFrom != -1 && dragTo != -1 && dragFrom != dragTo) {
+                if (canMoveItem(dragFrom, dragTo)) {
+                    onItemMove(dragFrom, dragTo)
+                }
+            }
+            dragFrom = -1
+            dragTo = -1
+        }
+    }
+
+    final override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        ItemTouchHelper(TouchCallback()).attachToRecyclerView(recyclerView)
     }
 }
 

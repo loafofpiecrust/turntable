@@ -31,6 +31,7 @@ interface SearchApi {
 
         /// All Music APIs in descending order of priority
         val DEFAULT_APIS = arrayOf<SearchApi>(
+            SearchCache,
             Discogs,
             MusicBrainz,
             Spotify
@@ -49,27 +50,34 @@ interface SearchApi {
         }
 
         override suspend fun find(album: AlbumId): Album?
-            = LocalApi.find(album) ?: overApis { find(album) }
+            = LocalApi.find(album) ?: findOnline(album)
+
+        suspend fun findOnline(album: AlbumId): Album?
+            = overApis { find(album) }?.also { SearchCache.cache(it) }
+
 
         override suspend fun find(artist: ArtistId): Artist?
-            = LocalApi.find(artist) ?: overApis { find(artist) }
+            = LocalApi.find(artist) ?: findOnline(artist)
+
+        suspend fun findOnline(artist: ArtistId): Artist?
+            = overApis { find(artist) }?.also { SearchCache.cache(it) }
 
 //        override suspend fun find(song: Song): Song.RemoteDetails?
 //            = overApis { find(song) }
 
         override suspend fun searchArtists(query: String): List<Artist> =
             overApis {
-                searchArtists(query).provided { it.isNotEmpty() }
+                searchArtists(query).takeIf { it.isNotEmpty() }
             } ?: listOf()
 
         override suspend fun searchAlbums(query: String): List<Album> =
             overApis {
-                searchAlbums(query).provided { it.isNotEmpty() }
+                searchAlbums(query).takeIf { it.isNotEmpty() }
             } ?: listOf()
 
         override suspend fun searchSongs(query: String): List<Song> =
             overApis {
-                searchSongs(query).provided { it.isNotEmpty() }
+                searchSongs(query).takeIf { it.isNotEmpty() }
             } ?: listOf()
 
         override suspend fun fullArtwork(album: Album, search: Boolean): String? = tryOr(null) {

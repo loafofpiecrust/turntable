@@ -27,7 +27,7 @@ fun Toolbar.standardStyle(useDefaultColor: Boolean = false) {
             }
         }
     }
-    minimumHeight = dimen(R.dimen.toolbar_height)
+//    minimumHeight = dimen(R.dimen.toolbar_height)
     minimumWidth = matchParent
     popupTheme = R.style.AppTheme_PopupOverlay
     navigationIconResource = R.drawable.ic_arrow_back

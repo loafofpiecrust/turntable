@@ -13,6 +13,7 @@ import com.loafofpiecrust.turntable.browse.BrowseFragment
 import com.loafofpiecrust.turntable.playlist.PlaylistsFragment
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.song.SongsFragment
+import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.sync.SyncTabFragment
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
@@ -20,7 +21,10 @@ import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.map
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
+import org.jetbrains.anko.appcompat.v7.navigationIconResource
+import org.jetbrains.anko.appcompat.v7.themedToolbar
 import org.jetbrains.anko.appcompat.v7.toolbar
+import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.design.tabLayout
 import org.jetbrains.anko.design.themedAppBarLayout
 import org.jetbrains.anko.support.v4.onPageChangeListener
@@ -72,7 +76,7 @@ class LibraryFragment: BaseFragment() {
 
         var tabs: TabLayout? = null
 
-        themedAppBarLayout(R.style.AppTheme_AppBarOverlay) {
+        appBarLayout {
             topPadding = dimen(R.dimen.statusbar_height)
 
             UserPrefs.primaryColor.consumeEachAsync {
@@ -80,65 +84,22 @@ class LibraryFragment: BaseFragment() {
             }
 
             toolbar {
-                title = "Turntable"
+                title = getString(R.string.app_name)
                 popupTheme = R.style.AppTheme_PopupOverlay
+                navigationIconResource = R.drawable.ic_menu
+                setNavigationOnClickListener {
+                    (activity as? MainActivity)?.toggleDrawer()
+                }
                 currentTab.consumeEachAsync {
                     menu.clear()
                     fragments[it]?.get()?.onCreateOptionsMenu(menu, null)
                 }
-//
-//                subMenu("Grid size") {
-//                    setOnMenuItemClickListener {
-//                        if (it.name != "Grid size") {
-//                            val size = it.name.toString().toInt()
-//                            val tab = this@LibraryFragment.tabs.blockingFirst()[pager?.currentItem!!]
-//                            when (tab) {
-//                                "Albums" -> UserPrefs.albumGridColumns
-//                                "Artists" -> UserPrefs.artistGridColumns
-//                                else -> error("This is not a grid tab")
-//                            } puts size
-//                            // TODO: Refresh
-//                            true
-//                        } else false
-//                    }
-//                    group(0, true, true) {
-//                        val one = menuItem("1") {}
-//                        val two = menuItem("2") {}
-//                        val three = menuItem("3") {}
-//                        subscriptions += Observables.combineLatest(
-//                            currentTab,
-//                            UserPrefs.albumGridColumns,
-//                            UserPrefs.artistGridColumns
-//                        ).subscribe { (tab, albumCols, artistCols) ->
-//                            one.isChecked = false
-//                            two.isChecked = false
-//                            three.isChecked = false
-//
-//                            when(when (tab) {
-//                                "Albums" -> albumCols
-//                                "Artists" -> artistCols
-//                                else -> artistCols
-//                            }) {
-//                                1 -> one
-//                                2 -> two
-//                                3 -> three
-//                                else -> one
-//                            }.isChecked = true
-//                        }
-//                    }
-//                }
-            }.lparams {
-                width = matchParent
-                height = dimen(R.dimen.toolbar_height)
             }
 
             tabs = tabLayout {
                 tabMode = TabLayout.MODE_SCROLLABLE
-//                onTabSelectedListener {
-//                    onTabSelected { it?. }
-//                }
             }
-        }.lparams(width=matchParent, height=wrapContent)
+        }
 
 
         val pager = viewPager {

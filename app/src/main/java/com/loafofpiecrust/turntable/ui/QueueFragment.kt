@@ -62,27 +62,7 @@ class QueueFragment : BaseFragment() {
             songList = recyclerView {
                 layoutManager = linear
                 queueAdapter = QueueAdapter()
-                adapter = queueAdapter.also { adapter ->
-                    val helper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
-                        ItemTouchHelper.UP or ItemTouchHelper.DOWN,
-                        ItemTouchHelper.START or ItemTouchHelper.END
-                    ) {
-                        override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
-//                                    ctx.music.shiftQueueItem(viewHolder.adapterPosition, target.adapterPosition)
-                            adapter?.onItemMove(viewHolder.adapterPosition, target.adapterPosition)
-                            return true
-                        }
-
-                        override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                            adapter?.onItemDismiss(viewHolder.adapterPosition)
-//                                    ctx.music.removeFromQueue(viewHolder.adapterPosition)
-                        }
-
-                        override fun isLongPressDragEnabled() = true
-                        override fun isItemViewSwipeEnabled() = true
-                    })
-                    helper.attachToRecyclerView(this@recyclerView)
-                }
+                adapter = queueAdapter
 
                 addItemDecoration(DividerItemDecoration(context, linear.orientation).apply {
                     setDrawable(context.getDrawable(R.drawable.song_divider)!!)
@@ -127,7 +107,7 @@ class QueueFragment : BaseFragment() {
 
 
 class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>() {
-    private var queue: CombinedQueue? = null
+    var queue: CombinedQueue? = null
     val channel: ReceiveChannel<List<Song>>
         get() = MusicService.instance.switchMap {
             it?.player?.queue
@@ -190,12 +170,6 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>()
         } else {
             val song = data[index]
 
-            val withinUpNext = queue?.indexWithinUpNext(index)
-            if (withinUpNext == true) {
-                // TODO: Better indicator of `Up Next`
-                track.textColor = Color.RED
-            }
-
             val relPos = index - currentPosition
             if (relPos > 0) {
                 track.text = String.format("+%d", relPos)
@@ -214,6 +188,14 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>()
             mainLine.textColor = c
             subLine.textColor = c
             track.textColor = c
+
+            val withinUpNext = queue?.indexWithinUpNext(index)
+            if (withinUpNext == true) {
+                // TODO: Better indicator of `Up Next`
+                card.backgroundColorResource = R.color.md_red_300
+            } else {
+                card.backgroundColor = Color.TRANSPARENT
+            }
 
             card.onClick {
                 MusicService.enact(SyncService.Message.QueuePosition(index))

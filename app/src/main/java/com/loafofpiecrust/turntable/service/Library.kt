@@ -112,16 +112,6 @@ class Library : BaseService() {
 
     val remoteAlbums get() = UserPrefs.remoteAlbums
 
-    private val _cachedAlbums = ConflatedBroadcastChannel(listOf<Album>())
-    private val cachedAlbums = _cachedAlbums.openSubscription().map {
-        it.sortedBy { it.id }
-    }.replayOne()
-
-    private val _cachedArtists = ConflatedBroadcastChannel(listOf<Artist>())
-    private val cachedArtists = _cachedArtists.openSubscription().map {
-        it.sortedBy { it.id }
-    }.replayOne()
-
     private val cachedPlaylists = ConflatedBroadcastChannel(listOf<Playlist>())
 
 //    val remoteAlbums: BehaviorSubject<List<Album>> = BehaviorSubject.createDefault(listOf())
@@ -194,52 +184,17 @@ class Library : BaseService() {
     /// TODO: Find nearest and do fuzzy compare
     fun sourceForSong(id: SongId): String? = localSongSources[id]
 
-    fun albumsByArtist(id: ArtistId): ReceiveChannel<List<Album>> = artists.openSubscription().map { artists ->
-        val artist = artists.binarySearchElem(id) { it.id }
-        artist?.albums ?: listOf()
-    }
-
     fun songsOnAlbum(id: AlbumId)
-        = findCachedAlbum(id).map { it?.tracks }
-
-
-    fun songsOnAlbum(unresolved: Album): ReceiveChannel<List<Song>?>
-        = findCachedAlbum(unresolved.id).map { it?.tracks }
-
-    fun songsByArtist(id: ArtistId): ReceiveChannel<List<Song>>
-        = albumsByArtist(id).map { it.flatMap { it.tracks } }
+        = findAlbum(id).map { it?.tracks }
 
     fun findAlbum(key: AlbumId): ReceiveChannel<Album?> =
         albums.openSubscription().map { libAlbums ->
             libAlbums.binarySearchElem(key) { it.id }
         }
 
-    fun findCachedAlbumNow(album: AlbumId): ReceiveChannel<Album?> = findAlbum(album).switchMap {
-        if (it == null) {
-            cachedAlbums.openSubscription().map { it.binarySearchElem(album) { it.id } }
-        } else produceSingle(it)
-    }
-
     fun findCachedAlbum(album: AlbumId): ReceiveChannel<Album?>
-        = findAlbum(album).switchMap {
-            if (it != null) {
-                produceSingle(it)
-            } else {
-                cachedAlbums.openSubscription().map { it.binarySearchElem(album) { it.id } }
-            }
-        }
+        = findAlbum(album)
 
-    fun findAlbumOfSong(song: Song): ReceiveChannel<Album?> = run {
-        // First, look for one with matching artist id, that'll catch the majority of cases
-        // So, most searches are as fast as binary search and Various Artists albums only do a few more comparisons
-//        val maybeAlbum = findCachedAlbum(song.album, song.artist)
-//        maybeAlbum ?:
-        findCachedAlbum(song.id.album)
-//            ?: albums.blockingFirst().find {
-//            // If we don't find that, look for the album that contains the given song
-//            it.name.equals(song.album, true) && it.tracks.contains(song)
-//        }
-    }
     fun findAlbumFuzzy(id: AlbumId): ReceiveChannel<Album?> = artists.openSubscription().map {
         it.find {
             FuzzySearch.ratio(it.id.name, id.artist.name) >= 88
@@ -443,16 +398,13 @@ class Library : BaseService() {
     }
 
     fun addRemoteAlbum(album: Album) = async {
-        val existing = findAlbum(album.id).first()
-        if (existing == null) {
-            if (album.tracks.isEmpty()) {
-                given(findCachedRemoteAlbum(album.id).first()) {
-                    UserPrefs.remoteAlbums appends it
-                }
-            } else {
+//        val existing = findAlbum(album.id).first()
+//        if (existing == null) {
+        // Ensure the tracks are loaded before saving.
+            if (!album.tracks.isEmpty()) {
                 UserPrefs.remoteAlbums appends album
             }
-        }
+//        }
     }
 
     fun removeRemoteAlbum(album: Album) = async {
@@ -463,39 +415,6 @@ class Library : BaseService() {
 //            UserPrefs.remoteAlbumsFile.save()
         }
     }
-
-    /**
-     * Caches the given remote album for quick future viewing and playback,
-     * but does _not_ add it to the user's library.
-     * The cache holds a limited history of albums that's cleared when the app is restarted.
-     */
-    fun cacheRemoteAlbum(album: Album) = async {
-        val cache = _cachedAlbums.value.toMutableList()
-        if (cache.size >= REMOTE_ALBUM_CACHE_LIMIT) {
-            cache.removeAt(0)
-        }
-        cache.add(album)
-        _cachedAlbums puts cache
-    }
-
-    fun findCachedRemoteAlbum(album: AlbumId): ReceiveChannel<Album?>
-        = cachedAlbums.openSubscription().map {
-            it.binarySearchElem(album) { it.id }
-        }
-
-    fun cacheRemoteArtist(artist: Artist) = async {
-        val cache = _cachedArtists.value.toMutableList()
-        if (cache.size >= REMOTE_ARTIST_CACHE_LIMIT) {
-            cache.removeAt(0)
-        }
-        cache.add(artist)
-        _cachedArtists puts cache
-    }
-
-    fun findCachedRemoteArtist(artist: ArtistId): ReceiveChannel<Artist?>
-        = cachedArtists.openSubscription().map {
-            it.binarySearchElem(artist) { it.id }
-        }
 
     fun findPlaylist(id: UUID): ReceiveChannel<Playlist?>
         = UserPrefs.playlists.openSubscription().switchMap {
