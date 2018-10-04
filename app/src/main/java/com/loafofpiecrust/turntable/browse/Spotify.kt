@@ -12,7 +12,7 @@ import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.artist.RemoteArtist
 import com.loafofpiecrust.turntable.given
-import com.loafofpiecrust.turntable.model.song.Music
+import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
@@ -22,14 +22,15 @@ import com.loafofpiecrust.turntable.tryOr
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
+import com.loafofpiecrust.turntable.util.lazy
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.android.UI
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
 import org.jetbrains.anko.error
-import org.jetbrains.anko.info
+import java.text.DateFormat
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 object Spotify: SearchApi, AnkoLogger {
@@ -42,7 +43,7 @@ object Spotify: SearchApi, AnkoLogger {
         /// TODO: Pagination
         override suspend fun resolveTracks(album: AlbumId): List<Song> {
             return apiRequest(
-                "https://api.spotify.com/v1/albums/$id/tracks",
+                "albums/$id/tracks",
                 mapOf("limit" to "50")
             ).gson["items"].array.map {
 //                RemoteSong(
@@ -81,7 +82,7 @@ object Spotify: SearchApi, AnkoLogger {
         /// TODO: Pagination
         override val albums: List<Album> by lazy { runBlocking {
             apiRequest(
-                "https://api.spotify.com/v1/artists/$id/albums",
+                "albums",
                 mapOf("limit" to "50")
             ).gson["items"].array.map {
                 val imgs = it["images"].array
@@ -137,7 +138,7 @@ object Spotify: SearchApi, AnkoLogger {
 
     private suspend fun apiRequest(url: String, params: Map<String, String> = mapOf()) =
         Http.get(
-            url,
+            "https://api.spotify.com/v1/$url",
             params = params,
             headers = mapOf("Authorization" to "Bearer $accessToken")
         )
@@ -162,7 +163,7 @@ object Spotify: SearchApi, AnkoLogger {
     }
 
     private suspend fun searchFor(artist: ArtistId): List<String> {
-        val res = apiRequest("https://api.spotify.com/v1/search", params = mapOf(
+        val res = apiRequest("search", params = mapOf(
             "q" to "artist:\"${artist.displayName}\"",
             "type" to "artist",
             "limit" to "3"
@@ -172,7 +173,7 @@ object Spotify: SearchApi, AnkoLogger {
     }
 
     override suspend fun searchArtists(query: String): List<Artist> {
-        val res = apiRequest("https://api.spotify.com/v1/search", mapOf(
+        val res = apiRequest("search", mapOf(
             "q" to query,
             "type" to "artist"
         )).gson
@@ -197,7 +198,7 @@ object Spotify: SearchApi, AnkoLogger {
     }
 
     private suspend fun searchFor(song: SongId): List<String> {
-        val res = Http.get("https://api.spotify.com/v1/search", headers = mapOf(
+        val res = Http.get("search", headers = mapOf(
             "Authorization" to "Bearer $accessToken"
         ), params = mapOf(
             "q" to "track:\"${song.name}\" artist:\"${song.artist}\" album:\"${song.album.name}\"",
@@ -209,7 +210,7 @@ object Spotify: SearchApi, AnkoLogger {
     }
 
     private suspend fun searchFor(album: AlbumId): List<RemoteAlbum> {
-        val res = Http.get("https://api.spotify.com/v1/search", headers = mapOf(
+        val res = Http.get("search", headers = mapOf(
             "Authorization" to "Bearer $accessToken"
         ), params = mapOf(
             "q" to "album:\"${album.name}\" artist:\"${album.artist.name}\"",
@@ -234,7 +235,7 @@ object Spotify: SearchApi, AnkoLogger {
     }
 
     override suspend fun searchAlbums(query: String): List<Album> {
-        val res = apiRequest("https://api.spotify.com/v1/search", mapOf(
+        val res = apiRequest("search", mapOf(
             "q" to query,
             "type" to "album",
             "limit" to "3"
@@ -263,7 +264,7 @@ object Spotify: SearchApi, AnkoLogger {
 
     override suspend fun searchSongs(query: String): List<Song> {
         return apiRequest(
-            "https://api.spotify.com/v1/search",
+            "search",
             mapOf(
                 "q" to query,
                 "type" to "track"
@@ -289,7 +290,7 @@ object Spotify: SearchApi, AnkoLogger {
     private suspend fun recommendationsFor(params: Map<String, String>): List<Song> {
 
 //        task(UI) { println("recs: artists = $artists") }
-        val res = apiRequest("https://api.spotify.com/v1/recommendations", params).gson
+        val res = apiRequest("recommendations", params).gson
 //        task(UI) { println("recs: $res") }
 
         val tracks = res["tracks"].array
@@ -376,7 +377,7 @@ object Spotify: SearchApi, AnkoLogger {
 
     suspend fun similarTo(artist: ArtistId): List<Artist> {
         val a = searchFor(artist).firstOrNull() ?: return listOf()
-        val res = apiRequest("https://api.spotify.com/v1/artists/$a/related-artists").gson
+        val res = apiRequest("artists/$a/related-artists").gson
 
         return res["artists"].array.map { it.obj }.map {
             RemoteArtist(
@@ -386,30 +387,79 @@ object Spotify: SearchApi, AnkoLogger {
         }
     }
 
-    private suspend fun playlistTracks(userId: String, playlistId: String, page: Int = 0): List<Song> {
+    private val DATE_FORMAT = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+    data class Playlist(
+        val name: String,
+        val ownerName: String,
+        val items: List<Item>
+    ) {
+        data class Item(
+            val addedAt: Date,
+            val track: Song
+        )
+    }
+    suspend fun getPlaylist(userId: String, playlistId: String, page: Int = 0): Spotify.Playlist {
         val res = apiRequest(
-            "https://api.spotify.com/v1/users/$userId/playlists/$playlistId",
-            mapOf("offset" to (page*100).toString())
-        ).gson
-        val items = res["items"].array.map {
-            val track = it["track"].obj
-//            RemoteSong(
-            Song(
-                SongId(
-                    track["name"].string,
-                    track["album"]["name"].string,
-                    track["artists"][0]["name"].string
-                ),
-                track = track["track_number"].int,
-                disc = track["disc_number"].int,
-                duration = track["duration_ms"].nullInt ?: 0,
-                year = null
+            "users/$userId/playlists/$playlistId",
+            mapOf(
+                "limit" to "100",
+                "offset" to (page*100).toString(),
+                "fields" to "name,owner.display_name,tracks.items(added_at,track(track_number,disc_number,duration_ms,name,album(name,type,release_date),artists(name)))"
             )
-//            )
+        ).gson
+
+        val items = res["tracks"]["items"].array.map {
+            val track = it["track"].obj
+            Playlist.Item(
+                addedAt = DATE_FORMAT.parse(it["added_at"].string),
+                track = Song(
+                    SongId(
+                        track["name"].string,
+                        track["album"]["name"].string,
+                        track["artists"][0]["name"].string
+                    ),
+                    track = track["track_number"].int,
+                    disc = track["disc_number"].int,
+                    duration = track["duration_ms"].nullInt ?: 0,
+                    year = track["album"]["release_date"].nullString?.take(4)?.toInt()
+                )
+            )
         }
-        return if (items.size == 100) {
-            items + playlistTracks(userId, playlistId, page + 1)
+        val finalTracks = if (items.size == 100) {
+            items + getPlaylist(userId, playlistId, page + 1).items
         } else items
+
+        return Spotify.Playlist(
+            name = res["name"].string,
+            ownerName = res["owner"]["display_name"].string,
+            items = finalTracks
+        )
+    }
+
+    data class PartialPlaylist(
+        val id: String,
+        val name: String,
+        val ownerName: String,
+        val trackCount: Int
+    )
+    suspend fun playlistsByUser(userId: String, page: Int = 0): List<PartialPlaylist> {
+        val res = apiRequest(
+            "users/$userId/playlists",
+            mapOf(
+                "limit" to "50",
+                "offset" to (page*50).toString()
+            )
+        ).use { it.gson }
+
+        return res["items"].array.map {
+            val obj = it.obj
+            PartialPlaylist(
+                id = obj["id"].string,
+                name = obj["name"].string,
+                ownerName = obj["owner"]["id"].string,
+                trackCount = obj["tracks"]["total"].int
+            )
+        }
     }
 
 
@@ -421,7 +471,7 @@ object Spotify: SearchApi, AnkoLogger {
             }
         }
 
-        val res = Http.get("https://api.spotify.com/v1/search", headers = mapOf(
+        val res = Http.get("search", headers = mapOf(
             "Authorization" to "Bearer $accessToken"
         ), params = mapOf(
             "q" to "album:\"${album.id.name}\" artist:\"${album.id.artist.name}\"",
@@ -429,7 +479,7 @@ object Spotify: SearchApi, AnkoLogger {
             "limit" to "3"
         )).gson
 
-        return res["albums"]["items"].nullArray?.map { it["images"][0]["url"].nullString }?.first()
+        return res["albums"]["items"].nullArray?.lazy?.map { it["images"][0]["url"].nullString }?.first()
     }
 
     override suspend fun fullArtwork(artist: Artist, search: Boolean): String? {

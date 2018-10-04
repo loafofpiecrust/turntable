@@ -15,14 +15,13 @@ import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.loadPalette
 import com.loafofpiecrust.turntable.util.getColorCompat
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.model.song.imageTransition
-import com.loafofpiecrust.turntable.model.song.nameTransition
+import com.loafofpiecrust.turntable.model.imageTransition
+import com.loafofpiecrust.turntable.model.nameTransition
 import com.loafofpiecrust.turntable.util.textStyle
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerGridItem
 import com.loafofpiecrust.turntable.ui.RecyclerItem
 import com.loafofpiecrust.turntable.ui.SectionedRecyclerAdapter
-import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.cancelSafely
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import kotlinx.coroutines.experimental.*

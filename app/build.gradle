@@ -17,6 +17,7 @@ task copyTestClasses(type: Copy) {
     into "build/intermediates/classes/debug"
 }
 
+
 //test {
 //    useJUnitPlatform()
 //}
@@ -92,11 +93,7 @@ android {
             signingConfig signingConfigs.debug
         }
     }
-//    productFlavors {
-//        dev {
-//            resConfigs "en", "xhdpi"
-//        }
-//    }
+    
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -104,9 +101,13 @@ android {
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
     }
-    dexOptions {
-    }
+//    task integrationTest(type: Test) {
+//        println(sourceSetsintegrationTest.properties)
+//        classpath = sourceSets.integrationTest.runtimeClasspath
+//        testClassesDirs = sourceSets.integrationTest.output.classesDirs
+//    }
 }
+
 
 kotlin {
     experimental {
@@ -350,7 +351,7 @@ dependencies {
     testImplementation "io.mockk:mockk:1.8.7"
 //    testImplementation 'io.kotlintest:kotlintest-runner-junit5:3.1.10'
 //    testImplementation "org.mockito:mockito-core:2.+"
-    testImplementation "org.robolectric:robolectric:3.8"
+    testImplementation "org.robolectric:robolectric:4.0-alpha-3"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     testImplementation 'junit:junit:4.12'

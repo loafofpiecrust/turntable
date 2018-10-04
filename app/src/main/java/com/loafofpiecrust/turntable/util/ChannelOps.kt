@@ -14,7 +14,7 @@ import kotlin.coroutines.experimental.coroutineContext
 
 
 fun <T, R> ReceiveChannel<T>.switchMap(
-    context: CoroutineContext = Unconfined,
+    context: CoroutineContext = Dispatchers.Unconfined,
     transform: suspend (T) -> ReceiveChannel<R>?
 ): ReceiveChannel<R> = GlobalScope.produce(context) {
     var currentJob: Job? = null
@@ -22,14 +22,20 @@ fun <T, R> ReceiveChannel<T>.switchMap(
         currentJob?.cancel()
         transform(it)?.let { newChan ->
             currentJob = async(coroutineContext) {
-                newChan.consumeEach {
-                    send(it)
-                }
+                newChan.redirectTo(channel)
             }
         }
     }
     currentJob?.cancel()
 }
+
+suspend inline fun <T> ReceiveChannel<T>.redirectTo(
+    channel: SendChannel<T>
+) = consumeEach { channel.send(it) }
+
+suspend inline fun <T> SendChannel<T>.sendFrom(
+    channel: ReceiveChannel<T>
+) = channel.consumeEach { send(it) }
 
 fun <T> ReceiveChannel<T>.replayOne(context: CoroutineContext = Dispatchers.Unconfined): ConflatedBroadcastChannel<T> {
 //    return broadcast(Channel.CONFLATED) as ConflatedBroadcastChannel<T>

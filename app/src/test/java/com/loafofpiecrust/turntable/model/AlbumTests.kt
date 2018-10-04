@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.model
 
-import arrow.core.some
 import ch.tutteli.atrium.api.cc.en_GB.*
 import ch.tutteli.atrium.verbs.assert
 import ch.tutteli.atrium.verbs.expect

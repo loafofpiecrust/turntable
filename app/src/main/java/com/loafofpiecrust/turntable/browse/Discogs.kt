@@ -84,6 +84,7 @@ object Discogs: SearchApi, AnkoLogger {
                 }
             } while (res.code() > 400 && reqCount > 0)
             val rem = res.header("X-Discogs-Ratelimit-Remaining")!!.toInt()
+            info { "$rem remaining" }
             if (rem <= 5) {
                 delay(500)
             }

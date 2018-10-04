@@ -3,7 +3,6 @@ package com.loafofpiecrust.turntable.prefs
 import com.chibatching.kotpref.KotprefModel
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.Album
-import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.util.getColorCompat
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.StaticQueue
@@ -11,8 +10,7 @@ import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.HistoryEntry
-import com.loafofpiecrust.turntable.model.song.SaveableMusic
-import java.util.*
+import com.loafofpiecrust.turntable.model.SavableMusic
 
 object UserPrefs: KotprefModel() {
     // Theming
@@ -59,7 +57,7 @@ object UserPrefs: KotprefModel() {
     val artistMeta by pref(emptyList<Library.ArtistMetadata>())
     val history by pref(emptyList<HistoryEntry>())
     val playlists by pref(emptyList<Playlist>())
-    val recommendations by pref(emptyList<SaveableMusic>())
+    val recommendations by pref(emptyList<SavableMusic>())
 
     val friends by pref(emptyList<SyncService.Friend>())
 

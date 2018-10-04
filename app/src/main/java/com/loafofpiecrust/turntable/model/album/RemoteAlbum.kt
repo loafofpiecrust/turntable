@@ -21,6 +21,7 @@ import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.GlobalScope
+import kotlinx.coroutines.experimental.IO
 import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
@@ -43,9 +44,9 @@ class RemoteAlbum(
     @IgnoredOnParcel
     @delegate:Transient
     override val tracks: List<Song> by lazy {
-        runBlocking {
+        runBlocking(Dispatchers.IO) {
             // grab tracks from online
-            remoteId.resolveTracks(id)
+            tryOr(emptyList()) { remoteId.resolveTracks(id) }
         }
     }
 

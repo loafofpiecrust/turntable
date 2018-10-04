@@ -11,7 +11,7 @@ import com.loafofpiecrust.turntable.album.DetailsFragment
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
 import com.loafofpiecrust.turntable.browse.ui.RecommendationsFragment
-import com.loafofpiecrust.turntable.model.song.Music
+import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.playlist.Playlist

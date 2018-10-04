@@ -4,10 +4,15 @@ import android.widget.Button
 import android.widget.EditText
 import ch.tutteli.atrium.api.cc.en_GB.*
 import ch.tutteli.atrium.verbs.expect
+import com.github.daemontus.Result
+import com.github.daemontus.map
+import com.github.daemontus.unwrap
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.isA
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
+import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId

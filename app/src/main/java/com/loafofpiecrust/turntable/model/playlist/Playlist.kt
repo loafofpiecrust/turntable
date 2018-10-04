@@ -8,13 +8,13 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repeat
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.model.song.SaveableMusic
+import com.loafofpiecrust.turntable.model.SavableMusic
 import com.loafofpiecrust.turntable.util.suspendAsync
 import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import java.util.*
 
-abstract class Playlist: SaveableMusic {
+abstract class Playlist: SavableMusic {
     abstract val owner: SyncService.User
     abstract var name: String
     abstract var color: Int?
@@ -36,7 +36,7 @@ abstract class Playlist: SaveableMusic {
     var isCompletable: Boolean = false
 
     override val displayName: String get() = name
-    override fun optionsMenu(ctx: Context, menu: Menu) {
+    override fun optionsMenu(context: Context, menu: Menu) {
 
     }
 

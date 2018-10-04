@@ -1,15 +1,13 @@
 package com.loafofpiecrust.turntable.model.album
 
 import com.loafofpiecrust.turntable.model.artist.ArtistId
-import com.loafofpiecrust.turntable.model.song.MusicId
+import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.model.song.withoutArticle
-import com.loafofpiecrust.turntable.util.compareByIgnoreCase
 import com.loafofpiecrust.turntable.util.compareTo
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import java.text.Collator
 import java.util.*
-import kotlin.Comparator
 
 
 @Parcelize

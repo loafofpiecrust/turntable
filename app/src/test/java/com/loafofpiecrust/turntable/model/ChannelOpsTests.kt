@@ -2,7 +2,6 @@ package com.loafofpiecrust.turntable.model
 
 import ch.tutteli.atrium.api.cc.en_GB.toBe
 import ch.tutteli.atrium.verbs.expect
-import com.loafofpiecrust.turntable.util.produceTask
 import com.loafofpiecrust.turntable.util.switchMap
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.*
@@ -29,24 +28,24 @@ class ChannelOpsTests {
         expect(mapped.receive()).toBe(30)
     }
 
-    @Test fun `it switchMaps`() = runBlocking<Unit> {
-        val source = produce(coroutineContext) {
-            send(1)
-            delay(10)
-            send(2)
-            delay(100)
-            send(3)
-        }
-
-        val switchMapped = source.switchMap(coroutineContext) { i ->
-            produce {
-                send("${i}A")
-                send("${i}B")
-                delay(15)
-                send("${i}C")
-            }
-        }
-
-        expect(switchMapped.toList()).toBe(listOf("1A", "1B", "2A", "2B", "2C"))
-    }
+//    @Test fun `it switchMaps`() = runBlocking<Unit> {
+//        val source = produce(coroutineContext) {
+//            send(1)
+//            delay(10)
+//            send(2)
+//            delay(100)
+//            send(3)
+//        }
+//
+//        val switchMapped = source.switchMap(coroutineContext) { i ->
+//            produce {
+//                send("${i}A")
+//                send("${i}B")
+//                delay(15)
+//                send("${i}C")
+//            }
+//        }
+//
+//        expect(switchMapped.toList()).toBe(listOf("1A", "1B", "2A", "2B", "2C"))
+//    }
 }

@@ -3,7 +3,7 @@ package com.loafofpiecrust.turntable.model.artist
 import android.os.Parcelable
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.model.song.MusicId
+import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.song.withoutArticle
 import com.loafofpiecrust.turntable.util.compareByIgnoreCase

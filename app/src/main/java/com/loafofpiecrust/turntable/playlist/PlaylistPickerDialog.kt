@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.model.SavableMusic
 import com.loafofpiecrust.turntable.model.album.PartialAlbum
 import com.loafofpiecrust.turntable.model.playlist.AlbumCollection
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
@@ -24,12 +25,12 @@ import org.jetbrains.anko.wrapContent
 
 class PlaylistPickerDialog: BaseDialogFragment() {
     companion object {
-        fun forItem(item: SaveableMusic) = PlaylistPickerDialog().apply {
+        fun forItem(item: SavableMusic) = PlaylistPickerDialog().apply {
             this.item = item
         }
     }
 
-    private var item: SaveableMusic by arg()
+    private var item: SavableMusic by arg()
 
     override fun onStart() {
         super.onStart()

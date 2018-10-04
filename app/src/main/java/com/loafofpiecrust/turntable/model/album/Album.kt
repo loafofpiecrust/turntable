@@ -18,9 +18,9 @@ import com.bumptech.glide.signature.ObjectKey
 import com.github.florent37.glidepalette.GlidePalette
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.browse.SearchApi
-import com.loafofpiecrust.turntable.model.song.Music
-import com.loafofpiecrust.turntable.model.song.MusicId
-import com.loafofpiecrust.turntable.model.song.SaveableMusic
+import com.loafofpiecrust.turntable.model.Music
+import com.loafofpiecrust.turntable.model.MusicId
+import com.loafofpiecrust.turntable.model.SavableMusic
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
@@ -32,29 +32,26 @@ import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.Dispatchers
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.channels.map
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.channels.*
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.textColor
 import java.io.Serializable
 
 @Parcelize
-class PartialAlbum(
+data class PartialAlbum(
     override val id: AlbumId,
     override val year: Int?,
     override val type: Album.Type
-): Album, SaveableMusic, Parcelable {
-    @IgnoredOnParcel
-    @delegate:Transient
-    private val remoteAlbum: Album? by lazy {
-        runBlocking { SearchApi.find(id) }
+): Album, SavableMusic, Parcelable {
+    @Transient
+    private val resolved = GlobalScope.async(Dispatchers.IO, start = CoroutineStart.LAZY) {
+        SearchApi.find(id)
     }
+    suspend fun resolve(): Album? = resolved.await()
 
     override val tracks: List<Song>
-        get() = remoteAlbum?.tracks ?: emptyList()
+        get() = runBlocking { resolve()?.tracks } ?: emptyList()
 }
 
 interface Album: Music {
@@ -97,14 +94,12 @@ interface Album: Music {
     }
 
 
-    fun loadCover(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?>
-        = Library.instance.loadAlbumCover(req, id).map {
-            (it ?: SearchApi.fullArtwork(this, true)?.let {
-                req.load(it)
-//                    .thumbnail(req.load(remote?.thumbnailUrl).apply(Library.ARTWORK_OPTIONS))
-            })?.apply(
-                RequestOptions().signature(ObjectKey("${id}full"))
-            )
+    fun loadCover(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
+        GlobalScope.produce {
+            val localArt = Library.instance.loadAlbumCover(req, id)
+            send(localArt.receive() ?: req.load(SearchApi.fullArtwork(this@Album, true)))
+
+            localArt.filterNotNull().redirectTo(channel)
         }
 
     fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =

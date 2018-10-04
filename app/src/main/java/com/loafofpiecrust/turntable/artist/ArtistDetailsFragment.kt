@@ -1,14 +1,9 @@
 package com.loafofpiecrust.turntable.artist
 
-import android.graphics.Color
 import android.support.annotation.StringRes
-import android.support.constraint.ConstraintSet
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.AppBarLayout
-import android.support.design.widget.CollapsingToolbarLayout
-import android.support.design.widget.CollapsingToolbarLayout.LayoutParams.COLLAPSE_MODE_OFF
 import android.support.design.widget.CollapsingToolbarLayout.LayoutParams.COLLAPSE_MODE_PIN
-import android.support.v7.widget.Toolbar
 import android.transition.*
 import android.view.Gravity
 import android.view.View
@@ -25,8 +20,8 @@ import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.artist.MergedArtist
 import com.loafofpiecrust.turntable.model.artist.loadPalette
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.model.song.imageTransition
-import com.loafofpiecrust.turntable.model.song.nameTransition
+import com.loafofpiecrust.turntable.model.imageTransition
+import com.loafofpiecrust.turntable.model.nameTransition
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.*
@@ -34,18 +29,15 @@ import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.IO
 import kotlinx.coroutines.experimental.channels.*
 import kotlinx.coroutines.experimental.channels.Channel.Factory.CONFLATED
-import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
 import org.jetbrains.anko.constraint.layout.applyConstraintSet
 import org.jetbrains.anko.constraint.layout.constraintLayout
-import org.jetbrains.anko.constraint.layout.matchConstraint
 import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.design.collapsingToolbarLayout
 import org.jetbrains.anko.design.coordinatorLayout
 import org.jetbrains.anko.sdk27.coroutines.onClick
-import org.jetbrains.anko.support.v4.ctx
 
 
 /**

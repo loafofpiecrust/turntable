@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.playlist
 
-import activitystarter.Arg
 import android.app.DialogFragment
 import android.content.Context
 import android.os.Parcelable
@@ -15,6 +14,7 @@ import android.widget.Spinner
 import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.model.SavableMusic
 import com.loafofpiecrust.turntable.model.album.PartialAlbum
 import com.loafofpiecrust.turntable.model.playlist.AlbumCollection
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
@@ -24,7 +24,6 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.style.standardStyle
-import com.loafofpiecrust.turntable.ui.BaseActivity
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
 import com.loafofpiecrust.turntable.util.arg
 import com.mcxiaoke.koi.ext.onTextChange
@@ -39,13 +38,13 @@ import kotlin.reflect.KClass
 
 class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
     companion object {
-        fun withItems(items: List<SaveableMusic>) = AddPlaylistDialog().apply {
+        fun withItems(items: List<SavableMusic>) = AddPlaylistDialog().apply {
             startingTracks = TrackList(items)
         }
     }
 
     @Parcelize
-    private data class TrackList(val tracks: List<SaveableMusic> = listOf()): Parcelable
+    private data class TrackList(val tracks: List<SavableMusic> = listOf()): Parcelable
     private var startingTracks by arg { TrackList() }
 
     private var playlistName: String = ""
@@ -88,7 +87,9 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
             button("Choose Color") {
                 onClick {
                     // Hide the keyboard if it's visible, we're picking a color here!
-                    context.inputMethodManager.hideSoftInputFromWindow(activity!!.currentFocus.windowToken, 0)
+                    activity?.currentFocus?.let {
+                        context.inputMethodManager.hideSoftInputFromWindow(it.windowToken, 0)
+                    }
                     ColorPickerDialog.newBuilder()
                         .setColor(playlistColor)
                         .setAllowCustom(true)

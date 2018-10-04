@@ -15,33 +15,30 @@ import com.loafofpiecrust.turntable.artist.BiographyFragment
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.loadPalette
 import com.loafofpiecrust.turntable.browse.SearchApi
-import com.loafofpiecrust.turntable.util.menuItem
-import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.queue.RadioQueue
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.SyncService
-import com.loafofpiecrust.turntable.model.song.Music
-import com.loafofpiecrust.turntable.model.song.SaveableMusic
+import com.loafofpiecrust.turntable.model.Music
+import com.loafofpiecrust.turntable.model.SavableMusic
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.ui.replaceMainContent
-import com.loafofpiecrust.turntable.util.BG_POOL
-import com.loafofpiecrust.turntable.util.produceSingle
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.Dispatchers
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.map
+import kotlinx.coroutines.experimental.GlobalScope
+import kotlinx.coroutines.experimental.channels.*
 import org.jetbrains.anko.toast
 
 @Parcelize
-class PartialArtist(
+data class PartialArtist(
     val id: ArtistId
-): SaveableMusic, Parcelable {
+): SavableMusic, Parcelable {
     override val displayName: String
         get() = id.displayName
 
-    suspend fun toFull(): Artist? = SearchApi.find(id)
-    override fun optionsMenu(ctx: Context, menu: Menu) {}
+    suspend fun resolve(): Artist? = SearchApi.find(id)
+    override fun optionsMenu(context: Context, menu: Menu) {}
 }
 
 interface Artist: Music {
@@ -67,18 +64,17 @@ interface Artist: Music {
         }
 
     fun loadArtwork(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
-        Library.instance.loadArtistImage(req, id).map {
-            (it ?: SearchApi.fullArtwork(this, true)?.let {
-                req.load(it)
-            })?.apply(
-                RequestOptions().signature(ObjectKey("${id}full"))
-            )
+        GlobalScope.produce {
+            val localArt = Library.instance.loadArtistImage(req, id)
+            send(localArt.receive() ?: req.load(SearchApi.fullArtwork(this@Artist, true)))
+
+            localArt.filterNotNull().redirectTo(channel)
         }
 
 
-    override fun optionsMenu(ctx: Context, menu: Menu) = with(menu) {
+    override fun optionsMenu(context: Context, menu: Menu) = with(menu) {
         menuItem(R.string.artist_show_similar).onClick {
-            ctx.replaceMainContent(
+            context.replaceMainContent(
                 ArtistsFragment.relatedTo(id),
                 true
             )
@@ -87,8 +83,8 @@ interface Artist: Music {
         menuItem(R.string.recommend).onClick {
             FriendPickerDialog(
                 SyncService.Message.Recommendation(toPartial()),
-                ctx.getString(R.string.recommend)
-            ).show(ctx)
+                context.getString(R.string.recommend)
+            ).show(context)
         }
 
         // TODO: Sync with radios...
@@ -101,12 +97,12 @@ interface Artist: Music {
 //                MusicService.enact(SyncService.Message.ReplaceQueue(radio))
                 MusicService.enact(SyncService.Message.Play())
             } else {
-                ctx.toast(ctx.getString(R.string.radio_no_data, id.displayName))
+                context.toast(context.getString(R.string.radio_no_data, id.displayName))
             }
         }
 
         menuItem(R.string.artist_biography).onClick(Dispatchers.Default) {
-            BiographyFragment.fromChan(produceSingle(this@Artist)).show(ctx)
+            BiographyFragment.fromChan(produceSingle(this@Artist)).show(context)
         }
     }
 

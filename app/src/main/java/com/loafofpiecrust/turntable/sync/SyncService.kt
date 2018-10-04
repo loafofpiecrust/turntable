@@ -25,7 +25,7 @@ import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.model.song.SaveableMusic
+import com.loafofpiecrust.turntable.model.SavableMusic
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.ui.MainActivity
@@ -379,7 +379,7 @@ class SyncService : FirebaseMessagingService(), CoroutineScope {
         data class FriendResponse(val accept: Boolean): Message() {
             override val timeout get() = TimeUnit.DAYS.toSeconds(28)
         }
-        data class Recommendation(val content: SaveableMusic): Message() {
+        data class Recommendation(val content: SavableMusic): Message() {
             override val timeout get() = TimeUnit.DAYS.toSeconds(28)
         }
         data class Playlist(val id: UUID): Message()

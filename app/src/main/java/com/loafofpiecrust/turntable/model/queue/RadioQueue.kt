@@ -3,7 +3,7 @@ package com.loafofpiecrust.turntable.model.queue
 import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.shifted
-import com.loafofpiecrust.turntable.model.song.Music
+import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.song.Song
 import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.Job

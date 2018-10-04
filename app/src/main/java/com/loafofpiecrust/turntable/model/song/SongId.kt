@@ -1,9 +1,9 @@
 package com.loafofpiecrust.turntable.model.song
 
 import android.os.Parcelable
+import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
-import com.loafofpiecrust.turntable.util.compareByIgnoreCase
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import me.xdrop.fuzzywuzzy.FuzzySearch

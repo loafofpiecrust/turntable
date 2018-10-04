@@ -16,8 +16,8 @@ import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.artist.loadPalette
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.model.song.imageTransition
-import com.loafofpiecrust.turntable.model.song.nameTransition
+import com.loafofpiecrust.turntable.model.imageTransition
+import com.loafofpiecrust.turntable.model.nameTransition
 import com.loafofpiecrust.turntable.style.turntableStyle
 import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.util.*

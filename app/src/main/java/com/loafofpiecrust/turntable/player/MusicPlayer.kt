@@ -336,7 +336,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
         }
         val q = _queue.value
         when (mode) {
-            EnqueueMode.IMMEDIATELY_NEXT -> _queue putsMapped { q ->
+            EnqueueMode.IMMEDIATELY_NEXT -> _queue puts run {
                 mediaSource?.addMediaSources(
                     q.position + 1,
                     songs.map { StreamMediaSource(it, sourceFactory, extractorsFactory) }
@@ -344,7 +344,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
                 val pos = if (q.isPlayingNext) 1 else 0
                 q.copy(nextUp = q.nextUp.with(songs, pos))
             }
-            EnqueueMode.NEXT -> _queue putsMapped { q ->
+            EnqueueMode.NEXT -> _queue puts run {
                 mediaSource?.addMediaSources(
                     q.primary.position + q.nextUp.size + 1,
                     songs.map { StreamMediaSource(it, sourceFactory, extractorsFactory) }

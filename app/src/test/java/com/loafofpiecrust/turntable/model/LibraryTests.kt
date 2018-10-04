@@ -65,8 +65,6 @@ class LibraryTest {
         val songs = library.songs.openSubscription().first { it.isNotEmpty() }
         val albums = library.albums.openSubscription().first { it.isNotEmpty() }
         val artists = library.artists.openSubscription().first { it.isNotEmpty() }
-        val songsMap = library.songsMap.openSubscription().first { it.isNotEmpty() }
-        val artistsMap = library.artistsMap.openSubscription().first { it.isNotEmpty() }
 
         println("song count: ${songs.size}")
         println("album count: ${albums.size}")

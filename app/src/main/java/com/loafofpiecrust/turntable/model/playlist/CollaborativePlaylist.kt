@@ -1,10 +1,12 @@
 package com.loafofpiecrust.turntable.model.playlist
 
+import com.github.daemontus.Result
 import com.google.firebase.firestore.Blob
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.SongId
@@ -53,88 +55,6 @@ class CollaborativePlaylist(
             val replacing: SongId,
             override val timestamp: Long = System.currentTimeMillis()
         ): Operation(timestamp)
-    }
-
-    companion object: AnkoLogger {
-        fun fromDocument(doc: DocumentSnapshot): CollaborativePlaylist = runBlocking {
-            CollaborativePlaylist(
-                doc.getBlob("owner")!!.toObject(),
-                doc.getString("name")!!,
-                doc.getLong("color")?.toInt(),
-                UUID.fromString(doc.id)
-            ).apply {
-                operations puts doc.getBlob("operations")!!.toObject()
-                lastModified = doc.getDate("lastModified")!!
-                isPublished = true
-            }
-        }
-
-        suspend fun search(title: String): List<CollaborativePlaylist> {
-            val db = FirebaseFirestore.getInstance()
-            return suspendCoroutine { cont ->
-                db.collection("playlists").whereEqualTo("name", title).get().addOnCompleteListener {
-                    val docs = it.result?.documents ?: listOf()
-                    cont.resume(docs.map { fromDocument(it) })
-                }
-            }
-        }
-
-        suspend fun mostRecent(
-            since: Date = Date(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7))
-        ): List<CollaborativePlaylist> {
-            val db = FirebaseFirestore.getInstance()
-            return suspendCoroutine { cont ->
-                db.collection("playlists").whereGreaterThanOrEqualTo("lastModified", since).get().addOnCompleteListener {
-                    val docs = it.result?.documents ?: listOf()
-                    cont.resume(docs.map { fromDocument(it) })
-                }
-            }
-        }
-
-        suspend fun find(id: UUID): Playlist? {
-            val db = FirebaseFirestore.getInstance()
-            return suspendCoroutine { cont ->
-                db.collection("playlists").document(id.toString()).get().addOnCompleteListener { task ->
-                    val doc = task.result
-                    val err = task.exception
-                    if (err != null) {
-                        error { err.stackTrace }
-                    }
-                    if (task.isSuccessful && doc.exists()) {
-                        val format = doc.getString("format")!!
-                        cont.resume(when (format) {
-                            "mixtape" -> MixTape.fromDocument(doc)
-                            else -> fromDocument(doc)
-                        })
-                    } else {
-                        cont.resume(null)
-                    }
-                }
-            }
-        }
-
-//        fun fromSpotifyPlaylist(userId: String, id: String): CollaborativePlaylist {
-//            val api = SpotifyApi()
-//            val spotify = api.service
-//            val playlist = spotify.getPlaylist(userId, id, mapOf(
-//                "fields" to "tracks.items(added_at, track(name, track_number, disc_number, duration_ms, album(name), artists(name)))"
-//            ))
-//            val tracks = playlist.tracks.items
-//            return CollaborativePlaylist(
-//                playlist.owner.display_name,
-//                playlist.name,
-//                0
-//            ).apply {
-//                operations puts tracks.map {
-//                    val track = it.track
-//                    Operation.Add(Song(
-//                        null, null,
-//                        SongId(track.name, track.album.name, track.artists.first().name),
-//                        track.track_number, track.disc_number, track.duration_ms.toInt()
-//                    ))
-//                }
-//            }
-//        }
     }
 
     val operations = ConflatedBroadcastChannel(listOf<Operation>())
@@ -290,4 +210,86 @@ class CollaborativePlaylist(
         }
     } else null
 
+
+    companion object: AnkoLogger by AnkoLogger<CollaborativePlaylist>() {
+        fun fromDocument(doc: DocumentSnapshot): CollaborativePlaylist = runBlocking {
+            CollaborativePlaylist(
+                doc.getBlob("owner")!!.toObject(),
+                doc.getString("name")!!,
+                doc.getLong("color")?.toInt(),
+                UUID.fromString(doc.id)
+            ).apply {
+                operations puts doc.getBlob("operations")!!.toObject()
+                lastModified = doc.getDate("lastModified")!!
+                isPublished = true
+            }
+        }
+
+        suspend fun search(title: String): List<CollaborativePlaylist> {
+            val db = FirebaseFirestore.getInstance()
+            return suspendCoroutine { cont ->
+                db.collection("playlists").whereEqualTo("name", title).get().addOnCompleteListener {
+                    val docs = it.result?.documents ?: listOf()
+                    cont.resume(docs.map { fromDocument(it) })
+                }
+            }
+        }
+
+        suspend fun mostRecent(
+            since: Date = Date(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7))
+        ): List<CollaborativePlaylist> {
+            val db = FirebaseFirestore.getInstance()
+            return suspendCoroutine { cont ->
+                db.collection("playlists").whereGreaterThanOrEqualTo("lastModified", since).get().addOnCompleteListener {
+                    val docs = it.result?.documents ?: listOf()
+                    cont.resume(docs.map { fromDocument(it) })
+                }
+            }
+        }
+
+        suspend fun find(id: UUID): Playlist? {
+            val db = FirebaseFirestore.getInstance()
+            return suspendCoroutine { cont ->
+                db.collection("playlists").document(id.toString()).get().addOnCompleteListener { task ->
+                    val doc = task.result
+                    val err = task.exception
+                    if (err != null) {
+                        error { err.stackTrace }
+                    }
+                    if (task.isSuccessful && doc.exists()) {
+                        val format = doc.getString("format")!!
+                        cont.resume(when (format) {
+                            "mixtape" -> MixTape.fromDocument(doc)
+                            else -> fromDocument(doc)
+                        })
+                    } else {
+                        cont.resume(null)
+                    }
+                }
+            }
+        }
+
+        suspend fun fromSpotifyPlaylist(userId: String, id: String): Result<CollaborativePlaylist, Throwable> {
+            val playlist = try {
+                Spotify.getPlaylist(userId, id)
+            } catch (e: Throwable) {
+                return Result.Error(e)
+            }
+
+            return Result.Ok(CollaborativePlaylist(
+                SyncService.User("", "", playlist.ownerName),
+                playlist.name,
+                null,
+                UUID.nameUUIDFromBytes(id.toByteArray())
+            ).apply {
+                operations puts playlist.items.map {
+                    val track = it.track
+                    Operation.Add(
+                        track,
+                        it.addedAt.time
+                    )
+                }
+            })
+        }
+    }
 }

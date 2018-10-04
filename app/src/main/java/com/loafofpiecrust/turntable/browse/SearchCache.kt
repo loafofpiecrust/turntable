@@ -1,16 +1,13 @@
 package com.loafofpiecrust.turntable.browse
 
 import com.google.gson.internal.LinkedTreeMap
-import com.loafofpiecrust.turntable.browse.SearchCache.cache
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
-import com.loafofpiecrust.turntable.model.song.Music
-import com.loafofpiecrust.turntable.model.song.MusicId
+import com.loafofpiecrust.turntable.model.Music
+import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.model.song.Song
-import java.util.*
-import kotlin.collections.LinkedHashMap
 
 object SearchCache: SearchApi {
     private const val CACHE_COUNT = 25
