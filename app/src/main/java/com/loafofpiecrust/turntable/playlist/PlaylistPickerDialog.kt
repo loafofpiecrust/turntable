@@ -1,6 +1,8 @@
 package com.loafofpiecrust.turntable.playlist
 
+import android.app.Dialog
 import android.os.Bundle
+import android.support.v7.app.AlertDialog
 import android.support.v7.widget.LinearLayoutManager
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
@@ -15,12 +17,11 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
 import com.loafofpiecrust.turntable.util.arg
 import kotlinx.coroutines.experimental.channels.map
-import org.jetbrains.anko.customView
-import org.jetbrains.anko.matchParent
+import org.jetbrains.anko.*
+import org.jetbrains.anko.appcompat.v7.dialogTitle
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.alert
 import org.jetbrains.anko.support.v4.toast
-import org.jetbrains.anko.wrapContent
 
 
 class PlaylistPickerDialog: BaseDialogFragment() {
@@ -34,21 +35,23 @@ class PlaylistPickerDialog: BaseDialogFragment() {
 
     override fun onStart() {
         super.onStart()
-        dialog.window.setLayout(matchParent, wrapContent)
+        dialog.window?.setLayout(matchParent, wrapContent)
     }
 
-    override fun onCreateDialog(savedInstanceState: Bundle?) =
-        alert("Add to playlist") {
-            customView { createView() }
+    override fun onCreateDialog(savedInstanceState: Bundle?) = alert {
+        title = "Add to Playlist"
 
-            positiveButton("New Playlist") {
-                AddPlaylistDialog.withItems(listOf(item)).show(requireContext())
-            }
-            negativeButton("Cancel") {}
-        }.build()
+        customView { createView() }
+
+        positiveButton("New Playlist") {
+            AddPlaylistDialog.withItems(listOf(item)).show(requireContext(), fullscreen = true)
+        }
+        negativeButton("Cancel") {}
+    }.build() as Dialog
 
     override fun ViewManager.createView() = recyclerView {
-        fitsSystemWindows = true
+        topPadding = dip(8)
+
         layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
         adapter = PlaylistsFragment.Adapter { selected ->
             val item = item

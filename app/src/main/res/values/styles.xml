@@ -17,16 +17,12 @@
         <item name="android:windowSharedElementsUseOverlay">true</item>
         <item name="android:windowAllowEnterTransitionOverlap">true</item>
         <item name="android:windowAllowReturnTransitionOverlap">true</item>
-        <!--<iidname="android:splitMotionEvents">false</item>-->
-        <!--<iidname="android:windowEnterTransition">@transition/explode</item>-->
-        <!--<iidname="android:windowExitTransition">@transition/explode</item>-->
-        <!--<item name="toolbarStyle">@style/AppTheme.AppBarOverlay</item>-->
         <item name="popupMenuStyle">@style/AppTheme.PopupOverlay</item>
         <item name="popupTheme">@style/AppTheme.PopupOverlay</item>
         <item name="android:popupElevation">@dimen/high_elevation</item>
         <item name="android:windowTranslucentStatus">true</item>
-        <!--<item name="android:fitsSystemWindows">false</item>-->
         <item name="android:windowDrawsSystemBarBackgrounds">false</item>
+        <item name="android:spinnerStyle">@style/Widget.AppCompat.Spinner.Underlined</item>
     </style>
 
     <style name="AppTheme.NoActionBar" parent="AppTheme">
@@ -51,5 +47,12 @@
     <style name="AppTheme.PopupOverlay" parent="@style/Widget.AppCompat.PopupMenu.Overflow">
         <!--<item name="android:popupBackground">@color/background</item>-->
         <item name="android:overlapAnchor">true</item>
+    </style>
+    
+    <style name="FullScreenDialog" parent="Theme.AppCompat.Dialog">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowBackground">@null</item>
+        <item name="android:windowIsFloating">true</item>
     </style>
 </resources>

@@ -87,6 +87,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                 // main content
                 frameLayout {
                     id = R.id.mainContentContainer
+                    fragment { LibraryFragment() }
                 }.lparams(matchParent, matchParent)
 
                 // drawer!
@@ -118,25 +119,28 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
             drawers!!
         }
         firstSheet {
+            id = R.id.nowPlayingPanel
             backgroundResource = R.color.background
-            fragment(NowPlayingFragment())
+            fragment { NowPlayingFragment() }
         }
         firstSheetPeek {
+            id = R.id.miniPlayer
             backgroundResource = R.color.background
-            fragment(MiniPlayerFragment())
+            fragment { MiniPlayerFragment() }
         }
 
-        lateinit var queueSheet: QueueFragment
+        var queueSheet: QueueFragment? = null
         secondSheet {
+            id = R.id.queueSlider
             horizontalPadding = dimen(R.dimen.activity_horizontal_margin)
             bottomPadding = dimen(R.dimen.activity_vertical_margin)
             clipToPadding = false
-            queueSheet = fragment(QueueFragment())
+            fragment { QueueFragment().also { queueSheet = it } }
         }
 
         onSheetStateChanged { sheet, state ->
             if (sheet == MultiSheetView.Sheet.SECOND) {
-                queueSheet.onSheetStateChanged(state)
+                queueSheet?.onSheetStateChanged(state)
             }
         }
     }.also {
@@ -166,11 +170,11 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
 
         // TODO: Separate requests for reading and writing, maybe?
 
-        if (savedInstanceState == null) {
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.mainContentContainer, LibraryFragment())
-                .commit()
-        }
+//        if (savedInstanceState == null) {
+//            supportFragmentManager.beginTransaction()
+//                .replace(R.id.mainContentContainer, LibraryFragment())
+//                .commit()
+//        }
 
         // Start out with collapsed sheets
 //        sheets.hide(true, false)
@@ -457,7 +461,7 @@ fun FragmentManager.replaceMainContent(fragment: Fragment, allowBackNav: Boolean
         }
         commit()
     }
-    executePendingTransactions()
+//    executePendingTransactions()
 }
 
 fun Context.replaceMainContent(fragment: Fragment, allowBackNav: Boolean = true, sharedElems: List<View>? = null) {

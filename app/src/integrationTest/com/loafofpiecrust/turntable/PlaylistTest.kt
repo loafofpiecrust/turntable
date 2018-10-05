@@ -4,6 +4,7 @@ import ch.tutteli.atrium.api.cc.en_GB.isA
 import ch.tutteli.atrium.api.cc.en_GB.isNotEmpty
 import ch.tutteli.atrium.verbs.expect
 import com.github.daemontus.Result
+import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.runBlocking
@@ -27,5 +28,12 @@ class PlaylistTest {
                 playlist.error.printStackTrace()
             }
         }
+    }
+
+    @Test
+    fun fromSpotifyUser() = runBlocking<Unit> {
+        val playlists = Spotify.playlistsByUser("1260492579")
+        println(playlists)
+        expect(playlists).isNotEmpty()
     }
 }

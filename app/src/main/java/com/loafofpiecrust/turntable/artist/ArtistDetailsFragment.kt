@@ -1,5 +1,6 @@
 package com.loafofpiecrust.turntable.artist
 
+import android.graphics.drawable.Drawable
 import android.support.annotation.StringRes
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.AppBarLayout
@@ -10,6 +11,10 @@ import android.view.View
 import android.view.ViewManager
 import android.widget.ImageView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.album.AlbumsFragment
@@ -228,7 +233,7 @@ class ArtistDetailsFragment: BaseFragment() {
 
             artist.openSubscription().switchMap { artist ->
                 artist.loadArtwork(Glide.with(image)).map {
-                    it?.listener(artist.loadPalette(toolbar, collapser, this@appBarLayout))
+                    it?.addListener(artist.loadPalette(toolbar, collapser, this@appBarLayout))
                 }
             }.consumeEachAsync {
                 it?.into(image) ?: run {

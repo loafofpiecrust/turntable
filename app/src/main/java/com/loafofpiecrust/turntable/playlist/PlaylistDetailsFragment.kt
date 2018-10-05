@@ -72,9 +72,10 @@ class PlaylistDetailsFragment: BaseFragment() {
     }
 
     override fun onCreate() {
-        enterTransition = Slide()
-        exitTransition = Slide()
-        returnTransition = Slide()
+        Slide().let {
+            enterTransition = it
+            exitTransition = it
+        }
     }
 
     override fun ViewManager.createView(): View = linearLayout {

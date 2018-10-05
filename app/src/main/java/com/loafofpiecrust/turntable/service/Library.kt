@@ -698,7 +698,7 @@ class Library : BaseService() {
             RequestOptions()
                 .fallback(R.drawable.ic_default_album)
                 .error(R.drawable.ic_default_album)
-                .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                .diskCacheStrategy(DiskCacheStrategy.DATA)
                 .fitCenter()
         }
 

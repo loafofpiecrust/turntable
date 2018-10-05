@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <item name="library" type="id" />
     <item name="mainContent" type="id" />
     <item name="image" type="id" />
     <item name="smallImage" type="id" />
@@ -12,6 +13,7 @@
     <item name="status_icon" type="id" />
     <item name="itemMenuDots" type="id" />
     <item name="nowPlayingPanel" type="id" />
+    <item name="miniPlayer" type="id" />
     <item name="mainContentContainer" type="id" />
     <item name="gridRecycler" type="id" />
     <item name="fragmentContent" type="id" />

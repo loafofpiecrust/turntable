@@ -7,10 +7,12 @@ package com.loafofpiecrust.turntable.ui
 import activitystarter.Arg
 import android.app.ProgressDialog
 import android.net.Uri
+import android.support.constraint.ConstraintLayout.LayoutParams.PARENT_ID
 import android.support.v4.provider.DocumentFile
 import android.view.ViewManager
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
+import android.widget.ImageView
 import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.browse.LocalApi
@@ -42,9 +44,14 @@ class AlbumEditorActivity : BaseActivity() {
     private lateinit var yearEdit: EditText
 
     override fun ViewManager.createView() = constraintLayout {
-        val album = runBlocking { LocalApi.find(albumId)!! }
+        val album = runBlocking { LocalApi.find(albumId) } ?: run {
+            toast("Album folder not found locally.")
+            finish()
+            return@constraintLayout
+        }
 
         val artwork = imageView {
+            scaleType = ImageView.ScaleType.CENTER_CROP
             launch {
                 album.loadCover(Glide.with(context)).consumeEach {
                     it?.into(this@imageView) ?: run {
@@ -110,23 +117,29 @@ class AlbumEditorActivity : BaseActivity() {
                     END to END of this@constraintLayout
                 )
                 size = matchConstraint
-                dimensionRation = "H,1:1"
+                dimensionRation = "1:1"
             }
             title {
                 connect(
-                    TOP to BOTTOM of artwork margin outerMargin / 2
+                    TOP to BOTTOM of artwork margin outerMargin / 2,
+                    START to START of PARENT_ID margin outerMargin,
+                    END to END of PARENT_ID margin outerMargin
                 )
                 width = matchParent
             }
             artist {
                 connect(
-                    TOP to BOTTOM of title margin outerMargin / 4
+                    TOP to BOTTOM of title margin outerMargin / 4,
+                    START to START of PARENT_ID margin outerMargin,
+                    END to END of PARENT_ID margin outerMargin
                 )
                 width = matchParent
             }
             year {
                 connect(
-                    TOP to BOTTOM of artist margin outerMargin / 4
+                    TOP to BOTTOM of artist margin outerMargin / 4,
+                    START to START of PARENT_ID margin outerMargin,
+                    END to END of PARENT_ID margin outerMargin
                 )
                 width = matchParent
             }

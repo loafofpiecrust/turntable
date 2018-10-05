@@ -45,7 +45,7 @@ class PlaylistsFragment: BaseFragment() {
         }
 
         menu.menuItem(R.string.playlist_new, R.drawable.ic_add, showIcon =true).onClick {
-            AddPlaylistDialog().show(requireContext())
+            AddPlaylistDialog().show(requireContext(), fullscreen = true)
         }
     }
 
@@ -85,7 +85,7 @@ class PlaylistsFragment: BaseFragment() {
                 "you"
             } else item.owner.name
             holder.subLine.text = ctx.getString(R.string.playlist_author, owner, item.typeName)
-            holder.track.visibility = View.GONE
+//            holder.track.visibility = View.INVISIBLE
             holder.header.transitionName = "playlistHeader${item.name}"
 
             given(item.color) {
@@ -97,7 +97,7 @@ class PlaylistsFragment: BaseFragment() {
 //                holder.menu.setColorFilter(contrast)
             }
 
-            holder.coverImage?.imageResource = when (item) {
+            holder.statusIcon.imageResource = when (item) {
                 is MixTape -> R.drawable.ic_cassette
                 is CollaborativePlaylist -> R.drawable.ic_boombox_color
                 else -> R.drawable.ic_album

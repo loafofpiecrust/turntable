@@ -82,7 +82,7 @@ object Spotify: SearchApi, AnkoLogger {
         /// TODO: Pagination
         override val albums: List<Album> by lazy { runBlocking {
             apiRequest(
-                "albums",
+                "artists/$id/albums",
                 mapOf("limit" to "50")
             ).gson["items"].array.map {
                 val imgs = it["images"].array
@@ -456,7 +456,7 @@ object Spotify: SearchApi, AnkoLogger {
             PartialPlaylist(
                 id = obj["id"].string,
                 name = obj["name"].string,
-                ownerName = obj["owner"]["id"].string,
+                ownerName = obj["owner"]["display_name"].string,
                 trackCount = obj["tracks"]["total"].int
             )
         }

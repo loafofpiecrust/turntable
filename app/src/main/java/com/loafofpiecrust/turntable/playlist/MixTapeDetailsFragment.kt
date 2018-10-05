@@ -2,6 +2,7 @@ package com.loafofpiecrust.turntable.playlist
 
 import activitystarter.Arg
 import android.support.design.widget.TabLayout
+import android.support.transition.Slide
 import android.support.v4.app.FragmentPagerAdapter
 import android.view.Menu
 import android.view.MenuInflater
@@ -45,6 +46,13 @@ class MixTapeDetailsFragment: BaseFragment() {
 
     private lateinit var tabs: TabLayout
     private lateinit var playlist: MixTape
+
+    override fun onCreate() {
+        Slide().let {
+            enterTransition = it
+            exitTransition = it
+        }
+    }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
     }

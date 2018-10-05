@@ -6,10 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.IBinder
-import android.support.v4.app.DialogFragment
-import android.support.v4.app.Fragment
-import android.support.v4.app.FragmentActivity
-import android.support.v4.app.FragmentManager
+import android.support.v4.app.*
 import android.support.v7.app.AppCompatActivity
 import android.view.LayoutInflater
 import android.view.View
@@ -107,6 +104,10 @@ abstract class BaseFragment: Fragment(), AnkoLogger, ViewComponentScope {
                 .commit()
         }
     }
+
+    fun show(context: Context) {
+        context.replaceMainContent(this, true)
+    }
 }
 
 abstract class BaseDialogFragment: DialogFragment(), AnkoLogger, ViewComponentScope {
@@ -124,7 +125,7 @@ abstract class BaseDialogFragment: DialogFragment(), AnkoLogger, ViewComponentSc
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-//        ActivityStarter.fill(this)
+//        ActivityStarter.fill(this
         return AnkoContext.create(requireContext(), this).createView()
     }
 
@@ -133,9 +134,17 @@ abstract class BaseDialogFragment: DialogFragment(), AnkoLogger, ViewComponentSc
         job.cancel()
     }
 
-    fun show(ctx: Context) {
+    fun show(ctx: Context, fullscreen: Boolean = false) {
         if (ctx is FragmentActivity) {
-            super.show(ctx.supportFragmentManager, this.javaClass.simpleName)
+            if (fullscreen) {
+                ctx.supportFragmentManager.beginTransaction()
+//                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                    .add(android.R.id.content, this)
+                    .addToBackStack(null)
+                    .commit()
+            } else {
+                super.show(ctx.supportFragmentManager, this.javaClass.simpleName)
+            }
         }
     }
 }
@@ -143,8 +152,10 @@ abstract class BaseDialogFragment: DialogFragment(), AnkoLogger, ViewComponentSc
 abstract class BaseActivity: AppCompatActivity(), AnkoLogger, ViewComponentScope {
     override val job = SupervisorJob()
 
+    private var isFirstInit = true
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        isFirstInit = savedInstanceState == null
         ActivityStarter.fill(this, savedInstanceState)
         setTheme(R.style.AppTheme)
         setContentView(AnkoContext.create(this, this).createView())
@@ -157,17 +168,18 @@ abstract class BaseActivity: AppCompatActivity(), AnkoLogger, ViewComponentScope
         job.cancel()
     }
 
-    inline fun <reified T: Fragment> View.fragment(
-        fragment: T,
-        manager: FragmentManager? = supportFragmentManager
-    ): T {
-        if (this.id == View.NO_ID) {
-            this.id = View.generateViewId()
+    fun View.fragment(alwaysReplace: Boolean = false, createFragment: () -> Fragment) {
+        if (isFirstInit || alwaysReplace) {
+            info { "creating fragment" }
+            // BEWARE: This will crash if within a navigable fragment!!
+            if (this.id == View.NO_ID) {
+                this.id = View.generateViewId()
+            }
+
+            supportFragmentManager.beginTransaction()
+                .replace(this.id, createFragment())
+                .commit()
         }
-        manager?.beginTransaction()
-            ?.add(this.id, fragment)
-            ?.commit()
-        return fragment
     }
 }
 
