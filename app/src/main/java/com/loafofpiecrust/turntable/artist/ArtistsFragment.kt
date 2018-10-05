@@ -128,13 +128,16 @@ fun ViewManager.artistList(
     artists: BroadcastChannel<List<Artist>>,
     cat: ArtistsFragment.Category,
     detailsMode: ArtistDetailsFragment.Mode,
-    columnCount: Int
+    columnCount: Int,
+    startRefreshing: Boolean = true
 ) = swipeRefreshLayout {
     isEnabled = false
     ViewScope(this).launch {
         artists.consume {
             if (isEmpty) {
-                isRefreshing = true
+                if (startRefreshing) {
+                    isRefreshing = true
+                }
                 receive()
                 isRefreshing = false
             }

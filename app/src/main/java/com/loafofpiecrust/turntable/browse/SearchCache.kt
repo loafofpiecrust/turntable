@@ -10,6 +10,9 @@ import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.model.song.Song
 
 object SearchCache: SearchApi {
+    override val displayName: Int
+        get() = 0
+
     private const val CACHE_COUNT = 25
 
     override suspend fun searchArtists(query: String) = emptyList<Artist>()

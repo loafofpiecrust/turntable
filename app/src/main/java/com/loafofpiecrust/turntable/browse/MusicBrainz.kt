@@ -25,6 +25,9 @@ import org.jsoup.Jsoup
 import java.util.regex.Pattern
 
 object MusicBrainz: SearchApi, AnkoLogger {
+    override val displayName: Int
+        get() = R.string.search_musicbrainz
+
     @Parcelize
     data class AlbumDetails(
         val id: String,

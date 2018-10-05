@@ -1,5 +1,6 @@
 package com.loafofpiecrust.turntable.browse
 
+import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.Artist
@@ -12,6 +13,9 @@ import me.xdrop.fuzzywuzzy.FuzzySearch
 
 
 object LocalApi: SearchApi {
+    override val displayName: Int
+        get() = R.string.search_local
+
     private val library: Library get() = Library.instance
 
     override suspend fun searchArtists(query: String) = library.artists.value.filter {

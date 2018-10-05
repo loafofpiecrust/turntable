@@ -3,22 +3,19 @@ package com.loafofpiecrust.turntable.browse
 import android.content.Context
 import android.util.Base64
 import com.github.salomonbrys.kotson.*
-import com.loafofpiecrust.turntable.App
-import com.loafofpiecrust.turntable.BuildConfig
+import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.album.RemoteAlbum
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.artist.RemoteArtist
-import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragment
 import com.loafofpiecrust.turntable.service.library
-import com.loafofpiecrust.turntable.tryOr
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
@@ -34,6 +31,9 @@ import java.util.*
 
 
 object Spotify: SearchApi, AnkoLogger {
+    override val displayName: Int
+        get() = R.string.search_spotify
+
     @Parcelize
     data class AlbumDetails(
         val id: String,
@@ -449,7 +449,7 @@ object Spotify: SearchApi, AnkoLogger {
                 "limit" to "50",
                 "offset" to (page*50).toString()
             )
-        ).use { it.gson }
+        ).gson
 
         return res["items"].array.map {
             val obj = it.obj

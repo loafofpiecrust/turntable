@@ -2,6 +2,7 @@ package com.loafofpiecrust.turntable.ui
 
 import android.os.Bundle
 import android.os.Parcelable
+import android.support.v4.widget.SwipeRefreshLayout
 import android.view.Gravity
 import android.view.View
 import android.view.ViewAnimationUtils
@@ -30,6 +31,7 @@ import com.loafofpiecrust.turntable.util.arg
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import org.jetbrains.anko.*
@@ -65,6 +67,7 @@ class SearchFragment : BaseFragment() {
     private var searchJob: Job? = null
 
     private var searchApi: SearchApi = SearchApi.Companion
+    private var results: SwipeRefreshLayout? = null
 
 
     override fun onCreate() {
@@ -102,10 +105,11 @@ class SearchFragment : BaseFragment() {
         frameLayout {
             id = R.id.results
             topPadding = dip(64)
-            when (cat) {
+            results = when (cat) {
                 is Category.Songs -> songsList(
                     SongsFragment.Category.All,
-                    cat.results
+                    cat.results,
+                    startRefreshing = false
                 )
                 is Category.Albums -> albumList(
                     cat.results,
@@ -117,8 +121,13 @@ class SearchFragment : BaseFragment() {
                     cat.results,
                     ArtistsFragment.Category.All(),
                     ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE,
-                    3
+                    3,
+                    startRefreshing = false
                 )
+            }
+            results?.isEnabled = true
+            results?.setOnRefreshListener {
+                onSearchAction(prevQuery, force = true)
             }
         }.lparams(matchParent, matchParent)
 
@@ -148,13 +157,13 @@ class SearchFragment : BaseFragment() {
             setMenuIcon(context.getDrawable(R.drawable.ic_cake))
             setOnMenuClickListener {
                 popupMenu(Gravity.END) {
-                    menuItem("Local").onClick {
-                        toast("Searching local music")
+                    menuItem(LocalApi.displayName).onClick {
+                        toast("Searching ${getString(LocalApi.displayName)}")
                         searchApi = LocalApi
                     }
 
                     for (api in SearchApi.DEFAULT_APIS) {
-                        val name = api.javaClass.simpleName
+                        val name = getString(LocalApi.displayName)
                         menuItem(name).onClick {
                             toast("Searching on $name")
                             searchApi = api
@@ -176,13 +185,17 @@ class SearchFragment : BaseFragment() {
         return result
     }
 
-    fun onSearchAction(query: String) {
-        if (query != prevQuery) {
-//                        task(UI) { loadCircle.start() }
+    fun onSearchAction(query: String, force: Boolean = false) {
+        if (force || query != prevQuery) {
             prevQuery = query
+            results?.isRefreshing = true
             searchJob?.cancel()
-            searchJob = async(Dispatchers.IO) { doSearch(query, category) }
-//                            .always(UI) { loadCircle.progressiveStop() }
+            searchJob = async(Dispatchers.IO) {
+                doSearch(query, category)
+                launch(Dispatchers.Main) {
+                    results?.isRefreshing = false
+                }
+            }
         }
     }
 

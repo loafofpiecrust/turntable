@@ -31,6 +31,9 @@ import org.jsoup.Jsoup
  * Created by snead on 2/1/18.
  */
 object Discogs: SearchApi, AnkoLogger {
+    override val displayName: Int
+        get() = R.string.search_discogs
+
     @Parcelize
     data class AlbumDetails(
         val id: String,
@@ -89,7 +92,7 @@ object Discogs: SearchApi, AnkoLogger {
                 delay(500)
             }
 
-            res.use { it.gson.obj }
+            res.gson.obj
         } catch (e: Exception) {
             error(e.message, e)
             throw e

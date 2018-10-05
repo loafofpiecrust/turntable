@@ -99,6 +99,7 @@ open class SongsFragment(): BaseFragment() {
 fun ViewManager.songsList(
     category: SongsFragment.Category,
     songs: BroadcastChannel<List<Song>>,
+    startRefreshing: Boolean = true,
     block: RecyclerView.() -> Unit = {}
 ) = swipeRefreshLayout {
     val scope = ViewScope(this)
@@ -107,7 +108,9 @@ fun ViewManager.songsList(
     scope.launch {
         songs.consume {
             if (isEmpty) {
-                isRefreshing = true
+                if (startRefreshing) {
+                    isRefreshing = true
+                }
                 receive()
                 isRefreshing = false
             }

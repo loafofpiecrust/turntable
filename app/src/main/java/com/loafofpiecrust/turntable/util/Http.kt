@@ -115,4 +115,4 @@ suspend fun Call.executeSuspended(): Response = suspendCancellableCoroutine { co
 }
 
 val Response.text: String get() = body()!!.string()!!
-val Response.gson: JsonElement get() = JsonParser().parse(body()!!.charStream()!!)
+val Response.gson: JsonElement get() = use { JsonParser().parse(body()!!.charStream()!!) }

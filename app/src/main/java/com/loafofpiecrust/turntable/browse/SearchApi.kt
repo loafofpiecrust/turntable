@@ -1,5 +1,7 @@
 package com.loafofpiecrust.turntable.browse
 
+import android.support.annotation.StringRes
+import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.album.RemoteAlbum
@@ -14,6 +16,9 @@ import kotlinx.coroutines.experimental.isActive
 import kotlin.coroutines.experimental.coroutineContext
 
 interface SearchApi {
+    @get:StringRes
+    val displayName: Int
+
     suspend fun searchArtists(query: String): List<Artist>
     suspend fun searchAlbums(query: String): List<Album>
     suspend fun searchSongs(query: String): List<Song>
@@ -28,6 +33,8 @@ interface SearchApi {
     suspend fun fullArtwork(artist: Artist, search: Boolean = false): String?
 
     companion object: SearchApi {
+        override val displayName: Int
+            get() = R.string.search
 
         /// All Music APIs in descending order of priority
         val DEFAULT_APIS = arrayOf<SearchApi>(
