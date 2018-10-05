@@ -284,11 +284,11 @@ object Discogs: SearchApi, AnkoLogger {
         val imgs = res["images"].nullArray
         val url = (imgs?.firstOrNull { it["type"].nullString == "primary" } ?: imgs?.first())?.get("uri")?.string
 
-        if (url != null) {
-            Library.instance.addAlbumExtras(
-                Library.AlbumMetadata(album.id, url)
-            )
-        }
+//        if (url != null) {
+//            Library.instance.addAlbumExtras(
+//                Library.AlbumMetadata(album.id, url)
+//            )
+//        }
         return url
     }
 
@@ -307,11 +307,11 @@ object Discogs: SearchApi, AnkoLogger {
         val imgs = res["images"].nullArray
         val url = (imgs?.firstOrNull { it["type"].nullString == "primary" } ?: imgs?.first())?.get("uri")?.string
 
-        if (url != null) {
-            Library.instance.addArtistExtras(
-                Library.ArtistMetadata(artist.id, url)
-            )
-        }
+//        if (url != null) {
+//            Library.instance.addArtistExtras(
+//                Library.ArtistMetadata(artist.id, url)
+//            )
+//        }
         return url
     }
 

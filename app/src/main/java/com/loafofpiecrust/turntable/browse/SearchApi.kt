@@ -87,7 +87,7 @@ interface SearchApi {
                 searchSongs(query).takeIf { it.isNotEmpty() }
             } ?: listOf()
 
-        override suspend fun fullArtwork(album: Album, search: Boolean): String? = tryOr(null) {
+        override suspend fun fullArtwork(album: Album, search: Boolean): String? = SearchCache.fullArtwork(album) ?: tryOr(null) {
             if (album is RemoteAlbum) {
                 album.remoteId.artworkUrl ?: when (album.remoteId) {
                     is Discogs.AlbumDetails -> Discogs.fullArtwork(album, search)
@@ -100,9 +100,9 @@ interface SearchApi {
             } else overApis {
                 fullArtwork(album, search)
             }
-        }
+        }?.also { SearchCache.cacheArtwork(album, it) }
 
-        override suspend fun fullArtwork(artist: Artist, search: Boolean): String? = tryOr(null) {
+        override suspend fun fullArtwork(artist: Artist, search: Boolean): String? = SearchCache.fullArtwork(artist) ?: tryOr(null) {
             if (artist is RemoteArtist) {
                 when (artist.details) {
                     is Discogs.ArtistDetails -> Discogs.fullArtwork(artist, search)
@@ -115,6 +115,6 @@ interface SearchApi {
             } else overApis {
                 fullArtwork(artist, search)
             }
-        }
+        }?.also { SearchCache.cacheArtwork(artist, it) }
     }
 }

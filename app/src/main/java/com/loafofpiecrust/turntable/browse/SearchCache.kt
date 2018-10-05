@@ -41,6 +41,10 @@ object SearchCache: SearchApi {
         return music[artist] as? Artist
     }
 
-    override suspend fun fullArtwork(album: Album, search: Boolean): String? = null
-    override suspend fun fullArtwork(artist: Artist, search: Boolean): String? = null
+
+    private val artwork = LinkedTreeMap<MusicId, String>()
+    fun cacheArtwork(item: Album, url: String) = artwork.cache(item.id, url)
+    fun cacheArtwork(item: Artist, url: String) = artwork.cache(item.id, url)
+    override suspend fun fullArtwork(album: Album, search: Boolean): String? = artwork[album.id]
+    override suspend fun fullArtwork(artist: Artist, search: Boolean): String? = artwork[artist.id]
 }

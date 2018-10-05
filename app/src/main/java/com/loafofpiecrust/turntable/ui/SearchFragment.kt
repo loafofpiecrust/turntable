@@ -125,14 +125,10 @@ class SearchFragment : BaseFragment() {
                     startRefreshing = false
                 )
             }
-            results?.isEnabled = true
-            results?.setOnRefreshListener {
-                onSearchAction(prevQuery, force = true)
-            }
         }.lparams(matchParent, matchParent)
 
         searchBar {
-            setHint("Search...")
+            setHint(R.string.search_hint)
             requestFocusFromTouch()
             showKeyboard()
             setLogoHamburgerToLogoArrowWithoutAnimation(true)
@@ -188,13 +184,10 @@ class SearchFragment : BaseFragment() {
     fun onSearchAction(query: String, force: Boolean = false) {
         if (force || query != prevQuery) {
             prevQuery = query
-            results?.isRefreshing = true
             searchJob?.cancel()
+            results?.isRefreshing = true
             searchJob = async(Dispatchers.IO) {
                 doSearch(query, category)
-                launch(Dispatchers.Main) {
-                    results?.isRefreshing = false
-                }
             }
         }
     }

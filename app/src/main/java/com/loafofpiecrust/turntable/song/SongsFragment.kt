@@ -105,14 +105,16 @@ fun ViewManager.songsList(
     val scope = ViewScope(this)
 
     isEnabled = false
+
     scope.launch {
         songs.consume {
             if (isEmpty) {
                 if (startRefreshing) {
                     isRefreshing = true
                 }
-                receive()
-                isRefreshing = false
+                for (e in this) {
+                    isRefreshing = false
+                }
             }
         }
     }

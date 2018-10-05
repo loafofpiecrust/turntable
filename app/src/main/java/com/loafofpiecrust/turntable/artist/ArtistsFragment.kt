@@ -138,8 +138,9 @@ fun ViewManager.artistList(
                 if (startRefreshing) {
                     isRefreshing = true
                 }
-                receive()
-                isRefreshing = false
+                for (e in this) {
+                    isRefreshing = false
+                }
             }
         }
     }
