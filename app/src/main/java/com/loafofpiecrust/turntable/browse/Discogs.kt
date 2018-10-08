@@ -9,7 +9,6 @@ import com.loafofpiecrust.turntable.model.album.RemoteAlbum
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.artist.RemoteArtist
-import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.util.Http
@@ -17,7 +16,6 @@ import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.text
 import com.mcxiaoke.koi.ext.closeQuietly
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.runBlocking
 import okhttp3.Response
@@ -30,7 +28,7 @@ import org.jsoup.Jsoup
 /**
  * Created by snead on 2/1/18.
  */
-object Discogs: SearchApi, AnkoLogger {
+object Discogs: Repository {
     override val displayName: Int
         get() = R.string.search_discogs
 

@@ -30,8 +30,8 @@ Merged Usage:
    val local = Library.findArtist(id)
 We have the local albums for this artist,
 Now we want the remote albums too, for changing remoteInfo display mode
-   val remote = SearchApi.find(local.id)
+   val remote = Repository.find(local.id)
    val merged = MergedArtist(local, remote)
 
-TODO: SearchApi.find(...) should cache the results, so that it has RemoteArtist objects with potentially resolved children.
+TODO: Repository.find(...) should cache the results, so that it has RemoteArtist objects with potentially resolved children.
  */

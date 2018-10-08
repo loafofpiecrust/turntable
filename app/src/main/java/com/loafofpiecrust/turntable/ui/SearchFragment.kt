@@ -20,7 +20,7 @@ import com.loafofpiecrust.turntable.artist.ArtistsAdapter
 import com.loafofpiecrust.turntable.artist.ArtistsFragment
 import com.loafofpiecrust.turntable.artist.artistList
 import com.loafofpiecrust.turntable.browse.LocalApi
-import com.loafofpiecrust.turntable.browse.SearchApi
+import com.loafofpiecrust.turntable.browse.Repository
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.popupMenu
 import com.loafofpiecrust.turntable.song.SongsAdapter
@@ -31,7 +31,6 @@ import com.loafofpiecrust.turntable.util.arg
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import org.jetbrains.anko.*
@@ -66,7 +65,7 @@ class SearchFragment : BaseFragment() {
     @State var prevQuery = ""
     private var searchJob: Job? = null
 
-    private var searchApi: SearchApi = SearchApi.Companion
+    private var repository: Repository = Repository.Companion
     private var results: SwipeRefreshLayout? = null
 
 
@@ -153,13 +152,13 @@ class SearchFragment : BaseFragment() {
             setMenuIcon(context.getDrawable(R.drawable.ic_cake))
             setOnMenuClickListener {
                 popupMenu(Gravity.END) {
-                    (sequenceOf(LocalApi) + SearchApi.DEFAULT_APIS.asSequence())
+                    (sequenceOf(LocalApi) + Repository.DEFAULT_SOURCES.asSequence())
                         .filter { it.displayName != -1 }
                         .forEach { api ->
                             val name = getString(api.displayName)
                             menuItem(name).onClick {
                                 toast("Searching $name")
-                                searchApi = api
+                                repository = api
                             }
                         }
                 }
@@ -171,9 +170,9 @@ class SearchFragment : BaseFragment() {
     private suspend fun doSearch(query: String, cat: Category<*>): ReceiveChannel<*> {
         lateinit var result: ReceiveChannel<*>
         when (cat) {
-            is Category.Albums -> cat.results.send(searchApi.searchAlbums(query))
-            is Category.Artists -> cat.results.send(searchApi.searchArtists(query))
-            is Category.Songs -> cat.results.send(searchApi.searchSongs(query))
+            is Category.Albums -> cat.results.send(repository.searchAlbums(query))
+            is Category.Artists -> cat.results.send(repository.searchArtists(query))
+            is Category.Songs -> cat.results.send(repository.searchSongs(query))
         }
         return result
     }

@@ -14,7 +14,7 @@ import com.loafofpiecrust.turntable.artist.BiographyFragment
 import com.loafofpiecrust.turntable.artist.RelatedArtistsFragment
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.loadPalette
-import com.loafofpiecrust.turntable.browse.SearchApi
+import com.loafofpiecrust.turntable.browse.Repository
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.queue.RadioQueue
 import com.loafofpiecrust.turntable.service.Library
@@ -38,7 +38,7 @@ data class PartialArtist(
     override val displayName: String
         get() = id.displayName
 
-    suspend fun resolve(): Artist? = SearchApi.find(id)
+    suspend fun resolve(): Artist? = Repository.find(id)
     override fun optionsMenu(context: Context, menu: Menu) {}
 }
 
@@ -67,7 +67,7 @@ interface Artist: Music {
     fun loadArtwork(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
         GlobalScope.produce {
             val localArt = Library.instance.loadArtistImage(req, id)
-            send(localArt.receive() ?: req.load(SearchApi.fullArtwork(this@Artist, true)))
+            send(localArt.receive() ?: req.load(Repository.fullArtwork(this@Artist, true)))
 
             localArt.filterNotNull().redirectTo(channel)
         }

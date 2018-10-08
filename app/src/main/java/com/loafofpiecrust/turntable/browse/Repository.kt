@@ -8,14 +8,14 @@ import com.loafofpiecrust.turntable.model.album.RemoteAlbum
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.artist.RemoteArtist
-import com.loafofpiecrust.turntable.provided
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.tryOr
 import kotlinx.coroutines.experimental.isActive
+import org.jetbrains.anko.AnkoLogger
 import kotlin.coroutines.experimental.coroutineContext
 
-interface SearchApi {
+interface Repository: AnkoLogger {
     @get:StringRes
     val displayName: Int
 
@@ -32,20 +32,20 @@ interface SearchApi {
     suspend fun fullArtwork(album: Album, search: Boolean = false): String?
     suspend fun fullArtwork(artist: Artist, search: Boolean = false): String?
 
-    companion object: SearchApi {
+    companion object: Repository {
         override val displayName: Int
             get() = R.string.search
 
         /// All Music APIs in descending order of priority
-        val DEFAULT_APIS = arrayOf<SearchApi>(
+        val DEFAULT_SOURCES = arrayOf<Repository>(
             SearchCache,
             Discogs,
             MusicBrainz,
             Spotify
         )
 
-        private suspend fun <R: Any> overApis(block: suspend SearchApi.() -> R?): R? {
-            for (a in DEFAULT_APIS) {
+        private suspend fun <R: Any> overSources(block: suspend Repository.() -> R?): R? {
+            for (a in DEFAULT_SOURCES) {
                 if (!coroutineContext.isActive) return null
 
                 val res = tryOr(null) { block(a) }
@@ -60,30 +60,30 @@ interface SearchApi {
             = LocalApi.find(album) ?: findOnline(album)
 
         suspend fun findOnline(album: AlbumId): Album?
-            = overApis { find(album) }?.also { SearchCache.cache(it) }
+            = overSources { find(album) }?.also { SearchCache.cache(it) }
 
 
         override suspend fun find(artist: ArtistId): Artist?
             = LocalApi.find(artist) ?: findOnline(artist)
 
         suspend fun findOnline(artist: ArtistId): Artist?
-            = overApis { find(artist) }?.also { SearchCache.cache(it) }
+            = overSources { find(artist) }?.also { SearchCache.cache(it) }
 
 //        override suspend fun find(song: Song): Song.RemoteDetails?
-//            = overApis { find(song) }
+//            = overSources { find(song) }
 
         override suspend fun searchArtists(query: String): List<Artist> =
-            overApis {
+            overSources {
                 searchArtists(query).takeIf { it.isNotEmpty() }
             } ?: listOf()
 
         override suspend fun searchAlbums(query: String): List<Album> =
-            overApis {
+            overSources {
                 searchAlbums(query).takeIf { it.isNotEmpty() }
             } ?: listOf()
 
         override suspend fun searchSongs(query: String): List<Song> =
-            overApis {
+            overSources {
                 searchSongs(query).takeIf { it.isNotEmpty() }
             } ?: listOf()
 
@@ -94,10 +94,10 @@ interface SearchApi {
                     is Spotify.AlbumDetails -> Spotify.fullArtwork(album, search)
                     is MusicBrainz.AlbumDetails -> MusicBrainz.fullArtwork(album, search)
                     else -> null
-                } ?: overApis {
+                } ?: overSources {
                     fullArtwork(album, search)
                 }
-            } else overApis {
+            } else overSources {
                 fullArtwork(album, search)
             }
         }?.also { SearchCache.cacheArtwork(album, it) }
@@ -109,10 +109,10 @@ interface SearchApi {
                     is Spotify.ArtistDetails -> Spotify.fullArtwork(artist, search)
                     is MusicBrainz.ArtistDetails -> MusicBrainz.fullArtwork(artist, search)
                     else -> null
-                } ?: overApis {
+                } ?: overSources {
                     fullArtwork(artist, search)
                 }
-            } else overApis {
+            } else overSources {
                 fullArtwork(artist, search)
             }
         }?.also { SearchCache.cacheArtwork(artist, it) }

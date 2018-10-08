@@ -25,12 +25,11 @@ import kotlinx.coroutines.experimental.*
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
 import org.jetbrains.anko.error
-import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
 
-object Spotify: SearchApi, AnkoLogger {
+object Spotify: Repository {
     override val displayName: Int
         get() = R.string.search_spotify
 

@@ -6,12 +6,10 @@ import android.os.Parcelable
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.*
-import com.chibatching.kotpref.filepref.objFilePref
-import com.evernote.android.state.State
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.artist.*
 import com.loafofpiecrust.turntable.browse.LocalApi
-import com.loafofpiecrust.turntable.browse.SearchApi
+import com.loafofpiecrust.turntable.browse.Repository
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
@@ -26,13 +24,11 @@ import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.IO
-import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.*
 import kotlinx.coroutines.experimental.channels.Channel.Factory.CONFLATED
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.dimen
-import org.jetbrains.anko.frameLayout
 import org.jetbrains.anko.info
 import org.jetbrains.anko.padding
 import org.jetbrains.anko.recyclerview.v7.recyclerView
@@ -63,7 +59,7 @@ class AlbumsFragment : BaseFragment() {
                             when (mode) {
                                 ArtistDetailsFragment.Mode.LIBRARY -> it
                                 ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE ->
-                                    SearchApi.find(artist)?.let { remote -> MergedArtist(it, remote) } ?: it
+                                    Repository.find(artist)?.let { remote -> MergedArtist(it, remote) } ?: it
                                 ArtistDetailsFragment.Mode.REMOTE -> it // use case?
                             }
                         } else {

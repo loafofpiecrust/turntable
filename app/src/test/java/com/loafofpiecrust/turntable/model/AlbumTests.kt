@@ -3,8 +3,7 @@ package com.loafofpiecrust.turntable.model
 import ch.tutteli.atrium.api.cc.en_GB.*
 import ch.tutteli.atrium.verbs.assert
 import ch.tutteli.atrium.verbs.expect
-import com.loafofpiecrust.turntable.browse.SearchApi
-import com.loafofpiecrust.turntable.isA
+import com.loafofpiecrust.turntable.browse.Repository
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.album.*
 import com.loafofpiecrust.turntable.model.song.Song
@@ -100,7 +99,7 @@ class LocalAlbumTests {
 
     @Test fun `find online`() {
         val albumId = AlbumId("Wedding Bells", ArtistId("Cashmere Cat"))
-        val remote = runBlocking { SearchApi.find(albumId) }
+        val remote = runBlocking { Repository.find(albumId) }
         expect(remote).notToBeNull {
             isA<RemoteAlbum> {
                 println(subject.remoteId)

@@ -1,7 +1,5 @@
 package com.loafofpiecrust.turntable.browse
 
-import android.view.View
-import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.Artist
@@ -10,7 +8,7 @@ import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.model.song.Song
 
-object SearchCache: SearchApi {
+object SearchCache: Repository {
     override val displayName: Int
         get() = -1
 

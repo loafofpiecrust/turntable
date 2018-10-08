@@ -12,7 +12,7 @@ import kotlinx.coroutines.experimental.channels.first
 import me.xdrop.fuzzywuzzy.FuzzySearch
 
 
-object LocalApi: SearchApi {
+object LocalApi: Repository {
     override val displayName: Int
         get() = R.string.search_local
 

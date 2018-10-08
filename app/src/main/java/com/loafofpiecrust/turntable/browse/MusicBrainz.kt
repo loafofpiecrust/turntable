@@ -24,7 +24,7 @@ import org.jetbrains.anko.info
 import org.jsoup.Jsoup
 import java.util.regex.Pattern
 
-object MusicBrainz: SearchApi, AnkoLogger {
+object MusicBrainz: Repository {
     override val displayName: Int
         get() = R.string.search_musicbrainz
 

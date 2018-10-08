@@ -17,7 +17,7 @@ import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.signature.ObjectKey
 import com.github.florent37.glidepalette.GlidePalette
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.browse.SearchApi
+import com.loafofpiecrust.turntable.browse.Repository
 import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.model.SavableMusic
@@ -46,7 +46,7 @@ data class PartialAlbum(
 ): Album, SavableMusic, Parcelable {
     @Transient
     private val resolved = GlobalScope.async(Dispatchers.IO, start = CoroutineStart.LAZY) {
-        SearchApi.find(id)
+        Repository.find(id)
     }
     suspend fun resolve(): Album? = resolved.await()
 
@@ -97,7 +97,7 @@ interface Album: Music {
     fun loadCover(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
         GlobalScope.produce {
             val localArt = Library.instance.loadAlbumCover(req, id)
-            send(localArt.receive() ?: req.load(SearchApi.fullArtwork(this@Album, true)))
+            send(localArt.receive() ?: req.load(Repository.fullArtwork(this@Album, true)))
 
             localArt.filterNotNull().redirectTo(channel)
         }

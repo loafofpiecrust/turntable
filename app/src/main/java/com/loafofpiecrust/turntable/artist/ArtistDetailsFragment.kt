@@ -14,7 +14,7 @@ import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.album.AlbumsFragment
 import com.loafofpiecrust.turntable.album.albumList
-import com.loafofpiecrust.turntable.browse.SearchApi
+import com.loafofpiecrust.turntable.browse.Repository
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.artist.MergedArtist
@@ -95,7 +95,7 @@ class ArtistDetailsFragment: BaseFragment() {
         // TODO: Generalize this some more
         if (!::artist.isInitialized) {
             artist = Library.instance.findArtist(artistId).map {
-                it ?: SearchApi.findOnline(artistId)!!
+                it ?: Repository.findOnline(artistId)!!
             }.broadcast(CONFLATED)
         }
 
@@ -103,11 +103,11 @@ class ArtistDetailsFragment: BaseFragment() {
             albums = currentMode.openSubscription()
                 .switchMap { mode ->
                     when (mode) {
-                        // TODO: Do some caching of remotes here. Do this inside SearchApi :)
+                        // TODO: Do some caching of remotes here. Do this inside Repository :)
                         Mode.LIBRARY -> Library.instance.findArtist(artistId)
-                        Mode.REMOTE -> produceSingle { SearchApi.findOnline(artistId) }
+                        Mode.REMOTE -> produceSingle { Repository.findOnline(artistId) }
                         Mode.LIBRARY_AND_REMOTE -> Library.instance.findArtist(artistId).map { local ->
-                            val remote = SearchApi.findOnline(artistId)
+                            val remote = Repository.findOnline(artistId)
                             if (local != null && remote != null) {
                                 MergedArtist(local, remote)
                             } else local ?: remote

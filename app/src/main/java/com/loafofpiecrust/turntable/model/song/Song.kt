@@ -94,7 +94,7 @@ data class Song(
 //            val artist = if (local is Song.LocalDetails.Downloaded) {
 //                Library.instance.findArtist(id.artist).first()
 //            } else {
-//                SearchApi.find(id.artist) ?: run {
+//                Repository.find(id.artist) ?: run {
 //                    context.toast("No remote artist for '${this@Song.id}'")
 //                    return@onClick
 //                }
@@ -234,7 +234,7 @@ data class Song(
 //            val artist = if (local is Song.LocalDetails.Downloaded) {
 //                Library.instance.findArtist(id.artist).first()
 //            } else {
-//                SearchApi.find(id.artist) ?: run {
+//                Repository.find(id.artist) ?: run {
 //                    ctx.toast("No remote artist for '${this@Song.id}'")
 //                    return@onClick
 //                }
@@ -442,7 +442,7 @@ data class Song(
 //                        it?.listener(loadPalette(id.album, cb))
 //                    }
 ////                    else -> {
-////                        if (SearchApi.find(Album.justForSearch(id.album))?.artworkUrl)
+////                        if (Repository.find(Album.justForSearch(id.album))?.artworkUrl)
 ////                    }
 //                }
 //            }

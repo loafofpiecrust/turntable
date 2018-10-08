@@ -15,7 +15,7 @@ import android.widget.TextView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.browse.SearchApi
+import com.loafofpiecrust.turntable.browse.Repository
 import com.loafofpiecrust.turntable.model.album.*
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.model.imageTransition
@@ -82,7 +82,7 @@ class DetailsFragment(): BaseFragment() {
 
         if (!::album.isInitialized) {
             album = produceSingle(Dispatchers.IO) {
-                SearchApi.find(albumId)!!
+                Repository.find(albumId)!!
             }.broadcast(Channel.CONFLATED)
         }
 
