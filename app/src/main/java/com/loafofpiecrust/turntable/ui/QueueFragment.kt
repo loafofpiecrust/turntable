@@ -6,7 +6,6 @@ import android.support.design.widget.BottomSheetBehavior
 import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
-import android.support.v7.widget.helper.ItemTouchHelper
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewManager
@@ -17,8 +16,8 @@ import com.loafofpiecrust.turntable.model.queue.indexWithinUpNext
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.player.StaticQueue
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.android.Main
@@ -127,11 +126,11 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>()
         queue?.indexWithinUpNext(index) == true
 
     override fun onItemMove(fromIdx: Int, toIdx: Int) {
-        MusicService.enact(SyncService.Message.ShiftQueueItem(fromIdx, toIdx))
+        MusicService.enact(PlayerAction.ShiftQueueItem(fromIdx, toIdx))
     }
 
     override fun onItemDismiss(idx: Int) {
-        MusicService.enact(SyncService.Message.RemoveFromQueue(idx))
+        MusicService.enact(PlayerAction.RemoveFromQueue(idx))
     }
 
     var currentPosition: Int = 0
@@ -198,7 +197,7 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>()
             }
 
             card.onClick {
-                MusicService.enact(SyncService.Message.QueuePosition(index))
+                MusicService.enact(PlayerAction.QueuePosition(index))
             }
 
             menu.onClick { v ->
@@ -208,7 +207,7 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>()
                         val q = runBlocking { music.player.queue.first() }
                         if (q.primary is StaticQueue) {
                             menuItem(R.string.queue_remove).onClick {
-                                MusicService.enact(SyncService.Message.RemoveFromQueue(index))
+                                MusicService.enact(PlayerAction.RemoveFromQueue(index))
                             }
                         }
                     }

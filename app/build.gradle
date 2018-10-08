@@ -10,7 +10,6 @@ apply plugin: 'kotlin-android-extensions'
 apply plugin: 'org.jmailen.kotlinter'
 apply plugin: 'com.getkeepsafe.dexcount'
 apply plugin: "com.vanniktech.dependency.graph.generator"
-//apply plugin: "de.mannodermaus.android-junit5"
 
 task copyTestClasses(type: Copy) {
     from "build/tmp/kotlin-classes/debug"
@@ -216,6 +215,9 @@ dependencies {
 
     //    implementation "com.egorzh.networkinkt:networkinkt:0.2"
     implementation 'com.squareup.okhttp3:okhttp:3.10.0'
+//    implementation "io.ktor:ktor-client:0.9.5"
+//    implementation "io.ktor:ktor-client-android:0.9.5"
+//    implementation "io.ktor:ktor-client-gson:0.9.5"
 
     // General
 

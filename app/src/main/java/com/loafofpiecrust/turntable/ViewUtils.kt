@@ -382,10 +382,21 @@ inline fun <T> tryOr(v: T, block: () -> T): T {
 }
 
 
-fun <T, R> Iterable<T>.parMap(context: CoroutineContext = EmptyCoroutineContext, mapper: suspend (T) -> R): List<Deferred<R>> = run {
+fun <T, R> Sequence<T>.parMap(
+    context: CoroutineContext = EmptyCoroutineContext,
+    mapper: suspend (T) -> R
+): Sequence<Deferred<R>> = run {
     this.map {
         GlobalScope.async(context) { mapper(it) }
-        async(context) { mapper(it) }
+    }
+}
+
+fun <T, R> Iterable<T>.parMap(
+    context: CoroutineContext = EmptyCoroutineContext,
+    mapper: suspend (T) -> R
+): List<Deferred<R>> = run {
+    this.map {
+        GlobalScope.async(context) { mapper(it) }
     }
 }
 
@@ -410,7 +421,9 @@ inline infix fun <T> SendChannel<T>.puts(value: T) {
 }
 
 inline infix fun <T> ConflatedBroadcastChannel<T>.putsMapped(transform: (T) -> T) {
-    offer(transform(this.value))
+    synchronized(this) {
+        offer(transform(this.value))
+    }
 }
 
 //infix fun <T> BehaviorSubject<List<T>>.appends(toAdd: T) {
@@ -424,7 +437,7 @@ inline infix fun <T> ConflatedBroadcastChannel<T>.putsMapped(transform: (T) -> T
 //}
 
 
-infix fun <T> ConflatedBroadcastChannel<List<T>>.appends(toAdd: T) {
+infix inline fun <reified T> ConflatedBroadcastChannel<List<T>>.appends(toAdd: T) {
     synchronized(this) {
         offer(if (hasValue) {
             this.value + toAdd

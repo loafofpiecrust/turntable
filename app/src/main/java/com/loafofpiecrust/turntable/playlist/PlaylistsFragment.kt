@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.playlist
 
-import activitystarter.Arg
 import android.support.v7.graphics.Palette
 import android.support.v7.widget.LinearLayoutManager
 import android.view.*
@@ -9,33 +8,33 @@ import com.loafofpiecrust.turntable.album.AlbumsFragment
 import com.loafofpiecrust.turntable.browse.RecentMixTapesFragment
 import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.model.playlist.AlbumCollection
-import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.putsMapped
+import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.sync.SyncService
+import com.loafofpiecrust.turntable.sync.User
 import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.Dispatchers
-import kotlinx.coroutines.experimental.channels.produce
+import kotlinx.coroutines.experimental.Job
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.imageResource
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-import org.jetbrains.anko.support.v4.ctx
 import org.jetbrains.anko.textColor
 
 
 class PlaylistsFragment: BaseFragment() {
     companion object {
         fun newInstance(
-            user: SyncService.User? = null,
+            user: User? = null,
             columnCount: Int = 0
         ) = PlaylistsFragment().apply {
             user?.let { this.user = it }
             this.columnCount = columnCount
         }
     }
-    private var user: SyncService.User by arg { SyncService.selfUser }
+    private var user: User by arg { SyncService.selfUser }
     private var columnCount: Int by arg()
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
@@ -53,7 +52,7 @@ class PlaylistsFragment: BaseFragment() {
         layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
         adapter = Adapter { playlist ->
             println("playlist: opening '${playlist.name}'")
-            context.replaceMainContent(
+            activity?.supportFragmentManager?.replaceMainContent(
                 when(playlist) {
                     is MixTape -> MixTapeDetailsFragment.newInstance(playlist.id, playlist.name)
                     is AlbumCollection -> AlbumsFragment.fromChan(playlist.albums)
@@ -64,8 +63,8 @@ class PlaylistsFragment: BaseFragment() {
         }.also { adapter ->
             adapter.subscribeData(if (user === SyncService.selfUser) {
                 UserPrefs.playlists.openSubscription()
-            } else {
-                produceSingle(Dispatchers.Default) { MixTape.allFromUser(user) }
+            } else produceSingle {
+                Playlist.allByUser(user)
             })
         }
     }
@@ -73,37 +72,44 @@ class PlaylistsFragment: BaseFragment() {
 
     class Adapter(
         val listener: (Playlist) -> Unit
-    ): RecyclerAdapter<Playlist, RecyclerListItemOptimized>() {
+    ): RecyclerBroadcastAdapter<Playlist, RecyclerListItemOptimized>() {
+        override val dismissEnabled: Boolean
+            get() = false
+
+        override val moveEnabled: Boolean
+            get() = true
+
+        override fun canMoveItem(index: Int) = true
+        override fun onItemMove(fromIdx: Int, toIdx: Int) {
+            UserPrefs.playlists putsMapped { it.shifted(fromIdx, toIdx) }
+        }
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerListItemOptimized
             = RecyclerListItemOptimized(parent, 3, useIcon = true)
 
-        override fun onBindViewHolder(holder: RecyclerListItemOptimized, position: Int) {
+        override fun RecyclerListItemOptimized.onBind(item: Playlist, position: Int, job: Job) {
             val item = data[position]
-            val ctx = holder.itemView.context
-            holder.mainLine.text = item.name
-            val owner = if (item.owner == SyncService.selfUser) {
-                "you"
-            } else item.owner.name
-            holder.subLine.text = ctx.getString(R.string.playlist_author, owner, item.typeName)
-//            holder.track.visibility = View.INVISIBLE
-            holder.header.transitionName = "playlistHeader${item.name}"
+            val ctx = itemView.context
+            val typeName = item.javaClass.localizedName(ctx)
+            mainLine.text = item.name
+            subLine.text = if (item.owner == SyncService.selfUser) {
+                typeName
+            } else {
+                ctx.getString(R.string.playlist_author, item.owner.name, typeName)
+            }
+//            header.transitionName = "playlistHeader${item.name}"
 
             given(item.color) {
                 val contrast = Palette.Swatch(it, 0).titleTextColor
-                holder.card.backgroundColor = it
-                holder.mainLine.textColor = contrast
-                holder.subLine.textColor = contrast
-                // FIXME: set holder.menu to closest type.
-//                holder.menu.setColorFilter(contrast)
+                card.backgroundColor = it
+                mainLine.textColor = contrast
+                subLine.textColor = contrast
+                menu.tint = contrast
             }
 
-            holder.statusIcon.imageResource = when (item) {
-                is MixTape -> R.drawable.ic_cassette
-                is CollaborativePlaylist -> R.drawable.ic_boombox_color
-                else -> R.drawable.ic_album
-            }
+            statusIcon.imageResource = item.icon
 
-            holder.card.setOnClickListener {
+            card.setOnClickListener {
                 listener.invoke(item)
             }
         }

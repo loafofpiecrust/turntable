@@ -4,13 +4,10 @@ import android.view.View
 import android.view.ViewGroup
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
-import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.song.SongsAdapter
-import com.loafofpiecrust.turntable.song.SongsFragment
-import com.loafofpiecrust.turntable.sync.SyncService
+import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.RecyclerBroadcastAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
 import com.loafofpiecrust.turntable.util.consumeEach
@@ -18,6 +15,8 @@ import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
 import org.jetbrains.anko.imageResource
 import org.jetbrains.anko.sdk27.coroutines.onClick
+import kotlin.math.abs
+import kotlin.math.min
 
 class PlaylistTracksAdapter(
     private val playlist: CollaborativePlaylist
@@ -34,6 +33,11 @@ class PlaylistTracksAdapter(
     override fun onItemMove(fromIdx: Int, toIdx: Int) {
         println("playlist: moving from $fromIdx to $toIdx")
         playlist.move(fromIdx, toIdx)
+
+        // Refresh the items shifted to reflect their new index numbers.
+        val earliest = min(fromIdx, toIdx)
+        val dist = abs(fromIdx - toIdx) + 1
+        notifyItemRangeChanged(earliest, dist)
     }
 
     override fun onItemDismiss(idx: Int) {
@@ -46,7 +50,7 @@ class PlaylistTracksAdapter(
 
     override fun RecyclerListItemOptimized.onBind(item: Song, position: Int, job: Job) {
         card.onClick {
-            MusicService.enact(SyncService.Message.PlaySongs(data, position))
+            MusicService.enact(PlayerAction.PlaySongs(data, position))
         }
 
         mainLine.text = item.id.displayName

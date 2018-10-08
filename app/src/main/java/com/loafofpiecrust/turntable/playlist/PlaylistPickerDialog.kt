@@ -67,7 +67,9 @@ class PlaylistPickerDialog: BaseDialogFragment() {
                 }
                 is PartialAlbum -> {
                     when (selected) {
-                        is AlbumCollection -> selected.add(item)
+                        is AlbumCollection -> if (selected.add(item)) {
+                            toast(context.getString(R.string.playlist_added_track, selected.name))
+                        }
                     }
                 }
             }

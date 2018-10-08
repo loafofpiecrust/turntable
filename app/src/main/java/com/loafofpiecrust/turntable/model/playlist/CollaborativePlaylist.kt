@@ -8,8 +8,8 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.SongId
+import com.loafofpiecrust.turntable.sync.User
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.channels.*
@@ -27,13 +27,14 @@ import kotlin.coroutines.experimental.suspendCoroutine
  * It can be shared with other users and edited by them as well.
  */
 class CollaborativePlaylist(
-    override val owner: SyncService.User,
+    override val owner: User,
     override var name: String,
     override var color: Int?,
     override val id: UUID
 ) : Playlist() {
-    override val typeName: String
-        get() = "Playlist"
+    override val icon: Int
+        get() = R.drawable.ic_boombox_color
+
 
     sealed class Operation(
         open val timestamp: Long
@@ -81,7 +82,7 @@ class CollaborativePlaylist(
             songs as List<Song>
         }
 
-    constructor(): this(SyncService.User(), "", null, UUID.randomUUID())
+    constructor(): this(User(), "", null, UUID.randomUUID())
 
     override fun updateLastModified() {
         super.updateLastModified()
@@ -143,9 +144,6 @@ class CollaborativePlaylist(
                 { a, b -> a == b },
                 { a, b -> a }
             )
-            // Totally remove anything that's been added and removed in the history!
-            val toRemove = combined.filter { it is Operation.Remove }
-
 
             operations puts combined
 
@@ -277,7 +275,7 @@ class CollaborativePlaylist(
             }
 
             return Result.Ok(CollaborativePlaylist(
-                SyncService.User("", "", playlist.ownerName),
+                User("", "", playlist.ownerName),
                 playlist.name,
                 null,
                 UUID.nameUUIDFromBytes(id.toByteArray())

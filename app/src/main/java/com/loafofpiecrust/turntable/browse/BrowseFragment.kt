@@ -17,12 +17,9 @@ import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragment
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.song.*
-import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.ui.RecyclerAdapter
-import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
-import com.loafofpiecrust.turntable.ui.replaceMainContent
+import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.ui.*
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.map
@@ -73,7 +70,7 @@ class BrowseFragment: BaseFragment() {
         recyclerView {
             layoutManager = LinearLayoutManager(ctx)
             adapter = SongsAdapter { songs, pos ->
-                MusicService.enact(SyncService.Message.PlaySongs(songs, pos))
+                MusicService.enact(PlayerAction.PlaySongs(songs, pos))
             }.apply {
                 subscribeData(
                     UserPrefs.history.openSubscription()
@@ -107,7 +104,7 @@ class MusicAdapter(
                 holder.subLine.text = item.id.artist.displayName
                 holder.coverImage?.image = null
                 holder.card.onClick {
-                    MusicService.enact(SyncService.Message.PlaySongs(listOf(item)))
+                    MusicService.enact(PlayerAction.PlaySongs(listOf(item)))
                 }
             }
             is Album -> {

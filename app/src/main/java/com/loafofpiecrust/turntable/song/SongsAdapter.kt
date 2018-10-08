@@ -12,17 +12,15 @@ import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.service.library
+import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
-import com.loafofpiecrust.turntable.ui.RecyclerBroadcastAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
 import com.loafofpiecrust.turntable.util.*
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.launch
@@ -64,7 +62,7 @@ open class SongsAdapter(
 //                holder.playingIcon.imageResource = R.drawable.ic_shuffle
 //                holder.playingIcon.visibility = View.VISIBLE
                 holder.card.onClick {
-                    MusicService.enact(SyncService.Message.PlaySongs(data, mode = MusicPlayer.OrderMode.SHUFFLE))
+                    MusicService.enact(PlayerAction.PlaySongs(data, mode = MusicPlayer.OrderMode.SHUFFLE))
                 }
                 return
             }
@@ -187,10 +185,10 @@ open class SongsAdapter(
                 }
 
                 menuItem(R.string.queue_last).onClick {
-                    MusicService.enact(SyncService.Message.Enqueue(listOf(song), MusicPlayer.EnqueueMode.NEXT))
+                    MusicService.enact(PlayerAction.Enqueue(listOf(song), MusicPlayer.EnqueueMode.NEXT))
                 }
                 menuItem(R.string.queue_next).onClick {
-                    MusicService.enact(SyncService.Message.Enqueue(listOf(song), MusicPlayer.EnqueueMode.IMMEDIATELY_NEXT))
+                    MusicService.enact(PlayerAction.Enqueue(listOf(song), MusicPlayer.EnqueueMode.IMMEDIATELY_NEXT))
                 }
 
                 song.optionsMenu(holder.itemView.context, this)

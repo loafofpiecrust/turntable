@@ -6,7 +6,7 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.sync.SyncService
+import com.loafofpiecrust.turntable.sync.User
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
@@ -26,14 +26,14 @@ import java.util.concurrent.TimeUnit
  * Question: How should users browse mixtapes? By tag? popularity? recent?
  */
 data class MixTape(
-    override val owner: SyncService.User,
+    override val owner: User,
     var type: Type,
     override var name: String,
     override var color: Int?,
     override val id: UUID = UUID.randomUUID()
 ) : Playlist() {
-    override val typeName: String
-        get() = "Mix Tape"
+    override val icon: Int
+        get() = R.drawable.ic_cassette
 
     /// For serialization
 //    private constructor(): this(SyncService.User(), Type.C60, "", null, UUID.randomUUID())
@@ -85,7 +85,7 @@ data class MixTape(
             }.await()
         }
 
-        suspend fun allFromUser(owner: SyncService.User): List<MixTape> {
+        suspend fun allFromUser(owner: User): List<MixTape> {
             return GlobalScope.suspendAsync<List<MixTape>> { cont ->
                 val db = FirebaseFirestore.getInstance()
                 val now = System.currentTimeMillis()

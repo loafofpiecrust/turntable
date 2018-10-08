@@ -153,18 +153,15 @@ class SearchFragment : BaseFragment() {
             setMenuIcon(context.getDrawable(R.drawable.ic_cake))
             setOnMenuClickListener {
                 popupMenu(Gravity.END) {
-                    menuItem(LocalApi.displayName).onClick {
-                        toast("Searching ${getString(LocalApi.displayName)}")
-                        searchApi = LocalApi
-                    }
-
-                    for (api in SearchApi.DEFAULT_APIS) {
-                        val name = getString(LocalApi.displayName)
-                        menuItem(name).onClick {
-                            toast("Searching on $name")
-                            searchApi = api
+                    (sequenceOf(LocalApi) + SearchApi.DEFAULT_APIS.asSequence())
+                        .filter { it.displayName != -1 }
+                        .forEach { api ->
+                            val name = getString(api.displayName)
+                            menuItem(name).onClick {
+                                toast("Searching $name")
+                                searchApi = api
+                            }
                         }
-                    }
                 }
             }
         }.lparams(width = matchParent, height = wrapContent)

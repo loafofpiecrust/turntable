@@ -64,7 +64,10 @@ class ArtistsFragment : BaseFragment() {
         if (!::artists.isInitialized) {
             val cat = category
             artists = when (cat) {
-                is Category.All -> Library.instance.artists
+                is Category.All -> Library.instance.artistsMap
+                    .openSubscription()
+                    .map { it.values.sortedBy { it.id } }
+                    .replayOne()
                 is Category.RelatedTo -> produceSingle(Dispatchers.IO) {
                     Spotify.similarTo(cat.id)
                 }.replayOne()

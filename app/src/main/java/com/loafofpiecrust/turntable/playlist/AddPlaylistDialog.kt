@@ -29,9 +29,7 @@ import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
-import com.loafofpiecrust.turntable.util.arg
-import com.loafofpiecrust.turntable.util.menuItem
-import com.loafofpiecrust.turntable.util.onClick
+import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.onTextChange
 import kotlinx.android.parcel.Parcelize
 import org.jetbrains.anko.*
@@ -177,18 +175,19 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
             lateinit var mixTapeSpinner: Spinner
             spinner {
                 val choices = listOf(
-                    "Playlist" to CollaborativePlaylist::class,
-                    "Mixtape" to MixTape::class,
-                    "Album Collection" to AlbumCollection::class
+                    CollaborativePlaylist::class,
+                    MixTape::class,
+                    AlbumCollection::class
                 )
-                adapter = ChoiceAdapter(context, choices.map { it.first })
+                val names = choices.map { it.localizedName(context) }
+                adapter = ChoiceAdapter(context, names)
 
                 onItemSelectedListener = object: AdapterView.OnItemSelectedListener {
                     override fun onNothingSelected(parent: AdapterView<*>) {
                     }
 
                     override fun onItemSelected(parent: AdapterView<*>, view: View, position: Int, id: Long) {
-                        val (_, choice) = choices[position]
+                        val choice = choices[position]
                         playlistType = choice
                         mixTapeSpinner.visibility = if (choice === MixTape::class) {
                             // Show different mixtape types.

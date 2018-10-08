@@ -10,18 +10,19 @@ import com.bumptech.glide.RequestManager
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.signature.ObjectKey
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.artist.ArtistsFragment
 import com.loafofpiecrust.turntable.artist.BiographyFragment
+import com.loafofpiecrust.turntable.artist.RelatedArtistsFragment
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.loadPalette
 import com.loafofpiecrust.turntable.browse.SearchApi
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.queue.RadioQueue
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.SavableMusic
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
+import com.loafofpiecrust.turntable.sync.Message
+import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
@@ -75,14 +76,14 @@ interface Artist: Music {
     override fun optionsMenu(context: Context, menu: Menu) = with(menu) {
         menuItem(R.string.artist_show_similar).onClick {
             context.replaceMainContent(
-                ArtistsFragment.relatedTo(id),
+                RelatedArtistsFragment(id),
                 true
             )
         }
 
         menuItem(R.string.recommend).onClick {
             FriendPickerDialog(
-                SyncService.Message.Recommendation(toPartial()),
+                Message.Recommendation(toPartial()),
                 context.getString(R.string.recommend)
             ).show(context)
         }
@@ -90,12 +91,12 @@ interface Artist: Music {
         // TODO: Sync with radios...
         // TODO: Sync with any type of queue!
         menuItem(R.string.radio_start).onClick(Dispatchers.Default) {
-            MusicService.enact(SyncService.Message.Pause(), false)
+            MusicService.enact(PlayerAction.Pause(), false)
 
             val radio = RadioQueue.fromSeed(listOf(this@Artist))
             if (radio != null) {
 //                MusicService.enact(SyncService.Message.ReplaceQueue(radio))
-                MusicService.enact(SyncService.Message.Play())
+                MusicService.enact(PlayerAction.Play())
             } else {
                 context.toast(context.getString(R.string.radio_no_data, id.displayName))
             }

@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.artist
 
-import android.graphics.drawable.Drawable
 import android.support.annotation.StringRes
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.AppBarLayout
@@ -11,10 +10,6 @@ import android.view.View
 import android.view.ViewManager
 import android.widget.ImageView
 import com.bumptech.glide.Glide
-import com.bumptech.glide.load.DataSource
-import com.bumptech.glide.load.engine.GlideException
-import com.bumptech.glide.request.RequestListener
-import com.bumptech.glide.request.target.Target
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.album.AlbumsFragment
@@ -54,7 +49,7 @@ import org.jetbrains.anko.sdk27.coroutines.onClick
 class ArtistDetailsFragment: BaseFragment() {
     private var artistId: ArtistId by arg()
 
-    enum class Mode(@StringRes val titleRes: Int) {
+    enum class Mode(@StringRes val resource: Int) {
         LIBRARY_AND_REMOTE(R.string.artist_content_all),
         LIBRARY(R.string.artist_content_library),
         REMOTE(R.string.artist_content_remote),
@@ -80,6 +75,19 @@ class ArtistDetailsFragment: BaseFragment() {
 
 //    private var localArtist: ReceiveChannel<Artist>? = null
 //    private var remoteArtist: ReceiveChannel<Artist>? = null
+
+    init {
+        val trans = TransitionSet()
+            .addTransition(ChangeBounds())
+            .addTransition(ChangeTransform())
+            .addTransition(ChangeClipBounds())
+
+        sharedElementEnterTransition = trans
+//        sharedElementReturnTransition = trans
+
+        enterTransition = Fade()
+        exitTransition = Fade()
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -110,15 +118,6 @@ class ArtistDetailsFragment: BaseFragment() {
                 .broadcast(CONFLATED)
         }
 
-        val trans = TransitionSet()
-            .addTransition(ChangeBounds())
-            .addTransition(ChangeTransform())
-            .addTransition(ChangeClipBounds())
-
-        sharedElementEnterTransition = trans
-//        sharedElementReturnTransition = trans
-
-        enterTransition = Fade()
 //        exitTransition = Fade()
     }
 
@@ -169,7 +168,7 @@ class ArtistDetailsFragment: BaseFragment() {
                         currentMode.consumeEachAsync { mode ->
                             text = getString(
                                 R.string.artist_content_source,
-                                getString(mode.titleRes)
+                                getString(mode.resource)
                             )
                         }
 
@@ -177,7 +176,7 @@ class ArtistDetailsFragment: BaseFragment() {
                             currentMode puts context.selector(
                                 getString(R.string.artist_pick_source),
                                 Mode.values().toList(),
-                                format = { getString(it.titleRes) }
+                                format = { getString(it.resource) }
                             )
                         }
                     }

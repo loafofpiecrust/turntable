@@ -82,6 +82,7 @@
     <string name="artist_content_all">All</string>
     <string name="artist_active_now">Now</string>
     <string name="artist_show_similar">Similar Artists</string>
+    <string name="similar_to_artist">Similar To %1$s</string>
     <string name="artist_biography">Biography</string>
     <string name="artist_features">(ft. %1$s)</string>
 
@@ -134,4 +135,9 @@
     <string name="search_discogs">Discogs</string>
     <string name="search_musicbrainz">MusicBrainz</string>
     <string name="search_local">Local Library</string>
+
+    <!-- Type Names -->
+    <string name="CollaborativePlaylist">Playlist</string>
+    <string name="MixTape">Mixtape</string>
+    <string name="AlbumCollection">Album Collection</string>
 </resources>

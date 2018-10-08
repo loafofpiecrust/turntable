@@ -44,7 +44,10 @@ class AlbumsFragment : BaseFragment() {
         abstract val channel: BroadcastChannel<List<Album>>
 
         @Parcelize object All : Category() {
-            override val channel get() = Library.instance.albums
+            override val channel get() =
+                Library.instance.albumsMap.openSubscription().map {
+                    it.values.sortedBy { it.id }
+                }.replayOne()
         }
         @Parcelize data class ByArtist(
             val artist: ArtistId,

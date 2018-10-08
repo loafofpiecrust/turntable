@@ -14,8 +14,8 @@ import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.util.recyclerViewPager
 import com.loafofpiecrust.turntable.screenSize
-import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.android.Main
@@ -41,7 +41,7 @@ class PlayerAlbumCoverFragment : BaseFragment() {
         var fromInteraction = true
         addOnPageChangedListener { prev, curr ->
             if (fromInteraction) {
-                MusicService.enact(SyncService.Message.QueuePosition(curr))
+                MusicService.enact(PlayerAction.QueuePosition(curr))
             }
         }
 

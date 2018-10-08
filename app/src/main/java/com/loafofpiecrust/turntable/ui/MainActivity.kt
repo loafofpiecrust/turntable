@@ -17,6 +17,7 @@ import android.os.Parcelable
 import android.provider.MediaStore
 import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentManager
+import android.support.v4.app.FragmentTransaction
 import android.support.v4.widget.DrawerLayout
 import android.view.Gravity
 import android.view.View
@@ -39,7 +40,10 @@ import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
+import com.loafofpiecrust.turntable.sync.Message
+import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.sync.SyncService
+import com.loafofpiecrust.turntable.sync.User
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.*
@@ -52,8 +56,8 @@ import org.jetbrains.anko.support.v4.drawerLayout
 class MainActivity : BaseActivity(), MultiplePermissionsListener {
     sealed class Action: Parcelable {
         @Parcelize class OpenNowPlaying: Action()
-        @Parcelize data class SyncRequest(val sender: SyncService.User): Action()
-        @Parcelize data class FriendRequest(val sender: SyncService.User): Action()
+        @Parcelize data class SyncRequest(val sender: User): Action()
+        @Parcelize data class FriendRequest(val sender: User): Action()
     }
 
     @Arg(optional=true) var action: Action? = null
@@ -295,14 +299,14 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                 alert("${sender.name} wants to be friends") {
                     positiveButton(R.string.user_befriend) {
                         SyncService.send(
-                            SyncService.Message.FriendResponse(true),
+                            Message.FriendResponse(true),
                             SyncService.Mode.OneOnOne(sender)
                         )
-                        UserPrefs.friends appends SyncService.Friend(sender, SyncService.Friend.Status.CONFIRMED)
+                        UserPrefs.friends putsMapped { it + SyncService.Friend(sender, SyncService.Friend.Status.CONFIRMED) }
                     }
                     negativeButton(R.string.request_decline) {
                         SyncService.send(
-                            SyncService.Message.FriendResponse(false),
+                            Message.FriendResponse(false),
                             SyncService.Mode.OneOnOne(sender)
                         )
                     }
@@ -320,7 +324,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                     }
                     negativeButton(R.string.request_decline) {
                         SyncService.send(
-                            SyncService.Message.SyncResponse(false),
+                            Message.SyncResponse(false),
                             SyncService.Mode.OneOnOne(sender)
                         )
                     }
@@ -346,7 +350,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                     GlobalScope.launch {
                         val song = Spotify.searchSongs(query).firstOrNull()
                         if (song != null) {
-                            MusicService.enact(SyncService.Message.PlaySongs(listOf(song)))
+                            MusicService.enact(PlayerAction.PlaySongs(listOf(song)))
                         }
                     }
 //                }
@@ -422,7 +426,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
             "sync-request" -> {
                 val id = url.getQueryParameter("from")
 //                val displayName = url.getQueryParameter("id")
-                given(SyncService.User.resolve(id)) {
+                given(User.resolve(id)) {
                     SyncService.requestSync(it)
                 }
             }
@@ -430,7 +434,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                 val id = url.getQueryParameter("id")
 //                val id = url.getQueryParameter("id")
 
-                val other = given(SyncService.User.resolve(id)) {
+                val other = given(User.resolve(id)) {
                     SyncService.Friend(it, SyncService.Friend.Status.CONFIRMED)
                 }
                 if (other != null && !UserPrefs.friends.value.contains(other)) {
@@ -443,8 +447,8 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
     }
 
 
-    override fun onSaveInstanceState(outState: Bundle?) {
-        super.onSaveInstanceState(outState)
+    override fun onPause() {
+        super.onPause()
         // Save preference files here!
         runBlocking(Dispatchers.IO) { UserPrefs.saveFiles() }
     }
@@ -452,6 +456,8 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
 
 fun FragmentManager.replaceMainContent(fragment: Fragment, allowBackNav: Boolean, sharedElems: List<View>? = null) {
     beginTransaction().apply {
+//        currentFragment?.exitTransition = Fade()
+        setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
         sharedElems?.forEach {
             addSharedElement(it, it.transitionName)
         }

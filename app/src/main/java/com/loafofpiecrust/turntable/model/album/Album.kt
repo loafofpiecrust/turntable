@@ -27,10 +27,10 @@ import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.PlaylistPickerDialog
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
+import com.loafofpiecrust.turntable.sync.Message
+import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.*
@@ -77,13 +77,13 @@ interface Album: Music {
     override fun optionsMenu(context: Context, menu: Menu) {
         menu.menuItem(R.string.album_shuffle, R.drawable.ic_shuffle, showIcon =false).onClick(Dispatchers.Default) {
             if (tracks.isNotEmpty()) {
-                MusicService.enact(SyncService.Message.PlaySongs(tracks, mode = MusicPlayer.OrderMode.SHUFFLE))
+                MusicService.enact(PlayerAction.PlaySongs(tracks, mode = MusicPlayer.OrderMode.SHUFFLE))
             }
         }
 
         menu.menuItem(R.string.recommend).onClick {
             FriendPickerDialog(
-                SyncService.Message.Recommendation(toPartial()),
+                Message.Recommendation(toPartial()),
                 context.getString(R.string.recommend)
             ).show(context)
         }

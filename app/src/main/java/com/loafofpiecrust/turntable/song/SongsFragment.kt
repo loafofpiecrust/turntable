@@ -18,9 +18,9 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.style.turntableStyle
+import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.*
@@ -78,7 +78,10 @@ open class SongsFragment(): BaseFragment() {
         if (!::songs.isInitialized) {
             val cat = category
             when (cat) {
-                is Category.All -> songs = Library.instance.songs
+                is Category.All -> songs = Library.instance.songsMap
+                    .openSubscription()
+                    .map { it.values.sortedBy { it.id } }
+                    .replayOne()
 //                is Category.OnAlbum -> songs =
             }
         }
@@ -121,7 +124,7 @@ fun ViewManager.songsList(
 
     val cat = category
     val adapter = SongsAdapter(cat) { songs, idx ->
-        MusicService.enact(SyncService.Message.PlaySongs(songs, idx))
+        MusicService.enact(PlayerAction.PlaySongs(songs, idx))
     }
 
     val recycler = if (cat is SongsFragment.Category.All) {

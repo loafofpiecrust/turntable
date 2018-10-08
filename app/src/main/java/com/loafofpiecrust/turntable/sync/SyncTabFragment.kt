@@ -23,7 +23,6 @@ import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.support.v4.alert
-import org.jetbrains.anko.support.v4.ctx
 import org.jetbrains.anko.support.v4.toast
 
 
@@ -39,7 +38,9 @@ class SyncTabFragment: BaseFragment() {
                 pickContact()
             },
             getString(R.string.friend_from_email) to {
-                alert(R.string.friend_add) {
+                alert {
+                    titleResource = R.string.friend_add
+
                     lateinit var textBox: EditText
                     customView {
                         verticalLayout {
@@ -52,8 +53,8 @@ class SyncTabFragment: BaseFragment() {
                     }
                     positiveButton(R.string.user_befriend) {
                         val key = textBox.text.toString()
-                        async {
-                            val user = withContext(Dispatchers.IO) { SyncService.User.resolve(key) }
+                        this@SyncTabFragment.launch {
+                            val user = withContext(Dispatchers.IO) { User.resolve(key) }
                             // TODO: Use localized strings in xml
                             toast(if (user != null) {
                                 if (SyncService.requestFriendship(user)) {
@@ -103,7 +104,7 @@ class SyncTabFragment: BaseFragment() {
 
             cursor.closeQuietly()
             launch(Dispatchers.Default) {
-                val user = SyncService.User.resolve(email)
+                val user = User.resolve(email)
                 withContext(Dispatchers.Main) {
                     toast(if (user != null) {
                         if (SyncService.requestFriendship(user)) {
@@ -158,7 +159,10 @@ class SyncTabFragment: BaseFragment() {
                             )
                             SyncService.Friend.Status.SENT_REQUEST -> listOf(
                                 getString(R.string.friend_request_cancel) to {
-                                    UserPrefs.friends putsMapped { it.without(position) }
+                                    UserPrefs.friends putsMapped { it - friend }
+                                },
+                                "Resend Request" to {
+                                    SyncService.requestFriendship(friend.user)
                                 }
                             )
                         }
@@ -169,7 +173,7 @@ class SyncTabFragment: BaseFragment() {
                 }
             }.apply {
                 subscribeData(UserPrefs.friends.openSubscription().map {
-                    it.filter { it.status != SyncService.Friend.Status.SENT_REQUEST }
+                    it.toList()//.filter { it.status != SyncService.Friend.Status.SENT_REQUEST }
                 })
             }
         }

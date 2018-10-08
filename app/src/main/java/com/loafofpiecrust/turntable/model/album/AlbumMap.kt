@@ -1,12 +1,16 @@
 package com.loafofpiecrust.turntable.model.album
 
 import java.util.*
+import kotlin.collections.HashMap
 
-class AlbumMap : TreeMap<AlbumId, Album>() {
-    override fun put(key: AlbumId, value: Album): Album? {
+
+class MergingHashMap<K, V>(
+    private val merge: (V, V) -> V
+) : HashMap<K, V>() {
+    override fun put(key: K, value: V): V? {
         val previous = this[key]
         return if (previous != null) {
-            super.put(key, MergedAlbum(previous, value))
+            super.put(key, merge(previous, value))
             previous
         } else {
             super.put(key, value)

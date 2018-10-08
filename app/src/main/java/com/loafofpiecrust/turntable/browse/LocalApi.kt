@@ -18,15 +18,15 @@ object LocalApi: SearchApi {
 
     private val library: Library get() = Library.instance
 
-    override suspend fun searchArtists(query: String) = library.artists.value.filter {
+    override suspend fun searchArtists(query: String) = library.artistsMap.value.values.filter {
         FuzzySearch.partialRatio(it.id.displayName, query) > 80
     }
 
-    override suspend fun searchAlbums(query: String) = library.albums.value.filter {
+    override suspend fun searchAlbums(query: String) = library.albumsMap.value.values.filter {
         FuzzySearch.partialRatio(it.id.displayName, query) > 80
     }
 
-    override suspend fun searchSongs(query: String) = library.songs.value.filter {
+    override suspend fun searchSongs(query: String) = library.songsMap.value.values.filter {
         FuzzySearch.partialRatio(it.id.displayName, query) > 80
     }
 

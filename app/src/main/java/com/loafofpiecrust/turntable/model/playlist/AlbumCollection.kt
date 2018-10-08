@@ -6,7 +6,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.sync.SyncService
+import com.loafofpiecrust.turntable.sync.User
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
@@ -18,20 +18,20 @@ import java.util.*
 
 
 class AlbumCollection(
-    override val owner: SyncService.User,
+    override val owner: User,
     override var name: String,
     override var color: Int?,
     override val id: UUID
 ) : Playlist() {
     /// For serialization
-    private constructor(): this(SyncService.User(), "", null, UUID.randomUUID())
+    private constructor(): this(User(), "", null, UUID.randomUUID())
 
     private val _albums = ConflatedBroadcastChannel(listOf<Album>())
 
     val albums: ReceiveChannel<List<Album>> get() = _albums.openSubscription()
 
-    override val typeName: String
-        get() = "Album Collection"
+    override val icon: Int
+        get() = R.drawable.ic_album
 
     override val tracks: ReceiveChannel<List<Song>>
         get() = albums.map {

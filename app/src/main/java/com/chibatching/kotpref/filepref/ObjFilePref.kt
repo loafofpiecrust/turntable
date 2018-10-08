@@ -45,15 +45,15 @@ abstract class BaseObjFilePref<T: Any>(
 
     @Synchronized
     fun save() {
-        if (name == null || className == null) return
+        if (name == null || className == null || lastModify < lastWrite) return
         try {
             val file = App.instance.filesDir.resolve(fileName)
             if (!file.exists()) {
                 file.createNewFile()
             }
 
-            runBlocking { serialize(file.outputStream(), subject.value) }
             lastWrite = System.nanoTime()
+            runBlocking { serialize(file.outputStream(), subject.value) }
         } catch (e: Throwable) {
             error("Preference '$name' failed to save.", e)
         }
@@ -75,16 +75,17 @@ abstract class BaseObjFilePref<T: Any>(
 }
 
 class objFilePref<T: Any>(default: T): BaseObjFilePref<T>(default) {
+    init {
+        subject.consumeEach(BG_POOL) {
+            lastModify = System.nanoTime()
+        }
+    }
+
     override fun setToPreference(property: KProperty<*>, value: T, preference: SharedPreferences) {
     }
 
     override fun setToEditor(property: KProperty<*>, value: T, editor: SharedPreferences.Editor) {
     }
-//    init {
-//        subject.consumeEach(BG_POOL) {
-//            lastModify = System.nanoTime()
-//        }
-//    }
 
     override fun getFromPreference(property: KProperty<*>, preference: SharedPreferences): T {
         val res = try {

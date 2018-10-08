@@ -19,8 +19,8 @@ import org.jetbrains.anko.support.v4.alert
 import org.jetbrains.anko.support.v4.toast
 
 private class UserAdapter(
-    val listener: (SyncService.User) -> Unit
-): RecyclerAdapter<SyncService.User, RecyclerListItemOptimized>() {
+    val listener: (User) -> Unit
+): RecyclerAdapter<User, RecyclerListItemOptimized>() {
     var selected: RecyclerListItemOptimized? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int)
@@ -41,15 +41,15 @@ private class UserAdapter(
 }
 
 class FriendPickerDialog(): BaseDialogFragment() {
-    constructor(message: SyncService.Message, acceptText: String = "Send"): this() {
+    constructor(message: Message, acceptText: String = "Send"): this() {
         this.message = message
         this.acceptText = acceptText
     }
 
-    private var message: SyncService.Message by arg()
+    private var message: Message by arg()
     private var acceptText: String by arg()
 
-    private var selected: SyncService.User? = null
+    private var selected: User? = null
 
     override fun ViewManager.createView() = recyclerView {
         minimumHeight = dimen(R.dimen.song_item_height) * 5

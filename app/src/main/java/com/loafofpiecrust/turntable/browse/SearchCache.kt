@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.browse
 
-import com.google.gson.internal.LinkedTreeMap
+import android.view.View
+import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.Artist
@@ -11,7 +12,7 @@ import com.loafofpiecrust.turntable.model.song.Song
 
 object SearchCache: SearchApi {
     override val displayName: Int
-        get() = 0
+        get() = -1
 
     private const val CACHE_COUNT = 25
 
@@ -29,7 +30,7 @@ object SearchCache: SearchApi {
         put(key, value)
     }
 
-    private val music = LinkedTreeMap<MusicId, Music>()
+    private val music = LinkedHashMap<MusicId, Music>()
     fun cache(item: Album) = music.cache(item.id, item)
     fun cache(item: Artist) = music.cache(item.id, item)
 
@@ -42,7 +43,7 @@ object SearchCache: SearchApi {
     }
 
 
-    private val artwork = LinkedTreeMap<MusicId, String>()
+    private val artwork = LinkedHashMap<MusicId, String>()
     fun cacheArtwork(item: Album, url: String) = artwork.cache(item.id, url)
     fun cacheArtwork(item: Artist, url: String) = artwork.cache(item.id, url)
     override suspend fun fullArtwork(album: Album, search: Boolean): String? = artwork[album.id]

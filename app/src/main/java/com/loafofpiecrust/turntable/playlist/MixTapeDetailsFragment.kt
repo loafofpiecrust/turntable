@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.playlist
 
-import activitystarter.Arg
 import android.support.design.widget.TabLayout
 import android.support.transition.Slide
 import android.support.v4.app.FragmentPagerAdapter
@@ -8,16 +7,16 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.View
 import android.view.ViewManager
-import android.widget.LinearLayout
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
+import com.loafofpiecrust.turntable.sync.Message
+import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.Dispatchers
@@ -57,8 +56,8 @@ class MixTapeDetailsFragment: BaseFragment() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
     }
 
-    override fun ViewManager.createView(): View = linearLayout {
-        orientation = LinearLayout.VERTICAL
+    override fun ViewManager.createView(): View = verticalLayout {
+        backgroundColorResource = R.color.background
 
         playlist = runBlocking {
             Library.instance.findPlaylist(playlistId).first()
@@ -82,7 +81,7 @@ class MixTapeDetailsFragment: BaseFragment() {
 
                 menuItem(R.string.share).onClick {
                     FriendPickerDialog(
-                        SyncService.Message.Playlist(playlistId),
+                        Message.Playlist(playlistId),
                         "Share"
                     ).show(context)
                 }

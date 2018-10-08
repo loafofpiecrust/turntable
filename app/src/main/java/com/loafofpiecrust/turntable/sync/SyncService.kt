@@ -8,9 +8,6 @@ import android.os.Parcelable
 import android.support.v4.app.NotificationCompat
 import android.support.v4.app.NotificationCompat.PRIORITY_DEFAULT
 import android.support.v4.app.NotificationCompat.PRIORITY_HIGH
-import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey
-import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBIgnore
-import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable
 import com.github.salomonbrys.kotson.jsonArray
 import com.github.salomonbrys.kotson.jsonObject
 import com.github.salomonbrys.kotson.obj
@@ -21,27 +18,20 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.model.SavableMusic
-import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.ui.MainActivityStarter
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.actor
 import kotlinx.coroutines.experimental.channels.consumeEach
 import org.jetbrains.anko.*
 import java.lang.ref.WeakReference
-import java.util.*
-import java.util.concurrent.TimeUnit
 import kotlin.coroutines.experimental.CoroutineContext
 
 
@@ -82,7 +72,7 @@ class SyncService : FirebaseMessagingService(), CoroutineScope {
 
         val mode: ConflatedBroadcastChannel<Mode> by lazy {
             ConflatedBroadcastChannel<Mode>(Mode.None()).also {
-                launch {
+                GlobalScope.launch {
                     it.openSubscription()
                         .changes()
                         .consumeEach { (prev, value) ->
@@ -162,14 +152,6 @@ class SyncService : FirebaseMessagingService(), CoroutineScope {
                 is Mode.Topic -> "/topics/${mode.topic}"
             }
 
-            val ttl = when (msg) {
-                is Message.Recommendation -> TimeUnit.DAYS.toSeconds(28)
-                is Message.FriendRequest -> TimeUnit.DAYS.toSeconds(28)
-                is Message.FriendResponse -> TimeUnit.DAYS.toSeconds(28)
-                is Message.SyncRequest -> TimeUnit.HOURS.toSeconds(1)
-                else -> TimeUnit.MINUTES.toSeconds(3)
-            }
-
             val res = Http.post("https://fcm.googleapis.com/fcm/send",
                 headers = mapOf(
                     "Authorization" to "key=$SERVER_KEY",
@@ -178,7 +160,7 @@ class SyncService : FirebaseMessagingService(), CoroutineScope {
                 body = jsonObject(
                     "to" to target,
                     "priority" to "high",
-                    "time_to_live" to ttl,
+                    "time_to_live" to msg.timeout,
                     "data" to jsonObject(
                         "sender" to serializeToString(selfUser),
                         "action" to serializeToString(msg.minimize())
@@ -298,7 +280,7 @@ class SyncService : FirebaseMessagingService(), CoroutineScope {
             return if (existing != null) {
                 false
             } else {
-                UserPrefs.friends appends Friend(otherUser, Friend.Status.SENT_REQUEST)
+                UserPrefs.friends putsMapped { it + Friend(otherUser, Friend.Status.SENT_REQUEST) }
                 send(Message.FriendRequest(), Mode.OneOnOne(otherUser))
                 true
             }
@@ -340,100 +322,6 @@ class SyncService : FirebaseMessagingService(), CoroutineScope {
         @Parcelize data class Topic(val topic: String): Mode()
     }
 
-    sealed class Message {
-        internal open fun minimize(): Message = this
-        /// seconds
-        internal open val timeout: Long get() = TimeUnit.MINUTES.toSeconds(3)
-
-        class Play: Message()
-        class Pause: Message()
-        class TogglePause: Message()
-        class Stop: Message()
-        data class QueuePosition(val pos: Int): Message()
-        data class RelativePosition(val diff: Int): Message()
-        data class Enqueue(
-            val songs: List<Song>,
-            val mode: MusicPlayer.EnqueueMode
-        ): Message()
-        data class ShiftQueueItem(
-            val fromIdx: Int,
-            val toIdx: Int
-        ): Message()
-        data class RemoveFromQueue(val pos: Int): Message()
-        data class PlaySongs(
-            val songs: List<Song>,
-            val pos: Int = 0,
-            val mode: MusicPlayer.OrderMode = MusicPlayer.OrderMode.SEQUENTIAL
-        ): Message() {
-//            override fun minimize() = copy(songs = songs.map { it.minimizeForSync() })
-        }
-        data class SeekTo(val pos: Long): Message()
-        class SyncRequest: Message() {
-            override val timeout get() = TimeUnit.MINUTES.toSeconds(20)
-        }
-        class EndSync: Message()
-        data class SyncResponse(val accept: Boolean): Message()
-        class FriendRequest: Message() {
-            override val timeout get() = TimeUnit.DAYS.toSeconds(28)
-        }
-        data class FriendResponse(val accept: Boolean): Message() {
-            override val timeout get() = TimeUnit.DAYS.toSeconds(28)
-        }
-        data class Recommendation(val content: SavableMusic): Message() {
-            override val timeout get() = TimeUnit.DAYS.toSeconds(28)
-        }
-        data class Playlist(val id: UUID): Message()
-        class Ping: Message()
-        class ClearQueue: Message()
-    }
-
-
-    @Parcelize
-    @DynamoDBTable(tableName="TurntableUsers")
-    data class User(
-        @get:DynamoDBHashKey(attributeName="email")
-        var username: String,
-        var deviceId: String,
-        var displayName: String?
-    ): Parcelable {
-        constructor(): this("", "", null)
-
-        @get:DynamoDBIgnore
-        val name get() = displayName?.let {
-            if (it.isNotBlank()) it else username
-        } ?: username
-
-        companion object {
-            fun resolve(username: String): User? = run {
-                if (username.isBlank()) return null
-
-                val db = OnlineSearchService.instance.dbMapper
-                db.load(User::class.java, username)
-            }
-        }
-
-        fun upload() {
-            if (username.isBlank()) return
-
-            println("sync: saving user info under $username")
-            GlobalScope.launch {
-                val db = OnlineSearchService.instance.dbMapper
-                try {
-                    db.save(this@User)
-                } catch (e: Throwable) {
-                    error("Failed uploading user data", e)
-                }
-            }
-        }
-
-        fun refresh() = GlobalScope.async {
-            val db = OnlineSearchService.instance.dbMapper
-            val remote = db.load(User::class.java, username)
-            deviceId = remote.deviceId
-            displayName = remote.displayName
-            this@User
-        }
-    }
 
     @Parcelize
     data class Friend(
@@ -446,26 +334,22 @@ class SyncService : FirebaseMessagingService(), CoroutineScope {
             RECEIVED_REQUEST
         }
 
+        override fun hashCode() = user.hashCode()
+
         fun respondToRequest(accept: Boolean) {
             if (status == Status.RECEIVED_REQUEST) {
                 send(Message.FriendResponse(accept), Mode.OneOnOne(user))
 
                 UserPrefs.friends putsMapped {
-                    val idx = it.indexOf(this)
                     if (accept) {
-                        val new = this.copy(status = Status.CONFIRMED)
-                        if (idx >= 0) {
-                            it.withReplaced(idx, new)
-                        } else it + new
+                        it + this.copy(status = Status.CONFIRMED)
                     } else {
-                        if (idx >= 0) {
-                            it.without(idx)
-                        } else it
+                        it - this
                     }
                 }
             } else if (status == Status.CONFIRMED) {
                 send(Message.FriendResponse(accept), Mode.OneOnOne(user))
-                UserPrefs.friends putsMapped { it.withoutFirst { it.user == user } }
+                UserPrefs.friends putsMapped { it - this }
             }
         }
     }
@@ -505,7 +389,7 @@ class SyncService : FirebaseMessagingService(), CoroutineScope {
                     if (message !is Message.Ping) {
                         send(Message.Ping())
                     }
-                } else {
+                } else if (message is PlayerAction) {
                     send(Message.EndSync())
                     return@launch
                 }
@@ -517,8 +401,8 @@ class SyncService : FirebaseMessagingService(), CoroutineScope {
                         sender.refresh().await()
                     } else sender
 
-                    launch(UI) {
-                        notificationManager.notify(12349, NotificationCompat.Builder(ctx, "turntable").apply {
+                    launch(Dispatchers.Main) {
+                        notificationManager.notify(12349, NotificationCompat.Builder(this@SyncService, "turntable").apply {
                             priority = PRIORITY_HIGH
                             setSmallIcon(R.drawable.ic_circle)
                             setContentTitle("Sync request")
@@ -527,8 +411,8 @@ class SyncService : FirebaseMessagingService(), CoroutineScope {
                             setOngoing(true)
 
                             setContentIntent(PendingIntent.getActivity(
-                                ctx, 6977,
-                                MainActivityStarter.getIntent(ctx, MainActivity.Action.SyncRequest(sender)),
+                                this@SyncService, 6977,
+                                MainActivityStarter.getIntent(this@SyncService, MainActivity.Action.SyncRequest(sender)),
                                 0
                             ))
                         }.build())
@@ -569,13 +453,13 @@ class SyncService : FirebaseMessagingService(), CoroutineScope {
                     } else sender
 
                     // TODO: Don't add duplicate.
-                    if (UserPrefs.friends.value.find { it.user == sender } == null) {
+                    if (!UserPrefs.friends.value.any { it.user == sender }) {
                         // We don't know this user in any capacity yet.
-                        UserPrefs.friends appends Friend(sender, Friend.Status.RECEIVED_REQUEST)
+                        UserPrefs.friends putsMapped { it + Friend(sender, Friend.Status.RECEIVED_REQUEST) }
                     }
 
-                    launch(UI) {
-                        notificationManager.notify(12350, NotificationCompat.Builder(ctx, "turntable").apply {
+                    launch(Dispatchers.Main) {
+                        notificationManager.notify(12350, NotificationCompat.Builder(this@SyncService, "turntable").apply {
                             priority = PRIORITY_DEFAULT
                             setSmallIcon(R.drawable.ic_circle)
                             setContentTitle("Friend request")
@@ -598,12 +482,12 @@ class SyncService : FirebaseMessagingService(), CoroutineScope {
                     } else sender
 
                     val friends = UserPrefs.friends.value
-                    val existingIdx = friends.indexOfFirst { it.user == sender }
+                    val newFriend = Friend(sender, Friend.Status.CONFIRMED)
                     if (message.accept) {
-                        UserPrefs.friends puts friends.withReplaced(existingIdx, Friend(sender, Friend.Status.CONFIRMED))
+                        UserPrefs.friends puts friends + newFriend
                         launch(Dispatchers.Main) { toast("Friendship fostered with ${sender.name}") }
                     } else {
-                        UserPrefs.friends puts friends.without(existingIdx)
+                        UserPrefs.friends puts friends - newFriend
                         launch(Dispatchers.Main) { toast("${sender.name} declined friendship :(") }
                     }
                 }
@@ -625,7 +509,7 @@ class SyncService : FirebaseMessagingService(), CoroutineScope {
                     }
                 }
 
-                else -> MusicService.enact(message, false)
+                is PlayerAction -> MusicService.enact(message, false)
             }
         }
     }
@@ -634,7 +518,7 @@ class SyncService : FirebaseMessagingService(), CoroutineScope {
     private fun updateNotification() {
         val mode = mode.value
 
-        notificationManager.notify(70, NotificationCompat.Builder(ctx, "turntable").apply {
+        notificationManager.notify(70, NotificationCompat.Builder(this, "turntable").apply {
             priority = PRIORITY_DEFAULT
             setSmallIcon(R.drawable.ic_refresh)
             setOngoing(true)

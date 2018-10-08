@@ -59,7 +59,7 @@ object UserPrefs: KotprefModel() {
     val playlists by pref(emptyList<Playlist>())
     val recommendations by pref(emptyList<SavableMusic>())
 
-    val friends by pref(emptyList<SyncService.Friend>())
+    val friends by pref(emptySet<SyncService.Friend>())
 
     val queue by pref<MusicPlayer.Queue>(StaticQueue(emptyList(), 0))
 }

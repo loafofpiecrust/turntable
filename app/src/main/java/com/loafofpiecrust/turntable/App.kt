@@ -18,16 +18,13 @@ import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
+import com.loafofpiecrust.turntable.sync.User
 import com.loafofpiecrust.turntable.util.*
 import de.javakaffee.kryoserializers.ArraysAsListSerializer
 import de.javakaffee.kryoserializers.SubListSerializers
 import de.javakaffee.kryoserializers.UUIDSerializer
-import de.javakaffee.kryoserializers.dexx.ListSerializer
-import de.javakaffee.kryoserializers.dexx.MapSerializer
-import de.javakaffee.kryoserializers.dexx.SetSerializer
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import org.jetbrains.anko.connectivityManager
 import org.jetbrains.anko.windowManager
@@ -39,7 +36,9 @@ import kotlin.coroutines.experimental.CoroutineContext
 
 class App: Application() {
     enum class InternetStatus {
-        UNLIMITED, LIMITED, OFFLINE
+        UNLIMITED,
+        LIMITED,
+        OFFLINE
     }
 
     companion object: CoroutineScope {
@@ -76,7 +75,7 @@ class App: Application() {
                 register(ArrayList::class.java, 107)
                 register(Arrays.asList(0).javaClass, ArraysAsListSerializer(), 108)
 
-                register(SyncService.User::class.java, 109)
+                register(User::class.java, 109)
                 register(StaticQueue::class.java, 110)
                 register(SyncService.Friend::class.java, 111)
                 register(ConflatedBroadcastChannel::class.java, 112)

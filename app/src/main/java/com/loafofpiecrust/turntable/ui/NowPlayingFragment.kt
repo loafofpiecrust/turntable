@@ -7,17 +7,13 @@ import android.graphics.Color
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.FloatingActionButton
 import android.view.ViewManager
-import android.widget.ImageButton
 import android.widget.SeekBar
 import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.album.loadPalette
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.sync.SyncService
-import com.loafofpiecrust.turntable.sync.FriendPickerDialog
-import com.loafofpiecrust.turntable.sync.SyncDetailsDialog
+import com.loafofpiecrust.turntable.sync.*
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.map
 import kotlinx.coroutines.experimental.launch
@@ -41,12 +37,12 @@ open class NowPlayingFragment : BaseFragment() {
             if (it) {
                 playButton.imageResource = R.drawable.ic_pause
                 playButton.onClick {
-                    MusicService.enact(SyncService.Message.Pause())
+                    MusicService.enact(PlayerAction.Pause())
                 }
             } else {
                 playButton.imageResource = R.drawable.ic_play_arrow
                 playButton.onClick {
-                    MusicService.enact(SyncService.Message.Play())
+                    MusicService.enact(PlayerAction.Play())
                 }
             }
         }
@@ -105,7 +101,7 @@ open class NowPlayingFragment : BaseFragment() {
                 }
 
                 override fun onStopTrackingTouch(bar: SeekBar?) {
-                    MusicService.enact(SyncService.Message.SeekTo(value.toLong()))
+                    MusicService.enact(PlayerAction.SeekTo(value.toLong()))
                     isSeeking = false
                 }
             })
@@ -134,7 +130,7 @@ open class NowPlayingFragment : BaseFragment() {
                         v!!.context.selector("Sync options", listOf(
                             "Sync with Friend" to {
                                 FriendPickerDialog(
-                                    SyncService.Message.SyncRequest(),
+                                    Message.SyncRequest(),
                                     "Request Sync"
                                 ).show(ctx)
                             }
@@ -153,7 +149,7 @@ open class NowPlayingFragment : BaseFragment() {
 
         val prevBtn = iconButton(R.drawable.ic_skip_previous) {
             onClick {
-                MusicService.enact(SyncService.Message.RelativePosition(-1))
+                MusicService.enact(PlayerAction.RelativePosition(-1))
             }
         }
 
@@ -166,7 +162,7 @@ open class NowPlayingFragment : BaseFragment() {
 
         val nextBtn = iconButton(R.drawable.ic_skip_next) {
             onClick {
-                MusicService.enact(SyncService.Message.RelativePosition(1))
+                MusicService.enact(PlayerAction.RelativePosition(1))
             }
         }
 

@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.model.playlist
 
 import android.content.Context
+import android.support.annotation.DrawableRes
 import android.view.Menu
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ServerTimestamp
@@ -9,13 +10,15 @@ import com.loafofpiecrust.turntable.repeat
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.SavableMusic
-import com.loafofpiecrust.turntable.util.suspendAsync
-import kotlinx.coroutines.experimental.GlobalScope
+import com.loafofpiecrust.turntable.sync.Message
+import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.sync.User
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import java.util.*
+import kotlin.coroutines.experimental.suspendCoroutine
 
 abstract class Playlist: SavableMusic {
-    abstract val owner: SyncService.User
+    abstract val owner: User
     abstract var name: String
     abstract var color: Int?
     abstract val id: UUID
@@ -23,7 +26,9 @@ abstract class Playlist: SavableMusic {
     var createdTime: Date = Date()
         private set
     abstract val tracks: ReceiveChannel<List<Song>>
-    abstract val typeName: String
+
+    @get:DrawableRes
+    abstract val icon: Int
 
     @ServerTimestamp
     open var lastModified: Date = Date()
@@ -70,15 +75,15 @@ abstract class Playlist: SavableMusic {
     }
 
 
-    open fun sendTo(user: SyncService.User) {
+    open fun sendTo(user: User) {
         publish()
-        SyncService.send(SyncService.Message.Playlist(id), user)
+        SyncService.send(Message.Playlist(id), user)
     }
 
     companion object {
-        suspend fun allByUser(owner: SyncService.User): List<Playlist> {
+        suspend fun allByUser(owner: User): List<Playlist> {
             val db = FirebaseFirestore.getInstance()
-            return GlobalScope.suspendAsync<List<Playlist>> { cont ->
+            return suspendCoroutine { cont ->
                 db.collection("playlists")
                     .whereEqualTo("owner", owner.username)
                     .get()
@@ -87,11 +92,8 @@ abstract class Playlist: SavableMusic {
                             cont.resume(it.result.mapNotNull {
                                 when (it.getString("format")) {
                                     "mixtape" -> MixTape.fromDocument(it)
-
                                     "playlist" -> CollaborativePlaylist.fromDocument(it)
-
                                     "albums" -> AlbumCollection.fromDocument(it)
-
                                     else -> throw IllegalStateException("Unrecognized playlist format")
                                 }.apply {
                                     createdTime = it.getDate("createdTime") ?: createdTime
@@ -101,7 +103,7 @@ abstract class Playlist: SavableMusic {
                             cont.resume(listOf())
                         }
                     }
-            }.await()
+            }
         }
     }
 }

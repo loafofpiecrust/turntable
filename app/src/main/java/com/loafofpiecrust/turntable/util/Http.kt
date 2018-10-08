@@ -2,7 +2,6 @@ package com.loafofpiecrust.turntable.util
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
-import com.loafofpiecrust.turntable.tryOr
 import com.mcxiaoke.koi.ext.closeQuietly
 import kotlinx.coroutines.experimental.CancellationException
 import kotlinx.coroutines.experimental.suspendCancellableCoroutine
@@ -13,6 +12,7 @@ import kotlin.coroutines.experimental.suspendCoroutine
 
 object Http {
     val client by lazy {
+//        HttpClient()
         OkHttpClient.Builder().apply {
             interceptors().clear()
         }.build()!!

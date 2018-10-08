@@ -5,14 +5,12 @@ import activitystarter.ActivityStarter
 import activitystarter.Arg
 import activitystarter.MakeActivityStarter
 import android.app.PendingIntent
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
 import android.media.AudioManager.*
 import android.net.wifi.WifiManager
-import android.os.IBinder
 import android.os.PowerManager
 import android.support.v4.media.session.MediaSessionCompat
 import com.loafofpiecrust.turntable.App
@@ -21,17 +19,15 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.tryOr
 import com.loafofpiecrust.turntable.ui.BaseService
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.*
 import org.jetbrains.anko.*
 import java.lang.ref.WeakReference
-import kotlin.coroutines.experimental.CoroutineContext
-import kotlin.coroutines.experimental.EmptyCoroutineContext
 
 /// Plays the music to the speakers and manages the _queue, that's it.
 @MakeActivityStarter
@@ -41,7 +37,7 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
         val instance get() = _instance.openSubscription().map { it.get() }
 
         private data class SyncedAction(
-            val message: SyncService.Message,
+            val message: PlayerAction,
             val shouldSync: Boolean
         )
 
@@ -55,10 +51,10 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
             }
         }
 
-        fun enact(msg: SyncService.Message, shouldSync: Boolean = true) {
+        fun enact(msg: PlayerAction, shouldSync: Boolean = true) {
             actions.offer(SyncedAction(msg, shouldSync))
         }
-        suspend fun enactNow(msg: SyncService.Message, shouldSync: Boolean = true) {
+        suspend fun enactNow(msg: PlayerAction, shouldSync: Boolean = true) {
             actions.send(SyncedAction(msg, shouldSync))
         }
     }
@@ -208,55 +204,55 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
             ActivityStarter.fill(this, intent)
             command?.let { msg ->
                 doAction(when (msg) {
-                    Action.PLAY -> SyncService.Message.Play()
-                    Action.PAUSE -> SyncService.Message.Pause()
-                    Action.PREVIOUS -> SyncService.Message.RelativePosition(-1)
-                    Action.NEXT -> SyncService.Message.RelativePosition(1)
-                    Action.STOP -> SyncService.Message.Stop()
+                    Action.PLAY -> PlayerAction.Play()
+                    Action.PAUSE -> PlayerAction.Pause()
+                    Action.PREVIOUS -> PlayerAction.RelativePosition(-1)
+                    Action.NEXT -> PlayerAction.RelativePosition(1)
+                    Action.STOP -> PlayerAction.Stop()
                 }, shouldSync)
             }
         }
         return START_STICKY
     }
 
-    private fun doAction(msg: SyncService.Message, shouldSync: Boolean) {
+    private fun doAction(msg: PlayerAction, shouldSync: Boolean) {
         var success = true
-        val msg = if (msg is SyncService.Message.TogglePause) {
+        val msg = if (msg is PlayerAction.TogglePause) {
             if (runBlocking { player.isPlaying.first() }) {
-                SyncService.Message.Pause()
-            } else SyncService.Message.Play()
+                PlayerAction.Pause()
+            } else PlayerAction.Play()
         } else msg
         when (msg) {
-            is SyncService.Message.Play -> {
+            is PlayerAction.Play -> {
                 if (requestFocus()) {
                     success = player.play()
                 }
             }
-            is SyncService.Message.Pause -> {
+            is PlayerAction.Pause -> {
                 success = player.pause()
                 if (success) {
                     abandonFocus()
                 }
             }
-            is SyncService.Message.QueuePosition -> {
+            is PlayerAction.QueuePosition -> {
                 player.shiftQueuePosition(msg.pos)
             }
-            is SyncService.Message.RelativePosition -> {
+            is PlayerAction.RelativePosition -> {
                 player.shiftQueuePositionRelative(msg.diff)
             }
-            is SyncService.Message.Enqueue -> {
+            is PlayerAction.Enqueue -> {
                 player.enqueue(msg.songs, msg.mode)
             }
-            is SyncService.Message.PlaySongs -> {
+            is PlayerAction.PlaySongs -> {
                 player.playSongs(msg.songs, msg.pos)
             }
-            is SyncService.Message.SeekTo -> {
+            is PlayerAction.SeekTo -> {
                 player.seekTo(msg.pos)
             }
-            is SyncService.Message.ShiftQueueItem -> {
+            is PlayerAction.ShiftQueueItem -> {
                 player.shiftQueueItem(msg.fromIdx, msg.toIdx)
             }
-            is SyncService.Message.RemoveFromQueue -> {
+            is PlayerAction.RemoveFromQueue -> {
                 player.removeFromQueue(msg.pos)
             }
         }

@@ -9,16 +9,12 @@ import android.widget.TextView
 import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.loadPalette
-import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.util.iconButton
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.sync.SyncService
+import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.util.textStyle
-import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.switchMap
-import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.filterNotNull
-import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.sdk27.coroutines.onClick
@@ -60,7 +56,7 @@ class MiniPlayerFragment: BaseFragment() {
             }
 
             onClick {
-                MusicService.enact(SyncService.Message.TogglePause())
+                MusicService.enact(PlayerAction.TogglePause())
             }
         }.lparams {
             gravity = Gravity.CENTER_VERTICAL

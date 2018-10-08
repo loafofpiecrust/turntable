@@ -7,7 +7,7 @@ import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.sync.SyncService
+import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.test
 import kotlinx.coroutines.experimental.channels.firstOrNull
 import kotlinx.coroutines.experimental.delay
@@ -65,7 +65,7 @@ class MusicPlayerTest {
     @Test fun `play fake song, then advance`() = test {
         val service = Robolectric.setupService(MusicService::class.java)
 
-        MusicService.enactNow(SyncService.Message.PlaySongs(songs), false)
+        MusicService.enactNow(PlayerAction.PlaySongs(songs), false)
         delay(50)
 
         val player = service.player
@@ -77,7 +77,7 @@ class MusicPlayerTest {
         }
 
         // go to next song
-        MusicService.enactNow(SyncService.Message.RelativePosition(1), false)
+        MusicService.enactNow(PlayerAction.RelativePosition(1), false)
         delay(100)
         q = runBlocking { player.queue.firstOrNull() }
         expect(q).notToBeNull {

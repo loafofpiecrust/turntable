@@ -4,18 +4,15 @@ import android.graphics.Color
 import ch.tutteli.atrium.api.cc.en_GB.*
 import ch.tutteli.atrium.verbs.assert
 import ch.tutteli.atrium.verbs.expect
-import com.github.daemontus.Result
-import com.github.daemontus.map
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
-import com.loafofpiecrust.turntable.sync.SyncService
+import com.loafofpiecrust.turntable.sync.User
 import com.loafofpiecrust.turntable.util.deserialize
 import com.loafofpiecrust.turntable.util.serialize
-import io.mockk.every
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.channels.firstOrNull
 import kotlinx.coroutines.experimental.delay
@@ -24,7 +21,7 @@ import java.util.*
 import kotlin.test.Test
 
 class PlaylistTests {
-    val user = SyncService.User(
+    val user = User(
         "name@website.com",
         "<deviceId>",
         "Lemony Snicket"

@@ -1,15 +1,21 @@
 package com.loafofpiecrust.turntable.model
 
+import android.app.Application
 import android.os.Debug
 import android.support.test.runner.AndroidJUnit4
+import com.loafofpiecrust.turntable.App
+import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
+import com.loafofpiecrust.turntable.model.album.LocalAlbum
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.song.LocalSongId
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.service.Library
+import com.loafofpiecrust.turntable.toListSortedBy
 import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.util.lazy
+import com.loafofpiecrust.turntable.util.measureTime
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
@@ -17,11 +23,15 @@ import io.mockk.verify
 import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.runBlocking
+import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import java.util.*
-import kotlin.test.Test
+import org.junit.Test
+import kotlin.collections.HashMap
+import kotlin.system.measureNanoTime
+import kotlin.system.measureTimeMillis
 
 fun Random.nextChar() = nextInt(8).toChar()
 fun Random.nextString(length: Int = 20): String {
@@ -47,11 +57,19 @@ class LibraryTest {
         )
     }
 
+    private fun randomAlbum(length: Int) = LocalAlbum(
+        AlbumId(random.nextString(4), ArtistId(random.nextString(2))),
+        (0..10).map { randomSong(length * 10) }
+    )
+
     private fun generateSongs(length: Int): List<Song> {
         return (0..length).map { randomSong(length) }
     }
 
-    @org.junit.Test
+    private fun generateAlbums(length: Int) =
+        (0..length).map { randomAlbum(length) }
+
+    @Test
     fun longRuntimes() = runBlocking<Unit> {
 //        Robolectric.setupActivity(MainActivity::class.java)
 
@@ -62,12 +80,47 @@ class LibraryTest {
         // If I saved all I wanted to, my library would have >=20,000 songs
         library.localSongs.offer(generateSongs(15000))
 
-        val songs = library.songs.openSubscription().first { it.isNotEmpty() }
-        val albums = library.albums.openSubscription().first { it.isNotEmpty() }
-        val artists = library.artists.openSubscription().first { it.isNotEmpty() }
+        val songs = library.songsMap.openSubscription().first { it.isNotEmpty() }
+        val albums = library.albumsMap.openSubscription().first { it.isNotEmpty() }
+        val artists = library.artistsMap.openSubscription().first { it.isNotEmpty() }
 
         println("song count: ${songs.size}")
         println("album count: ${albums.size}")
         println("artist count: ${artists.size}")
+    }
+
+
+    @Test fun `tree vs hash maps`() {
+//        val songs = generateSongs(20000)
+        val albums = generateAlbums(800)
+        val example = albums[400].tracks[3]
+
+        // first insert into treemap then display
+        val tree = measureTime("treemap") {
+            albums.lazy.flatMap { it.tracks.lazy }.map { it.id to it }.toMap(TreeMap())
+        }
+        measureTime("treemap sorted") {
+            val display = tree.values.toList()
+        }
+
+        val hash = measureTime("hashmap") {
+            albums.lazy.flatMap { it.tracks.lazy }.map { it.id to it }.toMap(HashMap())
+        }
+        measureTime("hashmap sorted") {
+            val display = hash.values.sortedBy { it.id }
+        }
+        measureTime("hashmap fuzzy search") {
+            hash.entries.filter { FuzzySearch.ratio(it.key.displayName, example.id.displayName) >= 70 }
+        }
+
+        val list = measureTime("sorted list") {
+            albums.lazy.flatMap { it.tracks.lazy }.toListSortedBy { it.id }
+        }
+        measureTime("sorted list for display") {
+            val display = list
+        }
+        measureTime("sorted list fuzzy search") {
+            list.filter { FuzzySearch.ratio(it.displayName, example.id.displayName) >= 70 }
+        }
     }
 }

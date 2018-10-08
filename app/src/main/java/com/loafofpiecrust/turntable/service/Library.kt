@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.service
 
-import android.app.Service
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -16,16 +15,12 @@ import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
-import com.github.andrewoma.dexx.kollection.toImmutableSortedMap
 import com.github.salomonbrys.kotson.get
 import com.github.salomonbrys.kotson.nullString
 import com.github.salomonbrys.kotson.obj
 import com.github.salomonbrys.kotson.string
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.model.album.Album
-import com.loafofpiecrust.turntable.model.album.AlbumId
-import com.loafofpiecrust.turntable.model.album.LocalAlbum
-import com.loafofpiecrust.turntable.model.album.MergedAlbum
+import com.loafofpiecrust.turntable.model.album.*
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.artist.LocalArtist
@@ -52,6 +47,7 @@ import java.io.File
 import java.io.Serializable
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.collections.HashMap
 import kotlin.collections.LinkedHashMap
 import kotlin.coroutines.experimental.coroutineContext
 
@@ -88,7 +84,7 @@ class Library : BaseService() {
     }
 
     /// Map of SongId to local file path for that song.
-    private val localSongSources = TreeMap<SongId, String>()
+    private val localSongSources = HashMap<SongId, String>()
 
     val localSongs = ConflatedBroadcastChannel<List<Song>>()
 //    private val _albums = ConflatedBroadcastChannel<List<Album>>(listOf())
@@ -122,8 +118,8 @@ class Library : BaseService() {
 //            (songs + remotes.flatMap { it.tracks }).sortedBy { it.searchKey }
 //        }
 
-    val localAlbums: ReceiveChannel<List<Album>> get() = localSongs.openSubscription().map {
-        it.groupByTo(LinkedHashMap()) {
+    private val localAlbums: ReceiveChannel<List<Album>> get() = localSongs.openSubscription().map {
+        it.groupBy {
             (it.platformId as? LocalSongId)?.albumId
         }.values.map {
             val tracks = it.sortedBy { it.discTrack }
@@ -136,40 +132,65 @@ class Library : BaseService() {
      * Album sort key: name + artist
      * Song sort key: name + album + artist
      */
-    val albums: ConflatedBroadcastChannel<List<Album>> = run {
-        combineLatest(localAlbums, remoteAlbums.openSubscription()) { a, b ->
-            measureTime("albumsLazy(${a.size + b.size})") {
-                (a.lazy + b.lazy).toListSortedBy { it.id }.dedupMergeSorted(
-                    { a, b -> a.id == b.id },
-                    { a, b -> MergedAlbum(a, b) }
-                )
-            }
-        }.replayOne()
-    }
-
-    val songs: ConflatedBroadcastChannel<List<Song>> = run {
-//        combineLatest(localSongs.openSubscription(), remoteAlbums.openSubscription()) { songs, albums ->
-//            measureTime("songsLazy(${songs.size} songs, ${albums.size} remote albums)") {
-//                (songs.lazy + albums.lazy.flatMap { it.tracks.lazy }).toListSortedBy { it.id }
+//    val albums: ConflatedBroadcastChannel<List<Album>> = run {
+//        combineLatest(localAlbums, remoteAlbums.openSubscription()) { a, b ->
+//            measureTime("albumsLazy(${a.size + b.size})") {
+//                (a.lazy + b.lazy).toListSortedBy { it.id }.dedupMergeSorted(
+//                    { a, b -> a.id == b.id },
+//                    { a, b -> MergedAlbum(a, b) }
+//                )
 //            }
-        albums.openSubscription().map {
-            measureTime("songsLazy(${it.size} albums)") {
-                it.lazy.flatMap { it.tracks.lazy }.toListSortedBy { it.id }
-            }
+//        }.replayOne()
+//    }
+    val albumsMap: ConflatedBroadcastChannel<Map<AlbumId, Album>> = run {
+        combineLatest(localAlbums, remoteAlbums.openSubscription()) { a, b ->
+            (a.lazy + b.lazy).map { it.id to it }.toMap(
+                MergingHashMap { a, b -> MergedAlbum(a, b) }
+            )
         }.replayOne()
     }
 
-    val artists: ConflatedBroadcastChannel<List<Artist>> = run {
-        albums.openSubscription().map { albums ->
-            measureTime("artistsLazy(${albums.size} albums)") {
-                albums.groupBy { it.id.artist }.values.lazy.map { it: List<Album> ->
-                    val firstAlbum = it.find { it is LocalAlbum } ?: it.first()
-                    // TODO: Use a dynamic sorting method: eg. sort by id, etc.
-                    LocalArtist(
-                        firstAlbum.id.artist,
-                        it
-                    ) as Artist
-                }.toListSortedBy { it.id }
+//    val songs: ConflatedBroadcastChannel<List<Song>> = run {
+////        combineLatest(localSongs.openSubscription(), remoteAlbums.openSubscription()) { songs, albums ->
+////            measureTime("songsLazy(${songs.size} songs, ${albums.size} remote albums)") {
+////                (songs.lazy + albums.lazy.flatMap { it.tracks.lazy }).toListSortedBy { it.id }
+////            }
+//        albums.openSubscription().map {
+//            measureTime("songsLazy(${it.size} albums)") {
+//                it.lazy.flatMap { it.tracks.lazy }.toListSortedBy { it.id }
+//            }
+//        }.replayOne()
+//    }
+    val songsMap: ConflatedBroadcastChannel<Map<SongId, Song>> = run {
+        albumsMap.openSubscription().map {
+            it.values.lazy.flatMap { it.tracks.lazy }
+                .map { it.id to it }
+                .toMap()
+        }.replayOne()
+    }
+
+//    val artists: ConflatedBroadcastChannel<List<Artist>> = run {
+//        albums.openSubscription().map { albums ->
+//            measureTime("artistsLazy(${albums.size} albums)") {
+//                albums.groupBy { it.id.artist }.values.lazy.map { it: List<Album> ->
+//                    val firstAlbum = it.find { it is LocalAlbum } ?: it.first()
+//                    // TODO: Use a dynamic sorting method: eg. sort by id, etc.
+//                    LocalArtist(
+//                        firstAlbum.id.artist,
+//                        it
+//                    ) as Artist
+//                }.toListSortedBy { it.id }
+//            }
+//        }.replayOne()
+//    }
+    val artistsMap: ConflatedBroadcastChannel<Map<ArtistId, Artist>> = run {
+        albumsMap.openSubscription().map { albums ->
+            albums.values.groupBy { it.id.artist }.mapValues { (id, albums) ->
+                // TODO: Use a dynamic sorting method: eg. sort by id, etc.
+                LocalArtist(
+                    id,
+                    albums
+                ) as Artist
             }
         }.replayOne()
     }
@@ -188,36 +209,38 @@ class Library : BaseService() {
         = findAlbum(id).map { it?.tracks }
 
     fun findAlbum(key: AlbumId): ReceiveChannel<Album?> =
-        albums.openSubscription().map { libAlbums ->
-            libAlbums.binarySearchElem(key) { it.id }
+        albumsMap.openSubscription().map { libAlbums ->
+            libAlbums[key]
+//            libAlbums.binarySearchElem(key) { it.id }
         }
 
     fun findCachedAlbum(album: AlbumId): ReceiveChannel<Album?>
         = findAlbum(album)
 
-    fun findAlbumFuzzy(id: AlbumId): ReceiveChannel<Album?> = artists.openSubscription().map {
-        it.find {
+    fun findAlbumFuzzy(id: AlbumId): ReceiveChannel<Album?> = artistsMap.openSubscription().map {
+        it.values.find {
             FuzzySearch.ratio(it.id.name, id.artist.name) >= 88
         }?.albums?.find {
             FuzzySearch.ratio(it.id.displayName, id.displayName) >= 88
         }
     }
 
-    fun findSong(id: SongId): ReceiveChannel<Song?> = songs.openSubscription().map {
-//        val key = Song(null, null, id, 1, 1, 0)
-        it.getOrNull(it.binarySearchBy(id) { s: Song -> s.id })
+    fun findSong(id: SongId): ReceiveChannel<Song?> = songsMap.openSubscription().map {
+//        it.getOrNull(it.binarySearchBy(id) { s: Song -> s.id })
+        it[id]
     }
 
-    fun findSongFuzzy(song: SongId): ReceiveChannel<Song?> = songs.openSubscription().map {
-        it.binarySearchNearestElem(song) { it.id }?.takeIf {
-            it.id.fuzzyEquals(song)
-        }
+    fun findSongFuzzy(song: SongId): ReceiveChannel<Song?> = songsMap.openSubscription().map {
+        it.values.find { it.id.fuzzyEquals(song) }
+//        it.binarySearchNearestElem(song) { it.id }?.takeIf {
+//            it.id.fuzzyEquals(song)
+//        }
     }
 
-    fun findArtist(id: ArtistId): ReceiveChannel<Artist?> = artists.openSubscription().map {
+    fun findArtist(id: ArtistId): ReceiveChannel<Artist?> = artistsMap.openSubscription().map {
 //        val key = Artist(id, null, listOf())
-        it.binarySearchElem(id) { it.id }
-//        it.binarySearchElem(Artist.sortKey(id).toLowerCase()) { it.searchKey }
+//        it.binarySearchElem(id) { it.id }
+        it[id]
     }
 
 //    fun findArtistFuzzy(name: String): Artist? = artists.blockingFirst().let {
@@ -260,7 +283,7 @@ class Library : BaseService() {
 
 
     private fun fillMissingArtwork() = async {
-        val albums = albums.openSubscription().first()
+        val albums = albumsMap.openSubscription().first().values
         val cache = albumCovers.openSubscription().first()
 //        val addedCache = listOf<AlbumMetadata>()
         albums/*.filter {
@@ -345,7 +368,7 @@ class Library : BaseService() {
 
     private fun fillArtistArtwork() = async {
         val cache = artistMeta.openSubscription().first()
-        artists.openSubscription().first().forEach { artist ->
+        artistsMap.openSubscription().first().values.forEach { artist ->
             val key = ArtistMetadata(artist.id, null)
             val cached = cache.binarySearchElem(key, ARTIST_META_COMPARATOR)
 
@@ -648,7 +671,7 @@ class Library : BaseService() {
     /// It caches for speed at ~300x300, so the quality is ass.
     /// Let's go find the files ourselves!
     private suspend fun updateLocalArtwork() {
-        val albums = albums.openSubscription().first()
+        val albums = albumsMap.openSubscription().first().values
 
         val imageExts = arrayOf("jpg", "jpeg", "gif", "png")
         val frontReg = Regex("\\b(front|cover|folder|album|booklet)\\b", RegexOption.IGNORE_CASE)
