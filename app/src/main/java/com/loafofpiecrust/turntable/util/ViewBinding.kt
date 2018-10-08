@@ -42,6 +42,21 @@ class ViewScope(view: View): CoroutineScope {
             }
         }
     }
+
+    infix fun <T> KMutableProperty0<T>.from(chan: ReceiveChannel<T>) {
+        launch {
+            chan.consumeEach { set(it) }
+        }
+    }
+    infix fun <T> ((T) -> Unit).from(chan: ReceiveChannel<T>) {
+        launch {
+            chan.consumeEach { invoke(it) }
+        }
+    }
+}
+
+inline fun <T: View> T.bind(block: ViewScope.() -> Unit) {
+    block.invoke(ViewScope(this))
 }
 
 fun <T> View.bindTwoWay(obs: BroadcastChannel<T>, prop: KMutableProperty0<T>, getter: ((T) -> Unit) -> Unit) {

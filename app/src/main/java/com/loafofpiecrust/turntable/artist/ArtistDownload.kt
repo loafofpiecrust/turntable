@@ -13,6 +13,7 @@ import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.util.consumeEach
+import com.loafofpiecrust.turntable.util.lazy
 import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.async
@@ -157,7 +158,7 @@ sealed class TorrentArtist(
 
         albumFiles.putAll(albums.map { album ->
             debug { "torrent: mapping album '${album.id}'" }
-            val (albumFolder, songFiles) = folders.asSequence()
+            val (albumFolder, songFiles) = folders
                 .maxBy { (folder, files) ->
                     // This means 2 folders that match can be distinguished by year
                     // Should also help distinguish between singles, EPs, and LPs
@@ -169,7 +170,7 @@ sealed class TorrentArtist(
             debug { "torrent: album map: '${album.id}' to '${albumFolder.name}'" }
 //            album to songFiles.map { it.first }
             album to mapOf(*album.tracks.mapNotNull { song ->
-                val (ratio, songFile) = songFiles.map { (idx, file) ->
+                val (ratio, songFile) = songFiles.lazy.map { (idx, file) ->
                     FuzzySearch.partialRatio(song.id.name, file.name) to (idx to file)
                 }.maxBy { (matchRatio, rest) ->
                     matchRatio
@@ -195,18 +196,20 @@ sealed class TorrentArtist(
         val files = info.files()
         val paths = (0 until files.numFiles()).map { it to File(files.filePath(it)) }.toMutableList()
 
-        val albumRes = paths
+        val albumRes = paths.lazy
             .filter { (fileIdx, file) ->
                 file.isDirectory
-            }.mapIndexed { idx, (fileIdx, file) ->
-            idx to AlbumResult(fileIdx, file, FuzzySearch.partialRatio(album.id.displayName, file.name))
-        }.maxBy { (idx, res) ->
-            // This means 2 folders that match can be distinguished by year
-            // Should also help distinguish between singles, EPs, and LPs
-            val year = album.year ?: 0
-            val yearBias = if (year > 0 && res.file.name.contains(year.toString())) 1 else 0
-            res.matchRatio + yearBias
-        }!!
+            }
+            .mapIndexed { idx, (fileIdx, file) ->
+                idx to AlbumResult(fileIdx, file, FuzzySearch.partialRatio(album.id.displayName, file.name))
+            }
+            .maxBy { (idx, res) ->
+                // This means 2 folders that match can be distinguished by year
+                // Should also help distinguish between singles, EPs, and LPs
+                val year = album.year ?: 0
+                val yearBias = if (year > 0 && res.file.name.contains(year.toString())) 1 else 0
+                res.matchRatio + yearBias
+            }!!
 
         val res = if (albumRes.second.matchRatio >= 50) {
             paths.removeAt(albumRes.first)

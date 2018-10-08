@@ -4,14 +4,17 @@ package com.loafofpiecrust.turntable.ui
 //import me.angrybyte.circularslider.CircularSlider
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.os.Bundle
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.FloatingActionButton
+import android.view.View
 import android.view.ViewManager
 import android.widget.SeekBar
 import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.album.loadPalette
 import com.loafofpiecrust.turntable.player.MusicService
+import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.sync.*
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.channels.consumeEach
@@ -24,39 +27,25 @@ import org.jetbrains.anko.constraint.layout.constraintLayout
 import org.jetbrains.anko.constraint.layout.matchConstraint
 import org.jetbrains.anko.design.floatingActionButton
 import org.jetbrains.anko.sdk27.coroutines.onClick
+import org.jetbrains.anko.sdk27.coroutines.onSeekBarChangeListener
 import org.jetbrains.anko.support.v4.ctx
 
 open class NowPlayingFragment : BaseFragment() {
+    var playButton: FloatingActionButton by weak()
 
-    override fun ViewManager.createView() = constraintLayout {
-        lateinit var playButton: FloatingActionButton
-
-        MusicService.instance.switchMap {
-            it?.player?.isPlaying
-        }.consumeEachAsync {
-            if (it) {
-                playButton.imageResource = R.drawable.ic_pause
-                playButton.onClick {
-                    MusicService.enact(PlayerAction.Pause())
-                }
-            } else {
-                playButton.imageResource = R.drawable.ic_play_arrow
-                playButton.onClick {
-                    MusicService.enact(PlayerAction.Play())
-                }
-            }
-        }
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         MusicService.instance.switchMap {
             it?.player?.currentSong
         }.switchMap { song ->
-            song?.loadCover(Glide.with(this@constraintLayout))?.map { req ->
+            song?.loadCover(Glide.with(view))?.map { req ->
                 song to req
             }
         }.consumeEachAsync { (song, req) ->
-            if (song != null && req != null) {
+            if (req != null) {
                 req.listener(loadPalette(song.id.album) { palette, swatch ->
-                    backgroundColor = swatch?.rgb ?: context.getColorCompat(R.color.background)
+                    view.backgroundColor = swatch?.rgb ?: context!!.getColorCompat(R.color.background)
                     val c =
                         (palette?.mutedSwatch
                             ?: palette?.darkMutedSwatch
@@ -66,14 +55,17 @@ open class NowPlayingFragment : BaseFragment() {
                 }).preload()
             } else {
                 // reset playButton color.
+                playButton.backgroundTintList = ColorStateList.valueOf(UserPrefs.primaryColor.value)
             }
         }
+    }
 
+    override fun ViewManager.createView() = constraintLayout {
         // Main player view
         id = R.id.container
         clipToPadding = false
         clipToOutline = false
-        lparams(width = matchParent, height = matchParent)
+//        lparams(width = matchParent, height = matchParent)
 
 
         val songCarousel = frameLayout {
@@ -88,23 +80,21 @@ open class NowPlayingFragment : BaseFragment() {
             id = R.id.seekBar
 
             var isSeeking = false
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            onSeekBarChangeListener {
                 var value = 0
-                override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
+                onProgressChanged { _, progress, fromUser ->
                     if (fromUser) {
                         value = progress
                     }
                 }
-
-                override fun onStartTrackingTouch(bar: SeekBar?) {
+                onStartTrackingTouch {
                     isSeeking = true
                 }
-
-                override fun onStopTrackingTouch(bar: SeekBar?) {
+                onStopTrackingTouch {
                     MusicService.enact(PlayerAction.SeekTo(value.toLong()))
                     isSeeking = false
                 }
-            })
+            }
 
             launch {
                 MusicService.instance.switchMap {
@@ -132,7 +122,7 @@ open class NowPlayingFragment : BaseFragment() {
                                 FriendPickerDialog(
                                     Message.SyncRequest(),
                                     "Request Sync"
-                                ).show(ctx)
+                                ).show(context)
                             }
                         ))()
                     }
@@ -158,7 +148,24 @@ open class NowPlayingFragment : BaseFragment() {
             imageResource = R.drawable.ic_play_arrow
             elevation = dimen(R.dimen.low_elevation).toFloat()
             isLongClickable = true
+
+            MusicService.instance.switchMap {
+                it?.player?.isPlaying
+            }.consumeEachAsync { playing ->
+                if (playing) {
+                    imageResource = R.drawable.ic_pause
+                    onClick {
+                        MusicService.enact(PlayerAction.Pause())
+                    }
+                } else {
+                    imageResource = R.drawable.ic_play_arrow
+                    onClick {
+                        MusicService.enact(PlayerAction.Play())
+                    }
+                }
+            }
         }
+
 
         val nextBtn = iconButton(R.drawable.ic_skip_next) {
             onClick {
