@@ -61,9 +61,9 @@ public class Lyrics3v2Fields extends AbstractStringStringValuePair
         idToValue.put(FIELD_V2_INDICATIONS, "Indications field");
         idToValue.put(FIELD_V2_LYRICS_MULTI_LINE_TEXT, "Lyrics multi line text");
         idToValue.put(FIELD_V2_ADDITIONAL_MULTI_LINE_TEXT, "Additional information multi line text");
-        idToValue.put(FIELD_V2_AUTHOR, "Lyrics/Music Author id");
-        idToValue.put(FIELD_V2_ALBUM, "Extended Album id");
-        idToValue.put(FIELD_V2_ARTIST, "Extended Artist id");
+        idToValue.put(FIELD_V2_AUTHOR, "Lyrics/Music Author uuid");
+        idToValue.put(FIELD_V2_ALBUM, "Extended Album uuid");
+        idToValue.put(FIELD_V2_ARTIST, "Extended Artist uuid");
         idToValue.put(FIELD_V2_TRACK, "Extended Track Title");
         idToValue.put(FIELD_V2_IMAGE, "Link to an image files");
         createMaps();

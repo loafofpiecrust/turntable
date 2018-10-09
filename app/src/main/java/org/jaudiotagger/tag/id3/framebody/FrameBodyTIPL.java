@@ -40,7 +40,7 @@ import java.util.StringTokenizer;
 
 /**
  * The 'Involved people list' is intended as a mapping between functions like producer and names. Every odd field is a
- * function and every even is an id or a comma delimited list of names.
+ * function and every even is an uuid or a comma delimited list of names.
  *
  */
 public class FrameBodyTIPL extends AbstractID3v2FrameBody implements ID3v24FrameBody
@@ -128,7 +128,7 @@ public class FrameBodyTIPL extends AbstractID3v2FrameBody implements ID3v24Frame
     }
 
     /**
-     * Parse text as a null separated pairing of id and function
+     * Parse text as a null separated pairing of uuid and function
      *
      * @param text
      */

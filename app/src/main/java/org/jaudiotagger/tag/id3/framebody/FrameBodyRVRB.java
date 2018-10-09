@@ -38,7 +38,7 @@ import java.nio.ByteBuffer;
  * be played in the right speaker.
  * <p>
  * 'Premix left to right' is the amount of left sound to be mixed in the
- * right before any reverb is applied, where $00 id 0% and $FF is 100%.
+ * right before any reverb is applied, where $00 uuid 0% and $FF is 100%.
  * 'Premix right to left' does the same thing, but right to left.
  * Setting both premix to $FF would result in a mono output (if the
  * reverb is applied symmetric). There may only be one "RVRB" frame in

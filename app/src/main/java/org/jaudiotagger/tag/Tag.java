@@ -80,7 +80,7 @@ public interface Tag {
     public void deleteField(FieldKey fieldKey) throws KeyNotFoundException;
 
     /**
-     * Delete any fields with this Flac (Vorbis Comment) id
+     * Delete any fields with this Flac (Vorbis Comment) uuid
      *
      * @param key
      * @throws KeyNotFoundException
@@ -88,29 +88,29 @@ public interface Tag {
     public void deleteField(String key)throws KeyNotFoundException;
 
     /**
-     * Returns a {@linkplain List list} of {@link TagField} objects whose &quot;{@linkplain TagField#getId() id}&quot;
+     * Returns a {@linkplain List list} of {@link TagField} objects whose &quot;{@linkplain TagField#getId() uuid}&quot;
      * is the specified one.<br>
      *
      * <p>Can be used to retrieve fields with any identifier, useful if the identifier is not within {@link FieldKey}
      *
-     * @param id The field id.
-     * @return A list of {@link TagField} objects with the given &quot;id&quot;.
+     * @param id The field uuid.
+     * @return A list of {@link TagField} objects with the given &quot;uuid&quot;.
      */
     public List<TagField> getFields(String id);
 
     /**
-     * Returns a {@linkplain List list} of {@link TagField} objects whose &quot;{@linkplain TagField#getId() id}&quot;
+     * Returns a {@linkplain List list} of {@link TagField} objects whose &quot;{@linkplain TagField#getId() uuid}&quot;
      * is the specified one.<br>
      *
-     * @param id The field id.
-     * @return A list of {@link TagField} objects with the given &quot;id&quot;.
+     * @param id The field uuid.
+     * @return A list of {@link TagField} objects with the given &quot;uuid&quot;.
      * @throws KeyNotFoundException
      */
     public List<TagField> getFields(FieldKey id) throws KeyNotFoundException;
 
 
     /**
-     * Iterator over all the fields within the tag, handle multiple fields with the same id
+     * Iterator over all the fields within the tag, handle multiple fields with the same uuid
      *
      * @return iterator over whole list
      */
@@ -190,11 +190,11 @@ public interface Tag {
 
     /**
      * Determines whether the tag has at least one field with the specified
-     * &quot;id&quot;.
+     * &quot;uuid&quot;.
      *
-     * @param id The field id to look for.
+     * @param id The field uuid to look for.
      * @return <code>true</code> if tag contains a {@link TagField} with the
-     *         given {@linkplain TagField#getId() id}.
+     *         given {@linkplain TagField#getId() uuid}.
      */
     public boolean hasField(String id);
 

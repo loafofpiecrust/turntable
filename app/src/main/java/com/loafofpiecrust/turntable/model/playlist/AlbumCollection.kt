@@ -5,6 +5,7 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.album.Album
+import com.loafofpiecrust.turntable.model.album.PartialAlbum
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.sync.User
 import com.loafofpiecrust.turntable.util.*
@@ -21,7 +22,7 @@ class AlbumCollection(
     override val owner: User,
     override var name: String,
     override var color: Int?,
-    override val id: UUID
+    override val uuid: UUID
 ) : Playlist() {
     /// For serialization
     private constructor(): this(User(), "", null, UUID.randomUUID())
@@ -33,12 +34,12 @@ class AlbumCollection(
     override val icon: Int
         get() = R.drawable.ic_album
 
-    override val tracks: ReceiveChannel<List<Song>>
-        get() = albums.map {
-            it.lazy.flatMap {
-                it.tracks.lazy
-            }.toList()
-        }
+    val items: ReceiveChannel<List<PartialAlbum>>
+        get() = albums.map { it.map { it.toPartial() } }
+
+
+    override val tracksChannel: ReceiveChannel<List<Song>>
+        get() = items.map { it.lazy.flatMap { it.tracks.lazy }.toList() }
 
     companion object {
         fun fromDocument(doc: DocumentSnapshot): AlbumCollection = runBlocking {
@@ -92,7 +93,7 @@ class AlbumCollection(
         GlobalScope.launch {
             val db = FirebaseFirestore.getInstance()
             db.collection("playlists")
-                .document(id.toString())
+                .document(uuid.toString())
                 .set(mapOf(
                     "format" to "albums",
                     "owner" to Blob.fromBytes(serialize(owner)),

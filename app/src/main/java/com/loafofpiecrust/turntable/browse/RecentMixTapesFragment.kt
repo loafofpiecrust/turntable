@@ -10,12 +10,9 @@ import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragment
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.util.produceSingle
-import com.loafofpiecrust.turntable.util.toChannel
-import kotlinx.coroutines.experimental.async
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.frameLayout
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-import org.jetbrains.anko.support.v4.ctx
 import java.util.concurrent.TimeUnit
 
 
@@ -44,7 +41,7 @@ class RecentMixTapesFragment: BaseFragment() {
 
                         holder.card.setOnClickListener { v ->
                             v.context.library.cachePlaylist(mt)
-                            val frag = PlaylistDetailsFragment.newInstance(mt.id, mt.name)
+                            val frag = PlaylistDetailsFragment.newInstance(mt.uuid, mt.name)
                             v.context.replaceMainContent(frag, true)
                         }
                     }

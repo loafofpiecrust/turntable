@@ -6,7 +6,7 @@ import org.jaudiotagger.tag.id3.ID3v23Frames;
 import java.nio.ByteBuffer;
 
 /**
- * Album Sort id, this is what MusicBrainz uses in ID3v23 because TSOA not supported.
+ * Album Sort uuid, this is what MusicBrainz uses in ID3v23 because TSOA not supported.
  *
  * However iTunes uses TSOA even in ID3v23, so we have two possible options
  */

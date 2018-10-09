@@ -290,8 +290,8 @@ class SyncService : FirebaseMessagingService(), CoroutineScope {
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 val uri = Uri.parse("turntable://lets-be-friends").buildUpon()
-                        .appendQueryParameter("id", deviceId)
-                        .appendQueryParameter("id", googleAccount?.displayName)
+                        .appendQueryParameter("uuid", deviceId)
+                        .appendQueryParameter("uuid", googleAccount?.displayName)
                         .build()
                 putExtra(Intent.EXTRA_TEXT, uri.toString())
             }

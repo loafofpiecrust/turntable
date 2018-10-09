@@ -74,7 +74,7 @@ class AlbumDetailsTest {
         expect(controller.get().currentFragment).notToBeNull {
             isA<DetailsFragment> {
 //                val album = runBlocking { subject.album.openSubscription().consume { receive() } }
-//                expect(album.id).toBe(albumId)
+//                expect(album.uuid).toBe(albumId)
             }
         }
     }

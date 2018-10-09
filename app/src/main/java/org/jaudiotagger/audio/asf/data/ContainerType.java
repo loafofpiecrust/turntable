@@ -102,7 +102,7 @@ public enum ContainerType
 
     /**
      * <code>true</code> if the container may store multiple values of the same
-     * metadata descriptor specification (equality on id, language, and
+     * metadata descriptor specification (equality on uuid, language, and
      * stream).<br>
      * WindowsMedia players advanced tag editor for example stores the
      * WM/Picture attribute once in the extended content description, and all
@@ -163,7 +163,7 @@ public enum ContainerType
      * actually throws the exception if there is one.
      * 
      * @param name
-     *            id of the descriptor
+     *            uuid of the descriptor
      * @param data
      *            content
      * @param type
@@ -188,7 +188,7 @@ public enum ContainerType
      * {@link RuntimeException} if the requirements aren't met.
      * 
      * @param name
-     *            id of the descriptor
+     *            uuid of the descriptor
      * @param data
      *            content
      * @param type

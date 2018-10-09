@@ -28,7 +28,7 @@ import java.nio.ByteBuffer;
  * (mono = 1 ; stereo = 2)
  *  2 bytes audio sample size = short unsigned value
  * (8 or 16)
- *  2 bytes QUICKTIME audio compression id = short integer value
+ *  2 bytes QUICKTIME audio compression uuid = short integer value
  * - default = 0
  *  2 bytes QUICKTIME audio packet size = short value set to zero
  *  4 bytes audio sample rate = long unsigned fixed point rate

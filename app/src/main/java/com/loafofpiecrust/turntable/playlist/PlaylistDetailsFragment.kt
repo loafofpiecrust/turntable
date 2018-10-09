@@ -14,7 +14,6 @@ import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.sync.Message
-import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.popMainContent
 import com.loafofpiecrust.turntable.util.*
@@ -135,7 +134,7 @@ class PlaylistDetailsFragment: BaseFragment() {
                             positiveButton("Delete") {
                                 GlobalScope.launch {
                                     UserPrefs.playlists putsMapped {
-                                        it.withoutFirst { it.id == playlistId }
+                                        it.withoutFirst { it.uuid == playlistId }
                                     }
                                 }
                                 ctx.popMainContent()
@@ -154,7 +153,7 @@ class PlaylistDetailsFragment: BaseFragment() {
                     }
                     menuItem(R.string.playlist_generate_similar, showIcon = false).onClick(Dispatchers.Default) {
                         val r = Random()
-                        val tracks = playlist.tracks.first()
+                        val tracks = playlist.tracksChannel.first()
                         val tracksToUse = (0..minOf(5, tracks.size)).lazy
                             .map { r.nextInt(tracks.size) }
                             .mapNotNull { tracks.getOrNull(it)?.id }
@@ -184,7 +183,7 @@ class PlaylistDetailsFragment: BaseFragment() {
             }.lparams(width= matchParent)
 
 //            frameLayout {
-//                id = R.id.songs
+//                uuid = R.uuid.songs
 //                songsList(
 //                    SongsFragment.Category.Playlist(playlistId),
 //                    playlist.tracks.broadcast(CONFLATED)

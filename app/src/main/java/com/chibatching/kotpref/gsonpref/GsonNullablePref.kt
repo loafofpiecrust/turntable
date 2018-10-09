@@ -14,20 +14,20 @@ import kotlin.reflect.KProperty
 //inline fun <reified T : Any> gsonNullablePrefObj(default: T?, key: String?) =
 //    object: AbstractPref<T?>() {
 //        override fun getFromPreference(property: KProperty<*>, preference: SharedPreferences): T? {
-//            return preference.getString(key ?: property.id, null)?.let { json ->
+//            return preference.getString(key ?: property.uuid, null)?.let { json ->
 //                deserializeFromJson(json) ?: default
 //            }
 //        }
 //
 //        override fun setToPreference(property: KProperty<*>, value: T?, preference: SharedPreferences) {
 //            serializeToJson(value).let { json ->
-//                preference.edit().putString(key ?: property.id, json).apply()
+//                preference.edit().putString(key ?: property.uuid, json).apply()
 //            }
 //        }
 //
 //        override fun setToEditor(property: KProperty<*>, value: T?, editor: SharedPreferences.Editor) {
 //            serializeToJson(value).let { json ->
-//                editor.putString(key ?: property.id, json)
+//                editor.putString(key ?: property.uuid, json)
 //            }
 //        }
 //

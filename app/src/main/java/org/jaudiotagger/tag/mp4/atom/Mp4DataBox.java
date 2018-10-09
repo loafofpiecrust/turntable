@@ -15,7 +15,7 @@ import java.util.ListIterator;
  *
  * <p>Format is as follows:
  * :length          (4 bytes)
- * :id 'Data'     (4 bytes)
+ * :uuid 'Data'     (4 bytes)
  * :atom version    (1 byte)
  * :atom type flags (3 bytes)
  * :locale field    (4 bytes) //Currently always zero

@@ -35,7 +35,7 @@ import java.util.logging.Logger;
  *
  * Note there isnt a one to one correspondance between a tag field and a box because some fields are represented
  * by multiple boxes, for example many of the MusicBrainz fields use the '----' box, which in turn uses one of mean,
- * id and data box. So an instance of a tag field maps to one item of data such as 'Title', but it may have to read
+ * uuid and data box. So an instance of a tag field maps to one item of data such as 'Title', but it may have to read
  * multiple boxes to do this.   
  *
  * There are various subclasses that represent different types of fields               
@@ -57,7 +57,7 @@ public abstract class Mp4TagField implements TagField
     }
 
     /**
-     * Used by subclasses that canot identify their id until after they have been built such as ReverseDnsField
+     * Used by subclasses that canot identify their uuid until after they have been built such as ReverseDnsField
      *
      * @param data
      * @throws UnsupportedEncodingException

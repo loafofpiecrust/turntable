@@ -51,7 +51,7 @@ object Discogs: Repository {
     ): RemoteArtist.Details {
         override val albums: List<Album> by lazy {
             runBlocking { discographyHtml(id) }
-//            runBlocking { discography(id) }
+//            runBlocking { discography(uuid) }
         }
     }
 
@@ -101,7 +101,7 @@ object Discogs: Repository {
         return doSearch(artist.displayName, mapOf(
             "type" to "artist"
         )).map {
-            it["id"].int
+            it["uuid"].int
         }
     }
 
@@ -116,7 +116,7 @@ object Discogs: Repository {
                 val artist = cleanArtistName(it["artists"][0]["name"].string)
                 RemoteAlbum(
                     AlbumId(it["name"].string, artist),
-                    AlbumDetails("${it["type"].string}s/${it["id"].string}")
+                    AlbumDetails("${it["type"].string}s/${it["uuid"].string}")
                 )
             }
         }
@@ -136,7 +136,7 @@ object Discogs: Repository {
             tryOr(null) {
                 RemoteArtist(
                     cleanArtistName(it["title"].string),
-                    ArtistDetails(it["id"].int, "", it["thumb"].nullString)
+                    ArtistDetails(it["uuid"].int, "", it["thumb"].nullString)
                 )
             }
         }
@@ -153,7 +153,7 @@ object Discogs: Repository {
                     cleanArtistName(titleParts[0])
                 ),
                 AlbumDetails(
-                    it["id"].int.toString(),
+                    it["uuid"].int.toString(),
                     thumbnailUrl = it["thumb"].nullString
                 ),
                 year = it["year"].nullString?.toIntOrNull()
@@ -186,7 +186,7 @@ object Discogs: Repository {
     }
 
 //    override suspend fun find(song: Song): Song.Details? {
-//        return given(searchFor(song.id).firstOrNull()) {
+//        return given(searchFor(song.uuid).firstOrNull()) {
 //            val res = apiRequest("https://api.discogs.com/artists/$it").obj
 //            ArtistDetails(
 //                it,
@@ -235,8 +235,8 @@ object Discogs: Repository {
             } ?: Album.Type.OTHER
 //            task(UI) { println("discogs: type for '$name': $format = $type, $relTy") }
             val (remoteId, relType) = when (relTy) {
-                "master" -> "masters/${it["id"].int}" to "master"
-                else -> "releases/${it["id"].int}" to "release"
+                "master" -> "masters/${it["uuid"].int}" to "master"
+                else -> "releases/${it["uuid"].int}" to "release"
             }
 
             val artistName = given(it["artist"].nullString) {
@@ -284,7 +284,7 @@ object Discogs: Repository {
 
 //        if (url != null) {
 //            Library.instance.addAlbumExtras(
-//                Library.AlbumMetadata(album.id, url)
+//                Library.AlbumMetadata(album.uuid, url)
 //            )
 //        }
         return url
@@ -307,7 +307,7 @@ object Discogs: Repository {
 
 //        if (url != null) {
 //            Library.instance.addArtistExtras(
-//                Library.ArtistMetadata(artist.id, url)
+//                Library.ArtistMetadata(artist.uuid, url)
 //            )
 //        }
         return url
@@ -343,7 +343,7 @@ object Discogs: Repository {
         masters = masters.parMap { master ->
             val subRels = run {
 //            val subRels = releases.filter {
-//                it.first.id.displayName == master.id.displayName
+//                it.first.uuid.displayName == master.uuid.displayName
 //            }.let {
 //                if (it.isNotEmpty()) {
 //                    synchronized(releases) {
@@ -388,12 +388,12 @@ object Discogs: Repository {
         debug { "discogs: requested $totalMasterReqs masters" }
 
         return (masters + releases.map { it.first })//.dedupMerge(
-//            { a, b -> a.id == b.id },
+//            { a, b -> a.uuid == b.uuid },
 //            { a, b -> if (b.year ?: 0 > a.year ?: 0) b else a }
 //        )
 
 //        return .dedupMerge(
-//            { a, b -> a.first.id.displayName == b.first.id.displayName },
+//            { a, b -> a.first.uuid.displayName == b.first.uuid.displayName },
 //            { a, b ->
 //                val type = if (b.first.type == Album.Type.OTHER
 //                    || b.first.type == Album.Type.LP
@@ -402,7 +402,7 @@ object Discogs: Repository {
 //                } else {
 //                    b.first.type
 //                }
-//                val remote = if (a.first.remote!!.id!!.startsWith("m")) {
+//                val remote = if (a.first.remote!!.uuid!!.startsWith("m")) {
 //                    b.first.remote
 //                } else a.first.remote
 //                val s = if (a.second == "master" && b.second == "master") {
@@ -493,13 +493,13 @@ object Discogs: Repository {
     }
 
     suspend fun tracksOnAlbum(id: String): List<Song> {
-//        val id = if (id.startsWith("m")) { // this is a master, we need a release.
+//        val uuid = if (uuid.startsWith("m")) { // this is a master, we need a release.
 //            val res = Http.get("https://api.discogs.com/$id/versions", params = mapOf(
 //                "key" to key,
 //                "secret" to secret
 //            )).gson
-//            "releases/"+ res["versions"][0]["id"].string
-//        } else id
+//            "releases/"+ res["versions"][0]["uuid"].string
+//        } else uuid
         if (id.isEmpty()) return listOf()
         info { "getting tracks of album '$id'" }
         val res = apiRequest("https://api.discogs.com/$id")

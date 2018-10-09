@@ -66,8 +66,8 @@ open class SongsFragment(): BaseFragment() {
                 songs = album.map(Dispatchers.IO) { it.tracks }.replayOne()
             }
         }
-//        fun onPlaylist(id: UUID, playlist: Playlist, sideIdx: Int): SongsFragment {
-//            return SongsFragmentStarter.newInstance(Category.Playlist(id, sideIdx)).apply {
+//        fun onPlaylist(uuid: UUID, playlist: Playlist, sideIdx: Int): SongsFragment {
+//            return SongsFragmentStarter.newInstance(Category.Playlist(uuid, sideIdx)).apply {
 //                songs = playlist.tracks
 //            }
 //        }

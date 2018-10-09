@@ -30,7 +30,7 @@ public class Mp4GenreField extends Mp4TagTextNumberField
      */
     public static boolean isValidGenre(String genreId)
     {
-        //Is it an id (within old id3 range)      
+        //Is it an uuid (within old id3 range)
         try
         {
             short genreVal = Short.parseShort(genreId);
@@ -65,7 +65,7 @@ public class Mp4GenreField extends Mp4TagTextNumberField
     {
         super(Mp4FieldKey.GENRE.getFieldName(), genreId);
 
-        //Is it an id
+        //Is it an uuid
         try
         {
             short genreVal = Short.parseShort(genreId);

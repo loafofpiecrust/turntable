@@ -28,7 +28,7 @@ import java.math.BigInteger;
 public class VideoStreamChunk extends StreamChunk {
 
     /**
-     * Stores the codecs id. Normally the Four-CC (4-Bytes).
+     * Stores the codecs uuid. Normally the Four-CC (4-Bytes).
      */
     private byte[] codecId = new byte[0];
 

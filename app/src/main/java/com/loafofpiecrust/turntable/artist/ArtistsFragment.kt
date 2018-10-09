@@ -1,5 +1,6 @@
 package com.loafofpiecrust.turntable.artist
 
+import android.content.Context
 import android.os.Parcelable
 import android.support.v7.widget.CardView
 import android.support.v7.widget.GridLayoutManager
@@ -8,11 +9,8 @@ import android.view.*
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions
-import com.evernote.android.state.State
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.model.artist.Artist
-import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.artist.loadPalette
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
@@ -25,85 +23,27 @@ import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.*
+import kotlinx.coroutines.experimental.channels.Channel.Factory.CONFLATED
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.swipeRefreshLayout
 
-class ArtistsFragment : BaseFragment() {
-    // TODO: Use Category!!
-    companion object {
-        fun all() = ArtistsFragment().apply {
-            category = Category.All()
-            detailsMode = ArtistDetailsFragment.Mode.LIBRARY
-        }
-        fun relatedTo(artistId: ArtistId) = ArtistsFragment().apply {
-            category = Category.RelatedTo(artistId)
-        }
-        fun fromChan(channel: ReceiveChannel<List<Artist>>) = ArtistsFragment().apply {
-            artists = channel.replayOne()
-        }
-    }
+sealed class ArtistsUI(
+    private val detailsMode: ArtistDetailsFragment.Mode = ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE,
+    private val columnCount: Int = 0,
+    private val startRefreshing: Boolean = true
+) : UIComponent() {
+    abstract val artists: BroadcastChannel<List<Artist>>
 
-    sealed class Category: Parcelable {
-        @Parcelize class All: Category()
-        @Parcelize data class RelatedTo(val id: ArtistId): Category()
-        @Parcelize class Custom: Category()
-    }
-
-    private var category: Category by arg(Category.Custom())
-    private var detailsMode by arg(ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE)
-    private var columnCount: Int by arg(0)
-    @State var listState: Parcelable? = null
-
-    lateinit var artists: BroadcastChannel<List<Artist>>
-
-    override fun onCreate() {
-        super.onCreate()
-        if (!::artists.isInitialized) {
-            val cat = category
-            artists = when (cat) {
-                is Category.All -> Library.instance.artistsMap
-                    .openSubscription()
-                    .map { it.values.sortedBy { it.id } }
-                    .replayOne()
-                is Category.RelatedTo -> produceSingle(Dispatchers.IO) {
-                    Spotify.similarTo(cat.id)
-                }.replayOne()
-                // Should be an unreachable case.
-                is Category.Custom -> broadcast { send(emptyList()) }
-            }
-        }
-    }
-
-
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
-        menu.menuItem(R.string.search, R.drawable.ic_search, showIcon = true).onClick { v ->
-                val search = SearchFragment.newInstance(SearchFragment.Category.Artists())
-                requireContext().replaceMainContent(
-                    search,
-                    true
-                )
-
-                // TODO: Implement generic circular reveal for fragment.
-//                search.view?.let { view ->
-//
-//                    //                view.background = null
-//                    view.backgroundColor = Color.WHITE
-//                    val listener = object: View.OnLayoutChangeListener {
-//                        override fun onLayoutChange(v: View, left: Int, top: Int, right: Int, bottom: Int, oldLeft: Int, oldTop: Int, oldRight: Int, oldBottom: Int) {
-//                            v.removeOnLayoutChangeListener(this)
-//                            ViewAnimationUtils.createCircularReveal(v, 0, 0, 0f, v.height.toFloat())
-//                                .setDuration(1500)
-//                                .start()
-//                        }
-//                    }
-//                    view.addOnLayoutChangeListener(listener)
-//                }
+    override fun Menu.prepareOptions(context: Context) {
+        menuItem(R.string.search, R.drawable.ic_search, showIcon = true).onClick {
+            context.replaceMainContent(
+                SearchFragment.newInstance(SearchFragment.Category.Artists())
+            )
         }
 
-        menu.subMenu(R.string.set_grid_size) {
+        subMenu(R.string.set_grid_size) {
             group(0, true, true) {
                 val items = (1..4).map { idx ->
                     menuItem(idx.toString()).apply {
@@ -111,84 +51,88 @@ class ArtistsFragment : BaseFragment() {
                     }
                 }
 
-                UserPrefs.artistGridColumns.consumeEach(UI) { cols ->
-                    items.forEach { it.isChecked = false }
-                    items[cols - 1].isChecked = true
-                }
-            }
-        }
-    }
-
-    override fun ViewManager.createView() = artistList(
-        artists,
-        category,
-        detailsMode,
-        columnCount
-    )
-}
-
-fun ViewManager.artistList(
-    artists: BroadcastChannel<List<Artist>>,
-    cat: ArtistsFragment.Category,
-    detailsMode: ArtistDetailsFragment.Mode,
-    columnCount: Int,
-    startRefreshing: Boolean = true
-) = swipeRefreshLayout {
-    isEnabled = false
-    ViewScope(this).launch {
-        artists.consume {
-            if (isEmpty) {
-                if (startRefreshing) {
-                    isRefreshing = true
-                }
-                for (e in this) {
-                    isRefreshing = false
-                }
-            }
-        }
-    }
-
-    val recycler = if (cat is ArtistsFragment.Category.All) {
-        fastScrollRecycler {
-            turntableStyle()
-        }
-    } else {
-        recyclerView {
-            lparams(height = matchParent, width = matchParent)
-            turntableStyle()
-        }
-    }
-
-    recycler.apply {
-        val gutter = dimen(R.dimen.grid_gutter)
-        padding = gutter
-        addItemDecoration(ItemOffsetDecoration(gutter))
-
-        adapter = ArtistsAdapter(artists.openSubscription()) { holder, artists, idx ->
-            // smoothly transition the cover image!
-            holder.itemView.context.replaceMainContent(
-                ArtistDetailsFragment.fromArtist(artists[idx], detailsMode),
-                true,
-                holder.transitionViews
-            )
-        }
-
-        layoutManager = GridLayoutManager(context, 3).also { grid ->
-            if (columnCount > 0) {
-                grid.spanCount = columnCount
-            } else {
-                UserPrefs.artistGridColumns.consumeEach(UI) {
-                    (adapter as ArtistsAdapter).apply {
-                        gridSize = it
-//                            notifyDataSetChanged()
+                launch {
+                    UserPrefs.artistGridColumns.consumeEach { cols ->
+                        items.forEach { it.isChecked = false }
+                        items[cols - 1].isChecked = true
                     }
-                    grid.spanCount = it
                 }
             }
         }
     }
-}
 
+    override fun AnkoContext<*>.render() = swipeRefreshLayout {
+        val scope = ViewScope(this)
+
+        isEnabled = false
+        scope.launch {
+            artists.consume {
+                if (isEmpty) {
+                    if (startRefreshing) {
+                        isRefreshing = true
+                    }
+                    for (e in this@consume) {
+                        isRefreshing = false
+                    }
+                }
+            }
+        }
+
+        val recycler = if (this@ArtistsUI is All) {
+            fastScrollRecycler {
+                turntableStyle()
+            }
+        } else {
+            recyclerView {
+                lparams(height = matchParent, width = matchParent)
+                turntableStyle()
+            }
+        }
+
+        recycler.apply {
+            val gutter = dimen(R.dimen.grid_gutter)
+            padding = gutter
+            addItemDecoration(ItemOffsetDecoration(gutter))
+
+            adapter = ArtistsAdapter(artists.openSubscription()) { holder, artists, idx ->
+                // smoothly transition the cover image!
+                holder.itemView.context.replaceMainContent(
+                    ArtistDetailsFragment.fromArtist(artists[idx], detailsMode),
+                    true,
+                    holder.transitionViews
+                )
+            }
+
+            layoutManager = GridLayoutManager(context, 3).also { grid ->
+                if (columnCount > 0) {
+                    grid.spanCount = columnCount
+                } else scope.launch {
+                    UserPrefs.artistGridColumns.consumeEach {
+                        (adapter as ArtistsAdapter).apply {
+                            gridSize = it
+//                            notifyDataSetChanged()
+                        }
+                        grid.spanCount = it
+                    }
+                }
+            }
+        }
+    }
+
+    @Parcelize
+    class All: ArtistsUI(
+        ArtistDetailsFragment.Mode.LIBRARY
+    ), Parcelable {
+        override val artists = Library.instance.artistsMap
+            .openSubscription()
+            .map { it.values.sortedBy { it.id } }
+            .broadcast(CONFLATED)
+    }
+
+    class Custom(
+        override val artists: BroadcastChannel<List<Artist>>
+    ): ArtistsUI(startRefreshing = false)
+}
 
 class ArtistsAdapter(
     channel: ReceiveChannel<List<Artist>>,

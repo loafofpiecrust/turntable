@@ -15,7 +15,7 @@ import kotlin.math.max
 //        // on tapping button, save touch location.
 //        // push fragment
 //        //
-//        val container = find<View>(R.id.mainContentContainer)
+//        val container = find<View>(R.uuid.mainContentContainer)
 //        val finalRadius = max(container.height, container.width).toFloat()
 //    }
 //}

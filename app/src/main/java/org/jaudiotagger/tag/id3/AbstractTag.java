@@ -19,7 +19,7 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  * Description:This class represents any type of tag in an MP3 file, including ID3 and
- * Lyrics and the file id.
+ * Lyrics and the file uuid.
  */
 package org.jaudiotagger.tag.id3;
 

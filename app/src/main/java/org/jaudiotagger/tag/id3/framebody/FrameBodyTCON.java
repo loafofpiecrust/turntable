@@ -130,7 +130,7 @@ public class FrameBodyTCON extends AbstractFrameBodyTextInfo implements ID3v24Fr
     {
         try
         {
-            //If passed id and known value use it
+            //If passed uuid and known value use it
             int genreId = Integer.parseInt(value);
             if (genreId < GenreTypes.getMaxGenreId())
             {

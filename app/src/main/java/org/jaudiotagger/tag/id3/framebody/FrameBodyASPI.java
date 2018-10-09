@@ -46,7 +46,7 @@ import java.nio.ByteBuffer;
  * 'Indexed data start' is a byte offset from the beginning of the file.
  * 'Indexed data length' is the byte length of the audio data being
  * indexed. 'Number of index points' is the number of index points, as
- * the id implies. The recommended number is 100. 'Bits per index
+ * the uuid implies. The recommended number is 100. 'Bits per index
  * point' is 8 or 16, depending on the chosen precision. 8 bits works
  * well for short files (less than 5 minutes of audio), while 16 bits is
  * advantageous for long files. 'Fraction at index' is the numerator of

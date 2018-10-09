@@ -6,7 +6,7 @@ import org.jaudiotagger.tag.id3.ID3v23Frames;
 import java.nio.ByteBuffer;
 
 /**
- * Artist Sort id, this is what MusicBrainz uses in ID3v23 because TSOP not supported.
+ * Artist Sort uuid, this is what MusicBrainz uses in ID3v23 because TSOP not supported.
  *
  * However iTunes uses TSOP even in ID3v23, so we have two possible options
  */

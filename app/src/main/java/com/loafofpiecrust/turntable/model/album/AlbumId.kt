@@ -26,7 +26,7 @@ data class AlbumId(
             m.groups[2]?.value?.toIntOrNull()
         } ?: 1
 
-    /// Cut out versions and types at the end for a CLEAN id
+    /// Cut out versions and types at the end for a CLEAN uuid
     /// Examples:
     /// Whoa - Single => Whoa
     /// Whoa - Fine & Single => Whoa - Fine & Single

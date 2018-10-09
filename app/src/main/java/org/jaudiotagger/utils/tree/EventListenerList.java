@@ -61,8 +61,8 @@ import java.lang.reflect.Array;
  *     }
  * }
  * </pre>
- * foo should be changed to the appropriate id, and fireFooXxx to the
- * appropriate method id.  One fire method should exist for each
+ * foo should be changed to the appropriate uuid, and fireFooXxx to the
+ * appropriate method uuid.  One fire method should exist for each
  * notification method in the FooListener interface.
  * <p>
  * <strong>Warning:</strong>

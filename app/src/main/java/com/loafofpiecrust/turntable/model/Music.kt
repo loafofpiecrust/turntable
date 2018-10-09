@@ -6,7 +6,7 @@ import android.view.Menu
 import java.io.Serializable
 
 interface Music {
-    val displayName: String
+    val musicId: MusicId
     fun optionsMenu(context: Context, menu: Menu)
 }
 

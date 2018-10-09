@@ -12,12 +12,15 @@ import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.model.Music
+import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.model.SavableMusic
 import com.loafofpiecrust.turntable.model.album.loadPalette
-import com.loafofpiecrust.turntable.playlist.PlaylistPickerDialog
+import com.loafofpiecrust.turntable.playlist.PlaylistPicker
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.OnlineSearchService
+import com.loafofpiecrust.turntable.ui.showDialog
 import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.util.subSequenceView
@@ -28,7 +31,7 @@ import kotlinx.coroutines.experimental.channels.map
 import java.util.concurrent.TimeUnit
 
 // All possible music status':
-// - Local: has an id, can be played. May be partial album (if album)
+// - Local: has an uuid, can be played. May be partial album (if album)
 // - Not local, not downloading yet (queued in sync / DL'd from search)
 // - Not local, downloading from torrent (queued in sync / DL'd from search)
 // - Not local, downloading from youtube (queued in sync / DL'd from search)
@@ -54,6 +57,10 @@ data class HistoryEntry(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+interface HasTracks: Music {
+    val tracks: List<Song>
+}
+
 
 @Parcelize
 data class Song(
@@ -64,9 +71,9 @@ data class Song(
     val year: Int?,
     @Transient
     val platformId: PlatformId? = null
-): SavableMusic, Parcelable {
-    override val displayName get() = id.displayName
-
+): SavableMusic, Parcelable, HasTracks {
+    override val musicId: MusicId get() = id
+    override val tracks: List<Song> get() = listOf(this)
     /**
      * Comparable/sortable value for disc and track
      * Assumes that a disc will never have over 999 tracks.
@@ -77,7 +84,7 @@ data class Song(
 
     override fun optionsMenu(context: Context, menu: Menu) = menu.run {
         menuItem(R.string.add_to_playlist).onClick {
-            PlaylistPickerDialog.forItem(this@Song).show(context)
+            PlaylistPicker(this@Song).showDialog(context)
         }
 
 //        menuItem("Go to album").onClick(BG_POOL) {
@@ -85,17 +92,17 @@ data class Song(
 //            withContext(UI) {
 //                if (album != null) {
 //                    context.replaceMainContent(
-//                        DetailsFragment(album.id), true
+//                        DetailsFragment(album.uuid), true
 //                    )
 //                }
 //            }
 //        }
 //        menuItem("Go to artist").onClick {
 //            val artist = if (local is Song.LocalDetails.Downloaded) {
-//                Library.instance.findArtist(id.artist).first()
+//                Library.instance.findArtist(uuid.artist).first()
 //            } else {
-//                Repository.find(id.artist) ?: run {
-//                    context.toast("No remote artist for '${this@Song.id}'")
+//                Repository.find(uuid.artist) ?: run {
+//                    context.toast("No remote artist for '${this@Song.uuid}'")
 //                    return@onClick
 //                }
 //            }
@@ -109,14 +116,14 @@ data class Song(
 
 //        menuItem("Recommend").onClick {
 //            FriendPickerDialogStarter.newInstance(
-//                SyncService.Message.Recommendation(this@Song.id),
+//                SyncService.Message.Recommendation(this@Song.uuid),
 //                "Send Recommendation"
 //            ).show(context)
 //        }
 //
 //        menuItem("Clear Streams").onClick {
-//            OnlineSearchService.instance.reloadSongStreams(this@Song.id)
-//            OnlineSearchService.instance.reloadAlbumStreams(this@Song.id.album)
+//            OnlineSearchService.instance.reloadSongStreams(this@Song.uuid)
+//            OnlineSearchService.instance.reloadAlbumStreams(this@Song.uuid.album)
 //        }
 
     }
@@ -139,7 +146,7 @@ data class Song(
             UserPrefs.HQStreamingMode.NEVER -> false
         }
 
-        // This is a remote song, find the stream id
+        // This is a remote song, find the stream uuid
         // Well, we might have a song that's pretty much the same. Check first.
         // (Last line of defense against minor typos/discrepancies/album versions)
         val res = OnlineSearchService.instance.getSongStreams(this)
@@ -164,7 +171,7 @@ data class Song(
                 artworkUrl != null -> produceTask {
                     req.load(artworkUrl)
                         .apply(Library.ARTWORK_OPTIONS)
-                        .listener(loadPalette(info.id, cb))
+                        .listener(loadPalette(info.uuid, cb))
                 }
                 else -> produceTask { null }
             }*/
@@ -188,7 +195,7 @@ data class Song(
 ////    val name: String,
 ////    var album: String,
 ////    val artist: String,
-//    val id: SongId,
+//    val uuid: SongId,
 //    val track: Int,
 //    var disc: Int,
 //    val duration: Int, // milliseconds
@@ -212,13 +219,13 @@ data class Song(
 //            withContext(UI) {
 //                if (album != null) {
 //                    ctx.replaceMainContent(
-//                        DetailsFragmentStarter.newInstance(album.id), true
+//                        DetailsFragmentStarter.newInstance(album.uuid), true
 //                    )
 //                }
 //            }
 //            // We need to provide for songs having different artist than albums
-////                    val cat = if (song.id.album != 0L) {
-////                        AlbumActivity.Category.Local(song.id.album)
+////                    val cat = if (song.uuid.album != 0L) {
+////                        AlbumActivity.Category.Local(song.uuid.album)
 ////                    } else {
 ////                        val album = Album.findOnline(song.album, song.artist, song.year)
 ////                        if (album != null) {
@@ -232,10 +239,10 @@ data class Song(
 //        }
 //        menuItem("Go to artist").onClick {
 //            val artist = if (local is Song.LocalDetails.Downloaded) {
-//                Library.instance.findArtist(id.artist).first()
+//                Library.instance.findArtist(uuid.artist).first()
 //            } else {
-//                Repository.find(id.artist) ?: run {
-//                    ctx.toast("No remote artist for '${this@Song.id}'")
+//                Repository.find(uuid.artist) ?: run {
+//                    ctx.toast("No remote artist for '${this@Song.uuid}'")
 //                    return@onClick
 //                }
 //            }
@@ -249,14 +256,14 @@ data class Song(
 //
 //        menuItem("Recommend").onClick {
 //            FriendPickerDialogStarter.newInstance(
-//                SyncService.Message.Recommendation(this@Song.id),
+//                SyncService.Message.Recommendation(this@Song.uuid),
 //                "Send Recommendation"
 //            ).show(ctx)
 //        }
 //
 //        menuItem("Clear Streams").onClick {
-//            OnlineSearchService.instance.reloadSongStreams(this@Song.id)
-//            OnlineSearchService.instance.reloadAlbumStreams(this@Song.id.album)
+//            OnlineSearchService.instance.reloadSongStreams(this@Song.uuid)
+//            OnlineSearchService.instance.reloadAlbumStreams(this@Song.uuid.album)
 //        }
 //    }
 //
@@ -275,14 +282,14 @@ data class Song(
 //            SongId(title, AlbumId(album, ArtistId(artist))),
 //            0, 0, duration
 //        )
-//        fun justForSearch(id: SongId, duration: Int = 0) = Song(
-//            null, null, id,
+//        fun justForSearch(uuid: SongId, duration: Int = 0) = Song(
+//            null, null, uuid,
 //            0, 0, duration
 //        )
 //    }
 //
 //    data class RemoteDetails(
-//        val id: String?,
+//        val uuid: String?,
 //        val albumId: String?,
 //        val artistId: String?,
 //        val normalStream: String? = null, // Usually 128 kb/s
@@ -293,25 +300,25 @@ data class Song(
 //    sealed class LocalDetails: Serializable {
 //        data class Downloaded(
 //            val path: String,
-//            val id: Long,
+//            val uuid: Long,
 //            val albumId: Long,
 //            val artistId: Long
 //        ): LocalDetails()
 //
 //        data class Downloading(
-//            val id: Long
+//            val uuid: Long
 //        ): LocalDetails()
 //    }
 //
 //    data class Media(val url: String, val start: Int = 0, val end: Int = 0)
 //
 //
-//    override val simpleName: String get() = id.displayName
-//    val searchKey get() = (id.name + id.album.sortName + id.album.artist.sortName).toLowerCase()
+//    override val simpleName: String get() = uuid.displayName
+//    val searchKey get() = (uuid.name + uuid.album.sortName + uuid.album.artist.sortName).toLowerCase()
 //
 //    private val hasData get() = (local is LocalDetails.Downloaded || remote != null)
 //
-////    val id: Int get() = searchKey.hashCode()
+////    val uuid: Int get() = searchKey.hashCode()
 //
 //    val localMedia: Media? get() = run {
 //        val local = local
@@ -342,7 +349,7 @@ data class Song(
 //                } else remote.normalStream
 //                Media(stream, remote.start, remote.start + this.duration)
 //            } else {
-//                // This is a remote song, find the stream id
+//                // This is a remote song, find the stream uuid
 //                // Well, we might have a song that's pretty much the same. Check first.
 //                // (Last line of defense against minor typos/discrepancies/album versions)
 //                if (existing != null && existing != this@Song && existing.hasData) {
@@ -387,21 +394,21 @@ data class Song(
 //                val (downloadUrl, ext) = streams.stream to "m4a"
 //
 //                val req = DownloadManager.Request(Uri.parse(downloadUrl))
-//                req.setTitle("${song.id.name} | ${song.id.artist}")
+//                req.setTitle("${song.uuid.name} | ${song.uuid.artist}")
 //
 ////                                    req.allowScanningByMediaScanner()
 //
 //                req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
 //                req.setDestinationInExternalPublicDir(
 //                    Environment.DIRECTORY_MUSIC,
-//                    "${song.id.filePath}.$ext"
+//                    "${song.uuid.filePath}.$ext"
 //                )
 //
-//                val id = App.instance.downloadManager.enqueue(req)
-//                this.local = LocalDetails.Downloading(id)
+//                val uuid = App.instance.downloadManager.enqueue(req)
+//                this.local = LocalDetails.Downloading(uuid)
 //
 //                OnlineSearchService.instance.addDownload(
-//                    OnlineSearchService.SongDownload(song, 0.0, id)
+//                    OnlineSearchService.SongDownload(song, 0.0, uuid)
 //                )
 //            }
 //        } catch (e: Exception) {
@@ -410,17 +417,17 @@ data class Song(
 //    }
 //
 //    fun loadCover(req: RequestManager, cb: (Palette?, Palette.Swatch?) -> Unit = { a, b -> }): ReceiveChannel<RequestBuilder<Drawable>?> = run {
-////        val album = Album.justForSearch(id.album)
+////        val album = Album.justForSearch(uuid.album)
 ////        album.loadCover(req).map {
-////            it?.listener(loadPalette(id.album, cb))
+////            it?.listener(loadPalette(uuid.album, cb))
 ////        }
-//        Library.instance.findAlbumExtras(id.album).switchMap {
+//        Library.instance.findAlbumExtras(uuid.album).switchMap {
 //            if (it != null) {
 //                // This album cover is either local or cached.
 //                produceTask {
 //                    req.load(it.artworkUri)
 //                        .apply(Library.ARTWORK_OPTIONS)
-//                        .listener(loadPalette(id, cb))
+//                        .listener(loadPalette(uuid, cb))
 //                }
 //            } else {
 //                when {
@@ -428,7 +435,7 @@ data class Song(
 //                    artworkUrl != null -> produceTask {
 //                        req.load(artworkUrl)
 //                            .apply(Library.ARTWORK_OPTIONS)
-//                            .listener(loadPalette(id, cb))
+//                            .listener(loadPalette(uuid, cb))
 //                    }
 //
 ////                    remote != null -> {
@@ -438,11 +445,11 @@ data class Song(
 ////                            .apply(Library.ARTWORK_OPTIONS)
 ////                            .thumbnail(req.load("$prefix/front-250"))
 ////                    }
-//                    else -> LocalAlbum(id.album, emptyList()).loadCover(req).map {
-//                        it?.listener(loadPalette(id.album, cb))
+//                    else -> LocalAlbum(uuid.album, emptyList()).loadCover(req).map {
+//                        it?.listener(loadPalette(uuid.album, cb))
 //                    }
 ////                    else -> {
-////                        if (Repository.find(Album.justForSearch(id.album))?.artworkUrl)
+////                        if (Repository.find(Album.justForSearch(uuid.album))?.artworkUrl)
 ////                    }
 //                }
 //            }

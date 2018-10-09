@@ -63,8 +63,8 @@ public abstract class AudioFileWriter
 
     //If filename too long try recreating it with length no longer than 50 that should be safe on all operating
     //systems
-    private static final String FILE_NAME_TOO_LONG  = "File id too long";
-    private static final String FILE_NAME_TOO_LONG2 = "The filename, directory id, or volume label syntax is incorrect";
+    private static final String FILE_NAME_TOO_LONG  = "File uuid too long";
+    private static final String FILE_NAME_TOO_LONG2 = "The filename, directory uuid, or volume label syntax is incorrect";
     private static final int FILE_NAME_TOO_LONG_SAFE_LIMIT = 50;
 
     /**
@@ -983,7 +983,7 @@ public abstract class AudioFileWriter
      *
      * If something has been written in the temporary file, when this method
      * returns, the original file is deleted, and the temporary file is renamed
-     * the the original id
+     * the the original uuid
      *
      * If nothing has been written to it, it is simply deleted.
      *

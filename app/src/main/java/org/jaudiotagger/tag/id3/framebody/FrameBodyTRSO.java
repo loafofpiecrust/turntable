@@ -22,7 +22,7 @@ import java.nio.ByteBuffer;
 
 /**
  * Internet radio station owner Text information frame.
- * <p>The 'Internet radio station owner' frame contains the id of the owner of the internet radio station from which the audio is streamed.
+ * <p>The 'Internet radio station owner' frame contains the uuid of the owner of the internet radio station from which the audio is streamed.
  *
  * <p>For more details, please refer to the ID3 specifications:
  * <ul>

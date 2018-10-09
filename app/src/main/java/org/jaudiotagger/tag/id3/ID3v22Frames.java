@@ -225,7 +225,7 @@ public class ID3v22Frames extends ID3Frames
         binaryFrames.add(FRAME_ID_V2_RECOMMENDED_BUFFER_SIZE);
         binaryFrames.add(FRAME_ID_V2_UNIQUE_FILE_ID);
 
-        // Map frameid to a id
+        // Map frameid to a uuid
         idToValue.put(FRAME_ID_V2_ACCOMPANIMENT, "Text: Band/Orchestra/Accompaniment");
         idToValue.put(FRAME_ID_V2_ALBUM, "Text: Album/Movie/Show name");
         idToValue.put(FRAME_ID_V2_ARTIST, "Text: Lead artist(s)/Lead performer(s)/Soloist(s)/Performing group");

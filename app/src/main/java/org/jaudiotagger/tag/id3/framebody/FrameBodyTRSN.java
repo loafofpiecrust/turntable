@@ -21,8 +21,8 @@ import org.jaudiotagger.tag.id3.ID3v24Frames;
 import java.nio.ByteBuffer;
 
 /**
- * Internet radio station id Text information frame.
- * <p>The 'Internet radio station id' frame contains the id of the internet radio station from which the audio is streamed.
+ * Internet radio station uuid Text information frame.
+ * <p>The 'Internet radio station uuid' frame contains the uuid of the internet radio station from which the audio is streamed.
  *
  * <p>For more details, please refer to the ID3 specifications:
  * <ul>

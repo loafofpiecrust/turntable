@@ -120,7 +120,7 @@ class LibraryTest {
             val display = list
         }
         measureTime("sorted list fuzzy search") {
-            list.filter { FuzzySearch.ratio(it.displayName, example.id.displayName) >= 70 }
+            list.filter { FuzzySearch.ratio(it.id.displayName, example.id.displayName) >= 70 }
         }
     }
 }

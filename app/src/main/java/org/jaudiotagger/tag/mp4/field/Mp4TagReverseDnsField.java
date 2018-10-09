@@ -25,7 +25,7 @@ import java.nio.ByteBuffer;
  * These fields have a more complex setup
  * Box ----  shows this is a reverse dns metadata field
  * Box mean  the issuer in the form of reverse DNS domain (e.g com.apple.iTunes)
- * Box id  descriptor identifying the type of contents
+ * Box uuid  descriptor identifying the type of contents
  * Box data  contents
  *
  * The raw data passed starts from the mean box
@@ -102,7 +102,7 @@ public class Mp4TagReverseDnsField extends Mp4TagField implements TagTextField
         setIssuer(meanBox.getIssuer());
         data.position(data.position() + meanBoxHeader.getDataLength());
 
-        //Read id box, identify what type of field it is
+        //Read uuid box, identify what type of field it is
         Mp4BoxHeader nameBoxHeader = new Mp4BoxHeader(data);
         Mp4NameBox nameBox = new Mp4NameBox(nameBoxHeader, data);
         setDescriptor(nameBox.getName());
@@ -124,7 +124,7 @@ public class Mp4TagReverseDnsField extends Mp4TagField implements TagTextField
             setContent(dataBox.getContent());
             data.position(data.position() + dataBoxHeader.getDataLength());
 
-            //Now calculate the id which in order to be unique needs to use all htree values
+            //Now calculate the uuid which in order to be unique needs to use all htree values
             id = IDENTIFIER + ":" + issuer + ":" + descriptor;
         }
     }
@@ -160,7 +160,7 @@ public class Mp4TagReverseDnsField extends Mp4TagField implements TagTextField
     }
 
     /**
-     * Convert back to raw content, includes ----,mean,id and data atom as views as one thing externally
+     * Convert back to raw content, includes ----,mean,uuid and data atom as views as one thing externally
      *
      * @return
      * @throws UnsupportedEncodingException

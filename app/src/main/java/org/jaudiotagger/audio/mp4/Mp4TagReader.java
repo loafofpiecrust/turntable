@@ -64,7 +64,7 @@ import java.util.logging.Logger;
  * |.........................|....... ecetera
  * |.........................|---- ---- (Optional for reverse dns field)
  * |.................................|-- mean
- * |.................................|-- id
+ * |.................................|-- uuid
  * |.................................|-- data
  * |.................................... ecetere
  * |
@@ -157,7 +157,7 @@ public class Mp4TagReader
             //Read the boxHeader
             boxHeader.update(metadataBuffer);
 
-            //Create the corresponding datafield from the id, and slice the buffer so position of main buffer
+            //Create the corresponding datafield from the uuid, and slice the buffer so position of main buffer
             //wont get affected
             logger.config("Next position is at:" + metadataBuffer.position());
             createMp4Field(tag, boxHeader, metadataBuffer.slice());
@@ -243,7 +243,7 @@ public class Mp4TagReader
             //Read the boxHeader
             boxHeader.update(metadataBuffer);
 
-            //Create the corresponding datafield from the id, and slice the buffer so position of main buffer
+            //Create the corresponding datafield from the uuid, and slice the buffer so position of main buffer
             //wont get affected
             logger.config("Next position is at:" + metadataBuffer.position());
             createMp4Field(tag, boxHeader, metadataBuffer.slice());
@@ -301,9 +301,9 @@ public class Mp4TagReader
                 //Need this to decide what type of Field to create
                 int type = Utils.getIntBE(raw, Mp4DataBox.TYPE_POS_INCLUDING_HEADER, Mp4DataBox.TYPE_POS_INCLUDING_HEADER + Mp4DataBox.TYPE_LENGTH - 1);
                 Mp4FieldType fieldType = Mp4FieldType.getFieldType(type);
-                logger.config("Box Type id:" + header.getId() + ":type:" + fieldType);
+                logger.config("Box Type uuid:" + header.getId() + ":type:" + fieldType);
 
-                //Special handling for some specific identifiers otherwise just base on class id
+                //Special handling for some specific identifiers otherwise just base on class uuid
                 if (header.getId().equals(Mp4FieldKey.TRACK.getFieldName()))
                 {
                     TagField field = new Mp4TrackField(header.getId(), raw);
@@ -362,7 +362,7 @@ public class Mp4TagReader
                     {
                         if (key.getFieldName().equals(header.getId()))
                         {
-                            //The parentHeader is a known id but its field type is not one of the expected types so
+                            //The parentHeader is a known uuid but its field type is not one of the expected types so
                             //this field is invalid. i.e I received a file with the TMPO set to 15 (Oxf) when it should
                             //be 21 (ox15) so looks like somebody got their decimal and hex numbering confused
                             //So in this case best to ignore this field and just write a warning
@@ -372,7 +372,7 @@ public class Mp4TagReader
                         }
                     }
 
-                    //Unknown field id with unknown type so just create as binary
+                    //Unknown field uuid with unknown type so just create as binary
                     if (!existingId)
                     {
                         logger.warning("UnKnown Field:" + header.getId() + " with invalid field type of:" + type + " created as binary");

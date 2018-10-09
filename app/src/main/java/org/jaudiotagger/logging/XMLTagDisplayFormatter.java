@@ -61,7 +61,7 @@ public class XMLTagDisplayFormatter extends AbstractTagDisplayFormatter
 
     public static String xmlOpenHeading(String name, String data)
     {
-        return (xmlOpen(name + " id=\"" + data + "\""));
+        return (xmlOpen(name + " uuid=\"" + data + "\""));
     }
 
 

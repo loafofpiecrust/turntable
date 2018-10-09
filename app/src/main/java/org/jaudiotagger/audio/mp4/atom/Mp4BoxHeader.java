@@ -143,10 +143,10 @@ public class Mp4BoxHeader
 
         //Calculate box size
         this.length = Utils.getIntBE(b, OFFSET_POS, OFFSET_LENGTH - 1);
-        //Calculate box id
+        //Calculate box uuid
         this.id = Utils.getString(b, IDENTIFIER_POS, IDENTIFIER_LENGTH, "ISO-8859-1");
 
-        logger.finest("Mp4BoxHeader id:"+id+":length:"+length);
+        logger.finest("Mp4BoxHeader uuid:"+id+":length:"+length);
         if (id.equals("\0\0\0\0"))
         {
             throw new NullBoxIdException(ErrorMessage.MP4_UNABLE_TO_FIND_NEXT_ATOM_BECAUSE_IDENTIFIER_IS_INVALID.getMsg(id));
@@ -245,7 +245,7 @@ public class Mp4BoxHeader
 
 
     /**
-     * Seek for box with the specified id starting from the current location of filepointer,
+     * Seek for box with the specified uuid starting from the current location of filepointer,
      *
      * Note it wont find the box if it is contained with a level below the current level, nor if we are
      * at a parent atom that also contains data and we havent yet processed the data. It will work
@@ -350,7 +350,7 @@ public class Mp4BoxHeader
 
 
     /**
-     * Seek for box with the specified id starting from the current location of filepointer,
+     * Seek for box with the specified uuid starting from the current location of filepointer,
      *
      * Note it won't find the box if it is contained with a level below the current level, nor if we are
      * at a parent atom that also contains data and we havent yet processed the data. It will work

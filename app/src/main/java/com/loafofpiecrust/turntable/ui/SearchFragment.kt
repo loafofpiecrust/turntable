@@ -12,13 +12,9 @@ import com.lapism.searchview.Search
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.album.AlbumsAdapter
-import com.loafofpiecrust.turntable.album.AlbumsFragment
-import com.loafofpiecrust.turntable.album.albumList
-import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
+import com.loafofpiecrust.turntable.album.AlbumsUI
+import com.loafofpiecrust.turntable.artist.*
 import com.loafofpiecrust.turntable.model.artist.Artist
-import com.loafofpiecrust.turntable.artist.ArtistsAdapter
-import com.loafofpiecrust.turntable.artist.ArtistsFragment
-import com.loafofpiecrust.turntable.artist.artistList
 import com.loafofpiecrust.turntable.browse.LocalApi
 import com.loafofpiecrust.turntable.browse.Repository
 import com.loafofpiecrust.turntable.model.song.Song
@@ -110,20 +106,14 @@ class SearchFragment : BaseFragment() {
                     cat.results,
                     startRefreshing = false
                 )
-                is Category.Albums -> albumList(
+                is Category.Albums -> AlbumsUI.Custom(
                     cat.results,
-                    AlbumsFragment.Category.All,
-                    AlbumsFragment.SortBy.NONE,
-                    3
-                )
-                is Category.Artists -> artistList(
-                    cat.results,
-                    ArtistsFragment.Category.All(),
-                    ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE,
-                    3,
-                    startRefreshing = false
-                )
-            }
+                    AlbumsUI.SortBy.NONE
+                ).createView(this)
+                is Category.Artists -> ArtistsUI.Custom(
+                    cat.results
+                ).createView(this)
+            } as SwipeRefreshLayout
         }.lparams(matchParent, matchParent)
 
         searchBar {

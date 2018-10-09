@@ -30,7 +30,7 @@ import java.nio.ByteBuffer;
 
 
 /**
- * Title Sort id
+ * Title Sort uuid
  */
 public class FrameBodyTSOT extends AbstractFrameBodyTextInfo implements ID3v24FrameBody, ID3v23FrameBody
 {

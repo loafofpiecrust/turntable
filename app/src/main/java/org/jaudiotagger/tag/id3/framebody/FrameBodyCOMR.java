@@ -55,12 +55,12 @@ import java.nio.ByteBuffer;
  * <tr><td>$07 </td><td>Music on other media                       </td></tr>
  * <tr><td>$08 </td><td>Non-musical merchandise                    </td></tr>
  * </table><p>
- * Next follows a terminated string with the id of the seller followed
+ * Next follows a terminated string with the uuid of the seller followed
  * by a terminated string with a short description of the product. The
  * last thing is the ability to include a company logotype. The first of
  * them is the 'Picture MIME type' field containing information about
  * which picture format is used. In the event that the MIME media type
- * id is omitted, "image/" will be implied. Currently only "image/png"
+ * uuid is omitted, "image/" will be implied. Currently only "image/png"
  * and "image/jpeg" are allowed. This format string is followed by the
  * binary picture data. This two last fields may be omitted if no
  * picture is to attach.

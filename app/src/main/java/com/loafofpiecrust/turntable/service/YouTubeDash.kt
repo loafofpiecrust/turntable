@@ -89,7 +89,7 @@ class YouTubeDash(val context: Context) {
             streamMap = URLDecoder.decode(streamMap, "UTF-8")
             if (mat.find()) {
                 URLDecoder.decode(mat.group(1), "UTF-8").also {
-                    async(UI) { println("youtube: got a id? '$it'") }
+                    async(UI) { println("youtube: got a uuid? '$it'") }
                 }
             } else null
         } else {
@@ -128,12 +128,12 @@ class YouTubeDash(val context: Context) {
                 decipherJsFileName = curJsFileName
             }
 
-            // Find dash manifest id here
+            // Find dash manifest uuid here
             mat = patDashManifest2.matcher(streamMap)
             if (mat.find()) {
                 val dashUrl = mat.group(1).replace("\\/", "/")
                 mat = patDashManifestEncSig.matcher(dashUrl)
-                async(UI) { println("youtube: got dash id? '$dashUrl'") }
+                async(UI) { println("youtube: got dash uuid? '$dashUrl'") }
                 if (mat.find()) {
                     signatures.append(0, mat.group(1))
                     dashUrl
@@ -178,7 +178,7 @@ class YouTubeDash(val context: Context) {
 
         return if (signatures.size() > 0 && dashUrl != null) {
             async(UI) { println("youtube: deciphering signatures") }
-            // get the cipher via JS to decipher the id signatures (or something...)
+            // get the cipher via JS to decipher the uuid signatures (or something...)
             val deciphered = decipherSignature(signatures)
             if (deciphered == null) {
                 // nothing, didn't work

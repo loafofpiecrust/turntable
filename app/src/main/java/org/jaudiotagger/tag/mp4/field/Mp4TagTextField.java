@@ -34,10 +34,10 @@ import java.nio.ByteBuffer;
  * <pre>
  * MP4Box Parent contains
  *      :length (includes length of data child)  (4 bytes)
- *      :id         (4 bytes)
+ *      :uuid         (4 bytes)
  *      :child with
  *          :length          (4 bytes)
- *          :id 'Data'     (4 bytes)
+ *          :uuid 'Data'     (4 bytes)
  *          :atom version    (1 byte)
  *          :atom type flags (3 bytes)
  *          :null field      (4 bytes)
@@ -56,7 +56,7 @@ public class Mp4TagTextField extends Mp4TagField implements TagTextField
     /**
      * Construct from File
      *
-     * @param id   parent id
+     * @param id   parent uuid
      * @param data atom data
      * @throws UnsupportedEncodingException
      */
@@ -68,7 +68,7 @@ public class Mp4TagTextField extends Mp4TagField implements TagTextField
     /**
      * Construct new Field
      *
-     * @param id      parent id
+     * @param id      parent uuid
      * @param content data atom data
      */
     public Mp4TagTextField(String id, String content)

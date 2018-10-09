@@ -7,13 +7,13 @@ import org.jaudiotagger.tag.reference.Tagger;
 import static org.jaudiotagger.tag.mp4.field.Mp4FieldType.*;
 
 /**
- * Starting list of known mp4 metadata fields that follow the Parent,Data or ---,issuer,id,data
+ * Starting list of known mp4 metadata fields that follow the Parent,Data or ---,issuer,uuid,data
  * convention. Atoms that contain metadata in other formats are not listed here because they need to be processed
  * specially.
  *
  *
- * <p>Simple metaitems use the parent atom id as their identifier whereas reverse dns (----) atoms use
- * the reversedns,issuer and id fields as their identifier. When the atom is non-0standard but follws the rules
+ * <p>Simple metaitems use the parent atom uuid as their identifier whereas reverse dns (----) atoms use
+ * the reversedns,issuer and uuid fields as their identifier. When the atom is non-0standard but follws the rules
  * we list it here with an additional Tagger field to indicate where the field was originally designed.
  *
  * From:

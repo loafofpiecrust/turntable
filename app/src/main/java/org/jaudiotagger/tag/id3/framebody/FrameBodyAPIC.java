@@ -33,7 +33,7 @@ import java.nio.ByteBuffer;
  *
  * This frame contains a picture directly related to the audio file.
  * Image format is the MIME type and subtype for the image. In
- * the event that the MIME media type id is omitted, "image/" will be
+ * the event that the MIME media type uuid is omitted, "image/" will be
  * implied. The "image/png" or "image/jpeg" picture format
  * should be used when interoperability is wanted. Description is a
  * short description of the picture, represented as a terminated

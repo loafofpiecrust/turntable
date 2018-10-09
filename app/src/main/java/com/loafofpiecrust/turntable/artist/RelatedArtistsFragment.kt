@@ -1,38 +1,32 @@
 package com.loafofpiecrust.turntable.artist
 
-import android.support.v7.widget.GridLayoutManager
-import android.view.View
+import android.os.Parcelable
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.style.standardStyle
-import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.ui.replaceMainContent
+import com.loafofpiecrust.turntable.ui.Closable
+import com.loafofpiecrust.turntable.ui.UIComponent
 import com.loafofpiecrust.turntable.util.*
+import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.IO
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.launch
-import org.jetbrains.anko.appcompat.v7.titleResource
+import kotlinx.coroutines.experimental.channels.broadcast
+import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
-import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.design.appBarLayout
-import org.jetbrains.anko.dimen
-import org.jetbrains.anko.recyclerview.v7.recyclerView
-import org.jetbrains.anko.support.v4.ctx
-import org.jetbrains.anko.topPadding
-import org.jetbrains.anko.verticalLayout
 
-class RelatedArtistsFragment(): BaseFragment() {
-    constructor(artistId: ArtistId): this() {
-        this.artistId = artistId
-    }
+@Parcelize
+class RelatedArtistsUI(
+    private val baseArtistId: ArtistId
+) : UIComponent(), Parcelable {
+    private val artists = produceSingle(Dispatchers.IO) {
+        Spotify.similarTo(baseArtistId)
+    }.broadcast()
 
-    private var artistId: ArtistId by arg()
-
-    override fun ViewManager.createView() = verticalLayout {
+    override fun AnkoContext<*>.render() = verticalLayout {
         appBarLayout {
             topPadding = dimen(R.dimen.statusbar_height)
             UserPrefs.primaryColor.consumeEachAsync {
@@ -40,18 +34,10 @@ class RelatedArtistsFragment(): BaseFragment() {
             }
             toolbar {
                 standardStyle()
-                title = getString(R.string.similar_to_artist, artistId.displayName)
+                title = context.getString(R.string.similar_to_artist, baseArtistId.displayName)
             }
         }
 
-        val artists = produceSingle(Dispatchers.IO) {
-            Spotify.similarTo(artistId)
-        }
-        artistList(
-            artists.replayOne(),
-            ArtistsFragment.Category.RelatedTo(artistId),
-            ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE,
-            3
-        )
+        ArtistsUI.Custom(artists).createView(this)
     }
 }

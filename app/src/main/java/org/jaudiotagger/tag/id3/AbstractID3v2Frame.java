@@ -118,7 +118,7 @@ public abstract class AbstractID3v2Frame extends AbstractTagFrame implements Tag
         logger.config("Creating empty frame of type" + identifier);
         this.identifier = identifier;
 
-        // Use reflection to map id to frame body, which makes things much easier
+        // Use reflection to map uuid to frame body, which makes things much easier
         // to keep things up to date.
         try
         {
@@ -258,7 +258,7 @@ public abstract class AbstractID3v2Frame extends AbstractTagFrame implements Tag
     protected AbstractID3v2FrameBody readBody(String identifier, ByteBuffer byteBuffer, int frameSize)
             throws InvalidFrameException, InvalidDataTypeException
     {
-        //Use reflection to map id to frame body, which makes things much easier
+        //Use reflection to map uuid to frame body, which makes things much easier
         //to keep things up to date,although slight performance hit.
         logger.finest("Creating framebody:start");
 
@@ -340,7 +340,7 @@ public abstract class AbstractID3v2Frame extends AbstractTagFrame implements Tag
     }
 
     /**
-     * Get the next frame id, throwing an exception if unable to do this and check against just having padded data
+     * Get the next frame uuid, throwing an exception if unable to do this and check against just having padded data
      * 
      * @param byteBuffer
      * @return
@@ -391,7 +391,7 @@ public abstract class AbstractID3v2Frame extends AbstractTagFrame implements Tag
     //TODO using reflection is rather slow perhaps we should change this
     protected AbstractID3v2FrameBody readBody(String identifier, AbstractID3v2FrameBody body) throws InvalidFrameException
     {
-        /* Use reflection to map id to frame body, which makes things much easier
+        /* Use reflection to map uuid to frame body, which makes things much easier
          * to keep things up to date, although slight performance hit.
          */
         AbstractID3v2FrameBody frameBody;
@@ -464,7 +464,7 @@ public abstract class AbstractID3v2Frame extends AbstractTagFrame implements Tag
      */
     public void isBinary(boolean b)
     {
-        //do nothing because whether or not a field is binary is defined by its id and is immutable
+        //do nothing because whether or not a field is binary is defined by its uuid and is immutable
     }
 
 

@@ -149,7 +149,7 @@ data class YouTubeSong(
 
                     val desc = details["description"].nullString ?: ""
                     val channel = details["channelTitle"].nullString?.toLowerCase() ?: ""
-                    val videoId = it["id"]["videoId"].string
+                    val videoId = it["uuid"]["videoId"].string
 
 
                     // Also check for _dates_ in the name, as those are almost always live sessions!
@@ -160,7 +160,7 @@ data class YouTubeSong(
                         }
                     }
 
-                    // Some songs will be the id of the album! So, don't load the whole album
+                    // Some songs will be the uuid of the album! So, don't load the whole album
                     // if we have no duration to tell us not to.
 //                val albumPat = Pattern.compile("\\b(Full\\s+Album)\\b", Pattern.CASE_INSENSITIVE).matcher(name)
 //                if (albumPat.find()) {
@@ -172,7 +172,7 @@ data class YouTubeSong(
                     // Fucking YouTube. We still need the video duration to filter by and confirm sameness.
                     val res = Http.get("https://www.googleapis.com/youtube/v3/videos", params = mapOf(
                         "key" to API_KEY,
-                        "id" to videoId,
+                        "uuid" to videoId,
                         "part" to "contentDetails,statistics"
                     )).gson.obj
                     val item = res["items"][0]
@@ -264,10 +264,10 @@ data class YouTubeSong(
                         matchRatio += 5
                     }
 
-                    debug { "youtube: possibly '$title' is ${duration}ms, match=$matchRatio, id=$videoId" }
+                    debug { "youtube: possibly '$title' is ${duration}ms, match=$matchRatio, uuid=$videoId" }
 
-                    // TODO: Prioritize shit that has the artist id in the name and/or description
-                    // TODO: Check for album id in description, if it's there prioritize. If not, don't penalize
+                    // TODO: Prioritize shit that has the artist uuid in the name and/or description
+                    // TODO: Check for album uuid in description, if it's there prioritize. If not, don't penalize
 
                     (matchRatio to YouTubeSong(song, title, videoId, duration))
                         .provided { matchRatio >= 84 }
@@ -279,7 +279,7 @@ data class YouTubeSong(
             val choice = results.firstOrNull()?.second
 
             if (choice != null) {
-                debug { "youtube: picked '${choice.title}' is ${choice.duration}ms, id=${choice.id}" }
+                debug { "youtube: picked '${choice.title}' is ${choice.duration}ms, uuid=${choice.id}" }
             }
             return choice
         }
@@ -305,9 +305,9 @@ data class YouTubeSong(
 //            val res = Jsoup.connect("http://www.youtubeinmp3.com/download/?video=https://www.youtube.com$url")
 //                .timeout(10000)
 //                .get()
-//            val id = "http://www.youtubeinmp3.com" + res.getElementById("download").attr("href")
+//            val uuid = "http://www.youtubeinmp3.com" + res.getElementById("download").attr("href")
 //            // Tell the server to generate the mp3 plox (clicking the generate button)
-//            Jsoup.connect(id)
+//            Jsoup.connect(uuid)
 //                .method(Connection.Method.GET)
 //                .execute()
 //
@@ -327,7 +327,7 @@ data class YouTubeSong(
         val streams = s.status as? OnlineSearchService.StreamStatus.Available ?: return
         val downloadUrl = streams.hqStream ?: streams.stream
 
-//        println("albumyt song id: $downloadUrl")
+//        println("albumyt song uuid: $downloadUrl")
         val req = DownloadManager.Request(Uri.parse(downloadUrl))
         req.setTitle(title)
 //        req.setTitle("Downloading YT song")

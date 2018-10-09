@@ -1,13 +1,12 @@
 package com.loafofpiecrust.turntable.playlist
 
+import android.content.res.ColorStateList
 import android.support.v7.graphics.Palette
 import android.support.v7.widget.LinearLayoutManager
 import android.view.*
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.album.AlbumsFragment
 import com.loafofpiecrust.turntable.browse.RecentMixTapesFragment
 import com.loafofpiecrust.turntable.given
-import com.loafofpiecrust.turntable.model.playlist.AlbumCollection
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
@@ -54,9 +53,9 @@ class PlaylistsFragment: BaseFragment() {
             println("playlist: opening '${playlist.name}'")
             activity?.supportFragmentManager?.replaceMainContent(
                 when(playlist) {
-                    is MixTape -> MixTapeDetailsFragment.newInstance(playlist.id, playlist.name)
-                    is AlbumCollection -> AlbumsFragment.fromChan(playlist.albums)
-                    else -> PlaylistDetailsFragment.newInstance(playlist.id, playlist.name)
+                    is MixTape -> MixTapeDetailsFragment.newInstance(playlist.uuid, playlist.name)
+//                    is AlbumCollection -> AlbumsUI.Custom(playlist.albums.broadcast(CONFLATED)).createFragment()
+                    else -> PlaylistDetailsFragment.newInstance(playlist.uuid, playlist.name)
                 },
                 true
             )
@@ -101,7 +100,7 @@ class PlaylistsFragment: BaseFragment() {
 
             given(item.color) {
                 val contrast = Palette.Swatch(it, 0).titleTextColor
-                card.backgroundColor = it
+                card.backgroundTintList = ColorStateList.valueOf(it)
                 mainLine.textColor = contrast
                 subLine.textColor = contrast
                 menu.tint = contrast
@@ -115,7 +114,7 @@ class PlaylistsFragment: BaseFragment() {
         }
 
         override fun itemsSame(a: Playlist, b: Playlist, aIdx: Int, bIdx: Int): Boolean {
-            return a.id == b.id
+            return a.uuid == b.uuid
         }
     }
 }

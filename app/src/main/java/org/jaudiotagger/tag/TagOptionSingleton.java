@@ -642,7 +642,7 @@ public class TagOptionSingleton
     /**
      * Sets if we should save the Lyrics3 field. Defaults to true.
      *
-     * @param id   Lyrics3 id string
+     * @param id   Lyrics3 uuid string
      * @param save true if you want to save this specific Lyrics3 field.
      */
     public void setLyrics3SaveField(String id, boolean save)
@@ -654,7 +654,7 @@ public class TagOptionSingleton
      * Returns true if we should save the Lyrics3 field asked for in the
      * argument. Defaults to true.
      *
-     * @param id Lyrics3 id string
+     * @param id Lyrics3 uuid string
      * @return true if we should save the Lyrics3 field.
      */
     public boolean getLyrics3SaveField(String id)

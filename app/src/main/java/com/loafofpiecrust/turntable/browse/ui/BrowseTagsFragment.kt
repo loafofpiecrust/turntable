@@ -35,7 +35,7 @@ class BrowseTagsFragment: BaseFragment() {
         val tagResults = res["tag"].array
         tagResults.map { it.obj }.map {
             Tag(
-                it["id"].string,
+                it["uuid"].string,
                 usageCount = it["count"].int,
                 reach = it["reach"].int
             )

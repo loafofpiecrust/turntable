@@ -444,14 +444,14 @@ public class ID3v22Tag extends AbstractID3v2Tag
         ID3v22Frame newFrame;
         if (tmpBody.getYear().length() != 0)
         {
-            //Create Year frame (v2.2 id,but uses v2.3 body)
+            //Create Year frame (v2.2 uuid,but uses v2.3 body)
             newFrame = new ID3v22Frame(ID3v22Frames.FRAME_ID_V2_TYER);
             ((AbstractFrameBodyTextInfo) newFrame.getBody()).setText(tmpBody.getYear());
             frameMap.put(newFrame.getIdentifier(), newFrame);
         }
         if (tmpBody.getTime().length() != 0)
         {
-            //Create Time frame (v2.2 id,but uses v2.3 body)
+            //Create Time frame (v2.2 uuid,but uses v2.3 body)
             newFrame = new ID3v22Frame(ID3v22Frames.FRAME_ID_V2_TIME);
             ((AbstractFrameBodyTextInfo) newFrame.getBody()).setText(tmpBody.getTime());
             frameMap.put(newFrame.getIdentifier(), newFrame);
@@ -691,7 +691,7 @@ public class ID3v22Tag extends AbstractID3v2Tag
     }
 
      /**
-     * Delete fields with this (frame) id
+     * Delete fields with this (frame) uuid
      * @param id
      */
     public void deleteField(String id)

@@ -21,15 +21,17 @@ import com.loafofpiecrust.turntable.browse.Repository
 import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.model.SavableMusic
+import com.loafofpiecrust.turntable.model.song.HasTracks
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.playlist.PlaylistPickerDialog
+import com.loafofpiecrust.turntable.playlist.PlaylistPicker
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.sync.Message
 import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.ui.showDialog
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.*
@@ -44,6 +46,8 @@ data class PartialAlbum(
     override val year: Int?,
     override val type: Album.Type
 ): Album, SavableMusic, Parcelable {
+    override val musicId: MusicId get() = id
+
     @Transient
     private val resolved = GlobalScope.async(Dispatchers.IO, start = CoroutineStart.LAZY) {
         Repository.find(id)
@@ -54,8 +58,10 @@ data class PartialAlbum(
         get() = runBlocking { resolve()?.tracks } ?: emptyList()
 }
 
-interface Album: Music {
+interface Album: Music, HasTracks {
     val id: AlbumId
+    override val musicId: MusicId
+        get() = id
     val year: Int?
 
     enum class Type {
@@ -67,9 +73,6 @@ interface Album: Music {
         OTHER // Something else altogether
     }
     val type: Type
-    val tracks: List<Song>
-
-    override val displayName get() = id.displayName
 
     fun toPartial() = PartialAlbum(id, year, type)
 
@@ -89,7 +92,7 @@ interface Album: Music {
         }
 
         menu.menuItem(R.string.add_to_playlist).onClick {
-            PlaylistPickerDialog.forItem(toPartial()).show(context)
+            PlaylistPicker(toPartial()).showDialog(context)
         }
     }
 

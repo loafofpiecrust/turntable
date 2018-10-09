@@ -57,9 +57,9 @@ class CreatePlaylistTests {
 //            )
 //        ).setup().get()
 //
-//        val titleEditor = activity.find<EditText>(R.id.title)
+//        val titleEditor = activity.find<EditText>(R.uuid.title)
 //        titleEditor.text.append("My First Playlist")
-//        val accept = activity.find<Button>(R.id.positive_button)
+//        val accept = activity.find<Button>(R.uuid.positive_button)
 //        accept.performClick()
 //
 //        Thread.sleep(100)

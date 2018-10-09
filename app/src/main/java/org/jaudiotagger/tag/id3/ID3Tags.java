@@ -188,7 +188,7 @@ public class ID3Tags
         //If it is a v23 identifier
         if (ID3v23Frames.getInstanceOf().getIdToValueMap().containsKey(identifier))
         {
-            //If only id has changed  v22 and modified in v23 return result of.
+            //If only uuid has changed  v22 and modified in v23 return result of.
             return ID3Frames.convertv23Tov22.get(identifier.substring(0, 4));
         }
         return null;
@@ -214,7 +214,7 @@ public class ID3Tags
             {
                 return identifier;
             }
-            //If only id has changed  ID3v23 and modified in ID3v24 return result of.
+            //If only uuid has changed  ID3v23 and modified in ID3v24 return result of.
             else
             {
                 return ID3Frames.convertv23Tov24.get(identifier.substring(0, 4));
@@ -292,7 +292,7 @@ public class ID3Tags
 
     /**
      * Unable to instantiate abstract classes, so can't call the copy
-     * constructor. So find out the instantiated class id and call the copy
+     * constructor. So find out the instantiated class uuid and call the copy
      * constructor through reflection (e.g for a a FrameBody would have to have a constructor
      * that takes another frameBody as the same type as a parameter)
      *

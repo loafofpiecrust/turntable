@@ -172,9 +172,9 @@ public enum AsfFieldKey
 
 
     /**
-     * Searches for an ASF field key which represents the given id string.<br>
+     * Searches for an ASF field key which represents the given uuid string.<br>
      *
-     * @param fieldName the field id used for this key
+     * @param fieldName the field uuid used for this key
      * @return the Enum that represents this field
      */
     public static AsfFieldKey getAsfFieldKey(final String fieldName)
@@ -189,7 +189,7 @@ public enum AsfFieldKey
     /**
      * Tests whether the field is enabled for multiple values.<br>
      *
-     * @param fieldName field id to test.
+     * @param fieldName field uuid to test.
      * @return <code>true</code> if ASF implementation supports multiple values for the field.
      */
     public static boolean isMultiValued(final String fieldName)
@@ -200,7 +200,7 @@ public enum AsfFieldKey
 
 
     /**
-     * If set, the field has a standard id assigned.
+     * If set, the field has a standard uuid assigned.
      */
     private final String fieldName;
 
@@ -280,9 +280,9 @@ public enum AsfFieldKey
 
 
     /**
-     * Returns the standard field id.
+     * Returns the standard field uuid.
      *
-     * @return the standard field id. (may be <code>null</code>)
+     * @return the standard field uuid. (may be <code>null</code>)
      */
     public String getFieldName()
     {

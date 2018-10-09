@@ -6,8 +6,8 @@ import android.view.ViewGroup
 import android.view.ViewManager
 import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.album.AlbumDetails
 import com.loafofpiecrust.turntable.model.album.Album
-import com.loafofpiecrust.turntable.album.DetailsFragment
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
 import com.loafofpiecrust.turntable.browse.ui.RecommendationsFragment
@@ -95,7 +95,7 @@ class MusicAdapter(
     override fun onBindViewHolder(holder: RecyclerListItemOptimized, position: Int) {
         val item = data[position]
 
-        holder.mainLine.text = item.displayName
+        holder.mainLine.text = item.musicId.displayName
 
         // TODO: Add the recommending user!
         val ctx = holder.itemView.context
@@ -120,7 +120,7 @@ class MusicAdapter(
                 }
                 holder.card.onClick {
                     ctx.replaceMainContent(
-                        DetailsFragment.fromAlbum(item)
+                        AlbumDetails.Resolved(item).createFragment()
                     )
                 }
             }
@@ -137,7 +137,7 @@ class MusicAdapter(
                 holder.subLine.text = ctx.getString(R.string.playlist_author, item.owner, null)
                 holder.card.onClick {
                     ctx.replaceMainContent(
-                        PlaylistDetailsFragment.newInstance(item.id, item.name)
+                        PlaylistDetailsFragment.newInstance(item.uuid, item.name)
                     )
                 }
             }

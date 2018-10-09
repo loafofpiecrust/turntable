@@ -12,8 +12,7 @@ import android.widget.ImageView
 import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.album.Album
-import com.loafofpiecrust.turntable.album.AlbumsFragment
-import com.loafofpiecrust.turntable.album.albumList
+import com.loafofpiecrust.turntable.album.AlbumsUI
 import com.loafofpiecrust.turntable.browse.Repository
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
@@ -43,8 +42,8 @@ import org.jetbrains.anko.sdk27.coroutines.onClick
 /**
  * We want to be able to open Artist remoteInfo with either:
  * 1. full artist
- * 2. artist id (from Song/Album)
- * 3. artist id (from saved state)
+ * 2. artist uuid (from Song/Album)
+ * 3. artist uuid (from saved state)
  */
 class ArtistDetailsFragment: BaseFragment() {
     private var artistId: ArtistId by arg()
@@ -58,7 +57,7 @@ class ArtistDetailsFragment: BaseFragment() {
 
     // Procedural creation:
     // init: artistId is known
-    //       create channel of found artist from id (maybe local or remote)
+    //       create channel of found artist from uuid (maybe local or remote)
     // onResume: start receiving events on the UI (reopen channels)
     // onPause: stop receiving events to the UI (cancel channels)
     // onResume: resume receiving events on the UI (reopen channels)
@@ -244,14 +243,10 @@ class ArtistDetailsFragment: BaseFragment() {
 
 
         // Albums by this artist
-        albumList(
+        AlbumsUI.Custom(
             albums,
-            AlbumsFragment.Category.ByArtist(artistId, currentMode.value),
-            AlbumsFragment.SortBy.YEAR,
-            3
-        ) {
-            id = R.id.albums
-        }.lparams(width = matchParent) {
+            AlbumsUI.SortBy.YEAR
+        ).createView(this).lparams(width = matchParent) {
             behavior = AppBarLayout.ScrollingViewBehavior()
         }
     }

@@ -84,7 +84,7 @@ public abstract class ID3Frames extends AbstractStringStringValuePair
 
     /**
      * @param frameID
-     * @return true if frames with this id are part of the specification
+     * @return true if frames with this uuid are part of the specification
      */
     public boolean isSupportedFrames(String frameID)
     {
@@ -97,7 +97,7 @@ public abstract class ID3Frames extends AbstractStringStringValuePair
     }
     /**
      * @param frameID
-     * @return true if frames with this id are considered common
+     * @return true if frames with this uuid are considered common
      */
     public boolean isCommon(String frameID)
     {
@@ -106,7 +106,7 @@ public abstract class ID3Frames extends AbstractStringStringValuePair
 
     /**
      * @param frameID
-     * @return true if frames with this id are binary (non textual data)
+     * @return true if frames with this uuid are binary (non textual data)
      */
     public boolean isBinary(String frameID)
     {

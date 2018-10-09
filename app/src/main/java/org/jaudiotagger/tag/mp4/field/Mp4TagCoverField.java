@@ -43,7 +43,7 @@ public class Mp4TagCoverField extends Mp4TagBinaryField
     private Mp4FieldType imageType;
 
     //Contains the size of each atom including header, required because may only have data atom or
-    //may have data and id atom
+    //may have data and uuid atom
     private int dataAndHeaderSize;
 
     /**
@@ -156,7 +156,7 @@ public class Mp4TagCoverField extends Mp4TagBinaryField
         int positionAfterDataAtom = raw.position();
         if (raw.position() + Mp4BoxHeader.HEADER_LENGTH <= raw.limit())
         {
-            //Is there a following id field (not the norm)
+            //Is there a following uuid field (not the norm)
             Mp4BoxHeader nameHeader = new Mp4BoxHeader(raw);
             if (nameHeader.getId().equals(Mp4NameBox.IDENTIFIER))
             {

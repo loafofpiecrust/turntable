@@ -287,7 +287,7 @@
 //    /**
 //     * Start the extraction.
 //     *
-//     * @param youtubeLink       the youtube page link or video id
+//     * @param youtubeLink       the youtube page link or video uuid
 //     * @param parseDashManifest true if the dash manifest should be downloaded and parsed
 //     * @param includeWebM       true if WebM streams should be extracted
 //     */

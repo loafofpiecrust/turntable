@@ -22,7 +22,7 @@ import java.nio.ByteBuffer;
 
 /**
  * Publisher Text information frame.
- * <p>The 'Publisher' frame simply contains the id of the label or publisher.
+ * <p>The 'Publisher' frame simply contains the uuid of the label or publisher.
  *
  * <p>For more details, please refer to the ID3 specifications:
  * <ul>

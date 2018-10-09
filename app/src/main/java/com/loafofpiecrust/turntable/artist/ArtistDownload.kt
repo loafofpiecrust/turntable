@@ -120,8 +120,8 @@ sealed class TorrentArtist(
 //            for (i in 0 until orig.numFiles()) {
 ////                ti?.
 //                val path = orig.filePath(i)
-//                val id = orig.fileName(i)
-//                println("torrent origfile: $id, $path")
+//                val uuid = orig.fileName(i)
+//                println("torrent origfile: $uuid, $path")
 ////                                val values = ContentValues()
 ////                                values.put(MediaStore.MediaColumns.DATA, path)
 ////                                val success = contentResolver.update(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, values, )
@@ -131,8 +131,8 @@ sealed class TorrentArtist(
             }
 //            for (i in 0 until files.numFiles()) {
 //                val path = files.filePath(i)
-//                val id = files.fileName(i)
-//                println("torrent file: $id, $path")
+//                val uuid = files.fileName(i)
+//                println("torrent file: $uuid, $path")
 //            }
             println("torrent info: $info")
             // TODO: Use an Environment.getPath type thing, and the external Music dir or whatever has more space (Check free space?)

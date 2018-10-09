@@ -56,7 +56,7 @@ public abstract class AbstractTagItem
     }
 
     /**
-     * ID string that usually corresponds to the class id, but can be
+     * ID string that usually corresponds to the class uuid, but can be
      * displayed to the user. It is not indended to identify each individual
      * instance.
      *

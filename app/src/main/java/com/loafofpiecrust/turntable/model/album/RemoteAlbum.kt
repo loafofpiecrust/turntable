@@ -63,7 +63,7 @@ class RemoteAlbum(
         menu.menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = false).onClick(Dispatchers.Default) {
             if (App.instance.hasInternet) {
 //                tracks.filter {
-//                    LocalApi.find(it.id) == null
+//                    LocalApi.find(it.uuid) == null
 //                }.forEach { it.download() }
             } else {
                 context.toast(R.string.no_internet)

@@ -254,7 +254,7 @@ public class ID3v24Frames extends ID3Frames
         binaryFrames.add(FRAME_ID_RELATIVE_VOLUME_ADJUSTMENT2);
         binaryFrames.add(FRAME_ID_RECOMMENDED_BUFFER_SIZE);
         binaryFrames.add(FRAME_ID_UNIQUE_FILE_ID);
-        // Map frameid to a id
+        // Map frameid to a uuid
         idToValue.put(FRAME_ID_ACCOMPANIMENT, "Text: Band/Orchestra/Accompaniment");
         idToValue.put(FRAME_ID_ALBUM, "Text: Album/Movie/Show name");
         idToValue.put(FRAME_ID_ALBUM_SORT_ORDER, "Album sort order");

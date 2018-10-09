@@ -34,8 +34,6 @@ open class NowPlayingFragment : BaseFragment() {
     var playButton: FloatingActionButton by weak()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
         MusicService.instance.switchMap {
             it?.player?.currentSong
         }.switchMap { song ->

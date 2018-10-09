@@ -76,7 +76,7 @@ import java.nio.ByteBuffer;
  * The last entry in the child Element ID list is followed by a sequence
  * of optional frames that are embedded within the "CTOC" frame and which
  * describe this element of the table of contents (e.g. a "TIT2" frame
- * representing the id of the element) or provide related material such
+ * representing the uuid of the element) or provide related material such
  * as URLs and images. These sub-frames are contained within the bounds
  * of the "CTOC" frame as signalled by the size field in the "CTOC"
  * frame header.

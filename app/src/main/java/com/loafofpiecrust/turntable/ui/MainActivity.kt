@@ -32,8 +32,8 @@ import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.album.AlbumDetails
 import com.loafofpiecrust.turntable.model.album.AlbumId
-import com.loafofpiecrust.turntable.album.DetailsFragment
 import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.browse.Spotify
@@ -176,7 +176,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
 
 //        if (savedInstanceState == null) {
 //            supportFragmentManager.beginTransaction()
-//                .replace(R.id.mainContentContainer, LibraryFragment())
+//                .replace(R.uuid.mainContentContainer, LibraryFragment())
 //                .commit()
 //        }
 
@@ -224,19 +224,19 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
 //                        var textBox: EditText? = null
 //                        customView {
 //                            textBox = editText {
-//                                hint = "User id to sync with"
+//                                hint = "User uuid to sync with"
 //                            }
 //                        }
 //                        positiveButton("Sync") {
-//                            val id = textBox!!.text.toString()
+//                            val uuid = textBox!!.text.toString()
 //                            task {
-//                                SyncService.User.resolve(id)
+//                                SyncService.User.resolve(uuid)
 //                            }.success(UI) { user ->
 //                                if (user != null) {
 //                                    SyncService.instance.requestSync(user)
 //                                } else {
-//                                    println("sync: user $id not found")
-//                                    toast("User '$id' not found.")
+//                                    println("sync: user $uuid not found")
+//                                    toast("User '$uuid' not found.")
 //                                }
 //                            }
 //                        }
@@ -318,7 +318,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                     positiveButton(R.string.user_sync_accept) {
                         // set sync mode to One on One, enable sync
                         // change some UI element to indicate sync mode (in Now Playing?)
-                        // TODO: Send display id or have that somewhere.
+                        // TODO: Send display uuid or have that somewhere.
                         SyncService.confirmSync(sender)
                         toast("Now synced with ${sender.name}")
                     }
@@ -404,7 +404,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
     private fun handleLink(url: Uri) = launch(Dispatchers.Default) {
         // Possible urls (recommendations, sync)
         // turntable://album?name=*&artist=*
-        // turntable://artist?id=*
+        // turntable://artist?uuid=*
         // turntable://sync-request?from=[USERID]
 //        val segs = url.pathSegments
 //        val params = url.queryParameterNames
@@ -413,26 +413,27 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                 val title = url.getQueryParameter("name")
                 val artist = url.getQueryParameter("artist")
                 replaceMainContent(
-                    DetailsFragment(AlbumId(title, ArtistId(artist))),
-                    true
+                    AlbumDetails(
+                        AlbumId(title, ArtistId(artist))
+                    ).createFragment()
                 )
             }
             "artist" -> {
-                val name = url.getQueryParameter("id")
+                val name = url.getQueryParameter("uuid")
                 given(ArtistDetailsFragment.fromId(ArtistId(name))) {
                     replaceMainContent(it, true)
                 }
             }
             "sync-request" -> {
                 val id = url.getQueryParameter("from")
-//                val displayName = url.getQueryParameter("id")
+//                val displayName = url.getQueryParameter("uuid")
                 given(User.resolve(id)) {
                     SyncService.requestSync(it)
                 }
             }
             "lets-be-friends" -> {
-                val id = url.getQueryParameter("id")
-//                val id = url.getQueryParameter("id")
+                val id = url.getQueryParameter("uuid")
+//                val uuid = url.getQueryParameter("uuid")
 
                 val other = given(User.resolve(id)) {
                     SyncService.Friend(it, SyncService.Friend.Status.CONFIRMED)

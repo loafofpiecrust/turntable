@@ -382,7 +382,7 @@ public class ID3v24Tag extends AbstractID3v2Tag
                Object o = frameMap.get(newFrame.getIdentifier());
                if(o instanceof AbstractID3v2Frame)
                {
-                   //Retrieve the frame with the same id we have already loaded into the map
+                   //Retrieve the frame with the same uuid we have already loaded into the map
                    AbstractID3v2Frame firstFrame = (AbstractID3v2Frame) frameMap.get(newFrame.getIdentifier());
 
 
@@ -428,7 +428,7 @@ public class ID3v24Tag extends AbstractID3v2Tag
                        }
                        else
                        {
-                           //we just lose this frame, we have already got one with the correct id.
+                           //we just lose this frame, we have already got one with the correct uuid.
                            //TODO may want to store this somewhere
                            logger.warning("Found duplicate TDRC frame in invalid situation,discarding:" + newFrame.getIdentifier());
                        }
@@ -1225,7 +1225,7 @@ public class ID3v24Tag extends AbstractID3v2Tag
     }
 
     /**
-     * Delete fields with this (frame) id
+     * Delete fields with this (frame) uuid
      * @param id
      */
     public void deleteField(String id)

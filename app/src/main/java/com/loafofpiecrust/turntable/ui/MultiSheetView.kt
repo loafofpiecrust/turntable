@@ -89,7 +89,7 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
             }
         })
 
-//        val sheet2 = findViewById<View>(R.id.sheet2)
+//        val sheet2 = findViewById<View>(R.uuid.sheet2)
 //        bottomSheetBehavior2 = BottomSheetBehavior.from(sheet2) as CustomBottomSheetBehavior<*>
         bottomSheetBehavior2.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
@@ -150,7 +150,7 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
 
 //    val mainContainerResId: Int
 //        @IdRes
-//        get() = R.id.mainContainer
+//        get() = R.uuid.mainContainer
 
     interface SheetStateChangeListener {
         fun onSheetStateChanged(sheet: Sheet, @BottomSheetBehavior.State state: Int)
@@ -316,8 +316,8 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
 //    @IdRes
 //    fun getSheetContainerViewResId(sheet: Sheet): Int {
 //        when (sheet) {
-//            Sheet.FIRST -> return R.id.sheet1Container
-//            Sheet.SECOND -> return R.id.sheet2Container
+//            Sheet.FIRST -> return R.uuid.sheet1Container
+//            Sheet.SECOND -> return R.uuid.sheet2Container
 //        }
 //
 //        throw IllegalStateException(String.format("No container view resId found for sheet: %d", sheet))
@@ -327,8 +327,8 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
 //    @IdRes
 //    fun getSheetPeekViewResId(@Sheet sheet: Int): Int {
 //        when (sheet) {
-//            Sheet.FIRST -> return R.id.sheet1Peek
-//            Sheet.SECOND -> return R.id.sheet2PeekView
+//            Sheet.FIRST -> return R.uuid.sheet1Peek
+//            Sheet.SECOND -> return R.uuid.sheet2PeekView
 //        }
 //
 //        throw IllegalStateException(String.format("No peek view resId found for sheet: %d", sheet))

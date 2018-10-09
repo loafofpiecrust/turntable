@@ -32,9 +32,9 @@ public enum Mp4ContentTypeValue
     }
 
     /**
-     * Return id used in the file
+     * Return uuid used in the file
      *
-     * @return id
+     * @return uuid
      */
     public int getId()
     {
@@ -42,7 +42,7 @@ public enum Mp4ContentTypeValue
     }
 
     /**
-     * @return the id as a string (convenience method for use with mp4.createtagField()
+     * @return the uuid as a string (convenience method for use with mp4.createtagField()
      */
     public String getIdAsString()
     {

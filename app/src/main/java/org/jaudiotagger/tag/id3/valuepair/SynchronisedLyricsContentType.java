@@ -25,7 +25,7 @@ public class SynchronisedLyricsContentType extends AbstractIntStringValuePair
         idToValue.put(0x00, "other");
         idToValue.put(0x01, "lyrics");
         idToValue.put(0x02, "text transcription");
-        idToValue.put(0x03, "movement/part id");
+        idToValue.put(0x03, "movement/part uuid");
         idToValue.put(0x04, "events");
         idToValue.put(0x05, "chord");
         idToValue.put(0x06, "trivia");

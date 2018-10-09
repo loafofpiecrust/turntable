@@ -5,27 +5,48 @@ import android.support.annotation.DrawableRes
 import android.view.Menu
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ServerTimestamp
+import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repeat
 import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.SavableMusic
+import com.loafofpiecrust.turntable.model.song.HasTracks
+import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.sync.Message
-import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.sync.User
+import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
+import kotlinx.coroutines.experimental.channels.first
+import kotlinx.coroutines.experimental.channels.firstOrNull
+import kotlinx.coroutines.experimental.runBlocking
 import java.util.*
 import kotlin.coroutines.experimental.suspendCoroutine
 
-abstract class Playlist: SavableMusic {
+
+@Parcelize
+data class PlaylistId(
+    override val name: String,
+    val uuid: UUID
+): MusicId {
+    override val displayName get() = name
+}
+
+abstract class Playlist: SavableMusic, HasTracks {
     abstract val owner: User
     abstract var name: String
     abstract var color: Int?
-    abstract val id: UUID
+    abstract val uuid: UUID
+
+    // TODO: Integrate directly.
+    override val musicId get() = PlaylistId(name, uuid)
 
     var createdTime: Date = Date()
         private set
-    abstract val tracks: ReceiveChannel<List<Song>>
+
+    final override val tracks: List<Song>
+        get() = runBlocking { tracksChannel.firstOrNull() } ?: emptyList()
+    abstract val tracksChannel: ReceiveChannel<List<Song>>
 
     @get:DrawableRes
     abstract val icon: Int
@@ -40,7 +61,6 @@ abstract class Playlist: SavableMusic {
     var isPublished: Boolean = false
     var isCompletable: Boolean = false
 
-    override val displayName: String get() = name
     override fun optionsMenu(context: Context, menu: Menu) {
 
     }
@@ -54,7 +74,7 @@ abstract class Playlist: SavableMusic {
         if (isPublished) {
             val db = FirebaseFirestore.getInstance()
             db.collection("playlists")
-                .document(id.toString())
+                .document(uuid.toString())
                 .delete()
             isPublished = false
         }
@@ -77,7 +97,7 @@ abstract class Playlist: SavableMusic {
 
     open fun sendTo(user: User) {
         publish()
-        SyncService.send(Message.Playlist(id), user)
+        SyncService.send(Message.Playlist(uuid), user)
     }
 
     companion object {

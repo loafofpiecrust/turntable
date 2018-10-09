@@ -51,7 +51,7 @@ import java.nio.ByteBuffer;
  * <tr><td rowspan=7 valign=top>Content type:</td><td>$00</td><td width="80%">is other</td></tr>
  * <tr><td>$01</td><td>is lyrics</td></tr>
  * <tr><td>$02</td><td>is text transcription</td></tr>
- * <tr><td>$03</td><td>is movement/part id (e.g. "Adagio")</td></tr>
+ * <tr><td>$03</td><td>is movement/part uuid (e.g. "Adagio")</td></tr>
  * <tr><td>$04</td><td>is events (e.g. "Don Quijote enters the stage")</td></tr>
  * <tr><td>$05</td><td>is chord (e.g. "Bb F Fsus")</td></tr>
  * <tr><td>$06</td><td>is trivia/'pop up' information</td></tr>
@@ -83,7 +83,7 @@ import java.nio.ByteBuffer;
  * as a validator of the subsequent string.
  * <p>
  * Newline ($0A) characters are allowed in all "SYLT" frames and should
- * be used after every entry (id, event etc.) in a frame with the
+ * be used after every entry (uuid, event etc.) in a frame with the
  * content type $03 - $04.
  * <p>
  * A few considerations regarding whitespace characters: Whitespace

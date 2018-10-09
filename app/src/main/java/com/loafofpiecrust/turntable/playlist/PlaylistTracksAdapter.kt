@@ -22,7 +22,7 @@ class PlaylistTracksAdapter(
     private val playlist: CollaborativePlaylist
 ): RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>() {
     init {
-        subscribeData(playlist.tracks)
+        subscribeData(playlist.tracksChannel)
     }
 
     override val moveEnabled get() = true

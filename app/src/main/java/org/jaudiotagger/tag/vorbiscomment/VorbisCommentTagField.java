@@ -27,7 +27,7 @@ import static org.jaudiotagger.tag.vorbiscomment.VorbisCommentFieldKey.*;
 import java.io.UnsupportedEncodingException;
 
 /**
- * This class represents the id and content of a tag entry in ogg-files.
+ * This class represents the uuid and content of a tag entry in ogg-files.
  * <br>
  *
  * @author @author Raphael Slinckx (KiKiDonK)
@@ -37,7 +37,7 @@ public class VorbisCommentTagField implements TagTextField
 {
 
     /**
-     * If <code>true</code>, the id of the current encapsulated tag field is
+     * If <code>true</code>, the uuid of the current encapsulated tag field is
      * specified as a common field. <br>
      * Example is "ARTIST" which should be interpreted by any application as the
      * artist of the media content. <br>
@@ -51,12 +51,12 @@ public class VorbisCommentTagField implements TagTextField
     private String content;
 
     /**
-     * Stores the id (id) of the tag field. <br>
+     * Stores the uuid (uuid) of the tag field. <br>
      */
     private String id;
 
     /**
-     * If id is invalid
+     * If uuid is invalid
      */
     private static final String ERRONEOUS_ID = "ERRONEOUS";
 
@@ -95,7 +95,7 @@ public class VorbisCommentTagField implements TagTextField
     /**
      * Creates an instance.
      *
-     * @param fieldId      ID (id) of the field.
+     * @param fieldId      ID (uuid) of the field.
      * @param fieldContent Content of the field.
      */
     public VorbisCommentTagField(String fieldId, String fieldContent)
@@ -107,7 +107,7 @@ public class VorbisCommentTagField implements TagTextField
 
     /**
      * This method examines the ID of the current field and modifies
-     * {@link #common}in order to reflect if the tag id is a commonly used one.
+     * {@link #common}in order to reflect if the tag uuid is a commonly used one.
      * <br>
      */
     private void checkCommon()

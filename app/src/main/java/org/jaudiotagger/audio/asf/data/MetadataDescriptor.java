@@ -152,7 +152,7 @@ public class MetadataDescriptor implements Comparable<MetadataDescriptor>,
     private int languageIndex = 0;
 
     /**
-     * The id of the metadata descriptor.
+     * The uuid of the metadata descriptor.
      */
     private final String name;
 
@@ -211,7 +211,7 @@ public class MetadataDescriptor implements Comparable<MetadataDescriptor>,
      * Capabilities are set to {@link ContainerType#METADATA_LIBRARY_OBJECT}.<br>
      * 
      * @param propName
-     *            id of the metadata descriptor.
+     *            uuid of the metadata descriptor.
      */
     public MetadataDescriptor(final String propName) {
         this(propName, TYPE_STRING);
@@ -381,7 +381,7 @@ public class MetadataDescriptor implements Comparable<MetadataDescriptor>,
      */
     public int getCurrentAsfSize(final ContainerType type) {
         /*
-         * 2 bytes id length, 2 bytes id zero term, 2 bytes type, 2 bytes
+         * 2 bytes uuid length, 2 bytes uuid zero term, 2 bytes type, 2 bytes
          * content length
          */
         int result = 8;
@@ -434,7 +434,7 @@ public class MetadataDescriptor implements Comparable<MetadataDescriptor>,
     }
 
     /**
-     * This method returns the id of the metadata descriptor.
+     * This method returns the uuid of the metadata descriptor.
      * 
      * @return Name.
      */
@@ -894,7 +894,7 @@ public class MetadataDescriptor implements Comparable<MetadataDescriptor>,
         }
         Utils.writeUINT16(getName().length() * 2 + 2, out);
 
-        // The id for the metadata objects come later
+        // The uuid for the metadata objects come later
         if (contType == ContainerType.EXTENDED_CONTENT) {
             out.write(Utils.getBytes(getName(), AsfHeader.ASF_CHARSET));
             out.write(AsfHeader.ZERO_TERM);
@@ -914,7 +914,7 @@ public class MetadataDescriptor implements Comparable<MetadataDescriptor>,
             Utils.writeUINT32(contentLen, out);
         }
 
-        // Metadata objects now write their descriptor id
+        // Metadata objects now write their descriptor uuid
         if (contType != ContainerType.EXTENDED_CONTENT) {
             out.write(Utils.getBytes(getName(), AsfHeader.ASF_CHARSET));
             out.write(AsfHeader.ZERO_TERM);

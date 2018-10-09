@@ -27,9 +27,9 @@ public enum Mp4RatingValue
     }
 
     /**
-     * Return id used in the file
+     * Return uuid used in the file
      *
-     * @return id
+     * @return uuid
      */
     public int getId()
     {

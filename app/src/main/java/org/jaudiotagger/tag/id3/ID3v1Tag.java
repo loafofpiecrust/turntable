@@ -729,11 +729,11 @@ public class ID3v1Tag extends AbstractID3v1Tag implements Tag
     }
 
     /**
-     * Returns a {@linkplain List list} of {@link TagField} objects whose &quot;{@linkplain TagField#getId() id}&quot;
+     * Returns a {@linkplain List list} of {@link TagField} objects whose &quot;{@linkplain TagField#getId() uuid}&quot;
      * is the specified one.<br>
      *
      * @param genericKey The generic field key
-     * @return A list of {@link TagField} objects with the given &quot;id&quot;.
+     * @return A list of {@link TagField} objects with the given &quot;uuid&quot;.
      */
     public List<TagField> getFields(FieldKey genericKey)
     {
@@ -764,7 +764,7 @@ public class ID3v1Tag extends AbstractID3v1Tag implements Tag
 
 
     /**
-     * Retrieve the first value that exists for this key id
+     * Retrieve the first value that exists for this key uuid
      *
      * @param genericKey
      * @return

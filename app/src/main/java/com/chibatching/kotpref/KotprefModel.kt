@@ -32,7 +32,7 @@ abstract class KotprefModel {
     protected val files = mutableListOf<BaseObjFilePref<*>>()
 
     /**
-     * Preference file id
+     * Preference file uuid
      */
     protected open val kotprefName: String = javaClass.simpleName
 
@@ -74,7 +74,7 @@ abstract class KotprefModel {
     /**
      * Delegate string shared preference property.
      * @param default default string value
-     * @param key custom preference key resource id
+     * @param key custom preference key resource uuid
      */
     protected fun stringPref(default: String = "", key: Int)
             = stringPref(default, context.getString(key))
@@ -90,7 +90,7 @@ abstract class KotprefModel {
     /**
      * Delegate nullable string shared preference property.
      * @param default default string value
-     * @param key custom preference key resource id
+     * @param key custom preference key resource uuid
      */
     protected fun nullableStringPref(default: String? = null, key: Int)
             = nullableStringPref(default, context.getString(key))
@@ -106,7 +106,7 @@ abstract class KotprefModel {
     /**
      * Delegate int shared preference property.
      * @param default default int value
-     * @param key custom preference key resource id
+     * @param key custom preference key resource uuid
      */
     protected fun intPref(default: Int = 0, key: Int)
             = intPref(default, context.getString(key))
@@ -122,7 +122,7 @@ abstract class KotprefModel {
     /**
      * Delegate long shared preference property.
      * @param default default long value
-     * @param key custom preference key resource id
+     * @param key custom preference key resource uuid
      */
     protected fun longPref(default: Long = 0L, key: Int)
             = longPref(default, context.getString(key))
@@ -138,7 +138,7 @@ abstract class KotprefModel {
     /**
      * Delegate float shared preference property.
      * @param default default float value
-     * @param key custom preference key resource id
+     * @param key custom preference key resource uuid
      */
     protected fun floatPref(default: Float = 0F, key: Int)
             = floatPref(default, context.getString(key))
@@ -154,7 +154,7 @@ abstract class KotprefModel {
     /**
      * Delegate boolean shared preference property.
      * @param default default boolean value
-     * @param key custom preference key resource id
+     * @param key custom preference key resource uuid
      */
     protected fun booleanPref(default: Boolean = false, key: Int)
             = booleanPref(default, context.getString(key))
@@ -171,7 +171,7 @@ abstract class KotprefModel {
     /**
      * Delegate string set shared preference property.
      * @param default default string set value
-     * @param key custom preference key resource id
+     * @param key custom preference key resource uuid
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     protected fun stringSetPref(default: Set<String> = LinkedHashSet(), key: Int)
@@ -188,7 +188,7 @@ abstract class KotprefModel {
 
     /**
      * Delegate string set shared preference property.
-     * @param key custom preference key resource id
+     * @param key custom preference key resource uuid
      * @param default default string set value
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)

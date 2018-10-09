@@ -119,11 +119,11 @@ open class SongsAdapter(
 
 //        if (category is SongsFragment.Category.Playlist) {
 //            // TODO: Optimize playlist retrieval to not happen every time we see a new track...
-//            val playlist = runBlocking { Library.instance.findPlaylist(category.id).first()!! }
+//            val playlist = runBlocking { Library.instance.findPlaylist(category.uuid).first()!! }
 //            if (playlist.isCompletable) {
 //                holder.statusIcon.visibility = View.VISIBLE
 //                UserPrefs.history.consumeEach(UI + subs) { history ->
-//                    val entry = history.find { it.song.id == song.id }
+//                    val entry = history.find { it.song.uuid == song.uuid }
 //                    if (entry != null && entry.timestamp > playlist.createdTime.time) {
 //                        holder.statusIcon.imageResource = R.drawable.ic_check_box
 //                    } else {
@@ -205,7 +205,7 @@ open class SongsAdapter(
             val song = data[pos]
 //            if (App.instance.internetStatus.first() != App.InternetStatus.OFFLINE
 //                || song.local != null
-//                || Library.instance.findSong(song.id).first()?.local != null) {
+//                || Library.instance.findSong(song.uuid).first()?.local != null) {
                 // Just in case something got messed up.
                 listener.invoke(data, pos)
 //            }

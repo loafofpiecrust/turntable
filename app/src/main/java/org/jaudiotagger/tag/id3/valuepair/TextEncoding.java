@@ -26,7 +26,7 @@ import org.jaudiotagger.tag.datatype.AbstractIntStringValuePair;
 
 
 /**
- * Text Encoding supported by ID3v24, the id is recognised by ID3
+ * Text Encoding supported by ID3v24, the uuid is recognised by ID3
  * whereas the value maps to a java java.nio.charset.Charset, all the
  * charsets defined below are guaranteed on every Java platform.
  *

@@ -24,7 +24,7 @@ package org.jaudiotagger.tag.datatype;
 import java.util.*;
 
 /**
- * A two way mapping between an id and a value
+ * A two way mapping between an uuid and a value
  */
 public abstract class AbstractValuePair<I, V>
 {

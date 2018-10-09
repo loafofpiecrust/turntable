@@ -81,13 +81,13 @@ public class AiffAudioHeader extends GenericAudioHeader {
     }
     
     /**
-     *  Return the id. May be null.
+     *  Return the uuid. May be null.
      */
     public String getName () {
         return name;
     }
     
-    /** Set the id */
+    /** Set the uuid */
     public void setName (String n) {
         name = n;
     }

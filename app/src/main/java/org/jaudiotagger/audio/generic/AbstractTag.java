@@ -40,7 +40,7 @@ public abstract class AbstractTag implements Tag
     /**
      * This map stores the {@linkplain TagField#getId() ids} of the stored
      * fields to the {@linkplain TagField fields} themselves. Because a linked hashMap is used the order
-     * that they are added in is preserved, the only exception to this rule is when two fields of the same id
+     * that they are added in is preserved, the only exception to this rule is when two fields of the same uuid
      * exist, both will be returned according to when the first item was added to the file. <br>
      */
     protected Map<String, List<TagField>> fields = new LinkedHashMap<String, List<TagField>>();
@@ -80,7 +80,7 @@ public abstract class AbstractTag implements Tag
 
 
     /**
-     * Get list of fields within this tag with the specified id
+     * Get list of fields within this tag with the specified uuid
      *
      * @see org.jaudiotagger.tag.Tag#getFields(java.lang.String)
      */
@@ -238,7 +238,7 @@ public abstract class AbstractTag implements Tag
     }
 
     /**
-     * Does this tag contain a field with the specified id
+     * Does this tag contain a field with the specified uuid
      *
      * @see org.jaudiotagger.tag.Tag#hasField(java.lang.String)
      */
@@ -316,7 +316,7 @@ public abstract class AbstractTag implements Tag
             return;
         }
 
-        // If there is already an existing field with same id
+        // If there is already an existing field with same uuid
         // and both are TextFields, we replace the first element
         List<TagField> list = fields.get(field.getId());
         if (list != null)
@@ -410,7 +410,7 @@ public abstract class AbstractTag implements Tag
 
 
     /**
-     * Delete all occurrences of field with this id.
+     * Delete all occurrences of field with this uuid.
      *
      * @param key
      */

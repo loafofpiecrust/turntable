@@ -5,8 +5,8 @@ package com.commit451.youtubeextractor
 
 /**
  * Class that allows you to extract stream data from a YouTube video
- * given its video id, which is typically contained within the YouTube video url, ie. https://www.youtube.com/watch?v=dQw4w9WgXcQ
- * has a video id of dQw4w9WgXcQ
+ * given its video uuid, which is typically contained within the YouTube video url, ie. https://www.youtube.com/watch?v=dQw4w9WgXcQ
+ * has a video uuid of dQw4w9WgXcQ
  */
 //class YouTubeExtractor private constructor(builder: Builder) {
 //
@@ -74,7 +74,7 @@ package com.commit451.youtubeextractor
 //        val playerArgs = ytPlayerConfig.args!!
 //        val playerUrl = formatPlayerUrl(ytPlayerConfig)
 //        val videoStreams = parseVideoStreams(playerArgs, playerUrl)
-//        val description = tryIgnoringException { doc.select("p[id=\"eow-description\"]").first().html() }
+//        val description = tryIgnoringException { doc.select("p[uuid=\"eow-description\"]").first().html() }
 //        return YouTubeExtraction(videoId,
 //            playerArgs.title,
 //            videoStreams,

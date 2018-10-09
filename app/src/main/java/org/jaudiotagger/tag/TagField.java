@@ -40,7 +40,7 @@ public interface TagField
     /**
      * Returns the Id of the represented tag field.<br>
      * This value should uniquely identify a kind of tag data, like name.
-     * {@link org.jaudiotagger.audio.generic.AbstractTag} will use the &quot;id&quot; to summarize multiple
+     * {@link org.jaudiotagger.audio.generic.AbstractTag} will use the &quot;uuid&quot; to summarize multiple
      * fields.
      *
      * @return Unique identifier for the fields type. (name, artist...)

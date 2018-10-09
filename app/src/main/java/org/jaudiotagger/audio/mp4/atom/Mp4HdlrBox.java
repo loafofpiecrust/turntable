@@ -29,7 +29,7 @@ public class Mp4HdlrBox extends AbstractMp4Box
     public static final int HANDLER_POS = VERSION_FLAG_LENGTH + OTHER_FLAG_LENGTH + RESERVED_FLAG_LENGTH;
     public static final int RESERVED1_POS    = HANDLER_POS + HANDLER_LENGTH;
 
-    //Size used by iTunes, but other application could use different size because id field is variable
+    //Size used by iTunes, but other application could use different size because uuid field is variable
     public static final int ITUNES_META_HDLR_DAT_LENGTH =
         VERSION_FLAG_LENGTH     +
         OTHER_FLAG_LENGTH       +
@@ -86,7 +86,7 @@ public class Mp4HdlrBox extends AbstractMp4Box
 
         }
 
-        //To getFields human readable id
+        //To getFields human readable uuid
         mediaDataType = mediaDataTypeMap.get( handlerType);
     }
 

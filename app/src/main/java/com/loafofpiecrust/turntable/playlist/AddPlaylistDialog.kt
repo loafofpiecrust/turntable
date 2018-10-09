@@ -82,7 +82,7 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
 
     private fun createAndFinish() {
         val pl = when (playlistType) {
-            // TODO: Use the actual user id string.
+            // TODO: Use the actual user uuid string.
             MixTape::class -> MixTape(
                 SyncService.selfUser,
                 mixTapeType,
@@ -143,7 +143,7 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
 
         verticalLayout {
             // Things to configure:
-            // id, color, type
+            // uuid, color, type
             textInputLayout {
                 editText {
                     id = R.id.title

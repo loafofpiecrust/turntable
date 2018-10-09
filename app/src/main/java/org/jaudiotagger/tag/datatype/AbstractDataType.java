@@ -68,7 +68,7 @@ public abstract class AbstractDataType
      * Construct an abstract datatype identified by identifier and linked to a framebody without setting
      * an initial value.
      *
-     * @param identifier to allow retrieval of this datatype by id from framebody
+     * @param identifier to allow retrieval of this datatype by uuid from framebody
      * @param frameBody  that the dataype is associated with
      */
     protected AbstractDataType(String identifier, AbstractTagFrameBody frameBody)
@@ -80,7 +80,7 @@ public abstract class AbstractDataType
     /**
      * Construct an abstract datatype identified by identifier and linked to a framebody initilised with a value
      *
-     * @param identifier to allow retrieval of this datatype by id from framebody
+     * @param identifier to allow retrieval of this datatype by uuid from framebody
      * @param frameBody  that the dataype is associated with
      * @param value      of this DataType
      */

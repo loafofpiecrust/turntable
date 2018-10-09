@@ -12,20 +12,20 @@ import kotlin.reflect.KProperty
 //class GsonPref<T : Any>(val targetClass: KClass<T>, val default: T, val key: String?) : AbstractPref<T>() {
 //
 //    override fun getFromPreference(property: KProperty<*>, preference: SharedPreferences): T {
-//        return preference.getString(key ?: property.id, null)?.let { json ->
+//        return preference.getString(key ?: property.uuid, null)?.let { json ->
 //            deserializeFromJson(json) ?: default
 //        } ?: default
 //    }
 //
 //    override fun setToPreference(property: KProperty<*>, value: T, preference: SharedPreferences) {
 //        serializeToJson(value).let { json ->
-//            preference.edit().putString(key ?: property.id, json).apply()
+//            preference.edit().putString(key ?: property.uuid, json).apply()
 //        }
 //    }
 //
 //    override fun setToEditor(property: KProperty<*>, value: T, editor: SharedPreferences.Editor) {
 //        serializeToJson(value).let { json ->
-//            editor.putString(key ?: property.id, json)
+//            editor.putString(key ?: property.uuid, json)
 //        }
 //    }
 //
@@ -50,7 +50,7 @@ import kotlin.reflect.KProperty
 //inline fun <reified T: Any> KotprefModel.jsonPref(default: T, key: String? = null) =
 //    object : AbstractPref<T>() {
 //        override fun getFromPreference(property: KProperty<*>, preference: SharedPreferences): T {
-//            return preference.getString(key ?: property.id, null)?.let { json ->
+//            return preference.getString(key ?: property.uuid, null)?.let { json ->
 //                try {
 //                    deserializeFromJson(json) ?: default
 //                } catch(e: Exception) {
@@ -62,13 +62,13 @@ import kotlin.reflect.KProperty
 //
 //        override fun setToPreference(property: KProperty<*>, value: T, preference: SharedPreferences) {
 //            serializeToJson(value).let { json ->
-//                preference.edit().putString(key ?: property.id, json).apply()
+//                preference.edit().putString(key ?: property.uuid, json).apply()
 //            }
 //        }
 //
 //        override fun setToEditor(property: KProperty<*>, value: T, editor: SharedPreferences.Editor) {
 //            serializeToJson(value).let { json ->
-//                editor.putString(key ?: property.id, json)
+//                editor.putString(key ?: property.uuid, json)
 //            }
 //        }
 //

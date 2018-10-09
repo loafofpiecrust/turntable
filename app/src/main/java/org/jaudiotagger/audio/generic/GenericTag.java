@@ -243,7 +243,7 @@ public abstract class GenericTag extends AbstractTag
 
     /**
      * 
-     * @param genericKey The field id.
+     * @param genericKey The field uuid.
      * @return
      * @throws KeyNotFoundException
      */

@@ -9,7 +9,7 @@ class MergedAlbum(
     private val b: Album
 ): Album {
     init {
-//        assert(a.id == b.id) { "Can only merge similarly named albums" }
+//        assert(a.uuid == b.uuid) { "Can only merge similarly named albums" }
     }
 
     override val id get() = a.id
@@ -36,26 +36,26 @@ class MergedAlbum(
 }
 
 //data class MergedAlbum(
-//    override val id: AlbumId,
+//    override val uuid: AlbumId,
 //    override val tracks: List<Song>,
 //    override val type: Album.Type,
 //    override val year: Int?
-//): RemoteAlbum(id, remoteId, type, year) {
+//): RemoteAlbum(uuid, remoteId, type, year) {
 //    override fun mergeWith(other: Album): Album {
 //        return MergedAlbum(
-//            other.id.copy(name = other.id.name.commonPrefixWith(id.name, true)),
+//            other.uuid.copy(name = other.uuid.name.commonPrefixWith(uuid.name, true)),
 //            remoteId,
 //            tracks = (tracks + other.tracks)
 //                .sortedBy { it.disc * 1000 + it.track }
 //                .dedupMergeSorted(
-//                    { a, b -> a.disc == b.disc && a.id.displayName.equals(b.id.displayName, true) },
+//                    { a, b -> a.disc == b.disc && a.uuid.displayName.equals(b.uuid.displayName, true) },
 //                    { a, b -> if (a.local != null) a else b }
 //                ),
 //            type = when {
-//                other.id.name.contains(Regex("\\bEP\\b", RegexOption.IGNORE_CASE)) -> Album.Type.EP
+//                other.uuid.name.contains(Regex("\\bEP\\b", RegexOption.IGNORE_CASE)) -> Album.Type.EP
 //                other.tracks.size <= 3 -> Album.Type.SINGLE // A-side, B-side, extra
 //                other.tracks.size <= 7 -> Album.Type.EP
-//                other.id.name.contains(Regex("\\b(Collection|Compilation|Best of|Greatest hits)\\b", RegexOption.IGNORE_CASE)) -> Album.Type.COMPILATION
+//                other.uuid.name.contains(Regex("\\b(Collection|Compilation|Best of|Greatest hits)\\b", RegexOption.IGNORE_CASE)) -> Album.Type.COMPILATION
 //                else -> Album.Type.LP
 //            },
 //            year = year ?: other.year

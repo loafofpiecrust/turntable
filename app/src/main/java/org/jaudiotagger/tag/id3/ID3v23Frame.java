@@ -137,13 +137,13 @@ public class ID3v23Frame extends AbstractID3v2Frame
 
         if (frame instanceof ID3v24Frame)
         {
-            //Unknown Frame e.g NCON, also protects when known id but has unsupported frame body
+            //Unknown Frame e.g NCON, also protects when known uuid but has unsupported frame body
             if (frame.getBody() instanceof FrameBodyUnsupported)
             {
                 this.frameBody = new FrameBodyUnsupported((FrameBodyUnsupported) frame.getBody());
                 this.frameBody.setHeader(this);
                 identifier = frame.getIdentifier();
-                logger.config("UNKNOWN:Orig id is:" + frame.getIdentifier() + ":New id is:" + identifier);
+                logger.config("UNKNOWN:Orig uuid is:" + frame.getIdentifier() + ":New uuid is:" + identifier);
                 return;
             }
             // Deprecated frame for v24
@@ -156,7 +156,7 @@ public class ID3v23Frame extends AbstractID3v2Frame
                     this.frameBody.setHeader(this);
                     this.frameBody.setTextEncoding(ID3TextEncodingConversion.getTextEncoding(this,this.frameBody.getTextEncoding()));
                     identifier = frame.getIdentifier();
-                    logger.config("DEPRECATED:Orig id is:" + frame.getIdentifier() + ":New id is:" + identifier);
+                    logger.config("DEPRECATED:Orig uuid is:" + frame.getIdentifier() + ":New uuid is:" + identifier);
                 }
                 //or was it still deprecated, if so leave as is
                 else
@@ -166,7 +166,7 @@ public class ID3v23Frame extends AbstractID3v2Frame
                     this.frameBody.setTextEncoding(ID3TextEncodingConversion.getTextEncoding(this,this.frameBody.getTextEncoding()));
 
                     identifier = frame.getIdentifier();
-                    logger.config("DEPRECATED:Orig id is:" + frame.getIdentifier() + ":New id is:" + identifier);
+                    logger.config("DEPRECATED:Orig uuid is:" + frame.getIdentifier() + ":New uuid is:" + identifier);
                     return;
                 }
             }
@@ -177,7 +177,7 @@ public class ID3v23Frame extends AbstractID3v2Frame
                 identifier = ID3Tags.convertFrameID24To23(frame.getIdentifier());
                 if (identifier != null)
                 {
-                    logger.finer("V4:Orig id is:" + frame.getIdentifier() + ":New id is:" + identifier);
+                    logger.finer("V4:Orig uuid is:" + frame.getIdentifier() + ":New uuid is:" + identifier);
                     this.frameBody = (AbstractTagFrameBody) ID3Tags.copyObject(frame.getBody());
                     this.frameBody.setHeader(this);
                     this.frameBody.setTextEncoding(ID3TextEncodingConversion.getTextEncoding(this,this.frameBody.getTextEncoding()));
@@ -189,7 +189,7 @@ public class ID3v23Frame extends AbstractID3v2Frame
                     identifier = ID3Tags.forceFrameID24To23(frame.getIdentifier());
                     if (identifier != null)
                     {
-                        logger.finer("V4:Orig id is:" + frame.getIdentifier() + ":New id is:" + identifier);
+                        logger.finer("V4:Orig uuid is:" + frame.getIdentifier() + ":New uuid is:" + identifier);
                         this.frameBody = this.readBody(identifier, (AbstractID3v2FrameBody) frame.getBody());
                         this.frameBody.setHeader(this);
                         this.frameBody.setTextEncoding(ID3TextEncodingConversion.getTextEncoding(this,this.frameBody.getTextEncoding()));
@@ -206,7 +206,7 @@ public class ID3v23Frame extends AbstractID3v2Frame
                         identifier = frame.getIdentifier();
                         this.frameBody = new FrameBodyUnsupported(identifier, baos.toByteArray());
                         this.frameBody.setHeader(this);
-                        logger.finer("V4:Orig id is:" + frame.getIdentifier() + ":New Id Unsupported is:" + identifier);
+                        logger.finer("V4:Orig uuid is:" + frame.getIdentifier() + ":New Id Unsupported is:" + identifier);
                         return;
                     }
                 }
@@ -214,8 +214,8 @@ public class ID3v23Frame extends AbstractID3v2Frame
             // Unable to find a suitable frameBody, this should not happen
             else
             {
-                logger.severe("Orig id is:" + frame.getIdentifier() + "Unable to create Frame Body");
-                throw new InvalidFrameException("Orig id is:" + frame.getIdentifier() + "Unable to create Frame Body");
+                logger.severe("Orig uuid is:" + frame.getIdentifier() + "Unable to create Frame Body");
+                throw new InvalidFrameException("Orig uuid is:" + frame.getIdentifier() + "Unable to create Frame Body");
             }
         }
         else if (frame instanceof ID3v22Frame)
@@ -225,7 +225,7 @@ public class ID3v23Frame extends AbstractID3v2Frame
                 identifier = ID3Tags.convertFrameID22To23(frame.getIdentifier());
                 if (identifier != null)
                 {
-                    logger.config("V3:Orig id is:" + frame.getIdentifier() + ":New id is:" + identifier);
+                    logger.config("V3:Orig uuid is:" + frame.getIdentifier() + ":New uuid is:" + identifier);
                     this.frameBody = (AbstractTagFrameBody) ID3Tags.copyObject(frame.getBody());
                     this.frameBody.setHeader(this);
                     return;
@@ -237,7 +237,7 @@ public class ID3v23Frame extends AbstractID3v2Frame
                     identifier = ID3Tags.forceFrameID22To23(frame.getIdentifier());
                     if (identifier != null)
                     {
-                        logger.config("V22Orig id is:" + frame.getIdentifier() + "New id is:" + identifier);
+                        logger.config("V22Orig uuid is:" + frame.getIdentifier() + "New uuid is:" + identifier);
                         this.frameBody = this.readBody(identifier, (AbstractID3v2FrameBody) frame.getBody());
                         this.frameBody.setHeader(this);
                         return;
@@ -248,7 +248,7 @@ public class ID3v23Frame extends AbstractID3v2Frame
                         this.frameBody = new FrameBodyDeprecated((AbstractID3v2FrameBody) frame.getBody());
                         this.frameBody.setHeader(this);
                         identifier = frame.getIdentifier();
-                        logger.config("Deprecated:V22:orig id id is:" + frame.getIdentifier() + ":New id is:" + identifier);
+                        logger.config("Deprecated:V22:orig uuid uuid is:" + frame.getIdentifier() + ":New uuid is:" + identifier);
                         return;
                     }
                 }
@@ -259,7 +259,7 @@ public class ID3v23Frame extends AbstractID3v2Frame
                 this.frameBody = new FrameBodyUnsupported((FrameBodyUnsupported) frame.getBody());
                 this.frameBody.setHeader(this);
                 identifier = frame.getIdentifier();
-                logger.config("UNKNOWN:Orig id is:" + frame.getIdentifier() + ":New id is:" + identifier);
+                logger.config("UNKNOWN:Orig uuid is:" + frame.getIdentifier() + ":New uuid is:" + identifier);
                 return;
             }
         }

@@ -32,7 +32,7 @@ import org.jetbrains.anko.sdk27.coroutines.textChangedListener
 import java.util.*
 import kotlin.coroutines.experimental.CoroutineContext
 
-// TODO: Make interface for music data types that has their shared qualities: mainly an id. Then, maybe that'll allow some other generalization too.
+// TODO: Make interface for music data types that has their shared qualities: mainly an uuid. Then, maybe that'll allow some other generalization too.
 abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>: RecyclerView.Adapter<VH>(), CoroutineScope {
     protected val supervisor = SupervisorJob()
     override val coroutineContext: CoroutineContext
@@ -269,11 +269,11 @@ class RecyclerGridItem(
 //    maxTextLines,
 //    AnkoContext.create(parent.context, parent).defaultListItem(maxTextLines, useIcon)
 //) {
-//    val track: TextView = itemView.findViewById(R.id.track)
-//    val popupMenu: View = itemView.findViewById(R.id.itemMenuDots)
-//    val progress: View = itemView.findViewById(R.id.progressBg)
-//    val playingIcon: ImageView = itemView.findViewById(R.id.playing_icon)
-//    val statusIcon: View = itemView.findViewById(R.id.status_icon)
+//    val track: TextView = itemView.findViewById(R.uuid.track)
+//    val popupMenu: View = itemView.findViewById(R.uuid.itemMenuDots)
+//    val progress: View = itemView.findViewById(R.uuid.progressBg)
+//    val playingIcon: ImageView = itemView.findViewById(R.uuid.playing_icon)
+//    val statusIcon: View = itemView.findViewById(R.uuid.status_icon)
 //}
 
 class ItemOffsetDecoration(private val mItemOffset: Int) : RecyclerView.ItemDecoration() {

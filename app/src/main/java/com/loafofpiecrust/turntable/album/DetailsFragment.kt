@@ -1,11 +1,14 @@
 package com.loafofpiecrust.turntable.album
 
-import android.arch.lifecycle.ViewModel
 import android.graphics.Color.TRANSPARENT
 import android.graphics.Typeface.BOLD
+import android.os.Parcelable
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.AppBarLayout
+import android.support.design.widget.AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
+import android.support.design.widget.AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL
 import android.support.design.widget.CollapsingToolbarLayout.LayoutParams.COLLAPSE_MODE_PIN
+import android.support.v4.app.Fragment
 import android.transition.*
 import android.view.Gravity
 import android.view.View
@@ -22,10 +25,11 @@ import com.loafofpiecrust.turntable.model.imageTransition
 import com.loafofpiecrust.turntable.model.nameTransition
 import com.loafofpiecrust.turntable.song.songsList
 import com.loafofpiecrust.turntable.style.detailsStyle
-import com.loafofpiecrust.turntable.ui.BaseFragment
+import com.loafofpiecrust.turntable.ui.Closable
+import com.loafofpiecrust.turntable.ui.UIComponent
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.Dispatchers
-import kotlinx.coroutines.experimental.IO
+import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.*
 import kotlinx.coroutines.experimental.channels.Channel.Factory.CONFLATED
 import org.jetbrains.anko.*
@@ -39,53 +43,21 @@ import org.jetbrains.anko.design.collapsingToolbarLayout
 import org.jetbrains.anko.design.coordinatorLayout
 
 
-class AlbumsViewModel: ViewModel() {
-    val category = ConflatedBroadcastChannel<AlbumsFragment.Category>()
-//    val albums = category.openSubscription().switchMap { cat ->
-//        when (cat) {
-//            is AlbumsFragment.Category.All -> Library.instance.albums.openSubscription()
-//            is AlbumsFragment.Category.ByArtist -> {
-////                withContext(UI) {
-////                    circleProgress.visibility = View.VISIBLE
-////                    loadCircle.start()
-////                }
-//                when (cat.mode) {
-//                    ArtistDetailsFragment.Mode.REMOTE -> produce(BG_POOL) {
-//                        send(cat.artist.resolveAlbums(false))
-//                    }
-//                    ArtistDetailsFragment.Mode.LIBRARY_AND_REMOTE -> produce(BG_POOL) {
-//                        send(cat.artist.resolveAlbums(true))
-//                    }
-//                    else -> Library.instance.albumsByArtist(cat.artist)
-//                }
-//            }
-//            is AlbumsFragment.Category.Custom -> produceTask { cat.albums }
-//        }
-//    }.replayOne()
-}
-
-// Album or Artist or Playlist remoteInfo (?)
-// Maybe split this up. Start with Album.
-class DetailsFragment(): BaseFragment() {
-    constructor(albumId: AlbumId, isPartial: Boolean = false): this() {
-        this.albumId = albumId
-        this.isPartial = isPartial
+@Parcelize
+open class AlbumDetails(
+    val albumId: AlbumId
+): UIComponent(), Parcelable {
+    class Resolved(album: Album): AlbumDetails(album.id) {
+        override val album = produceSingle { album }.replayOne()
     }
 
-    private var albumId: AlbumId by arg()
-    private var isPartial: Boolean by arg()
+    open val album by lazy {
+        async(Dispatchers.IO) {
+            Repository.find(albumId)!!
+        }.broadcast()
+    }
 
-    lateinit var album: BroadcastChannel<Album>
-
-    override fun onCreate() {
-        super.onCreate()
-
-        if (!::album.isInitialized) {
-            album = produceSingle(Dispatchers.IO) {
-                Repository.find(albumId)!!
-            }.broadcast(Channel.CONFLATED)
-        }
-
+    override fun Fragment.onCreate() {
         val transDur = 400L
 
         val trans = TransitionSet()
@@ -97,11 +69,9 @@ class DetailsFragment(): BaseFragment() {
         sharedElementReturnTransition = trans
 
         enterTransition = Fade().setDuration(transDur)
-//        exitTransition = Fade().setDuration(transDur) // Just dissappear
-//        postponeEnterTransition()
     }
 
-    override fun ViewManager.createView() = coordinatorLayout {
+    override fun AnkoContext<*>.render() = coordinatorLayout {
         id = R.id.container
         backgroundColor = TRANSPARENT
 
@@ -135,28 +105,32 @@ class DetailsFragment(): BaseFragment() {
                     // Downloaded status
                     val status = textView {
                         //                        text = "Not Downloaded"
-                        text = getString(R.string.album_remote)
+                        text = context.getString(R.string.album_remote)
                         textSizeDimen = R.dimen.small_text_size
 //                        backgroundColor = Color.BLACK
                         backgroundResource = R.drawable.rounded_rect
 
-                        album.consumeEachAsync {
-                            text = when (it) {
-                                is LocalAlbum -> if (it.hasTrackGaps) {
-                                    getString(R.string.album_partial)
-                                } else getString(R.string.album_local)
-                                else -> getString(R.string.album_remote)
+                        launch {
+                            album.consumeEach {
+                                text = when (it) {
+                                    is LocalAlbum -> if (it.hasTrackGaps) {
+                                        context.getString(R.string.album_partial)
+                                    } else context.getString(R.string.album_local)
+                                    else -> context.getString(R.string.album_remote)
+                                }
                             }
                         }
                     }.also { coloredText += it }
 
                     // Year
                     val year = textView {
-                        album.consumeEachAsync { album ->
-                            if (album.year != null) {
-                                text = album.year.toString()
-                            } else {
-                                visibility = View.GONE
+                        launch {
+                            album.consumeEach { album ->
+                                if (album.year != null) {
+                                    text = album.year.toString()
+                                } else {
+                                    visibility = View.GONE
+                                }
                             }
                         }
                         textSizeDimen = R.dimen.small_text_size
@@ -201,8 +175,7 @@ class DetailsFragment(): BaseFragment() {
                 }
             }.lparams {
                 size = matchParent
-                scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
-                    AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
+                scrollFlags = SCROLL_FLAG_SCROLL or SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
             }
 
 
@@ -222,22 +195,26 @@ class DetailsFragment(): BaseFragment() {
                         maxLines = 1
                     }
 
-                    album.openSubscription()
-                        .switchMap(Dispatchers.IO) { album ->
-                            album.loadCover(Glide.with(image))
-                                .map { album to it }
-                        }
-                        .consumeEachAsync { (album, req) ->
-                            req?.transition(DrawableTransitionOptions().crossFade(200))
-                                ?.listener(album.loadPalette(this@toolbar, mainLine, subLine, collapser))
-                                ?.into(image)
-                                ?: run { image.imageResource = R.drawable.ic_default_album }
-                        }
+                    launch {
+                        album.openSubscription()
+                            .switchMap(Dispatchers.IO) { album ->
+                                album.loadCover(Glide.with(image))
+                                    .map { album to it }
+                            }
+                            .consumeEach { (album, req) ->
+                                req?.transition(DrawableTransitionOptions().crossFade(200))
+                                    ?.listener(album.loadPalette(this@appBarLayout, mainLine, subLine, collapser))
+                                    ?.into(image)
+                                    ?: run { image.imageResource = R.drawable.ic_default_album }
+                            }
+                    }
                 }.lparams(height = matchParent)
 
-                album.consumeEachAsync {
-                    menu.clear()
-                    it.optionsMenu(context, menu)
+                launch {
+                    album.consumeEach {
+                        menu.clear()
+                        it.optionsMenu(context, menu)
+                    }
                 }
 
             }.lparams {
@@ -257,15 +234,6 @@ class DetailsFragment(): BaseFragment() {
             id = R.id.songs
         }.lparams(width = matchParent) {
             behavior = AppBarLayout.ScrollingViewBehavior()
-        }
-    }
-
-
-    companion object {
-        fun fromAlbum(album: Album, isPartial: Boolean = false) = DetailsFragment().apply {
-            this.albumId = album.id
-            this.isPartial = isPartial
-            this.album = ConflatedBroadcastChannel(album)
         }
     }
 }

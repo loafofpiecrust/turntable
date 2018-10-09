@@ -36,7 +36,6 @@ import com.mcxiaoke.koi.ext.longValue
 import com.mcxiaoke.koi.ext.stringValue
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.awaitAll
 import kotlinx.coroutines.experimental.channels.*
 import me.xdrop.fuzzywuzzy.FuzzySearch
@@ -48,8 +47,6 @@ import java.io.Serializable
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.HashMap
-import kotlin.collections.LinkedHashMap
-import kotlin.coroutines.experimental.coroutineContext
 
 /// Manages all our music and album covers, including loading from MediaStore
 class Library : BaseService() {
@@ -128,15 +125,15 @@ class Library : BaseService() {
     }
 
     /**
-     * Artist sort key: id
+     * Artist sort key: uuid
      * Album sort key: name + artist
      * Song sort key: name + album + artist
      */
 //    val albums: ConflatedBroadcastChannel<List<Album>> = run {
 //        combineLatest(localAlbums, remoteAlbums.openSubscription()) { a, b ->
 //            measureTime("albumsLazy(${a.size + b.size})") {
-//                (a.lazy + b.lazy).toListSortedBy { it.id }.dedupMergeSorted(
-//                    { a, b -> a.id == b.id },
+//                (a.lazy + b.lazy).toListSortedBy { it.uuid }.dedupMergeSorted(
+//                    { a, b -> a.uuid == b.uuid },
 //                    { a, b -> MergedAlbum(a, b) }
 //                )
 //            }
@@ -153,11 +150,11 @@ class Library : BaseService() {
 //    val songs: ConflatedBroadcastChannel<List<Song>> = run {
 ////        combineLatest(localSongs.openSubscription(), remoteAlbums.openSubscription()) { songs, albums ->
 ////            measureTime("songsLazy(${songs.size} songs, ${albums.size} remote albums)") {
-////                (songs.lazy + albums.lazy.flatMap { it.tracks.lazy }).toListSortedBy { it.id }
+////                (songs.lazy + albums.lazy.flatMap { it.tracks.lazy }).toListSortedBy { it.uuid }
 ////            }
 //        albums.openSubscription().map {
 //            measureTime("songsLazy(${it.size} albums)") {
-//                it.lazy.flatMap { it.tracks.lazy }.toListSortedBy { it.id }
+//                it.lazy.flatMap { it.tracks.lazy }.toListSortedBy { it.uuid }
 //            }
 //        }.replayOne()
 //    }
@@ -172,21 +169,21 @@ class Library : BaseService() {
 //    val artists: ConflatedBroadcastChannel<List<Artist>> = run {
 //        albums.openSubscription().map { albums ->
 //            measureTime("artistsLazy(${albums.size} albums)") {
-//                albums.groupBy { it.id.artist }.values.lazy.map { it: List<Album> ->
+//                albums.groupBy { it.uuid.artist }.values.lazy.map { it: List<Album> ->
 //                    val firstAlbum = it.find { it is LocalAlbum } ?: it.first()
-//                    // TODO: Use a dynamic sorting method: eg. sort by id, etc.
+//                    // TODO: Use a dynamic sorting method: eg. sort by uuid, etc.
 //                    LocalArtist(
-//                        firstAlbum.id.artist,
+//                        firstAlbum.uuid.artist,
 //                        it
 //                    ) as Artist
-//                }.toListSortedBy { it.id }
+//                }.toListSortedBy { it.uuid }
 //            }
 //        }.replayOne()
 //    }
     val artistsMap: ConflatedBroadcastChannel<Map<ArtistId, Artist>> = run {
         albumsMap.openSubscription().map { albums ->
             albums.values.groupBy { it.id.artist }.mapValues { (id, albums) ->
-                // TODO: Use a dynamic sorting method: eg. sort by id, etc.
+                // TODO: Use a dynamic sorting method: eg. sort by uuid, etc.
                 LocalArtist(
                     id,
                     albums
@@ -211,7 +208,7 @@ class Library : BaseService() {
     fun findAlbum(key: AlbumId): ReceiveChannel<Album?> =
         albumsMap.openSubscription().map { libAlbums ->
             libAlbums[key]
-//            libAlbums.binarySearchElem(key) { it.id }
+//            libAlbums.binarySearchElem(key) { it.uuid }
         }
 
     fun findCachedAlbum(album: AlbumId): ReceiveChannel<Album?>
@@ -226,25 +223,25 @@ class Library : BaseService() {
     }
 
     fun findSong(id: SongId): ReceiveChannel<Song?> = songsMap.openSubscription().map {
-//        it.getOrNull(it.binarySearchBy(id) { s: Song -> s.id })
+//        it.getOrNull(it.binarySearchBy(uuid) { s: Song -> s.uuid })
         it[id]
     }
 
     fun findSongFuzzy(song: SongId): ReceiveChannel<Song?> = songsMap.openSubscription().map {
         it.values.find { it.id.fuzzyEquals(song) }
-//        it.binarySearchNearestElem(song) { it.id }?.takeIf {
-//            it.id.fuzzyEquals(song)
+//        it.binarySearchNearestElem(song) { it.uuid }?.takeIf {
+//            it.uuid.fuzzyEquals(song)
 //        }
     }
 
     fun findArtist(id: ArtistId): ReceiveChannel<Artist?> = artistsMap.openSubscription().map {
-//        val key = Artist(id, null, listOf())
-//        it.binarySearchElem(id) { it.id }
+//        val key = Artist(uuid, null, listOf())
+//        it.binarySearchElem(uuid) { it.uuid }
         it[id]
     }
 
 //    fun findArtistFuzzy(name: String): Artist? = artists.blockingFirst().let {
-//        it.find { FuzzySearch.ratio(it.id.name, name) >= 88 }
+//        it.find { FuzzySearch.ratio(it.uuid.name, name) >= 88 }
 //    }
 
     fun findAlbumExtras(id: AlbumId) = albumCovers.openSubscription().map {
@@ -311,7 +308,7 @@ class Library : BaseService() {
 //            if (art != null && art.isNotEmpty()) {
 //                synchronized(UserPrefs.albumMeta) {
 //                    // Add this artwork url to the cache
-//                    UserPrefs.albumMeta appends AlbumMetadata(album.id, art)
+//                    UserPrefs.albumMeta appends AlbumMetadata(album.uuid, art)
 //                }
 //            } else {
 //                // If Last.FM doesn't have this album, then don't check every single start-up.
@@ -382,7 +379,7 @@ class Library : BaseService() {
 //            val res = http.get<JsonElement>("https://ws.audioscrobbler.com/2.0/", params = mapOf(
 //                "api_key" to LASTFM_KEY, "format" to "json",
 //                "method" to "artist.getinfo",
-//                "artist" to artist.id.name
+//                "artist" to artist.uuid.name
 //            )).obj
             val json = try {
                 Http.get("https://ws.audioscrobbler.com/2.0/", params = mapOf(
@@ -421,7 +418,7 @@ class Library : BaseService() {
     }
 
     fun addRemoteAlbum(album: Album) = async {
-//        val existing = findAlbum(album.id).first()
+//        val existing = findAlbum(album.uuid).first()
 //        if (existing == null) {
         // Ensure the tracks are loaded before saving.
             if (!album.tracks.isEmpty()) {
@@ -441,8 +438,8 @@ class Library : BaseService() {
 
     fun findPlaylist(id: UUID): ReceiveChannel<Playlist?>
         = UserPrefs.playlists.openSubscription().switchMap {
-            val r = it.find { it.id == id }
-                ?: UserPrefs.recommendations.value.mapNotNull { it as? Playlist }.find { it.id == id }
+            val r = it.find { it.uuid == id }
+                ?: UserPrefs.recommendations.value.mapNotNull { it as? Playlist }.find { it.uuid == id }
 
             if (r != null) {
                 produceSingle(r)
@@ -451,7 +448,7 @@ class Library : BaseService() {
 
     fun findCachedPlaylist(id: UUID): ReceiveChannel<Playlist?>
         = cachedPlaylists.openSubscription().map {
-            it.find { it.id == id }
+            it.find { it.uuid == id }
         }
 
     fun addPlaylist(pl: Playlist) {
@@ -461,7 +458,7 @@ class Library : BaseService() {
         launch { cachedPlaylists appends pl }
     }
 
-//    fun loadArtistImage(req: RequestManager, id: Long) =
+//    fun loadArtistImage(req: RequestManager, uuid: Long) =
 
     fun initData() {
         info { "maybe loading local data" }
@@ -651,7 +648,7 @@ class Library : BaseService() {
 //        } else {
 //            do {
 //                try {
-//                    val id = cur.longValue(MediaStore.Audio.Albums._ID)
+//                    val uuid = cur.longValue(MediaStore.Audio.Albums._ID)
 //                    val art = cur.stringValue(MediaStore.Audio.Albums.ALBUM_ART)
 //                    val name = cur.stringValue(MediaStore.Audio.Albums.ALBUM)
 //                    val artist = cur.stringValue(MediaStore.Audio.Albums.ARTIST)

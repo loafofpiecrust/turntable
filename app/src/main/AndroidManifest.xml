@@ -89,6 +89,7 @@
 
         <activity android:name=".ui.SettingsActivity" />
         <activity android:name=".ui.AlbumEditorActivity" />
+        <activity android:name=".ui.UniversalActivity" />
 
         <service
             android:name=".player.MusicService"

@@ -7,7 +7,7 @@ import org.jaudiotagger.tag.TagTextField;
 import java.io.UnsupportedEncodingException;
 
 /**
- * This class encapsulates the id and content of a tag entry in id3 fields
+ * This class encapsulates the uuid and content of a tag entry in id3 fields
  * <br>
  *
  * @author @author Raphael Slinckx (KiKiDonK)
@@ -17,7 +17,7 @@ public class ID3v1TagField implements TagTextField
 {
 
     /**
-     * If <code>true</code>, the id of the current encapsulated tag field is
+     * If <code>true</code>, the uuid of the current encapsulated tag field is
      * specified as a common field. <br>
      * Example is "ARTIST" which should be interpreted by any application as the
      * artist of the media content. <br>
@@ -31,7 +31,7 @@ public class ID3v1TagField implements TagTextField
     private String content;
 
     /**
-     * Stores the id (id) of the tag field. <br>
+     * Stores the uuid (uuid) of the tag field. <br>
      */
     private String id;
 
@@ -71,7 +71,7 @@ public class ID3v1TagField implements TagTextField
     /**
      * Creates an instance.
      *
-     * @param fieldId      ID (id) of the field.
+     * @param fieldId      ID (uuid) of the field.
      * @param fieldContent Content of the field.
      */
     public ID3v1TagField(String fieldId, String fieldContent)
@@ -83,7 +83,7 @@ public class ID3v1TagField implements TagTextField
 
     /**
      * This method examines the ID of the current field and modifies
-     * {@link #common}in order to reflect if the tag id is a commonly used one.
+     * {@link #common}in order to reflect if the tag uuid is a commonly used one.
      * <br>
      */
     private void checkCommon()

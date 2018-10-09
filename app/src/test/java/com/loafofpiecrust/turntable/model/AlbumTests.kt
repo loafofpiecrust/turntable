@@ -30,10 +30,10 @@ class LocalAlbumTests {
             )
         )
 
-        assert(album.displayName).toBe(album.id.displayName)
+        assert(album.musicId).toBe(album.id)
         assert(album.type).toBe(Album.Type.SINGLE)
         assert(album.year).notToBeNullBut(2017)
-        assert(album.tracks.first().displayName).toBe("Night Night")
+        assert(album.tracks.first().id.displayName).toBe("Night Night")
     }
 
     @Test fun `types and EPs`() {

@@ -22,7 +22,7 @@ import java.nio.ByteBuffer;
 
 /**
  * Title/Songname/Content description Text information frame.
- * <p>The 'Title/Songname/Content description' frame is the actual id of the piece (e.g. "Adagio", "Hurricane Donna").
+ * <p>The 'Title/Songname/Content description' frame is the actual uuid of the piece (e.g. "Adagio", "Hurricane Donna").
  *
  * <p>For more details, please refer to the ID3 specifications:
  * <ul>

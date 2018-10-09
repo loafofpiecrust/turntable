@@ -36,7 +36,7 @@ import java.nio.ByteBuffer;
  * the transaction, encoded according to ISO-4217 alphabetic
  * currency code. Concatenated to this is the actual price payed, as a
  * numerical string using "." as the decimal separator. Next is an 8
- * character date string (YYYYMMDD) followed by a string with the id
+ * character date string (YYYYMMDD) followed by a string with the uuid
  * of the seller as the last field in the frame. There may only be one
  * "OWNE" frame in a tag.
  * <p><table border=0 width="70%">
@@ -113,7 +113,7 @@ public class FrameBodyOWNE extends AbstractID3v2FrameBody implements ID3v24Frame
     }
 
     /**
-     * If the seller id cannot be encoded using current encoder, change the encoder
+     * If the seller uuid cannot be encoded using current encoder, change the encoder
      */
     public void write(ByteArrayOutputStream tagBuffer)
     {

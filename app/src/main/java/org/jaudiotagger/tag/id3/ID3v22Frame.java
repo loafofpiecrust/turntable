@@ -148,7 +148,7 @@ public class ID3v22Frame extends AbstractID3v2Frame
             }
         }
 
-        // Use reflection to map id to frame body, which makes things much easier
+        // Use reflection to map uuid to frame body, which makes things much easier
         // to keep things up to date.
         try
         {
@@ -194,7 +194,7 @@ public class ID3v22Frame extends AbstractID3v2Frame
         identifier = ID3Tags.convertFrameID23To22(frame.getIdentifier());
         if (identifier != null)
         {
-            logger.config("V2:Orig id is:" + frame.getIdentifier() + ":New id is:" + identifier);
+            logger.config("V2:Orig uuid is:" + frame.getIdentifier() + ":New uuid is:" + identifier);
             this.frameBody = (AbstractID3v2FrameBody) ID3Tags.copyObject(frame.getBody());
         }
         // Is it a known v3 frame which needs forcing to v2 frame e.g. APIC - PIC
@@ -203,7 +203,7 @@ public class ID3v22Frame extends AbstractID3v2Frame
             identifier = ID3Tags.forceFrameID23To22(frame.getIdentifier());
             if (identifier != null)
             {
-                logger.config("V2:Force:Orig id is:" + frame.getIdentifier() + ":New id is:" + identifier);
+                logger.config("V2:Force:Orig uuid is:" + frame.getIdentifier() + ":New uuid is:" + identifier);
                 this.frameBody = this.readBody(identifier, (AbstractID3v2FrameBody) frame.getBody());
             }
             // No mechanism exists to convert it to a v22 frame
@@ -220,14 +220,14 @@ public class ID3v22Frame extends AbstractID3v2Frame
             {
                 this.frameBody = frame.getBody();
                 identifier = frame.getIdentifier();
-                logger.config("DEPRECATED:Orig id is:" + frame.getIdentifier() + ":New id is:" + identifier);
+                logger.config("DEPRECATED:Orig uuid is:" + frame.getIdentifier() + ":New uuid is:" + identifier);
             }
             //or was it still deprecated, if so leave as is
             else
             {
                 this.frameBody = new FrameBodyDeprecated((FrameBodyDeprecated) frame.getBody());
                 identifier = frame.getIdentifier();
-                logger.config("DEPRECATED:Orig id is:" + frame.getIdentifier() + ":New id is:" + identifier);
+                logger.config("DEPRECATED:Orig uuid is:" + frame.getIdentifier() + ":New uuid is:" + identifier);
             }
         }
         // Unknown Frame e.g NCON
@@ -235,7 +235,7 @@ public class ID3v22Frame extends AbstractID3v2Frame
         {
             this.frameBody = new FrameBodyUnsupported((FrameBodyUnsupported) frame.getBody());
             identifier = frame.getIdentifier();
-            logger.config("v2:UNKNOWN:Orig id is:" + frame.getIdentifier() + ":New id is:" + identifier);
+            logger.config("v2:UNKNOWN:Orig uuid is:" + frame.getIdentifier() + ":New uuid is:" + identifier);
         }
     }
 
@@ -357,11 +357,11 @@ public class ID3v22Frame extends AbstractID3v2Frame
         else
         {
             logger.fine("Frame Size Is:" + frameSize);
-            //Convert v2.2 to v2.4 id just for reading the data
+            //Convert v2.2 to v2.4 uuid just for reading the data
             String id = ID3Tags.convertFrameID22To24(identifier);
             if (id == null)
             {
-                //OK,it may be convertable to a v.3 id even though not valid v.4
+                //OK,it may be convertable to a v.3 uuid even though not valid v.4
                 id = ID3Tags.convertFrameID22To23(identifier);
                 if (id == null)
                 {

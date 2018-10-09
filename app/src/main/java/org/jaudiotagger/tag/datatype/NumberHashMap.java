@@ -74,7 +74,7 @@ public class NumberHashMap extends NumberFixedLength implements HashMapInterface
             valueToKey = GenreTypes.getInstanceOf().getValueToIdMap();
             keyToValue = GenreTypes.getInstanceOf().getIdToValueMap();
 
-            //genres can be an id or literal value
+            //genres can be an uuid or literal value
             hasEmptyValue = true;
         }
         else if (identifier.equals(DataTypes.OBJ_TEXT_ENCODING))

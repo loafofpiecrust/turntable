@@ -67,7 +67,7 @@ import java.util.logging.Logger;
  * <code>
  * AudioFile audioFile = AudioFileIO.read(new File("audiofile.mp3")); //Reads the given file.
  * int bitrate = audioFile.getBitrate(); //Retreives the bitrate of the file.
- * String artist = audioFile.getTag().getFirst(TagFieldKey.ARTIST); //Retreive the artist id.
+ * String artist = audioFile.getTag().getFirst(TagFieldKey.ARTIST); //Retreive the artist uuid.
  * audioFile.getTag().setGenre("Progressive Rock"); //Sets the genre to Prog. Rock, note the file on disk is still unmodified.
  * AudioFileIO.write(audioFile); //Write the modifications in the file on disk.
  * </code>

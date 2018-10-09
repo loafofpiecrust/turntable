@@ -336,7 +336,7 @@ public abstract class AbstractID3v2Tag extends AbstractID3Tag implements Tag
      *
      * e.g TDRC is an invalid frame in a v23 tag but if somehow a v23tag has been created by another application
      * with a TDRC frame we construct an UnsupportedFrameBody to hold it, then this library constructs a
-     * v24 tag, it will contain a frame with id TDRC but it will not have the expected frame body it is not really a
+     * v24 tag, it will contain a frame with uuid TDRC but it will not have the expected frame body it is not really a
      * TDRC frame.
      *
      * @param identifier frameId to lookup
@@ -1057,7 +1057,7 @@ public abstract class AbstractID3v2Tag extends AbstractID3Tag implements Tag
             }
         }
         //Then deleteField outside of loop to prevent concurrent modificatioon eception if there are two keys
-        //with the same id
+        //with the same uuid
         for (String match : result)
         {
             logger.finest("Removing frame with identifier:" + match + "because starts with:" + identifier);
@@ -1715,7 +1715,7 @@ public abstract class AbstractID3v2Tag extends AbstractID3Tag implements Tag
                 map.put(frameId, next);
             }
         }
-        //If duplicate frame just stores the id of the frame and the number of bytes the frame contains
+        //If duplicate frame just stores the uuid of the frame and the number of bytes the frame contains
         else if (map.containsKey(frameId))
         {
             logger.warning("Ignoring Duplicate Frame:" + frameId);
@@ -1925,7 +1925,7 @@ public abstract class AbstractID3v2Tag extends AbstractID3Tag implements Tag
     }
 
     /**
-     * Retrieve the values that exists for this id3 frame id
+     * Retrieve the values that exists for this id3 frame uuid
      */
     public List<TagField> getFields(String id) throws KeyNotFoundException
     {
@@ -1953,7 +1953,7 @@ public abstract class AbstractID3v2Tag extends AbstractID3Tag implements Tag
 
 
     /**
-     * Create Frame of correct ID3 version with the specified id
+     * Create Frame of correct ID3 version with the specified uuid
      *
      * @param id
      * @return
@@ -1970,7 +1970,7 @@ public abstract class AbstractID3v2Tag extends AbstractID3Tag implements Tag
     /**
      * Does this tag contain a field with the specified key
      *
-     * @param key The field id to look for.
+     * @param key The field uuid to look for.
      * @return true if has field , false if does not or if no mapping for key exists
      */
     public boolean hasField(FieldKey key)
@@ -1992,7 +1992,7 @@ public abstract class AbstractID3v2Tag extends AbstractID3Tag implements Tag
     }
 
     /**
-     * Does this tag contain a field with the specified id
+     * Does this tag contain a field with the specified uuid
      *
      * @see org.jaudiotagger.tag.Tag#hasField(java.lang.String)
      */

@@ -133,7 +133,7 @@ public class VorbisCommentTag extends AbstractTag
         tagFieldToOggField.put(FieldKey.COUNTRY, VorbisCommentFieldKey.COUNTRY);
     }
 
-    //This is the vendor string that will be written if no other is supplied. Should be the id of the software
+    //This is the vendor string that will be written if no other is supplied. Should be the uuid of the software
     //that actually encoded the file in the first place.
     public static final String DEFAULT_VENDOR = "jaudiotagger";
 
@@ -597,7 +597,7 @@ public class VorbisCommentTag extends AbstractTag
     }
 
     /**
-     * Create and set field with id of vorbisCommentkey
+     * Create and set field with uuid of vorbisCommentkey
      *
      * @param vorbisCommentKey
      * @param value
@@ -611,7 +611,7 @@ public class VorbisCommentTag extends AbstractTag
     }
 
     /**
-     * Create and add field with id of vorbisCommentkey
+     * Create and add field with uuid of vorbisCommentkey
      * @param vorbisCommentKey
      * @param value
      * @throws KeyNotFoundException

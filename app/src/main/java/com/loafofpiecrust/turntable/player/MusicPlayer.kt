@@ -175,7 +175,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
 
 //            errorCount++
 //            if (errorCount < 2) async(BG_POOL) {
-//                OnlineSearchService.instance.reloadSongStreams(_queue.value.current!!.id)
+//                OnlineSearchService.instance.reloadSongStreams(_queue.value.current!!.uuid)
 //
 //                // TODO: Ensure this works vs resetting the media source entirely.
 //                player.seekToDefaultPosition(player.currentWindowIndex)
@@ -192,7 +192,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
 //        if (errorCount < 2) {
 //            given(_queue.value.current) { song: Song ->
 //                task {
-//                    OnlineSearchService.instance.reloadSongStreams(song.id)
+//                    OnlineSearchService.instance.reloadSongStreams(song.uuid)
 //                }.success {
 //                    if (prepareSong(song)) {
 //                        desynced { play() }

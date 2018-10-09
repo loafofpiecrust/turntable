@@ -11,7 +11,7 @@ import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.signature.ObjectKey
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.artist.BiographyFragment
-import com.loafofpiecrust.turntable.artist.RelatedArtistsFragment
+import com.loafofpiecrust.turntable.artist.RelatedArtistsUI
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.loadPalette
 import com.loafofpiecrust.turntable.browse.Repository
@@ -19,10 +19,12 @@ import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.queue.RadioQueue
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.model.Music
+import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.model.SavableMusic
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.sync.Message
 import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.ui.createFragment
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
@@ -35,8 +37,8 @@ import org.jetbrains.anko.toast
 data class PartialArtist(
     val id: ArtistId
 ): SavableMusic, Parcelable {
-    override val displayName: String
-        get() = id.displayName
+    override val musicId: MusicId
+        get() = id
 
     suspend fun resolve(): Artist? = Repository.find(id)
     override fun optionsMenu(context: Context, menu: Menu) {}
@@ -49,13 +51,14 @@ interface Artist: Music {
     val endYear: Int?
     val biography: String?
 
-    override val displayName: String get() = id.displayName
-
     data class Member(
         val name: String,
         val id: String,
         val active: Boolean
     )
+
+    override val musicId: MusicId
+        get() = id
 
     fun toPartial() = PartialArtist(id)
 
@@ -76,8 +79,7 @@ interface Artist: Music {
     override fun optionsMenu(context: Context, menu: Menu) = with(menu) {
         menuItem(R.string.artist_show_similar).onClick {
             context.replaceMainContent(
-                RelatedArtistsFragment(id),
-                true
+                RelatedArtistsUI(id).createFragment()
             )
         }
 

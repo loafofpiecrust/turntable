@@ -874,7 +874,7 @@ public class ID3v23Tag extends AbstractID3v2Tag
     }
 
      /**
-     * Delete fields with this (frame) id
+     * Delete fields with this (frame) uuid
      * @param id
      */
     public void deleteField(String id)

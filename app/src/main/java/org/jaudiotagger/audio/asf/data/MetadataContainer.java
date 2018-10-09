@@ -18,7 +18,7 @@ public class MetadataContainer extends Chunk implements WriteableChunk {
 
     /**
      * This class is used to uniquely identify an enclosed descriptor by its
-     * id, language index and stream number.<br>
+     * uuid, language index and stream number.<br>
      * The type of the descriptor is ignored, since it just specifies the data
      * content.
      * 
@@ -194,7 +194,7 @@ public class MetadataContainer extends Chunk implements WriteableChunk {
         /*
          * Check for containers types capabilities.
          */
-        // Search for descriptor list by id, language and stream.
+        // Search for descriptor list by uuid, language and stream.
         List<MetadataDescriptor> list;
         synchronized (this.perfPoint) {
             list = this.descriptors.get(this.perfPoint.setDescriptor(toAdd));
@@ -205,7 +205,7 @@ public class MetadataContainer extends Chunk implements WriteableChunk {
         } else {
             if (!list.isEmpty() && !this.containerType.isMultiValued()) {
                 throw new IllegalArgumentException(
-                        "Container does not allow multiple values of descriptors with same id, language index and stream number");
+                        "Container does not allow multiple values of descriptors with same uuid, language index and stream number");
             }
         }
         list.add(toAdd);
@@ -216,8 +216,8 @@ public class MetadataContainer extends Chunk implements WriteableChunk {
      * specified key, means returns an existing or creates a new descriptor.
      * 
      * @param key
-     *            the descriptor id to look up (or create)
-     * @return the/a descriptor with the specified id (and initial type of
+     *            the descriptor uuid to look up (or create)
+     * @return the/a descriptor with the specified uuid (and initial type of
      *         {@link MetadataDescriptor#TYPE_STRING}.
      */
     protected final MetadataDescriptor assertDescriptor(final String key) {
@@ -229,10 +229,10 @@ public class MetadataContainer extends Chunk implements WriteableChunk {
      * specified key, means returns an existing or creates a new descriptor.
      * 
      * @param key
-     *            the descriptor id to look up (or create)
+     *            the descriptor uuid to look up (or create)
      * @param type
      *            if the descriptor is created, this data type is applied.
-     * @return the/a descriptor with the specified id.
+     * @return the/a descriptor with the specified uuid.
      */
     protected final MetadataDescriptor assertDescriptor(final String key,
             final int type) {
@@ -309,11 +309,11 @@ public class MetadataContainer extends Chunk implements WriteableChunk {
 
     /**
      * Returns a list of descriptors with the given
-     * {@linkplain MetadataDescriptor#getName() id}.<br>
+     * {@linkplain MetadataDescriptor#getName() uuid}.<br>
      * 
      * @param name
-     *            id of the descriptors to return
-     * @return list of descriptors with given id.
+     *            uuid of the descriptors to return
+     * @return list of descriptors with given uuid.
      */
     public final List<MetadataDescriptor> getDescriptorsByName(final String name) {
         assert name != null;
@@ -329,11 +329,11 @@ public class MetadataContainer extends Chunk implements WriteableChunk {
     }
 
     /**
-     * This method looks up a descriptor with given id and returns its value
+     * This method looks up a descriptor with given uuid and returns its value
      * as string.<br>
      * 
      * @param name
-     *            the id of the descriptor to look up.
+     *            the uuid of the descriptor to look up.
      * @return the string representation of a found descriptors value. Even an
      *         empty string if no descriptor has been found.
      */
@@ -351,7 +351,7 @@ public class MetadataContainer extends Chunk implements WriteableChunk {
 
     /**
      * Determines if this container contains a descriptor with given
-     * {@linkplain MetadataDescriptor#getName() id}.<br>
+     * {@linkplain MetadataDescriptor#getName() uuid}.<br>
      * 
      * @param name
      *            Name of the descriptor to look for.
@@ -420,10 +420,10 @@ public class MetadataContainer extends Chunk implements WriteableChunk {
 
     /**
      * Removes all stored descriptors with the given
-     * {@linkplain MetadataDescriptor#getName() id}.<br>
+     * {@linkplain MetadataDescriptor#getName() uuid}.<br>
      * 
      * @param name
-     *            the id to remove.
+     *            the uuid to remove.
      */
     public final void removeDescriptorsByName(final String name) {
         assert name != null;
@@ -439,12 +439,12 @@ public class MetadataContainer extends Chunk implements WriteableChunk {
 
     /**
      * {@linkplain #assertDescriptor(String) asserts} the existence of a
-     * descriptor with given <code>id</code> and
+     * descriptor with given <code>uuid</code> and
      * {@linkplain MetadataDescriptor#setStringValue(String) assings} the string
      * value.
      * 
      * @param name
-     *            the id of the descriptor to set the value for.
+     *            the uuid of the descriptor to set the value for.
      * @param value
      *            the string value.
      */

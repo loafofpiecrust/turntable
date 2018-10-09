@@ -16,7 +16,6 @@ import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.sync.Message
-import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.Dispatchers
@@ -75,7 +74,7 @@ class MixTapeDetailsFragment: BaseFragment() {
 
                 menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = true).onClick(Dispatchers.Default) {
 //                    playlist.tracks.first()
-//                        .filter { ctx.library.findSong(it.id).first() == null }
+//                        .filter { ctx.library.findSong(it.uuid).first() == null }
 //                        .forEach { it.download() }
                 }
 
@@ -105,7 +104,7 @@ class MixTapeDetailsFragment: BaseFragment() {
                 override fun getPageTitle(position: Int) = ('A' + position) + " Side"
 
                 override fun getItem(idx: Int) = SongsFragment(
-                    SongsFragment.Category.Playlist(playlist.id, idx),
+                    SongsFragment.Category.Playlist(playlist.uuid, idx),
                     playlist.tracksOnSide(idx).replayOne()
                 )
 

@@ -136,7 +136,7 @@ public class FlacTag implements Tag
     }
 
     /**
-     * Create and set field with id of vorbisCommentkey
+     * Create and set field with uuid of vorbisCommentkey
      *
      * @param vorbisCommentKey
      * @param value
@@ -150,7 +150,7 @@ public class FlacTag implements Tag
     }
 
     /**
-     * Create and add field with id of vorbisCommentkey
+     * Create and add field with uuid of vorbisCommentkey
      * @param vorbisCommentKey
      * @param value
      * @throws KeyNotFoundException

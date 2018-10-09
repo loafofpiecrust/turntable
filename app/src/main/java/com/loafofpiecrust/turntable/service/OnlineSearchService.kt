@@ -236,7 +236,7 @@ class OnlineSearchService : BaseService(), AnkoLogger {
                 given(entry.stream192) { compress(it) }
             ))
 //            database.putItem("MusicStreams", mapOf(
-//                "SongId" to AttributeValue(entry.id),
+//                "SongId" to AttributeValue(entry.uuid),
 //                "stream128" to AttributeValue(entry.stream128),
 //                "stream192" to AttributeValue(entry.stream192)
 //            ))
@@ -342,7 +342,7 @@ class OnlineSearchService : BaseService(), AnkoLogger {
                     SongStream(StreamStatus.Unavailable())
                 } else {
                     val hq = res["highQuality"].nullObj?.get("url")?.string
-                    val id = res["id"].string
+                    val id = res["uuid"].string
                     saveYouTubeStreamUrl(SongDBEntry(
                         key, id,
                         stream128 = lq,
@@ -417,10 +417,10 @@ class OnlineSearchService : BaseService(), AnkoLogger {
 //                            val stream128video = streams[43]
 //                            val stream96video = streams[18]
 //                            val low = stream128 ?: stream128ogg ?: stream128video ?: stream96video ?: stream64webm
-//                            val entry = SongDBEntry(key, ytSong.id, System.currentTimeMillis(), low?.url, stream192?.url)
+//                            val entry = SongDBEntry(key, ytSong.uuid, System.currentTimeMillis(), low?.url, stream192?.url)
 //                            saveYouTubeStreamUrl(entry)
 //                        }
-//                    }.extract("https://youtube.com/watch?v=${ytSong.id}", true, true)
+//                    }.extract("https://youtube.com/watch?v=${ytSong.uuid}", true, true)
 //                }
 //            }
 //
@@ -460,12 +460,12 @@ class OnlineSearchService : BaseService(), AnkoLogger {
 //                                val stream128ogg = streams[171]
 //                                val stream64webm = streams[250]
 //                                val stream192 = streams[251] // webm audio, 192kbps
-////                        async(UI) { println("youtube: stream 192 at ${stream192?.id}") }
+////                        async(UI) { println("youtube: stream 192 at ${stream192?.uuid}") }
 //                                val stream128video = streams[43]
 //                                val stream96video = streams[18]
 //                                val low = stream128 ?: stream128ogg ?: stream128video ?: stream96video ?: stream64webm
-////                        async(UI) { println("youtube: stream 128 at ${low.id}") }
-//                                val entry = SongDBEntry(albumKey, ytAlbum.id, System.currentTimeMillis(), low?.url, stream192?.url)
+////                        async(UI) { println("youtube: stream 128 at ${low.uuid}") }
+//                                val entry = SongDBEntry(albumKey, ytAlbum.uuid, System.currentTimeMillis(), low?.url, stream192?.url)
 //                                saveYouTubeStreamUrl(entry)
 //                                cont.resolve(videoTrack to entry)
 //                            }
@@ -479,7 +479,7 @@ class OnlineSearchService : BaseService(), AnkoLogger {
 //                                super.onCancelled()
 //                                cont.resolve(null)
 //                            }
-//                        }.extract("https://youtube.com/watch?v=${ytAlbum.id}", true, true)
+//                        }.extract("https://youtube.com/watch?v=${ytAlbum.uuid}", true, true)
 //
 //                        given (cont.promise.get()) {
 //                            return it
@@ -503,12 +503,12 @@ class OnlineSearchService : BaseService(), AnkoLogger {
 //                    val stream128ogg = streams[171]
 //                    val stream64webm = streams[250]
 //                    val stream192 = streams[251] // webm audio, 192kbps
-////                        async(UI) { println("youtube: stream 192 at ${stream192?.id}") }
+////                        async(UI) { println("youtube: stream 192 at ${stream192?.uuid}") }
 //                    val stream128video = streams[43]
 //                    val stream96video = streams[18]
 //                    val low = stream128 ?: stream128ogg ?: stream128video ?: stream96video ?: stream64webm
-////                        async(UI) { println("youtube: stream 128 at ${low.id}") }
-//                    val entry = SongDBEntry(key, ytSong.id, System.currentTimeMillis(), low?.url, stream192?.url)
+////                        async(UI) { println("youtube: stream 128 at ${low.uuid}") }
+//                    val entry = SongDBEntry(key, ytSong.uuid, System.currentTimeMillis(), low?.url, stream192?.url)
 //                    saveYouTubeStreamUrl(entry)
 //                    cont.resolve(song to entry)
 //                }
@@ -522,7 +522,7 @@ class OnlineSearchService : BaseService(), AnkoLogger {
 //                    super.onCancelled()
 //                    cont.resolve(null)
 //                }
-//            }.extract("https://youtube.com/watch?v=${ytSong.id}", true, true)
+//            }.extract("https://youtube.com/watch?v=${ytSong.uuid}", true, true)
 //
 //            cont.promise.get()
 //        }
@@ -540,7 +540,7 @@ class OnlineSearchService : BaseService(), AnkoLogger {
         } else {
             val res = Http.post("http://rutracker.org/forum/login.php",
                 headers = mapOf("content-type" to "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW"),
-                body = "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; id=\"login_username\"\r\n\r\nloafofpiecrust\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; id=\"login_password\"\r\n\r\nPok10101\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; id=\"login\"\r\n\r\nвход\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW--"
+                body = "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; uuid=\"login_username\"\r\n\r\nloafofpiecrust\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; uuid=\"login_password\"\r\n\r\nPok10101\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; uuid=\"login\"\r\n\r\nвход\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW--"
             )
             val cookie = Http.client.cookieJar().loadForRequest(HttpUrl.parse("http://rutracker.org/forum/login.php")).find { it.name() == "bb_session" }
 //            val cookie = res.cookies.getCookie("bb_session")

@@ -22,7 +22,7 @@ import java.nio.ByteBuffer;
 
 /**
  * Conductor Text information frame.
- * <p>The 'Conductor' frame is used for the id of the conductor.
+ * <p>The 'Conductor' frame is used for the uuid of the conductor.
  *
  * <p>For more details, please refer to the ID3 specifications:
  * <ul>

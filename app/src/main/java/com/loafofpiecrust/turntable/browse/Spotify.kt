@@ -92,7 +92,7 @@ object Spotify: Repository {
                         ArtistId(artists[0]["name"].string)
                     ),
                     AlbumDetails(
-                        it["id"].string,
+                        it["uuid"].string,
                         tryOr(null) { imgs.last()["url"].string },
                         tryOr(null) { imgs.first()["url"].string }
                     ),
@@ -168,7 +168,7 @@ object Spotify: Repository {
             "limit" to "3"
         )).gson
 
-        return res["artists"]["items"].nullArray?.map { it["id"].string } ?: listOf()
+        return res["artists"]["items"].nullArray?.map { it["uuid"].string } ?: listOf()
     }
 
     override suspend fun searchArtists(query: String): List<Artist> {
@@ -182,7 +182,7 @@ object Spotify: Repository {
             RemoteArtist(
                 ArtistId(it["name"].string),
                 ArtistDetails(
-                    it["id"].string,
+                    it["uuid"].string,
                     imgs.last()["url"].string,
                     imgs.first()["url"].string
                 )
@@ -205,7 +205,7 @@ object Spotify: Repository {
             "limit" to "3"
         )).gson
 
-        return res["tracks"]["items"].array.map { it["id"].string }
+        return res["tracks"]["items"].array.map { it["uuid"].string }
     }
 
     private suspend fun searchFor(album: AlbumId): List<RemoteAlbum> {
@@ -222,7 +222,7 @@ object Spotify: Repository {
             val primaryArtist = artists.first()["name"].string
             RemoteAlbum(
                 AlbumId(it["name"].string, ArtistId(primaryArtist)),
-                AlbumDetails(it["id"].string)
+                AlbumDetails(it["uuid"].string)
             )
         } ?: listOf()
     }
@@ -248,7 +248,7 @@ object Spotify: Repository {
                     ArtistId(it["artists"][0]["name"].string)
                 ),
                 AlbumDetails(
-                    it["id"].string,
+                    it["uuid"].string,
                     imgs.last()["url"].string,
                     imgs.first()["url"].string
                 ),
@@ -368,7 +368,7 @@ object Spotify: Repository {
 
         App.launch {
             ctx.replaceMainContent(
-                PlaylistDetailsFragment.newInstance(newPl.id, newPl.name),
+                PlaylistDetailsFragment.newInstance(newPl.uuid, newPl.name),
                 true
             )
         }
@@ -381,7 +381,7 @@ object Spotify: Repository {
         return res["artists"].array.map { it.obj }.map {
             RemoteArtist(
                 ArtistId(it["name"].string),
-                ArtistDetails(it["id"].string, tryOr(null) { it["images"][1]["url"].string })
+                ArtistDetails(it["uuid"].string, tryOr(null) { it["images"][1]["url"].string })
             )
         }
     }
@@ -453,7 +453,7 @@ object Spotify: Repository {
         return res["items"].array.map {
             val obj = it.obj
             PartialPlaylist(
-                id = obj["id"].string,
+                id = obj["uuid"].string,
                 name = obj["name"].string,
                 ownerName = obj["owner"]["display_name"].string,
                 trackCount = obj["tracks"]["total"].int

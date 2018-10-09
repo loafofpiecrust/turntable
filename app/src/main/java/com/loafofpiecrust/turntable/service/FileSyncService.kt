@@ -76,7 +76,7 @@ package com.loafofpiecrust.turntable.service
 ////                    }
 //////                    _playlists puts allPls.withReplaced(plIdx, newPl)
 ////                } else if (change.hasMetadataChanged()) {
-////                    // Maybe the id changed.
+////                    // Maybe the uuid changed.
 ////                    // I think this event doesn't matter
 ////                }
 ////            } else {
@@ -117,14 +117,14 @@ package com.loafofpiecrust.turntable.service
 ////    private suspend fun makeDir(parent: String, folderName: String): Result<File, String> = run {
 ////        val meta = File().apply {
 ////            parents = listOf(parent)
-////            id = folderName
+////            uuid = folderName
 ////            mimeType = "application/vnd.google-apps.folder"
 ////        }
 ////
 ////        val err = Result.Error<File, String>("Failed to create folder '$parent/$folderName'")
 ////        try {
 ////            val file = drive.files().create(meta).apply {
-////                fields = "id"
+////                fields = "uuid"
 ////            }.execute()
 ////
 ////            if (file != null) {
@@ -139,13 +139,13 @@ package com.loafofpiecrust.turntable.service
 ////    private suspend fun makeFile(parent: String, fileName: String, cb: File.() -> Unit): Result<File, String> {
 ////        val meta = File().apply {
 ////            parents = listOf(parent)
-////            id = fileName
+////            uuid = fileName
 ////            writersCanShare = true
 ////            cb()
 ////        }
 ////
 ////        val file: File = drive.files().create(meta).apply {
-////            fields = "id"
+////            fields = "uuid"
 ////        }.execute()
 ////
 ////        return if (file != null) {
@@ -159,7 +159,7 @@ package com.loafofpiecrust.turntable.service
 ////    private suspend fun makePlaylistFolder(): Result<File, String> = run {
 ////        val existing = drive.files().list().apply {
 ////            spaces = "appDataFolder"
-////            q = "'appDataFolder' in parents and id = 'Playlists'"
+////            q = "'appDataFolder' in parents and uuid = 'Playlists'"
 ////        }.execute()
 ////
 ////        if (existing.files != null && existing.files.isNotEmpty()) {
@@ -188,16 +188,16 @@ package com.loafofpiecrust.turntable.service
 ////            // The playlist file doesn't exist, create it with our json content.
 ////            val meta = File().apply {
 ////                mimeType = "application/json"
-////                parents = listOf(folder.id)
-////                id = "${playlist.id}.json"
+////                parents = listOf(folder.uuid)
+////                uuid = "${playlist.uuid}.json"
 //////                writersCanShare = true
 ////            }
 ////
 ////            try {
 ////                val file = drive.files().create(meta).apply {
-////                    fields = "id"
+////                    fields = "uuid"
 ////                }.execute()
-////                playlist.remoteFileId = file.id
+////                playlist.remoteFileId = file.uuid
 ////            } catch (e: Exception) {
 ////                async(UI) {
 ////                    e.printStackTrace()
@@ -223,7 +223,7 @@ package com.loafofpiecrust.turntable.service
 ////                "Failed to map string to json playlist instance".asError<Playlist, String>()
 ////            }
 ////        } else {
-////            Result.Error("Didn't find file for playlist '${playlist.id}'")
+////            Result.Error("Didn't find file for playlist '${playlist.uuid}'")
 ////        }
 ////    }
 //
@@ -233,12 +233,12 @@ package com.loafofpiecrust.turntable.service
 ////        return folder.map { folder ->
 ////            drive.files().list().apply {
 ////                spaces = "appDataFolder"
-////                q = "'${folder.id}' in parents"
-////                fields = "files(id, id)"
+////                q = "'${folder.uuid}' in parents"
+////                fields = "files(uuid, uuid)"
 ////            }.execute().files.map {
 ////                async(CommonPool) {
 ////                    val os = ByteArrayOutputStream()
-////                    drive.files().get(it.id).executeMediaAndDownloadTo(os)
+////                    drive.files().get(it.uuid).executeMediaAndDownloadTo(os)
 ////                    jsonMapper.readValue<Playlist>(os.toByteArray())
 ////                }
 ////            }.map { it.await() }
@@ -262,7 +262,7 @@ package com.loafofpiecrust.turntable.service
 ////
 ////        if (remotes is Result.Ok) {
 ////            remotes.ok.forEach { remote ->
-////                val local = locals.find { it.id == remote.id }
+////                val local = locals.find { it.uuid == remote.uuid }
 ////                merged += if (local == null || remote.lastModified > local.lastModified) {
 ////                    // No local playlist for this one, just add it.
 ////                    remote
@@ -428,7 +428,7 @@ package com.loafofpiecrust.turntable.service
 //        debug("library: got the folder!")
 //        val files = folder.listChildren(gclient).await().metadataBuffer
 //        return files.map {
-//            val id = it.driveId
+//            val uuid = it.driveId
 //            val file = it.driveId.asDriveFile()
 //            val meta = file.getMetadata(gclient).await().metadata
 //            if (meta.isTrashed) {
@@ -443,7 +443,7 @@ package com.loafofpiecrust.turntable.service
 ////                    val playlist = gson.fromJson<Playlist>(contents.inputStream.reader(), typeToken<Playlist>())
 //                    val playlist = kryo.readClassAndObject(input) as Playlist
 ////                    input.closeQuietly()
-//                    playlist.remoteFileId = id.encodeToString()
+//                    playlist.remoteFileId = uuid.encodeToString()
 //
 //                    subscriptions[playlist] = playlist.tracks.skip(1).distinctSeq().consumeEach(BG_POOL) {
 //                        debug("library: writing changed playlist to drive")

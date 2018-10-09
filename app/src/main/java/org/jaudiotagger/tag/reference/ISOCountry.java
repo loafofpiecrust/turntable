@@ -53,7 +53,7 @@ public class ISOCountry
     }
 
     /**
-     * List of valid Iso Country, shows 2 letter abbreviation and country human readable id
+     * List of valid Iso Country, shows 2 letter abbreviation and country human readable uuid
      */
     public static enum Country
     {

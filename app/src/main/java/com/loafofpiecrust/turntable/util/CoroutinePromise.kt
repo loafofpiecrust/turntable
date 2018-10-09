@@ -75,6 +75,11 @@ class ReceiveDeferredChannel<E>(val deferred: Deferred<E>): ReceiveChannel<E> {
     }
 }
 fun <T> Deferred<T>.toChannel(): ReceiveChannel<T> = ReceiveDeferredChannel(this)
+fun <T> Deferred<T>.broadcast(): BroadcastChannel<T> = ConflatedBroadcastChannel<T>().also { chan ->
+    GlobalScope.launch {
+        chan.send(await())
+    }
+}
 
 inline fun <T> CoroutineScope.suspendAsync(ctx: CoroutineContext = EmptyCoroutineContext, crossinline block: (Continuation<T>) -> Unit): Deferred<T> {
     return async(ctx) {

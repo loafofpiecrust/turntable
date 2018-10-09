@@ -43,7 +43,6 @@ abstract class BaseObjFilePref<T: Any>(
 
     protected val fileName: String get() = "$className.$name.prop"
 
-    @Synchronized
     fun save() {
         if (name == null || className == null || lastModify < lastWrite) return
         try {
@@ -57,7 +56,6 @@ abstract class BaseObjFilePref<T: Any>(
         } catch (e: Throwable) {
             error("Preference '$name' failed to save.", e)
         }
-//        return runBlocking { saveActor.send(Action.Save) }
     }
 
 

@@ -30,7 +30,7 @@ data class MixTape(
     var type: Type,
     override var name: String,
     override var color: Int?,
-    override val id: UUID = UUID.randomUUID()
+    override val uuid: UUID = UUID.randomUUID()
 ) : Playlist() {
     override val icon: Int
         get() = R.drawable.ic_cassette
@@ -108,7 +108,8 @@ data class MixTape(
         (0 until type.sideCount).map { emptyList<Song>() }
     )
 
-    override val tracks: ReceiveChannel<List<Song>> get() = _tracks.openSubscription().map { it.flatten() }
+    override val tracksChannel: ReceiveChannel<List<Song>>
+        get() = _tracks.openSubscription().map { it.flatten() }
 
 
     /**
@@ -117,7 +118,7 @@ data class MixTape(
     val isPublishable get() = Math.abs(totalDuration - type.totalLength) <= 5
 
     private val totalDuration get() = TimeUnit.MILLISECONDS.toMinutes(
-        runBlocking { tracks.first() }.sumBy { it.duration }.toLong()
+        tracks.sumBy { it.duration }.toLong()
     )
 
     fun tracksOnSide(sideIdx: Int): ReceiveChannel<List<Song>> =
@@ -186,7 +187,7 @@ data class MixTape(
     override fun publish() {
         GlobalScope.launch {
             val db = FirebaseFirestore.getInstance()
-            db.collection("playlists").document(id.toString())
+            db.collection("playlists").document(uuid.toString())
                 .set(mapOf(
                     "type" to type.toString(),
                     "format" to "mixtape",
@@ -201,11 +202,11 @@ data class MixTape(
         isPublished = true
 //        databaseUser.continueWith {
 //            database.updateOne(
-//                Document(mapOf("_id" to id)),
+//                Document(mapOf("_id" to uuid)),
 //                Document(mapOf(
-//                    "_id" to id,
+//                    "_id" to uuid,
 //                    "type" to Binary(App.kryo.concreteToBytes(type, 2)),
-//                    "id" to id,
+//                    "uuid" to uuid,
 //                    "color" to color,
 //                    "lastModified" to lastModified,
 //                    "tracks" to Binary(App.kryo.objectToBytes(_tracks.value, compress=true)),

@@ -22,7 +22,7 @@ import java.nio.ByteBuffer;
 
 /**
  * File owner/licensee Text information frame.
- * <p>The 'File owner/licensee' frame contains the id of the owner or licensee of the file and it's contents.
+ * <p>The 'File owner/licensee' frame contains the uuid of the owner or licensee of the file and it's contents.
  *
  * <p>For more details, please refer to the ID3 specifications:
  * <ul>

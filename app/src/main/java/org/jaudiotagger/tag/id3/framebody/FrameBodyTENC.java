@@ -22,7 +22,7 @@ import java.nio.ByteBuffer;
 
 /**
  * Encoded by Text information frame.
- * <p>The 'Encoded by' frame contains the id of the person or organisation that encoded the audio file.
+ * <p>The 'Encoded by' frame contains the uuid of the person or organisation that encoded the audio file.
  *  This field may contain a copyright message, if the audio file also is copyrighted by the encoder.
  *
  * <p>For more details, please refer to the ID3 specifications:

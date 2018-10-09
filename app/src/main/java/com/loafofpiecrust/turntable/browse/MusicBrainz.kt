@@ -61,7 +61,7 @@ object MusicBrainz: Repository {
         return entries.map { it.obj }.parMap {
             val name = it["name"].string
             val artistName = it["artist-credit"][0]["artist"]["name"].string
-            val mbid = it["id"].string
+            val mbid = it["uuid"].string
             val task = GlobalScope.async {
                 tryOr(null) {
                     // Check for potential release year here. Maybe grab tracks too
@@ -164,7 +164,7 @@ object MusicBrainz: Repository {
             }
         })!!.obj
 
-        val reid = firstRelease["id"].string
+        val reid = firstRelease["uuid"].string
 
 //            task(UI) { println("album: picked release $reid") }
 
@@ -205,7 +205,7 @@ object MusicBrainz: Repository {
                         disc = discIdx + 1,
                         year = year,
                         platformId = RemoteSongId(
-                            tryOr(null) { recording["id"].string },
+                            tryOr(null) { recording["uuid"].string },
                             rgid,
                             null
                         )
@@ -232,7 +232,7 @@ object MusicBrainz: Repository {
                 .map { it.trim() }
                 .asReversed()
                 .joinToString(" ")
-            val mbid = it["id"].string
+            val mbid = it["uuid"].string
 
             val lfmRes = Http.get("http://ws.audioscrobbler.com/2.0", params = mapOf(
                 "api_key" to BuildConfig.LASTFM_API_KEY, "format" to "json",
@@ -338,7 +338,7 @@ object MusicBrainz: Repository {
                         "api_key" to BuildConfig.LASTFM_API_KEY, "format" to "json",
                         "method" to "album.getinfo",
                         "album" to title,
-                        "artist" to artistName//this.id.name
+                        "artist" to artistName//this.uuid.name
                     )).gson["album"]
                     val images = res["image"].nullArray
                     AlbumDetails(
@@ -390,7 +390,7 @@ object MusicBrainz: Repository {
             val rg = res["release-groups"][0]
             val score = rg["score"].string.toInt()
             if (score >= 95) {
-                RemoteAlbum(album, AlbumDetails(rg["id"].string))
+                RemoteAlbum(album, AlbumDetails(rg["uuid"].string))
             } else null
         } else null
     } catch (e: Exception) {

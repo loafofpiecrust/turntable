@@ -52,7 +52,7 @@ public class ISOScript
     }
 
     /**
-     * List of valid Iso Scripts, shows 4 letter abbreviation and script human readable id
+     * List of valid Iso Scripts, shows 4 letter abbreviation and script human readable uuid
      */
     public static enum Script
     {

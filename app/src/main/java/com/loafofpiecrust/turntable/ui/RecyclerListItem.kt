@@ -118,7 +118,7 @@ open class RecyclerListItemOptimized(
 }) {
     val track: TextView = itemView.find(R.id.track)
     val menu: ImageButton = itemView.find(R.id.itemMenuDots)
-//    val progress: View = itemView.findViewById(R.id.progressBg)
-//    val playingIcon: ImageView = itemView.findViewById(R.id.playing_icon)
+//    val progress: View = itemView.findViewById(R.uuid.progressBg)
+//    val playingIcon: ImageView = itemView.findViewById(R.uuid.playing_icon)
     val statusIcon: ImageView = itemView.find(R.id.status_icon)
 }

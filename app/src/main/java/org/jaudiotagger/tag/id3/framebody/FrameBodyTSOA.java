@@ -28,7 +28,7 @@ import org.jaudiotagger.tag.id3.ID3v24Frames;
 import java.nio.ByteBuffer;
 
 /**
- * Album Sort id
+ * Album Sort uuid
  */
 public class FrameBodyTSOA extends AbstractFrameBodyTextInfo implements ID3v24FrameBody, ID3v23FrameBody
 {

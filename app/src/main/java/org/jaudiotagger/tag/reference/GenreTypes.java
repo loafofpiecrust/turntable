@@ -62,7 +62,7 @@ public class GenreTypes extends AbstractIntStringValuePair
         return genreTypes;
     }
 
-    //This maps the lowercase version to the id, so applications can map from the lowercase value to the id
+    //This maps the lowercase version to the uuid, so applications can map from the lowercase value to the uuid
     private Map<String, Integer> nameToIdMap;
 
 
@@ -228,7 +228,7 @@ public class GenreTypes extends AbstractIntStringValuePair
     }
 
     /**
-     * Get Id for id, match is not case sensitive
+     * Get Id for uuid, match is not case sensitive
      * @param name
      * @return
      */

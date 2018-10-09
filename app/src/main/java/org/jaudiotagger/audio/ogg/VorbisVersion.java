@@ -9,7 +9,7 @@ public enum VorbisVersion
 {
     VERSION_ONE("Ogg Vorbis v1");
 
-    //The display id for this version
+    //The display uuid for this version
     private String displayName;
 
 

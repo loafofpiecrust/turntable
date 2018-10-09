@@ -43,7 +43,7 @@ class objPref<T: Any>(val default: T): AbstractPref<T>() {
         try {
             val bytes = runBlocking { serializeToString(value) }
             preference.edit()
-//                .putString(property.id, bytes.toString(Charsets.ISO_8859_1))
+//                .putString(property.uuid, bytes.toString(Charsets.ISO_8859_1))
                 .putString(property.name, bytes)
                 .apply()
         } catch (e: Throwable) {

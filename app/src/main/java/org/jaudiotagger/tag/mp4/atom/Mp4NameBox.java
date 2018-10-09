@@ -7,11 +7,11 @@ import org.jaudiotagger.audio.mp4.atom.Mp4BoxHeader;
 import java.nio.ByteBuffer;
 
 /**
- * This box is used within ---- boxes to hold the data id/descriptor
+ * This box is used within ---- boxes to hold the data uuid/descriptor
  */
 public class Mp4NameBox extends AbstractMp4Box
 {
-    public static final String IDENTIFIER = "id";
+    public static final String IDENTIFIER = "uuid";
 
     private String name;
 
@@ -31,7 +31,7 @@ public class Mp4NameBox extends AbstractMp4Box
         //Double check
         if (!header.getId().equals(IDENTIFIER))
         {
-            throw new RuntimeException("Unable to process id box because identifier is:" + header.getId());
+            throw new RuntimeException("Unable to process uuid box because identifier is:" + header.getId());
         }
 
         //Make slice so operations here don't effect position of main buffer

@@ -5,7 +5,7 @@ package com.commit451.youtubeextractor
  */
 internal object YouTubeImageHelper {
 
-    private const val PLACEHOLDER = "~id~"
+    private const val PLACEHOLDER = "~uuid~"
     private const val QUALITY = "~quality~"
 
     //https://stackoverflow.com/a/2068371/895797

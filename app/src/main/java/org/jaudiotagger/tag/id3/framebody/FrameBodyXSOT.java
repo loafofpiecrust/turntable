@@ -6,7 +6,7 @@ import org.jaudiotagger.tag.id3.ID3v23Frames;
 import java.nio.ByteBuffer;
 
 /**
- * Title Sort id, this is what MusicBrainz uses in ID3v23 because TSOT not supported.
+ * Title Sort uuid, this is what MusicBrainz uses in ID3v23 because TSOT not supported.
  *
  * However iTunes uses TSOT even in ID3v23, so we have two possible options
  */

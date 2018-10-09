@@ -27,7 +27,7 @@ public interface TreeModelListener extends EventListener {
      * <p>Invoked after a node (or a set of siblings) has changed in some
      * way. The node(s) have not changed locations in the tree or
      * altered their children arrays, but other attributes have
-     * changed and may affect presentation. Example: the id of a
+     * changed and may affect presentation. Example: the uuid of a
      * file has changed, but it is in the same location in the file
      * system.
      * <p>To indicate the root has changed, childIndices and children

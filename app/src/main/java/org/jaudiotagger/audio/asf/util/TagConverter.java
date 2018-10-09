@@ -95,7 +95,7 @@ public final class TagConverter {
             description.addDescriptor(tmp);
             Integer genreNum = GenreTypes.getInstanceOf().getIdForName(
                     tag.getFirst(FieldKey.GENRE));
-            // ..and if it is one of the standard genre types used the id as
+            // ..and if it is one of the standard genre types used the uuid as
             // well
             if (genreNum != null) {
                 tmp = new MetadataDescriptor(description.getContainerType(),

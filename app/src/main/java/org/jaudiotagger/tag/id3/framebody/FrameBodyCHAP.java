@@ -61,7 +61,7 @@ import java.nio.ByteBuffer;
  * <p>
  * There then follows a sequence of optional frames that are embedded
  * within the "CHAP" frame and which describe the content of the chapter
- * (e.g. a "TIT2" frame representing the chapter id) or provide
+ * (e.g. a "TIT2" frame representing the chapter uuid) or provide
  * related material such as URLs and images. These sub-frames are
  * contained within the bounds of the "CHAP" frame as signalled by the
  * size field in the "CHAP" frame header. If a parser does not recognise

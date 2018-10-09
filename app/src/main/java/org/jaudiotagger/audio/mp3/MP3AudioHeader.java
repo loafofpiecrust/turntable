@@ -46,7 +46,7 @@ import java.util.logging.Logger;
  * regarding the audio we only need to read the first  audio frames to ensure that we have correctly
  * identified them as audio frames and extracted the metadata we reuire.
  *
- * <p>Start of Audio id 0xFF (11111111) and then second byte anded with 0xE0(11100000).
+ * <p>Start of Audio uuid 0xFF (11111111) and then second byte anded with 0xE0(11100000).
  * For example 2nd byte doesnt have to be 0xE0 is just has to have the top 3 signicant
  * bits set. For example 0xFB (11111011) is a common occurence of the second match. The 2nd byte
  * defines flags to indicate various mp3 values.
@@ -325,7 +325,7 @@ public class MP3AudioHeader implements AudioHeader
         setEncoder();
         /*if((filePointerCount - startByte )>0)
         {
-            logger.severe(seekFile.getId()+"length:"+startByte+"Difference:"+(filePointerCount - startByte));
+            logger.severe(seekFile.getUuid()+"length:"+startByte+"Difference:"+(filePointerCount - startByte));
         }
         */
         return syncFound;
@@ -501,7 +501,7 @@ public class MP3AudioHeader implements AudioHeader
         setEncoder();
         /*if((filePointerCount - startByte )>0)
         {
-            logger.severe(seekFile.getId()+"length:"+startByte+"Difference:"+(filePointerCount - startByte));
+            logger.severe(seekFile.getUuid()+"length:"+startByte+"Difference:"+(filePointerCount - startByte));
         }
         */
         return syncFound;

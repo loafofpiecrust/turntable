@@ -51,7 +51,7 @@ sealed class AlbumDownload(
 //            // Then, prioritize those files and start the download
 //            val dls = OnlineSearchService.instance.downloads
 //            val discography = dls.find {
-//                it is TorrentArtist && it.goal.id == album.artist && it.indexAlbum(album) != null
+//                it is TorrentArtist && it.goal.uuid == album.artist && it.indexAlbum(album) != null
 //            }
 //
 //            return if (discography != null) {
@@ -198,7 +198,7 @@ sealed class TorrentAlbum(
                 // Only look inside the album folder
                 file.startsWith(albumFolder.second)
             }.mapIndexed { idx, (fileIdx, file) ->
-                // Map to the fuzzy comparison between the file id and song name
+                // Map to the fuzzy comparison between the file uuid and song name
                 idx to (fileIdx to FuzzySearch.partialRatio(song.id.name, file.name))
             }.maxBy { (idx, pair) -> pair.second }!! // Take the closest match
 
@@ -259,7 +259,7 @@ class TorrentAlbumFromArtist(
 
 //class RuTrackerAlbum(
 //    goal: Album,
-//    val id: String,
+//    val uuid: String,
 //    val name: String,
 //    val seeders: Int,
 //    val size: Long,
@@ -269,11 +269,11 @@ class TorrentAlbumFromArtist(
 //        fun search(album: Album): RuTrackerAlbum? {
 //            val cookie = OnlineSearchService.instance.login() ?: return null
 //
-//            val selfTitled = album.id.selfTitledAlbum
+//            val selfTitled = album.uuid.selfTitledAlbum
 //
 //            val res = Jsoup.connect("http://rutracker.org/forum/tracker.php")
 //                .data(mapOf(
-//                    "nm" to "${album.id.artist.name.toLowerCase()} ${album.id.displayName.toLowerCase()}", // search text
+//                    "nm" to "${album.uuid.artist.name.toLowerCase()} ${album.uuid.displayName.toLowerCase()}", // search text
 ////                    "f" to "category",
 //                    "o" to "${OnlineSearchService.OrderBy.SEEDERS.code}", // Sort by # of seeds
 //                    "s" to "${OnlineSearchService.SortOrder.DESC.code}"
@@ -304,11 +304,11 @@ class TorrentAlbumFromArtist(
 //                // skip it (for now)
 //                // TODO: Add support for discography/collection entries
 //                if (selfTitled) {
-//                    val first = torrentName!!.indexOf(album.id.displayName, 0, true)
+//                    val first = torrentName!!.indexOf(album.uuid.displayName, 0, true)
 //                    if (first != -1) {
 //                        // we have one occurrence
 //                        val second =
-//                            if (torrentName.indexOf(album.id.displayName, first+1, true) != -1) {
+//                            if (torrentName.indexOf(album.uuid.displayName, first+1, true) != -1) {
 //                                println("we did it: a self-titled album.")
 //                            } else {
 //                                return@map null
@@ -378,7 +378,7 @@ class TorrentAlbumFromArtist(
 //        val cookie = OnlineSearchService.instance.login()
 //        val res = Jsoup.connect("http://rutracker.org/forum/viewtopic.php")
 //            .data(mapOf(
-//                "t" to id
+//                "t" to uuid
 //            ))
 //            .cookie(cookie?.key, cookie?.value as String)
 //            .get()
@@ -552,7 +552,7 @@ data class YouTubeFullAlbum(
                 val details = it["snippet"].obj
                 val title = details["title"].string
 //                    val desc = remoteInfo["description"].string
-                val videoId = it["id"]["videoId"].nullString
+                val videoId = it["uuid"]["videoId"].nullString
 
                 val matchRatio = FuzzySearch.partialRatio(album.id.displayName, title)
                 if (matchRatio < 85 || !title.contains("Full Album", true) || videoId == null) {
@@ -626,7 +626,7 @@ data class YouTubeFullAlbum(
         private suspend fun grabFromVideo(album: Album, videoId: String): YouTubeFullAlbum? = run {
             // Unfortunately, to grab the description we have to parse the video page :(
             val pageRes = Http.get("https://youtube.com/watch?v=$videoId", cacheLevel = Http.CacheLevel.PAGE).text
-            val descStart = "<p id=\"eow-description\" class=\"\" >"
+            val descStart = "<p uuid=\"eow-description\" class=\"\" >"
             val descStartIdx = pageRes.indexOf(descStart) + descStart.length
             val descEndIdx = pageRes.indexOf("</p>", startIndex=descStartIdx)
             val descRaw = pageRes.substring(descStartIdx, descEndIdx)

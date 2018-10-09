@@ -56,8 +56,10 @@ interface Repository: AnkoLogger {
             return null
         }
 
-        override suspend fun find(album: AlbumId): Album?
-            = LocalApi.find(album) ?: findOnline(album)
+        override suspend fun find(album: AlbumId): Album? =
+            LocalApi.find(album)
+                ?: SearchCache.find(album.artist)?.albums?.find { it.id == album }
+                ?: findOnline(album)
 
         suspend fun findOnline(album: AlbumId): Album?
             = overSources { find(album) }?.also { SearchCache.cache(it) }
