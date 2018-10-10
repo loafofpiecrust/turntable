@@ -552,7 +552,7 @@ data class YouTubeFullAlbum(
                 val details = it["snippet"].obj
                 val title = details["title"].string
 //                    val desc = remoteInfo["description"].string
-                val videoId = it["uuid"]["videoId"].nullString
+                val videoId = it["id"]["videoId"].nullString
 
                 val matchRatio = FuzzySearch.partialRatio(album.id.displayName, title)
                 if (matchRatio < 85 || !title.contains("Full Album", true) || videoId == null) {

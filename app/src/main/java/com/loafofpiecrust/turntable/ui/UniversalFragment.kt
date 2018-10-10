@@ -28,10 +28,10 @@ interface Closable {
 }
 
 /// Implement AnkoComponent to access the Anko preview compiler.
-abstract class UIComponent: CoroutineScope {
-    private val supervisor = SupervisorJob()
-    private val viewScope = SupervisorJob()
-    private var currentScope = supervisor
+abstract class UIComponent: CoroutineScope, AnkoComponent<Any> {
+    private val supervisor by lazy { SupervisorJob() }
+    private val viewScope by lazy { SupervisorJob() }
+    private var currentScope by lazyDefault { supervisor }
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Main + currentScope
 
@@ -47,7 +47,11 @@ abstract class UIComponent: CoroutineScope {
             currentScope = supervisor
         }
     }
-    protected abstract fun AnkoContext<*>.render(): View
+
+    final override fun createView(ui: AnkoContext<Any>): View {
+        return ui.render()
+    }
+    protected abstract fun AnkoContext<Any>.render(): View
 
     open fun Fragment.onCreate() {}
     open fun Activity.onCreate() {}
@@ -81,6 +85,12 @@ abstract class UIComponent: CoroutineScope {
         context: CoroutineContext = EmptyCoroutineContext,
         action: suspend (T) -> Unit
     ) = openSubscription().consumeEachAsync(context, action)
+
+//    operator fun <T> ViewGroup.invoke(block: ViewGroup.() -> Unit): View {
+//        return createView(this).apply {
+//            block()
+//        }
+//    }
 }
 
 /// Allow creating fragments/activities from Parcelable Components

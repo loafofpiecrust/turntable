@@ -1,13 +1,11 @@
 package com.loafofpiecrust.turntable.artist
 
 import android.os.Parcelable
-import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.style.standardStyle
-import com.loafofpiecrust.turntable.ui.Closable
 import com.loafofpiecrust.turntable.ui.UIComponent
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
@@ -26,7 +24,7 @@ class RelatedArtistsUI(
         Spotify.similarTo(baseArtistId)
     }.broadcast()
 
-    override fun AnkoContext<*>.render() = verticalLayout {
+    override fun AnkoContext<Any>.render() = verticalLayout {
         appBarLayout {
             topPadding = dimen(R.dimen.statusbar_height)
             UserPrefs.primaryColor.consumeEachAsync {

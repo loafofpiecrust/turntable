@@ -124,7 +124,7 @@ package com.loafofpiecrust.turntable.service
 ////        val err = Result.Error<File, String>("Failed to create folder '$parent/$folderName'")
 ////        try {
 ////            val file = drive.files().create(meta).apply {
-////                fields = "uuid"
+////                fields = "id"
 ////            }.execute()
 ////
 ////            if (file != null) {
@@ -145,7 +145,7 @@ package com.loafofpiecrust.turntable.service
 ////        }
 ////
 ////        val file: File = drive.files().create(meta).apply {
-////            fields = "uuid"
+////            fields = "id"
 ////        }.execute()
 ////
 ////        return if (file != null) {
@@ -195,7 +195,7 @@ package com.loafofpiecrust.turntable.service
 ////
 ////            try {
 ////                val file = drive.files().create(meta).apply {
-////                    fields = "uuid"
+////                    fields = "id"
 ////                }.execute()
 ////                playlist.remoteFileId = file.uuid
 ////            } catch (e: Exception) {

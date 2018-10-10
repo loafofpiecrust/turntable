@@ -101,7 +101,7 @@ object Discogs: Repository {
         return doSearch(artist.displayName, mapOf(
             "type" to "artist"
         )).map {
-            it["uuid"].int
+            it["id"].int
         }
     }
 
@@ -116,7 +116,7 @@ object Discogs: Repository {
                 val artist = cleanArtistName(it["artists"][0]["name"].string)
                 RemoteAlbum(
                     AlbumId(it["name"].string, artist),
-                    AlbumDetails("${it["type"].string}s/${it["uuid"].string}")
+                    AlbumDetails("${it["type"].string}s/${it["id"].string}")
                 )
             }
         }
@@ -136,7 +136,7 @@ object Discogs: Repository {
             tryOr(null) {
                 RemoteArtist(
                     cleanArtistName(it["title"].string),
-                    ArtistDetails(it["uuid"].int, "", it["thumb"].nullString)
+                    ArtistDetails(it["id"].int, "", it["thumb"].nullString)
                 )
             }
         }
@@ -153,7 +153,7 @@ object Discogs: Repository {
                     cleanArtistName(titleParts[0])
                 ),
                 AlbumDetails(
-                    it["uuid"].int.toString(),
+                    it["id"].int.toString(),
                     thumbnailUrl = it["thumb"].nullString
                 ),
                 year = it["year"].nullString?.toIntOrNull()
@@ -235,8 +235,8 @@ object Discogs: Repository {
             } ?: Album.Type.OTHER
 //            task(UI) { println("discogs: type for '$name': $format = $type, $relTy") }
             val (remoteId, relType) = when (relTy) {
-                "master" -> "masters/${it["uuid"].int}" to "master"
-                else -> "releases/${it["uuid"].int}" to "release"
+                "master" -> "masters/${it["id"].int}" to "master"
+                else -> "releases/${it["id"].int}" to "release"
             }
 
             val artistName = given(it["artist"].nullString) {
@@ -275,7 +275,7 @@ object Discogs: Repository {
             search -> searchFor(album.id).firstOrNull() ?: return null
             else -> return null
         }
-//        if (album.remote !is Discogs.AlbumDetails) {
+//        if (album.remote !is Discogs.AlbumDetailsUI) {
 //            return null
 //        }
         val res = apiRequest("https://api.discogs.com/$id").obj
@@ -498,7 +498,7 @@ object Discogs: Repository {
 //                "key" to key,
 //                "secret" to secret
 //            )).gson
-//            "releases/"+ res["versions"][0]["uuid"].string
+//            "releases/"+ res["versions"][0]["id"].string
 //        } else uuid
         if (id.isEmpty()) return listOf()
         info { "getting tracks of album '$id'" }

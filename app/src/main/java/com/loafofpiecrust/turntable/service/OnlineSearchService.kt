@@ -342,7 +342,7 @@ class OnlineSearchService : BaseService(), AnkoLogger {
                     SongStream(StreamStatus.Unavailable())
                 } else {
                     val hq = res["highQuality"].nullObj?.get("url")?.string
-                    val id = res["uuid"].string
+                    val id = res["id"].string
                     saveYouTubeStreamUrl(SongDBEntry(
                         key, id,
                         stream128 = lq,

@@ -32,7 +32,7 @@ import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.album.AlbumDetails
+import com.loafofpiecrust.turntable.album.AlbumDetailsUI
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
 import com.loafofpiecrust.turntable.model.artist.ArtistId
@@ -413,27 +413,27 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                 val title = url.getQueryParameter("name")
                 val artist = url.getQueryParameter("artist")
                 replaceMainContent(
-                    AlbumDetails(
+                    AlbumDetailsUI(
                         AlbumId(title, ArtistId(artist))
                     ).createFragment()
                 )
             }
             "artist" -> {
-                val name = url.getQueryParameter("uuid")
+                val name = url.getQueryParameter("id")
                 given(ArtistDetailsFragment.fromId(ArtistId(name))) {
                     replaceMainContent(it, true)
                 }
             }
             "sync-request" -> {
                 val id = url.getQueryParameter("from")
-//                val displayName = url.getQueryParameter("uuid")
+//                val displayName = url.getQueryParameter("id")
                 given(User.resolve(id)) {
                     SyncService.requestSync(it)
                 }
             }
             "lets-be-friends" -> {
-                val id = url.getQueryParameter("uuid")
-//                val uuid = url.getQueryParameter("uuid")
+                val id = url.getQueryParameter("id")
+//                val uuid = url.getQueryParameter("id")
 
                 val other = given(User.resolve(id)) {
                     SyncService.Friend(it, SyncService.Friend.Status.CONFIRMED)

@@ -206,7 +206,7 @@ data class MixTape(
 //                Document(mapOf(
 //                    "_id" to uuid,
 //                    "type" to Binary(App.kryo.concreteToBytes(type, 2)),
-//                    "uuid" to uuid,
+//                    "id" to uuid,
 //                    "color" to color,
 //                    "lastModified" to lastModified,
 //                    "tracks" to Binary(App.kryo.objectToBytes(_tracks.value, compress=true)),

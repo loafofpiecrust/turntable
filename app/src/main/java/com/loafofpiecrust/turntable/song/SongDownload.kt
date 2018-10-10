@@ -149,7 +149,7 @@ data class YouTubeSong(
 
                     val desc = details["description"].nullString ?: ""
                     val channel = details["channelTitle"].nullString?.toLowerCase() ?: ""
-                    val videoId = it["uuid"]["videoId"].string
+                    val videoId = it["id"]["videoId"].string
 
 
                     // Also check for _dates_ in the name, as those are almost always live sessions!
@@ -172,7 +172,7 @@ data class YouTubeSong(
                     // Fucking YouTube. We still need the video duration to filter by and confirm sameness.
                     val res = Http.get("https://www.googleapis.com/youtube/v3/videos", params = mapOf(
                         "key" to API_KEY,
-                        "uuid" to videoId,
+                        "id" to videoId,
                         "part" to "contentDetails,statistics"
                     )).gson.obj
                     val item = res["items"][0]

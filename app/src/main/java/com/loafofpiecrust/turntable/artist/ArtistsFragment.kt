@@ -2,6 +2,7 @@ package com.loafofpiecrust.turntable.artist
 
 import android.content.Context
 import android.os.Parcelable
+import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.widget.CardView
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
@@ -61,22 +62,10 @@ sealed class ArtistsUI(
         }
     }
 
-    override fun AnkoContext<*>.render() = swipeRefreshLayout {
+    override fun AnkoContext<Any>.render() = swipeRefreshLayout {
         val scope = ViewScope(this)
 
-        isEnabled = false
-        scope.launch {
-            artists.consume {
-                if (isEmpty) {
-                    if (startRefreshing) {
-                        isRefreshing = true
-                    }
-                    for (e in this@consume) {
-                        isRefreshing = false
-                    }
-                }
-            }
-        }
+        stopRefreshOnReceive(artists.openSubscription(), startRefreshing)
 
         val recycler = if (this@ArtistsUI is All) {
             fastScrollRecycler {

@@ -7,12 +7,12 @@ import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.AppBarLayout
 import android.support.design.widget.AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
 import android.support.design.widget.AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL
+import android.support.design.widget.CollapsingToolbarLayout
 import android.support.design.widget.CollapsingToolbarLayout.LayoutParams.COLLAPSE_MODE_PIN
 import android.support.v4.app.Fragment
 import android.transition.*
 import android.view.Gravity
 import android.view.View
-import android.view.ViewManager
 import android.widget.ImageView
 import android.widget.TextView
 import com.bumptech.glide.Glide
@@ -25,7 +25,6 @@ import com.loafofpiecrust.turntable.model.imageTransition
 import com.loafofpiecrust.turntable.model.nameTransition
 import com.loafofpiecrust.turntable.song.songsList
 import com.loafofpiecrust.turntable.style.detailsStyle
-import com.loafofpiecrust.turntable.ui.Closable
 import com.loafofpiecrust.turntable.ui.UIComponent
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
@@ -42,12 +41,11 @@ import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.design.collapsingToolbarLayout
 import org.jetbrains.anko.design.coordinatorLayout
 
-
 @Parcelize
-open class AlbumDetails(
+open class AlbumDetailsUI(
     val albumId: AlbumId
 ): UIComponent(), Parcelable {
-    class Resolved(album: Album): AlbumDetails(album.id) {
+    class Resolved(album: Album): AlbumDetailsUI(album.id) {
         override val album = produceSingle { album }.replayOne()
     }
 
@@ -71,18 +69,23 @@ open class AlbumDetails(
         enterTransition = Fade().setDuration(transDur)
     }
 
-    override fun AnkoContext<*>.render() = coordinatorLayout {
+    override fun AnkoContext<Any>.render() = coordinatorLayout {
         id = R.id.container
         backgroundColor = TRANSPARENT
 
         val coloredText = mutableListOf<TextView>()
+        lateinit var status: TextView
+        lateinit var year: TextView
+        lateinit var mainLine: TextView
+        lateinit var subLine: TextView
+        lateinit var image: ImageView
+        lateinit var collapser: CollapsingToolbarLayout
 
-        appBarLayout {
+        val appBar = appBarLayout {
             fitsSystemWindows = false
             backgroundColor = TRANSPARENT
 
-            lateinit var image: ImageView
-            val collapser = collapsingToolbarLayout {
+            collapser = collapsingToolbarLayout {
                 id = R.id.collapser
                 fitsSystemWindows = false
                 collapsedTitleGravity = Gravity.BOTTOM
@@ -103,36 +106,16 @@ open class AlbumDetails(
                     }
 
                     // Downloaded status
-                    val status = textView {
+                    status = textView {
                         //                        text = "Not Downloaded"
                         text = context.getString(R.string.album_remote)
                         textSizeDimen = R.dimen.small_text_size
 //                        backgroundColor = Color.BLACK
                         backgroundResource = R.drawable.rounded_rect
-
-                        launch {
-                            album.consumeEach {
-                                text = when (it) {
-                                    is LocalAlbum -> if (it.hasTrackGaps) {
-                                        context.getString(R.string.album_partial)
-                                    } else context.getString(R.string.album_local)
-                                    else -> context.getString(R.string.album_remote)
-                                }
-                            }
-                        }
                     }.also { coloredText += it }
 
                     // Year
-                    val year = textView {
-                        launch {
-                            album.consumeEach { album ->
-                                if (album.year != null) {
-                                    text = album.year.toString()
-                                } else {
-                                    visibility = View.GONE
-                                }
-                            }
-                        }
+                    year = textView {
                         textSizeDimen = R.dimen.small_text_size
                         backgroundResource = R.drawable.rounded_rect
                     }.also { coloredText += it }
@@ -186,27 +169,13 @@ open class AlbumDetails(
                 verticalLayout {
                     gravity = Gravity.CENTER_VERTICAL
 
-                    val mainLine = textView(albumId.displayName) {
+                    mainLine = textView(albumId.displayName) {
                         maxLines = 2
                         textStyle = BOLD
                         textSizeDimen = R.dimen.subtitle_text_size
                     }
-                    val subLine = textView(albumId.artist.displayName + albumId.artist.featureList) {
+                    subLine = textView(albumId.artist.displayName + albumId.artist.featureList) {
                         maxLines = 1
-                    }
-
-                    launch {
-                        album.openSubscription()
-                            .switchMap(Dispatchers.IO) { album ->
-                                album.loadCover(Glide.with(image))
-                                    .map { album to it }
-                            }
-                            .consumeEach { (album, req) ->
-                                req?.transition(DrawableTransitionOptions().crossFade(200))
-                                    ?.listener(album.loadPalette(this@appBarLayout, mainLine, subLine, collapser))
-                                    ?.into(image)
-                                    ?: run { image.imageResource = R.drawable.ic_default_album }
-                            }
                     }
                 }.lparams(height = matchParent)
 
@@ -224,6 +193,7 @@ open class AlbumDetails(
 
         }.lparams(width = matchParent)
 
+
         // Display tracks on this album.
         songsList(
             SongsFragment.Category.OnAlbum(albumId),
@@ -235,5 +205,44 @@ open class AlbumDetails(
         }.lparams(width = matchParent) {
             behavior = AppBarLayout.ScrollingViewBehavior()
         }
+
+
+
+        // data binding
+        launch {
+            album.openSubscription()
+                .map(Dispatchers.Default) {
+                    when (it) {
+                        is LocalAlbum -> if (it.hasTrackGaps) {
+                            context.getString(R.string.album_partial)
+                        } else context.getString(R.string.album_local)
+                        else -> context.getString(R.string.album_remote)
+                    }
+                }
+                .consumeEach { status.text = it }
+        }
+        launch {
+            album.consumeEach { album ->
+                if (album.year != null) {
+                    year.text = album.year.toString()
+                } else {
+                    visibility = View.GONE
+                }
+            }
+        }
+        launch {
+            album.openSubscription()
+                .switchMap(Dispatchers.IO) { album ->
+                    album.loadCover(Glide.with(image))
+                        .map { album to it }
+                }
+                .consumeEach { (album, req) ->
+                    req?.transition(DrawableTransitionOptions().crossFade(200))
+                        ?.listener(album.loadPalette(appBar, mainLine, subLine, collapser))
+                        ?.into(image)
+                        ?: run { image.imageResource = R.drawable.ic_default_album }
+                }
+        }
+
     }
 }

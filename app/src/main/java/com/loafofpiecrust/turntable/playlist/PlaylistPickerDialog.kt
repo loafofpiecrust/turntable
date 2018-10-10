@@ -1,29 +1,19 @@
 package com.loafofpiecrust.turntable.playlist
 
-import android.app.Dialog
-import android.os.Bundle
 import android.os.Parcelable
-import android.support.v7.app.AlertDialog
 import android.support.v7.widget.LinearLayoutManager
-import android.view.View
-import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.SavableMusic
 import com.loafofpiecrust.turntable.model.album.PartialAlbum
 import com.loafofpiecrust.turntable.model.playlist.*
 import com.loafofpiecrust.turntable.model.song.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.ui.BaseDialogFragment
 import com.loafofpiecrust.turntable.ui.Closable
 import com.loafofpiecrust.turntable.ui.UIComponent
-import com.loafofpiecrust.turntable.util.arg
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.*
-import org.jetbrains.anko.appcompat.v7.dialogTitle
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-import org.jetbrains.anko.support.v4.alert
-import org.jetbrains.anko.support.v4.toast
 
 
 //class PlaylistPickerDialog: BaseDialogFragment() {
@@ -110,7 +100,7 @@ class PlaylistPicker(
         }
         negativeButton("Cancel") {}
     }
-    override fun AnkoContext<*>.render() = recyclerView {
+    override fun AnkoContext<Any>.render() = recyclerView {
         topPadding = dip(8)
 
         layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)

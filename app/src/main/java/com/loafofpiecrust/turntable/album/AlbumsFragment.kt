@@ -39,10 +39,9 @@ sealed class AlbumsUI(
     private val sortBy: SortBy = SortBy.NONE,
     private val columnCount: Int = 3
 ) : UIComponent() {
-
     abstract val albums: BroadcastChannel<List<Album>>
 
-    override fun AnkoContext<*>.render() = swipeRefreshLayout {
+    override fun AnkoContext<Any>.render() = swipeRefreshLayout {
         val scope = ViewScope(this)
 
         isEnabled = false
@@ -51,7 +50,7 @@ sealed class AlbumsUI(
 
         val goToAlbum = { item: RecyclerItem, album: Album ->
             item.itemView.context.replaceMainContent(
-                AlbumDetails.Resolved(album).createFragment(),
+                AlbumDetailsUI.Resolved(album).createFragment(),
                 true,
                 item.transitionViews
             )
@@ -197,7 +196,7 @@ sealed class AlbumsUI(
     class Custom(
         override val albums: BroadcastChannel<List<Album>>,
         sortBy: SortBy
-    ): AlbumsUI()
+    ): AlbumsUI(sortBy)
 
     enum class SortBy {
         NONE,
