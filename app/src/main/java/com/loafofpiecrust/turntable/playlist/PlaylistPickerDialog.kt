@@ -100,7 +100,7 @@ class PlaylistPicker(
         }
         negativeButton("Cancel") {}
     }
-    override fun AnkoContext<Any>.render() = recyclerView {
+    override fun AnkoContext<Any>.render() = this.recyclerView {
         topPadding = dip(8)
 
         layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)

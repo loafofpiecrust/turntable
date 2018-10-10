@@ -125,10 +125,10 @@ class UniversalDialogFragment(): DialogFragment(), Closable {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return alert {
+            customView = composedArgs.createView(requireContext(), this@UniversalDialogFragment)
             composedArgs.apply {
                 prepare()
             }
-            customView { composedArgs.createView(requireContext(), this@UniversalDialogFragment) }
         }.build() as Dialog
     }
 
