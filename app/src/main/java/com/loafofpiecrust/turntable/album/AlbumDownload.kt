@@ -594,32 +594,32 @@ data class YouTubeFullAlbum(
                 "textFormat" to "plainText"
             )).gson.obj
 
-            res["items"].array.map { it.obj }.mapNotNull {
-                tryOr(null) {
-                    val info = it["snippet"]["topLevelComment"]["snippet"].obj
-                    val desc = info["textDisplay"].string
+            res["items"].array.lazy.map { it.obj }.mapNotFailed {
+                val info = it["snippet"]["topLevelComment"]["snippet"].obj
+                val desc = info["textDisplay"].string
 
-                    val videoTracks = tracksFromDesc(desc, Int.MAX_VALUE)
+                val videoTracks = tracksFromDesc(desc, Int.MAX_VALUE)
 //                async(UI) {
 //                    println("youtube: video tracks = $videoTracks")
 //                }
 
-                    val tracks = album.tracks.mapNotNull { song ->
-                        val (ratio, vidTrack) = videoTracks.map {
+                val tracks = album.tracks.mapNotNull { song ->
+                    if (videoTracks.isNotEmpty()) {
+                        val (ratio, vidTrack) = videoTracks.lazy.map {
                             val ratio = FuzzySearch.ratio(it.title.toLowerCase(), song.id.displayName.toLowerCase())
                             ratio to it
-                        }.maxBy { it.first } ?: return@mapNotNull null
+                        }.maxBy { it.first }!!
 
                         if (ratio > 80) {
                             info { "youtube: mapping song '${song.id.name}' to section ${vidTrack.start}-${vidTrack.end} called '${vidTrack.title}'" }
                             song to vidTrack
                         } else null
-                    }.toMap()
+                    } else null
+                }.toMap()
 
-                    // Map tracks from description
+                // Map tracks from description
 
-                    YouTubeFullAlbum(album, "", videoId, Int.MAX_VALUE, tracks, null)
-                }
+                YouTubeFullAlbum(album, "", videoId, Int.MAX_VALUE, tracks, null)
             }.maxBy { it.tracks.size }
         }
 

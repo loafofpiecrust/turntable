@@ -1,19 +1,12 @@
 package com.loafofpiecrust.turntable.playlist
 
-import android.app.Dialog
 import android.content.Context
-import android.os.Bundle
 import android.os.Parcelable
-import android.support.design.widget.AppBarLayout
 import android.support.transition.Slide
-import android.support.v4.app.DialogFragment
-import android.support.v7.widget.Toolbar
 import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.view.ViewManager
-import android.view.Window
-import android.view.WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
 import android.widget.*
 import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
@@ -32,6 +25,7 @@ import com.loafofpiecrust.turntable.ui.BaseDialogFragment
 import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.onTextChange
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.navigationIconResource
 import org.jetbrains.anko.appcompat.v7.toolbar
@@ -39,7 +33,6 @@ import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.design.textInputLayout
 import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.sdk27.coroutines.onItemSelectedListener
-import org.jetbrains.anko.support.v4.dimen
 import java.util.*
 import kotlin.reflect.KClass
 
@@ -56,10 +49,8 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
 
     private var playlistName: String = ""
     private var playlistType: KClass<*> = CollaborativePlaylist::class
-    private var playlistColor: Int = UserPrefs.accentColor.value
+    private val playlistColor = ConflatedBroadcastChannel(UserPrefs.accentColor.value)
     private var mixTapeType = MixTape.Type.C60
-
-    private lateinit var toolbar: Toolbar
 
     override fun onStart() {
         super.onStart()
@@ -87,7 +78,7 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
                 SyncService.selfUser,
                 mixTapeType,
                 playlistName,
-                playlistColor,
+                playlistColor.value,
                 UUID.randomUUID()
             ).apply {
                 startingTracks.tracks.forEach {
@@ -97,7 +88,7 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
             CollaborativePlaylist::class -> CollaborativePlaylist(
                 SyncService.selfUser,
                 playlistName,
-                playlistColor,
+                playlistColor.value,
                 UUID.randomUUID()
             ).apply {
                 startingTracks.tracks.forEach {
@@ -107,7 +98,7 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
             AlbumCollection::class -> AlbumCollection(
                 SyncService.selfUser,
                 playlistName,
-                playlistColor,
+                playlistColor.value,
                 UUID.randomUUID()
             ).apply {
                 startingTracks.tracks.forEach {
@@ -120,15 +111,16 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
         dismiss()
     }
 
-    lateinit var appBar: AppBarLayout
     override fun ViewManager.createView() = verticalLayout {
         backgroundColorResource = R.color.background
 
-        appBar = appBarLayout {
+        appBarLayout {
             topPadding = dimen(R.dimen.statusbar_height)
-            backgroundColor = playlistColor
+            playlistColor.consumeEachAsync {
+                backgroundColor = it
+            }
 
-            toolbar = toolbar {
+            toolbar {
                 standardStyle()
                 navigationIconResource = R.drawable.ic_close
                 setNavigationOnClickListener { dismiss() }
@@ -162,7 +154,7 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
                         context.inputMethodManager.hideSoftInputFromWindow(it.windowToken, 0)
                     }
                     ColorPickerDialog.newBuilder()
-                        .setColor(playlistColor)
+                        .setColor(playlistColor.value)
                         .setAllowCustom(true)
                         .setAllowPresets(true)
                         .setShowColorShades(true)
@@ -180,7 +172,7 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
                     AlbumCollection::class
                 )
                 val names = choices.map { it.localizedName(context) }
-                adapter = ChoiceAdapter(context, names)
+                adapter = choiceAdapter(context, names)
 
                 onItemSelectedListener = object: AdapterView.OnItemSelectedListener {
                     override fun onNothingSelected(parent: AdapterView<*>) {
@@ -201,7 +193,7 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
             mixTapeSpinner = spinner {
                 visibility = View.GONE
                 val choices = MixTape.Type.values().toList()
-                adapter = ChoiceAdapter(context, choices)
+                adapter = choiceAdapter(context, choices)
                 onItemSelectedListener {
                     onItemSelected { adapter, view, pos, id ->
                         mixTapeType = choices[pos]
@@ -217,16 +209,13 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
     }
 
     override fun onColorSelected(dialogId: Int, color: Int) {
-        playlistColor = color
-        appBar.backgroundColor = color
+        playlistColor.offer(color)
     }
 }
 
-class ChoiceAdapter<T>(
-    ctx: Context,
+fun <T> choiceAdapter(
+    context: Context,
     items: List<T>
-): ArrayAdapter<T>(ctx, R.layout.spinner_item, items) {
-    init {
-        setDropDownViewResource(R.layout.spinner_item)
-    }
+) = ArrayAdapter<T>(context, R.layout.spinner_item, items).apply {
+    setDropDownViewResource(R.layout.spinner_item)
 }

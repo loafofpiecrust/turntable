@@ -15,6 +15,7 @@ import com.loafofpiecrust.turntable.artist.RelatedArtistsUI
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.loadPalette
 import com.loafofpiecrust.turntable.browse.Repository
+import com.loafofpiecrust.turntable.browse.SearchCache
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.model.queue.RadioQueue
 import com.loafofpiecrust.turntable.service.Library
@@ -41,7 +42,6 @@ data class PartialArtist(
         get() = id
 
     suspend fun resolve(): Artist? = Repository.find(id)
-    override fun optionsMenu(context: Context, menu: Menu) {}
 }
 
 interface Artist: Music {
@@ -64,7 +64,8 @@ interface Artist: Music {
 
     fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
         Library.instance.loadArtistImage(req, id).map {
-            it?.apply(RequestOptions().signature(ObjectKey("${id}thumbnail")))
+            (it ?: SearchCache.fullArtwork(this)?.let { req.load(it) })
+                ?.apply(RequestOptions().signature(ObjectKey("${id}thumbnail")))
         }
 
     fun loadArtwork(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
@@ -76,38 +77,38 @@ interface Artist: Music {
         }
 
 
-    override fun optionsMenu(context: Context, menu: Menu) = with(menu) {
-        menuItem(R.string.artist_show_similar).onClick {
-            context.replaceMainContent(
-                RelatedArtistsUI(id).createFragment()
-            )
-        }
-
-        menuItem(R.string.recommend).onClick {
-            FriendPickerDialog(
-                Message.Recommendation(toPartial()),
-                context.getString(R.string.recommend)
-            ).show(context)
-        }
-
-        // TODO: Sync with radios...
-        // TODO: Sync with any type of queue!
-        menuItem(R.string.radio_start).onClick(Dispatchers.Default) {
-            MusicService.enact(PlayerAction.Pause(), false)
-
-            val radio = RadioQueue.fromSeed(listOf(this@Artist))
-            if (radio != null) {
-//                MusicService.enact(SyncService.Message.ReplaceQueue(radio))
-                MusicService.enact(PlayerAction.Play())
-            } else {
-                context.toast(context.getString(R.string.radio_no_data, id.displayName))
-            }
-        }
-
-        menuItem(R.string.artist_biography).onClick(Dispatchers.Default) {
-            BiographyFragment.fromChan(produceSingle(this@Artist)).show(context)
-        }
-    }
+//    override fun optionsMenu(context: Context, menu: Menu) = with(menu) {
+//        menuItem(R.string.artist_show_similar).onClick {
+//            context.replaceMainContent(
+//                RelatedArtistsUI(id).createFragment()
+//            )
+//        }
+//
+//        menuItem(R.string.recommend).onClick {
+//            FriendPickerDialog(
+//                Message.Recommendation(toPartial()),
+//                context.getString(R.string.recommend)
+//            ).show(context)
+//        }
+//
+//        // TODO: Sync with radios...
+//        // TODO: Sync with any type of queue!
+//        menuItem(R.string.radio_start).onClick(Dispatchers.Default) {
+//            MusicService.enact(PlayerAction.Pause(), false)
+//
+//            val radio = RadioQueue.fromSeed(listOf(this@Artist))
+//            if (radio != null) {
+////                MusicService.enact(SyncService.Message.ReplaceQueue(radio))
+//                MusicService.enact(PlayerAction.Play())
+//            } else {
+//                context.toast(context.getString(R.string.radio_no_data, id.displayName))
+//            }
+//        }
+//
+//        menuItem(R.string.artist_biography).onClick(Dispatchers.Default) {
+//            BiographyFragment.fromChan(produceSingle(this@Artist)).show(context)
+//        }
+//    }
 
 }
 

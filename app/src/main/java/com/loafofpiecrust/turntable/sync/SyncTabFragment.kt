@@ -1,6 +1,8 @@
 package com.loafofpiecrust.turntable.sync
 
+import android.app.Activity.RESULT_OK
 import android.content.Intent
+import android.net.Uri
 import android.provider.ContactsContract
 import android.support.v7.widget.LinearLayoutManager
 import android.view.Menu
@@ -14,7 +16,6 @@ import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
 import com.loafofpiecrust.turntable.util.*
-import com.mcxiaoke.koi.ext.closeQuietly
 import com.mcxiaoke.koi.ext.stringValue
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.android.Main
@@ -29,13 +30,13 @@ import org.jetbrains.anko.support.v4.toast
 class SyncTabFragment: BaseFragment() {
 
     companion object {
-        const val RESULT_PICK_CONTACT = 2
+        const val REQUEST_PICK_CONTACT = 2
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
         val choices = listOf(
             getString(R.string.friend_from_contacts) to {
-                pickContact()
+                requestPickContact()
             },
             getString(R.string.friend_from_email) to {
                 alert {
@@ -79,30 +80,27 @@ class SyncTabFragment: BaseFragment() {
         }
     }
 
-    private fun pickContact() {
+    private fun requestPickContact() {
         val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Email.CONTENT_URI)
-        startActivityForResult(intent, RESULT_PICK_CONTACT)
+        startActivityForResult(intent, REQUEST_PICK_CONTACT)
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == RESULT_PICK_CONTACT && data?.data != null) {
-            val cursor = context!!.contentResolver.query(
-                data.data,
-                arrayOf(
-                    ContactsContract.Contacts._ID,
-                    ContactsContract.Contacts.DISPLAY_NAME,
-                    ContactsContract.CommonDataKinds.Email.ADDRESS
-                ),
-                null, null, null
-            ).apply { moveToFirst() }
-
+    private fun pickContactFrom(uri: Uri) {
+        context!!.contentResolver.query(
+            uri,
+            arrayOf(
+                ContactsContract.Contacts._ID,
+                ContactsContract.Contacts.DISPLAY_NAME,
+                ContactsContract.CommonDataKinds.Email.ADDRESS
+            ),
+            null, null, null
+        )?.use { cursor ->
+            cursor.moveToFirst()
             val id = cursor.stringValue(ContactsContract.Contacts._ID)
             val name = cursor.stringValue(ContactsContract.Contacts.DISPLAY_NAME)
             val email = cursor.stringValue(ContactsContract.CommonDataKinds.Email.ADDRESS)
             println("friends: adding $id:$name at $email")
 
-            cursor.closeQuietly()
             launch(Dispatchers.Default) {
                 val user = User.resolve(email)
                 withContext(Dispatchers.Main) {
@@ -117,6 +115,15 @@ class SyncTabFragment: BaseFragment() {
                     })
                 }
             }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
+        super.onActivityResult(requestCode, resultCode, intent)
+        if (requestCode == REQUEST_PICK_CONTACT && resultCode == RESULT_OK) {
+            val uri = intent?.data
+            // TODO: Use a contract here.
+            pickContactFrom(uri!!)
         }
     }
 

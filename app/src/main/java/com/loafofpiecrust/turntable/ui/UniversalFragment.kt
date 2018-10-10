@@ -67,9 +67,7 @@ abstract class UIComponent: CoroutineScope, AnkoComponent<Any> {
 
     fun pushToMain(context: Context) {
         if (context is UniversalActivity) {
-            (context.component as? Navigable)?.let { comp ->
-                comp.push(this)
-            }
+            (context.component as? Navigable)?.push(this)
         }
     }
 

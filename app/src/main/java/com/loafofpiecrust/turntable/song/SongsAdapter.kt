@@ -191,7 +191,7 @@ open class SongsAdapter(
                     MusicService.enact(PlayerAction.Enqueue(listOf(song), MusicPlayer.EnqueueMode.IMMEDIATELY_NEXT))
                 }
 
-                song.optionsMenu(holder.itemView.context, this)
+                songOptions(holder.itemView.context, song)
             }
         }
         holder.menu.setOnClickListener(openOverflow)

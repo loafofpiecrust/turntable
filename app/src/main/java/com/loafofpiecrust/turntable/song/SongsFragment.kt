@@ -122,12 +122,11 @@ fun ViewManager.songsList(
         }
     }
 
-    val cat = category
-    val adapter = SongsAdapter(cat) { songs, idx ->
+    val adapter = SongsAdapter(category) { songs, idx ->
         MusicService.enact(PlayerAction.PlaySongs(songs, idx))
     }
 
-    val recycler = if (cat is SongsFragment.Category.All) {
+    val recycler = if (category is SongsFragment.Category.All) {
         fastScrollRecycler {
             turntableStyle()
         }
@@ -143,8 +142,8 @@ fun ViewManager.songsList(
         val linear = LinearLayoutManager(context)
         layoutManager = linear
         this.adapter = adapter
-        if (cat is SongsFragment.Category.Playlist) {
-            val playlist = runBlocking { context.library.findPlaylist(cat.id).first() }
+        if (category is SongsFragment.Category.Playlist) {
+            val playlist = runBlocking { context.library.findPlaylist(category.id).first() }
             val helper = ItemTouchHelper(object: ItemTouchHelper.SimpleCallback(
                 ItemTouchHelper.UP or ItemTouchHelper.DOWN,
                 ItemTouchHelper.START or ItemTouchHelper.END

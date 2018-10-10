@@ -1,5 +1,6 @@
 package com.loafofpiecrust.turntable.album
 
+import android.content.Context
 import android.graphics.Color.TRANSPARENT
 import android.graphics.Typeface.BOLD
 import android.os.Parcelable
@@ -12,6 +13,7 @@ import android.support.design.widget.CollapsingToolbarLayout.LayoutParams.COLLAP
 import android.support.v4.app.Fragment
 import android.transition.*
 import android.view.Gravity
+import android.view.Menu
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -23,12 +25,23 @@ import com.loafofpiecrust.turntable.model.album.*
 import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.model.imageTransition
 import com.loafofpiecrust.turntable.model.nameTransition
+import com.loafofpiecrust.turntable.player.MusicPlayer
+import com.loafofpiecrust.turntable.player.MusicService
+import com.loafofpiecrust.turntable.playlist.PlaylistPicker
+import com.loafofpiecrust.turntable.service.Library
+import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.songsList
 import com.loafofpiecrust.turntable.style.detailsStyle
+import com.loafofpiecrust.turntable.sync.FriendPickerDialog
+import com.loafofpiecrust.turntable.sync.Message
+import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.ui.AlbumEditorActivityStarter
 import com.loafofpiecrust.turntable.ui.UIComponent
+import com.loafofpiecrust.turntable.ui.showDialog
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.channels.*
 import kotlinx.coroutines.experimental.channels.Channel.Factory.CONFLATED
 import org.jetbrains.anko.*
@@ -68,6 +81,7 @@ open class AlbumDetailsUI(
 
         enterTransition = Fade().setDuration(transDur)
     }
+
 
     override fun AnkoContext<Any>.render() = coordinatorLayout {
         id = R.id.container
@@ -182,7 +196,8 @@ open class AlbumDetailsUI(
                 launch {
                     album.consumeEach {
                         menu.clear()
-                        it.optionsMenu(context, menu)
+//                        it.optionsMenu(context, menu)
+                        menu.prepareOptions(context, it)
                     }
                 }
 
@@ -243,6 +258,59 @@ open class AlbumDetailsUI(
                         ?: run { image.imageResource = R.drawable.ic_default_album }
                 }
         }
+    }
 
+    private fun Menu.prepareOptions(context: Context, album: Album) {
+        menuItem(R.string.album_shuffle, R.drawable.ic_shuffle, showIcon =false).onClick(Dispatchers.Default) {
+            if (album.tracks.isNotEmpty()) {
+                MusicService.enact(PlayerAction.PlaySongs(album.tracks, mode = MusicPlayer.OrderMode.SHUFFLE))
+            }
+        }
+
+        menuItem(R.string.recommend).onClick {
+            FriendPickerDialog(
+                Message.Recommendation(album.toPartial()),
+                context.getString(R.string.recommend)
+            ).show(context)
+        }
+
+        menuItem(R.string.add_to_playlist).onClick {
+            PlaylistPicker(album.toPartial()).showDialog(context)
+        }
+
+        if (album is RemoteAlbum) {
+            menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = false).onClick(Dispatchers.Default) {
+                if (App.instance.hasInternet) {
+//                tracks.filter {
+//                    LocalApi.find(it.uuid) == null
+//                }.forEach { it.download() }
+                } else {
+                    context.toast(R.string.no_internet)
+                }
+            }
+
+            menuItem(R.string.add_to_library, R.drawable.ic_turned_in_not, showIcon = true) {
+                context.library.findAlbum(album.id).consumeEach(Dispatchers.Main) { existing ->
+                    if (existing != null) {
+                        setIcon(R.drawable.ic_turned_in)
+                        onClick {
+                            // Remove remote album from library
+                            context.library.removeRemoteAlbum(existing)
+                            context.toast(R.string.album_removed_library)
+                        }
+                    } else {
+                        setIcon(R.drawable.ic_turned_in_not)
+                        onClick {
+                            context.library.addRemoteAlbum(album)
+                            context.toast(R.string.album_added_library)
+                        }
+                    }
+                }
+            }
+        } else if (album is LocalAlbum) {
+            menuItem(R.string.album_edit_metadata).onClick {
+                AlbumEditorActivityStarter.start(context, album.id)
+            }
+        }
     }
 }

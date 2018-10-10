@@ -17,6 +17,7 @@ import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.player.StaticQueue
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.song.songOptions
 import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.*
@@ -212,7 +213,7 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>()
                         }
                     }
 
-                    song.optionsMenu(v.context, this)
+                    songOptions(v.context, song)
                 }
             }
         }

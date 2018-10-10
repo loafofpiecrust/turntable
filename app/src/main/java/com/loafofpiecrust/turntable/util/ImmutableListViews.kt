@@ -1,5 +1,11 @@
 package com.loafofpiecrust.turntable.util
 
+import com.loafofpiecrust.turntable.tryOr
+import kotlinx.coroutines.experimental.Deferred
+import kotlinx.coroutines.experimental.GlobalScope
+import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.runBlocking
+
 
 inline fun <T> List<T>.with(elem: T, pos: Int): List<T>
     = ListWith(this, listOf(elem), pos)
@@ -30,6 +36,11 @@ fun <T> Sequence<T>.replace(pos: Int, newVal: T): Sequence<T> =
 val <T> Iterable<T>.lazy inline get() = asSequence()
 val <K, T> Map<K, T>.lazy inline get() = asSequence()
 
+inline fun <T, R: Any> Sequence<T>.mapNotFailed(crossinline transform: (T) -> R): Sequence<R> =
+    mapNotNull { e -> tryOr(null) { transform(e) } }
+
+inline fun <T, R: Any> Iterable<T>.mapNotFailed(transform: (T) -> R): List<R> =
+    mapNotNull { e -> tryOr(null) { transform(e) } }
 
 
 class ListWith<T>(

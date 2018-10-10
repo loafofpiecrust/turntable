@@ -39,16 +39,16 @@ private fun Kryo.concreteToBytes(obj: Any, expectedSize: Int = 256, compress: Bo
 }
 
 fun Kryo.objectToBytes(obj: Any?, expectedSize: Int = 512, compress: Boolean = false): ByteArray {
-    if (compress) {
+    return if (compress) {
         val baos = ByteArrayOutputStream(expectedSize)
         val os = Output(DeflaterOutputStream(baos))
         writeClassAndObject(os, obj)
         os.closeQuietly()
-        return baos.toByteArray()
+        baos.toByteArray()
     } else {
         val os = Output(expectedSize, -1)
         writeClassAndObject(os, obj)
-        return os.toBytes().also { os.closeQuietly() }
+        os.toBytes().also { os.closeQuietly() }
     }
 }
 
@@ -106,7 +106,7 @@ suspend fun serialize(stream: OutputStream, obj: Any) {
 suspend fun <T> deserialize(bytes: ByteArray): T {
 //    @Suppress("UNCHECKED_CAST")
 //    return fst.asObject(bytes) as T
-    return App.kryo.let { it.objectFromBytes<T>(bytes) }
+    return App.kryo.objectFromBytes(bytes)
 }
 
 suspend fun <T> deserialize(stream: InputStream): T {
@@ -128,7 +128,7 @@ suspend fun <T> deserialize(stream: InputStream): T {
 suspend fun <T: Any> Blob.toObject(): T {
     return deserialize(toByteString().newInput())
 }
-suspend fun serializeToString(obj: Any) = Base64.encodeToString(serialize(obj), Base64.NO_WRAP)
+suspend fun serializeToString(obj: Any): String = Base64.encodeToString(serialize(obj), Base64.NO_WRAP)
 suspend fun <T: Any> deserialize(input: String): T = deserialize(Base64.decode(input, Base64.NO_WRAP))
 
 

@@ -61,10 +61,6 @@ abstract class Playlist: SavableMusic, HasTracks {
     var isPublished: Boolean = false
     var isCompletable: Boolean = false
 
-    override fun optionsMenu(context: Context, menu: Menu) {
-
-    }
-
     /// The first time, publishes this playlist to the database.
     /// After that, this pushes updates to the database entry.
     abstract fun publish()

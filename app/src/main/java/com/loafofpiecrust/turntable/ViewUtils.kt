@@ -167,13 +167,12 @@ fun <T> List<T>.shifted(from: Int, to: Int): List<T> = run {
     } else this
 }
 
-fun <T> Sequence<T>.shifted(from: Int, to: Int): Sequence<T> {
-    if (to == from) {
-        return this
-    } else if (to > from) {
+fun <T> Sequence<T>.shifted(from: Int, to: Int): Sequence<T> = when {
+    to == from -> this
+    to > from -> {
         val upToSource = take(from)
         val source = upToSource.first()
-        return sequenceOf(
+        sequenceOf(
             // up until the source
             upToSource,
             // after the source until the destination
@@ -183,7 +182,8 @@ fun <T> Sequence<T>.shifted(from: Int, to: Int): Sequence<T> {
             // all after the destination
             drop(to + 1)
         ).flatten()
-    } else TODO()
+    }
+    else -> TODO()
 }
 
 fun <T> MutableList<T>.shift(from: Int, to: Int) {
@@ -437,7 +437,7 @@ inline infix fun <T> ConflatedBroadcastChannel<T>.putsMapped(transform: (T) -> T
 //}
 
 
-infix inline fun <reified T> ConflatedBroadcastChannel<List<T>>.appends(toAdd: T) {
+infix fun <T> ConflatedBroadcastChannel<List<T>>.appends(toAdd: T) {
     synchronized(this) {
         offer(if (hasValue) {
             this.value + toAdd

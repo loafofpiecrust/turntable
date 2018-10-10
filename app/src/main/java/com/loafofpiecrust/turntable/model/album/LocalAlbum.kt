@@ -25,12 +25,4 @@ data class LocalAlbum(
             else -> Album.Type.LP
         }
     }
-
-    override fun optionsMenu(context: Context, menu: Menu) {
-        super.optionsMenu(context, menu)
-
-        menu.menuItem(R.string.album_edit_metadata).onClick {
-            AlbumEditorActivityStarter.start(context, id)
-        }
-    }
 }

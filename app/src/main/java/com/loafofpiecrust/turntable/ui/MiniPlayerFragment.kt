@@ -64,7 +64,7 @@ class MiniPlayerFragment: BaseFragment() {
 
 
         MusicService.instance.switchMap {
-            it?.let { it.player.currentSong.filterNotNull() }
+            it?.player?.currentSong?.filterNotNull()
         }.switchMap { song ->
             mainLine.text = song.id.displayName
             subLine.text = song.id.artist.displayName

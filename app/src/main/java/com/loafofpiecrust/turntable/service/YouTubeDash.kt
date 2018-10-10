@@ -52,7 +52,7 @@ class YouTubeDash(val context: Context) {
         val infoUrl = (if (USE_HTTP) "http://" else "https://") +
             "www.youtube.com/get_video_info?video_id=" + videoId +
             "&eurl=" +
-            URLEncoder.encode("https://youtube.googleapis.com/v/" + videoId, "UTF-8")
+            URLEncoder.encode("https://youtube.googleapis.com/v/$videoId", "UTF-8")
 //        val conn = infoUrl.openConnection() as HttpURLConnection
 //        val reader = BufferedReader(InputStreamReader(conn.inputStream))
 //
@@ -230,7 +230,7 @@ class YouTubeDash(val context: Context) {
     private suspend fun decipherSignature(signatures: SparseArray<String>): String? {
         // Assume the functions don't change that much
         if (decipherFunctionName == null || decipherFunctions == null) {
-            val decipherFuncUrl = "https://s.ytimg.com/yts/jsbin/" + decipherJsFileName
+            val decipherFuncUrl = "https://s.ytimg.com/yts/jsbin/$decipherJsFileName"
 
 //            var reader: BufferedReader? = null
             val javascriptFile = Http.get(decipherFuncUrl, params = mapOf(), headers = mapOf(
@@ -318,7 +318,7 @@ class YouTubeDash(val context: Context) {
                     }
                 }
 
-                println("Decipher Function: " + decipherFunctions)
+                println("Decipher Function: $decipherFunctions")
 //                async(CommonPool) {
 //                }
 //                if (CACHING) {

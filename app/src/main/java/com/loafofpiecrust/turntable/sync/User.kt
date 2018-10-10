@@ -15,11 +15,11 @@ import org.jetbrains.anko.error
 @Parcelize
 @DynamoDBTable(tableName="TurntableUsers")
 data class User(
-    @get:DynamoDBHashKey(attributeName="email")
+    @DynamoDBHashKey(attributeName="email")
     var username: String,
     var deviceId: String,
     var displayName: String?
-): Parcelable, AnkoLogger {
+): Parcelable {
     constructor(): this("", "", null)
 
     @get:DynamoDBIgnore
@@ -27,7 +27,7 @@ data class User(
         if (it.isNotBlank()) it else username
     } ?: username
 
-    companion object {
+    companion object: AnkoLogger by AnkoLogger<User>() {
         fun resolve(username: String): User? = run {
             if (username.isBlank()) return null
 

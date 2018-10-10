@@ -74,7 +74,7 @@ data class AlbumId(
 
 
     companion object {
-        val COLLATOR = Collator.getInstance().apply {
+        val COLLATOR: Collator = Collator.getInstance().apply {
             strength = Collator.PRIMARY
         }
         val COMPARATOR = compareBy<AlbumId, String>(COLLATOR) {

@@ -14,6 +14,7 @@ import com.loafofpiecrust.turntable.model.song.RemoteSongId
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.util.Http
+import com.loafofpiecrust.turntable.util.awaitOr
 import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.text
 import kotlinx.android.parcel.Parcelize
@@ -51,34 +52,33 @@ object MusicBrainz: Repository {
     }
 
 
-    override suspend fun searchAlbums(query: String): List<Album> {
+    override suspend fun searchAlbums(query: String): List<Album> = coroutineScope {
         val res = Http.get("http://musicbrainz.org/ws/2/release-group", params = mapOf(
             "fmt" to "json",
             "query" to query
         )).gson
 
         val entries = res["release-groups"].array
-        return entries.map { it.obj }.parMap {
+        entries.map { it.obj }.parMap {
             val name = it["name"].string
             val artistName = it["artist-credit"][0]["artist"]["name"].string
             val mbid = it["id"].string
-            val task = GlobalScope.async {
-                tryOr(null) {
-                    // Check for potential release year here. Maybe grab tracks too
-                    val res = Http.get("http://ws.audioscrobbler.com/2.0", params = mapOf(
-                        "api_key" to BuildConfig.LASTFM_API_KEY,
-                        "format" to "json",
-                        "method" to "album.getinfo",
-                        "album" to name,
-                        "artist" to artistName
-                    )).gson["album"]
-                    val images = res["image"].nullArray
-                    AlbumDetails(
-                        mbid,
-                        thumbnailUrl = images?.let { it[2]["#text"].nullString },
-                        listeners = res["listeners"].string.toInt()
-                    ) to images?.let { it.last()["#text"].nullString }
-                }
+            val task = async {
+                // Check for potential release year here. Maybe grab tracks too
+                val res = Http.get("http://ws.audioscrobbler.com/2.0", params = mapOf(
+                    "api_key" to BuildConfig.LASTFM_API_KEY,
+                    "format" to "json",
+                    "method" to "album.getinfo",
+                    "album" to name,
+                    "artist" to artistName
+                )).gson["album"]
+                val images = res["image"].nullArray
+
+                AlbumDetails(
+                    mbid,
+                    thumbnailUrl = images?.let { it[2]["#text"].nullString },
+                    listeners = res["listeners"].string.toInt()
+                ) to images?.let { it.last()["#text"].nullString }
             }
 
 
@@ -97,7 +97,7 @@ object MusicBrainz: Repository {
                 }
             }
 
-            val details = task.await()
+            val details = task.awaitOr(null)
             RemoteAlbum(
                 AlbumId(name, ArtistId(artistName)).also { id ->
                     Library.instance.addAlbumExtras(
@@ -200,12 +200,12 @@ object MusicBrainz: Repository {
                             albumId,
                             tryOr(albumId.artist) { ArtistId(recording["artist-credit"][0]["name"].string) }
                         ),
-                        duration = recording["length"].nullInt ?: 0,
-                        track = recording["position"].nullInt ?: idx+1,
+                        duration = recording["length"]?.int ?: 0,
+                        track = recording["position"]?.int ?: idx+1,
                         disc = discIdx + 1,
                         year = year,
                         platformId = RemoteSongId(
-                            tryOr(null) { recording["id"].string },
+                            recording["id"]?.string,
                             rgid,
                             null
                         )

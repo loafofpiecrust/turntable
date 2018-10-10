@@ -141,9 +141,9 @@ class Library : BaseService() {
 //    }
     val albumsMap: ConflatedBroadcastChannel<Map<AlbumId, Album>> = run {
         combineLatest(localAlbums, remoteAlbums.openSubscription()) { a, b ->
-            (a.lazy + b.lazy).map { it.id to it }.toMap(
+            (a.lazy + b.lazy).associateByTo(
                 MergingHashMap { a, b -> MergedAlbum(a, b) }
-            )
+            ) { it.id }
         }.replayOne()
     }
 
@@ -722,23 +722,6 @@ class Library : BaseService() {
                 .fitCenter()
         }
 
-
-        /// Bridges the connection between an Activity and the MusicService instance
-        /// Starts the service if it somehow isn't started yet
-        fun with(context: Context, cb: (Library) -> Unit) {
-            var conn: ServiceConnection? = null
-            class Conn: ServiceConnection {
-                override fun onServiceConnected(comp: ComponentName, binder: IBinder?) {
-                    cb.invoke((binder as Binder).music)
-                    context.unbindService(conn)
-                }
-                override fun onServiceDisconnected(comp: ComponentName) {
-                }
-            }
-            conn = Conn()
-            val intent = Intent(App.instance, Library::class.java)
-            context.bindService(intent, conn, Context.BIND_AUTO_CREATE)
-        }
 
         val ARTIST_META_COMPARATOR = compareBy<ArtistMetadata> { it.id }
 

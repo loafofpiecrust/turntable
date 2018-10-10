@@ -12,6 +12,7 @@ import com.loafofpiecrust.turntable.artist.*
 import com.loafofpiecrust.turntable.browse.LocalApi
 import com.loafofpiecrust.turntable.browse.Repository
 import com.loafofpiecrust.turntable.model.album.Album
+import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.artist.LocalArtist
@@ -33,10 +34,12 @@ import org.jetbrains.anko.dimen
 import org.jetbrains.anko.padding
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.swipeRefreshLayout
+import kotlin.Comparator
 
 
 sealed class AlbumsUI(
-    private val sortBy: SortBy = SortBy.NONE,
+    private val splitByType: Boolean = false,
+    private val sortBy: SortBy? = null,
     private val columnCount: Int = 3
 ) : UIComponent() {
     abstract val albums: BroadcastChannel<List<Album>>
@@ -56,13 +59,13 @@ sealed class AlbumsUI(
             )
         }
         val adapter: RecyclerView.Adapter<*> =
-//        if (category is AlbumsFragment.Category.ByArtist) {
-//            AlbumSectionAdapter(goToAlbum).apply {
-//                setLayoutManager(grid)
-//            }
-//        } else {
-            AlbumsAdapter(this@AlbumsUI is ByArtist, goToAlbum)
-//        }
+            if (splitByType) {
+                AlbumSectionAdapter(goToAlbum).apply {
+                    setLayoutManager(grid)
+                }
+            } else {
+                AlbumsAdapter(this@AlbumsUI is ByArtist, goToAlbum)
+            }
 
         val recycler = if (this@AlbumsUI is All) {
             fastScrollRecycler {
@@ -95,17 +98,11 @@ sealed class AlbumsUI(
 
             addItemDecoration(ItemOffsetDecoration(dimen(R.dimen.grid_gutter)))
 
-            val sub = albums.openSubscription()//.map {
-//                if (cat !is Category.All) {
-//                    when (sortBy) {
-//                        SortBy.NONE -> it
-//                        SortBy.TITLE -> it.sortedWith(compareByIgnoreCase({ it.uuid.sortName }))
-//                        SortBy.YEAR -> it.sortedByDescending {
-//                            it.year ?: 0
-//                        }.sortedBy { it.type.ordinal }
-//                    }
-//                } else it
-//            }
+            val sub = albums.openSubscription().map {
+                if (sortBy != null) {
+                    it.sortedWith(sortBy.comparator)
+                } else it
+            }
 
             if (adapter is AlbumsAdapter) {
                 adapter.subscribeData(sub)
@@ -166,7 +163,7 @@ sealed class AlbumsUI(
     class ByArtist(
         val artist: ArtistId,
         val mode: ArtistDetailsFragment.Mode
-    ): AlbumsUI(SortBy.YEAR), Parcelable {
+    ): AlbumsUI(sortBy = SortBy.YEAR), Parcelable {
         @IgnoredOnParcel
         var artistChannel: ReceiveChannel<Artist>? = null
 
@@ -195,12 +192,13 @@ sealed class AlbumsUI(
 
     class Custom(
         override val albums: BroadcastChannel<List<Album>>,
-        sortBy: SortBy
-    ): AlbumsUI(sortBy)
+        splitByType: Boolean = false,
+        sortBy: SortBy? = null
+    ): AlbumsUI(splitByType, sortBy)
 
-    enum class SortBy {
-        NONE,
-        YEAR,
-        TITLE
+
+    enum class SortBy(val comparator: Comparator<Album>) {
+        YEAR(compareByDescending { it.year }),
+        TITLE(compareBy { it.id });
     }
 }

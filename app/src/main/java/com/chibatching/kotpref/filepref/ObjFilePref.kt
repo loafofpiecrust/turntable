@@ -1,6 +1,7 @@
 package com.chibatching.kotpref.filepref
 
 import android.content.SharedPreferences
+import com.chibatching.kotpref.Kotpref
 import com.chibatching.kotpref.KotprefModel
 import com.chibatching.kotpref.pref.AbstractPref
 import com.loafofpiecrust.turntable.App

@@ -30,7 +30,7 @@ data class YouTubeSong(
 ) : SongDownload() {
 
     companion object: AnkoLogger by AnkoLogger<YouTubeSong>() {
-        val API_KEY = BuildConfig.YOUTUBE_API_KEY
+        const val API_KEY = BuildConfig.YOUTUBE_API_KEY
         private val PAT_UNOFFICIAL by lazy {
             Pattern.compile("\\b(live|remix|mix|cover|unofficial|instrumental|sessions)\\b")
         }

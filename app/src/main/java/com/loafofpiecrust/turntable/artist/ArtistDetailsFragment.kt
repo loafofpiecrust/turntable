@@ -223,7 +223,7 @@ class ArtistDetailsFragment: BaseFragment() {
                 transitionName = artistId.nameTransition
                 artist.consumeEachAsync {
                     menu.clear()
-                    it.optionsMenu(context, menu)
+//                    it.optionsMenu(context, menu)
                 }
             }.lparams(width = matchParent) {
                 gravity = Gravity.TOP
@@ -245,7 +245,7 @@ class ArtistDetailsFragment: BaseFragment() {
         // Albums by this artist
         AlbumsUI.Custom(
             albums,
-            AlbumsUI.SortBy.YEAR
+            sortBy = AlbumsUI.SortBy.YEAR
         ).createView(this).lparams(width = matchParent) {
             behavior = AppBarLayout.ScrollingViewBehavior()
         }

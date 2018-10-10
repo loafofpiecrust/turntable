@@ -90,3 +90,18 @@ inline fun <T> CoroutineScope.suspendAsync(ctx: CoroutineContext = EmptyCoroutin
 }
 
 fun <T> Deferred<T>.get() = runBlocking { await() }
+
+suspend inline fun <T> Deferred<T>.awaitOrElse(alternative: () -> T): T {
+    return try {
+        await()
+    } catch (e: Throwable) {
+        alternative()
+    }
+}
+suspend inline fun <T> Deferred<T>.awaitOr(alternative: T): T {
+    return try {
+        await()
+    } catch (e: Throwable) {
+        alternative
+    }
+}

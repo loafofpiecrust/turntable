@@ -82,51 +82,51 @@ data class Song(
     val discTrack: Int get() = disc * 1000 + track
 
 
-    override fun optionsMenu(context: Context, menu: Menu) = menu.run {
-        menuItem(R.string.add_to_playlist).onClick {
-            PlaylistPicker(this@Song).showDialog(context)
-        }
-
-//        menuItem("Go to album").onClick(BG_POOL) {
-//            val album = Library.instance.findAlbumOfSong(this@Song).first()
-//            withContext(UI) {
-//                if (album != null) {
-//                    context.replaceMainContent(
-//                        DetailsFragment(album.uuid), true
-//                    )
-//                }
-//            }
-//        }
-//        menuItem("Go to artist").onClick {
-//            val artist = if (local is Song.LocalDetails.Downloaded) {
-//                Library.instance.findArtist(uuid.artist).first()
-//            } else {
-//                Repository.find(uuid.artist) ?: run {
-//                    context.toast("No remote artist for '${this@Song.uuid}'")
-//                    return@onClick
-//                }
-//            }
-//
-//            if (artist != null) {
-//                context.replaceMainContent(
-//                    ArtistDetailsFragment.fromArtist(artist), true
-//                )
-//            }
-//        }
-
-//        menuItem("Recommend").onClick {
-//            FriendPickerDialogStarter.newInstance(
-//                SyncService.Message.Recommendation(this@Song.uuid),
-//                "Send Recommendation"
-//            ).show(context)
+//    override fun optionsMenu(context: Context, menu: Menu) = menu.run {
+//        menuItem(R.string.add_to_playlist).onClick {
+//            PlaylistPicker(this@Song).showDialog(context)
 //        }
 //
-//        menuItem("Clear Streams").onClick {
-//            OnlineSearchService.instance.reloadSongStreams(this@Song.uuid)
-//            OnlineSearchService.instance.reloadAlbumStreams(this@Song.uuid.album)
-//        }
-
-    }
+////        menuItem("Go to album").onClick(BG_POOL) {
+////            val album = Library.instance.findAlbumOfSong(this@Song).first()
+////            withContext(UI) {
+////                if (album != null) {
+////                    context.replaceMainContent(
+////                        DetailsFragment(album.uuid), true
+////                    )
+////                }
+////            }
+////        }
+////        menuItem("Go to artist").onClick {
+////            val artist = if (local is Song.LocalDetails.Downloaded) {
+////                Library.instance.findArtist(uuid.artist).first()
+////            } else {
+////                Repository.find(uuid.artist) ?: run {
+////                    context.toast("No remote artist for '${this@Song.uuid}'")
+////                    return@onClick
+////                }
+////            }
+////
+////            if (artist != null) {
+////                context.replaceMainContent(
+////                    ArtistDetailsFragment.fromArtist(artist), true
+////                )
+////            }
+////        }
+//
+////        menuItem("Recommend").onClick {
+////            FriendPickerDialogStarter.newInstance(
+////                SyncService.Message.Recommendation(this@Song.uuid),
+////                "Send Recommendation"
+////            ).show(context)
+////        }
+////
+////        menuItem("Clear Streams").onClick {
+////            OnlineSearchService.instance.reloadSongStreams(this@Song.uuid)
+////            OnlineSearchService.instance.reloadAlbumStreams(this@Song.uuid.album)
+////        }
+//
+//    }
 
     suspend fun loadMedia(): Media? {
         val existing = Library.instance.sourceForSong(id)

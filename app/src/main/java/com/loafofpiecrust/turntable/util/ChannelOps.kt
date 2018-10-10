@@ -249,3 +249,8 @@ fun <T> ReceiveChannel<T>.bind(view: View) = apply {
 }
 
 inline operator fun <T> BroadcastChannel<T>.iterator(): ChannelIterator<T> = openSubscription().iterator()
+
+
+
+
+// Sequences

@@ -56,37 +56,4 @@ class RemoteAlbum(
         }?.map { it.apply(RequestOptions().signature(ObjectKey(id))) }
             ?: Library.instance.loadAlbumCover(req, id)
     }
-
-    override fun optionsMenu(context: Context, menu: Menu) {
-        super.optionsMenu(context, menu)
-
-        menu.menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = false).onClick(Dispatchers.Default) {
-            if (App.instance.hasInternet) {
-//                tracks.filter {
-//                    LocalApi.find(it.uuid) == null
-//                }.forEach { it.download() }
-            } else {
-                context.toast(R.string.no_internet)
-            }
-        }
-
-        menu.menuItem(R.string.add_to_library, R.drawable.ic_turned_in_not, showIcon = true) {
-            context.library.findAlbum(id).consumeEach(Dispatchers.Main) { existing ->
-                if (existing != null) {
-                    setIcon(R.drawable.ic_turned_in)
-                    onClick {
-                        // Remove remote album from library
-                        context.library.removeRemoteAlbum(existing)
-                        context.toast(R.string.album_removed_library)
-                    }
-                } else {
-                    setIcon(R.drawable.ic_turned_in_not)
-                    onClick {
-                        context.library.addRemoteAlbum(this@RemoteAlbum)
-                        context.toast(R.string.album_added_library)
-                    }
-                }
-            }
-        }
-    }
 }

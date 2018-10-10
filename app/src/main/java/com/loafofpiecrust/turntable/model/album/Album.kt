@@ -76,26 +76,6 @@ interface Album: Music, HasTracks {
 
     fun toPartial() = PartialAlbum(id, year, type)
 
-    /// TODO: Can we pull this out of the class...?
-    override fun optionsMenu(context: Context, menu: Menu) {
-        menu.menuItem(R.string.album_shuffle, R.drawable.ic_shuffle, showIcon =false).onClick(Dispatchers.Default) {
-            if (tracks.isNotEmpty()) {
-                MusicService.enact(PlayerAction.PlaySongs(tracks, mode = MusicPlayer.OrderMode.SHUFFLE))
-            }
-        }
-
-        menu.menuItem(R.string.recommend).onClick {
-            FriendPickerDialog(
-                Message.Recommendation(toPartial()),
-                context.getString(R.string.recommend)
-            ).show(context)
-        }
-
-        menu.menuItem(R.string.add_to_playlist).onClick {
-            PlaylistPicker(toPartial()).showDialog(context)
-        }
-    }
-
 
     fun loadCover(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
         GlobalScope.produce {

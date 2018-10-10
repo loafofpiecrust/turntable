@@ -93,11 +93,7 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
 //        bottomSheetBehavior2 = BottomSheetBehavior.from(sheet2) as CustomBottomSheetBehavior<*>
         bottomSheetBehavior2.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
-                if (newState == BottomSheetBehavior.STATE_EXPANDED || newState == BottomSheetBehavior.STATE_DRAGGING) {
-                    bottomSheetBehavior1.allowDragging = false
-                } else {
-                    bottomSheetBehavior1.allowDragging = true
-                }
+                bottomSheetBehavior1.allowDragging = !(newState == BottomSheetBehavior.STATE_EXPANDED || newState == BottomSheetBehavior.STATE_DRAGGING)
 
                 fadeView(sheet2Peek, newState)
 

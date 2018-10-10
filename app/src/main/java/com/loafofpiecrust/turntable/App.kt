@@ -45,8 +45,9 @@ class App: Application() {
         override val coroutineContext: CoroutineContext
             get() = Dispatchers.Main
 
-        private lateinit var _instance: WeakReference<App>
-        val instance: App get() = _instance.get()!!
+        /// Safe because `App` is **always** a singleton by definition.
+        lateinit var instance: App
+            private set
 
         val kryo by threadLocalLazy {
             Kryo().apply {
@@ -86,11 +87,8 @@ class App: Application() {
 //            kryo.references = true
 //            return block(kryo).also { kryo.references = false }
 //        }
-
-        var sdCardUri: Uri? = null
     }
 
-//    val connection: BehaviorSubject<>
     /// Initialize directly rather than a service, so it lives as long as the app does :D
     lateinit var library: Library
 //    val fileSync = FileSyncService()
@@ -102,7 +100,7 @@ class App: Application() {
 
     override fun onCreate() {
         super.onCreate()
-        _instance = WeakReference(this)
+        instance = this
 
         FirebaseApp.initializeApp(this)
 
@@ -125,8 +123,6 @@ class App: Application() {
 //        library.onCreate()
 //        fileSync.onCreate()
 
-        // Start the MusicService
-//        startService(Intent(this, MusicService::class.java))
 //        startService(Intent(this, Library::class.java))
         SyncService.initDeviceId()
 //        startService(Intent(this, OnlineSearchService::class.java))
@@ -177,8 +173,6 @@ class App: Application() {
         }
     }
 }
-
-val Context.kryo inline get() = App.kryo
 
 data class Size(val width: Int, val height: Int)
 val Context.screenSize get(): Size {

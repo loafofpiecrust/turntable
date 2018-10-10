@@ -1,13 +1,10 @@
 package com.loafofpiecrust.turntable.model
 
-import android.content.Context
 import android.os.Parcelable
-import android.view.Menu
 import java.io.Serializable
 
 interface Music {
     val musicId: MusicId
-    fun optionsMenu(context: Context, menu: Menu)
 }
 
 interface SavableMusic: Music, Serializable

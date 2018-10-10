@@ -84,7 +84,7 @@ class AlbumsAdapter(
 
         if (holder.coverImage != null) {
             holder.coverImage.imageResource = R.drawable.ic_default_album
-            val job = GlobalScope.async {
+            val job = GlobalScope.launch {
                 album.loadThumbnail(Glide.with(holder.card.context)).consumeEach {
                     val req = it?.apply(opts)
                         ?.transition(DrawableTransitionOptions().crossFade(200))
@@ -163,7 +163,7 @@ class AlbumSectionAdapter(
                 .placeholder(R.drawable.ic_default_album)
                 .signature(ObjectKey(album.id.displayName))
 
-            imageJobs.put(holder, async(UI) {
+            imageJobs.put(holder, launch(Dispatchers.Main) {
                 album.loadThumbnail(Glide.with(holder.card.context)).consumeEach {
                     it?.apply(opts)
                         ?.transition(DrawableTransitionOptions().crossFade(200))

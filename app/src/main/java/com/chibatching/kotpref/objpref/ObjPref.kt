@@ -18,7 +18,7 @@ import kotlin.reflect.KProperty
 class objPref<T: Any>(val default: T): AbstractPref<T>() {
     override fun getValue(thisRef: Any, property: KProperty<*>): ConflatedBroadcastChannel<T> {
         if (!subject.hasValue) {
-            GlobalScope.launch(BG_POOL) {
+            GlobalScope.launch {
                 getFromPreference(property, UserPrefs.kotprefPreference).also {
                     subject.offer(it)
                 }

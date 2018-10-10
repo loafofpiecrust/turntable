@@ -13,13 +13,13 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
+import com.loafofpiecrust.turntable.util.mapNotFailed
 import com.loafofpiecrust.turntable.util.text
 import com.mcxiaoke.koi.ext.closeQuietly
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.runBlocking
 import okhttp3.Response
-import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
 import org.jetbrains.anko.error
 import org.jetbrains.anko.info
@@ -111,14 +111,12 @@ object Discogs: Repository {
             "artist" to album.artist.name,
 //            "year" to album.year.toString(),
             "per_page" to "5"
-        )).mapNotNull {
-            tryOr(null) {
-                val artist = cleanArtistName(it["artists"][0]["name"].string)
-                RemoteAlbum(
-                    AlbumId(it["name"].string, artist),
-                    AlbumDetails("${it["type"].string}s/${it["id"].string}")
-                )
-            }
+        )).mapNotFailed {
+            val artist = cleanArtistName(it["artists"][0]["name"].string)
+            RemoteAlbum(
+                AlbumId(it["name"].string, artist),
+                AlbumDetails("${it["type"].string}s/${it["id"].string}")
+            )
         }
     }
 
@@ -132,13 +130,11 @@ object Discogs: Repository {
     override suspend fun searchArtists(query: String): List<Artist> {
         return doSearch(query, mapOf(
             "type" to "artist"
-        )).mapNotNull {
-            tryOr(null) {
-                RemoteArtist(
-                    cleanArtistName(it["title"].string),
-                    ArtistDetails(it["id"].int, "", it["thumb"].nullString)
-                )
-            }
+        )).mapNotFailed {
+            RemoteArtist(
+                cleanArtistName(it["title"].string),
+                ArtistDetails(it["id"].int, "", it["thumb"].nullString)
+            )
         }
     }
 
@@ -275,19 +271,13 @@ object Discogs: Repository {
             search -> searchFor(album.id).firstOrNull() ?: return null
             else -> return null
         }
-//        if (album.remote !is Discogs.AlbumDetailsUI) {
+//        if (album.remote !is Discogs.AlbumDetails) {
 //            return null
 //        }
         val res = apiRequest("https://api.discogs.com/$id").obj
         val imgs = res["images"].nullArray
-        val url = (imgs?.firstOrNull { it["type"].nullString == "primary" } ?: imgs?.first())?.get("uri")?.string
 
-//        if (url != null) {
-//            Library.instance.addAlbumExtras(
-//                Library.AlbumMetadata(album.uuid, url)
-//            )
-//        }
-        return url
+        return (imgs?.firstOrNull { it["type"].nullString == "primary" } ?: imgs?.first())?.get("uri")?.string
     }
 
     override suspend fun fullArtwork(artist: Artist, search: Boolean): String? {
