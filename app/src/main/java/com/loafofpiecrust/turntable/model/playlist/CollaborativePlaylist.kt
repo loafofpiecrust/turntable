@@ -1,5 +1,6 @@
 package com.loafofpiecrust.turntable.model.playlist
 
+import android.content.Context
 import com.github.daemontus.Result
 import com.google.firebase.firestore.Blob
 import com.google.firebase.firestore.DocumentSnapshot
@@ -23,6 +24,7 @@ import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
+import org.jetbrains.anko.toast
 import java.io.Serializable
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -304,4 +306,12 @@ class CollaborativePlaylist (
             })
         }
     }
+}
+
+fun CollaborativePlaylist.add(context: Context, song: Song) = addAll(context, listOf(song))
+fun CollaborativePlaylist.addAll(context: Context, songs: Iterable<Song>) = context.run {
+    toast(when {
+        addAll(songs) -> getString(R.string.playlist_added_track, name)
+        else -> getString(R.string.playlist_duplicate, name)
+    })
 }

@@ -547,7 +547,7 @@ data class YouTubeFullAlbum(
 
             info { "youtube: searching query '${album.id.artist} ${album.id.displayName} full album'" }
 
-            val items = res["items"].nullArray ?: JsonArray()
+            val items = tryOr(JsonArray()) { res["items"].array }
             val results = items.map { it.obj }.map {
                 val details = it["snippet"].obj
                 val title = details["title"].string

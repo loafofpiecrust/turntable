@@ -21,6 +21,7 @@ import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.Main
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.channels.first
 import kotlinx.coroutines.experimental.launch
@@ -31,9 +32,10 @@ import org.jetbrains.anko.textColor
 
 
 open class SongsAdapter(
+    channel: ReceiveChannel<List<Song>>,
     private val category: SongsFragment.Category? = null,
     private val listener: (List<Song>, Int) -> Unit
-): RecyclerAdapter<Song, RecyclerListItemOptimized>(), FastScrollRecyclerView.SectionedAdapter {
+): RecyclerAdapter<Song, RecyclerListItemOptimized>(channel), FastScrollRecyclerView.SectionedAdapter {
     protected val progressSubs = mutableMapOf<RecyclerListItemOptimized, Job>()
 
     override fun itemsSame(a: Song, b: Song, aIdx: Int, bIdx: Int) =

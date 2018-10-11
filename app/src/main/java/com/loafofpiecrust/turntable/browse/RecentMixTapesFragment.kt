@@ -25,11 +25,7 @@ class RecentMixTapesFragment: BaseFragment() {
         frameLayout {
             recyclerView {
                 layoutManager = LinearLayoutManager(context)
-                adapter = object : RecyclerAdapter<MixTape, RecyclerItem>() {
-                    init {
-                        subscribeData(mixtapes)
-                    }
-
+                adapter = object : RecyclerAdapter<MixTape, RecyclerItem>(mixtapes) {
                     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerItem =
                         RecyclerListItemOptimized(parent, 3, true)
 

@@ -106,25 +106,20 @@ class QueueFragment : BaseFragment() {
 }
 
 
-class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>() {
-    var queue: CombinedQueue? = null
-    val channel: ReceiveChannel<List<Song>>
-        get() = MusicService.instance.switchMap {
-            it?.player?.queue
-        }.map {
-            queue = it
-            it.list
-        }
-
-    init {
-        subscribeData(channel)
-    }
+class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>(
+    MusicService.instance.switchMap {
+        it?.player?.queue
+    }.map { it.list }
+) {
+    var queue = MusicService.instance.switchMap {
+        it?.player?.queue
+    }.replayOne()
 
     override val moveEnabled get() = true
     override val dismissEnabled get() = true
 
     override fun canMoveItem(index: Int) =
-        queue?.indexWithinUpNext(index) == true
+        queue.value.indexWithinUpNext(index)
 
     override fun onItemMove(fromIdx: Int, toIdx: Int) {
         MusicService.enact(PlayerAction.ShiftQueueItem(fromIdx, toIdx))
@@ -189,8 +184,7 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>()
             subLine.textColor = c
             track.textColor = c
 
-            val withinUpNext = queue?.indexWithinUpNext(index)
-            if (withinUpNext == true) {
+            if (queue.value.indexWithinUpNext(index)) {
                 // TODO: Better indicator of `Up Next`
                 card.backgroundColorResource = R.color.md_red_300
             } else {

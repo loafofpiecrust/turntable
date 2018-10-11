@@ -81,9 +81,7 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
                 playlistColor.value,
                 UUID.randomUUID()
             ).apply {
-                startingTracks.tracks.forEach {
-                    (it as? Song)?.let { add(0, it) }
-                }
+                addAll(0, startingTracks.tracks.mapNotNull { it as? Song })
             }
             CollaborativePlaylist::class -> CollaborativePlaylist(
                 SyncService.selfUser,

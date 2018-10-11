@@ -27,6 +27,7 @@ import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.android.Main
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
 import org.jetbrains.anko.*
 
@@ -38,9 +39,11 @@ import org.jetbrains.anko.*
  * [RecyclerView.Adapter] that can display a [Album]
  */
 class AlbumsAdapter(
+    channel: ReceiveChannel<List<Album>>,
     private val byArtist: Boolean,
     private val listener: ((RecyclerItem, Album) -> Unit)?
-) : RecyclerAdapter<Album, RecyclerItem>(), FastScrollRecyclerView.SectionedAdapter {
+) : RecyclerAdapter<Album, RecyclerItem>(channel), FastScrollRecyclerView.SectionedAdapter {
+
     override fun itemsSame(a: Album, b: Album, aIdx: Int, bIdx: Int) =
         a.id == b.id
 

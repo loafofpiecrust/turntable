@@ -10,6 +10,7 @@ import com.loafofpiecrust.turntable.model.song.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.ui.Closable
 import com.loafofpiecrust.turntable.ui.UIComponent
+import com.loafofpiecrust.turntable.util.exhaustive
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.*
@@ -103,47 +104,41 @@ class PlaylistPicker(
     override fun AnkoContext<Any>.render() = this.recyclerView {
         topPadding = dip(8)
 
+        val applicablePlaylists = UserPrefs.playlists.openSubscription().map {
+            it.filter {
+                when (item) {
+                    is Song -> it is MixTape || it is CollaborativePlaylist
+                    is PartialAlbum -> it is AlbumCollection || it is CollaborativePlaylist
+                    is HasTracks -> it is CollaborativePlaylist
+                    else -> throw IllegalArgumentException("Can't add Artist to playlist")
+                }
+            }
+        }
+
         layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
-        adapter = PlaylistsFragment.Adapter { selected ->
+        adapter = PlaylistsFragment.Adapter(applicablePlaylists) { selected ->
             val item = item
             when (item) {
-                is Song -> {
-                    when (selected) {
-                        is MixTape -> selected.add(context, item)
-                        is CollaborativePlaylist -> toast(
-                            if (selected.add(item)) context.getString(R.string.playlist_added_track, selected.name)
-                            else context.getString(R.string.playlist_is_full, selected.name)
-                        )
-                    }
+                is Song -> when (selected) {
+                    is MixTape -> selected.add(context, item)
+                    is CollaborativePlaylist -> selected.add(context, item)
+                    else -> toast("Cannot add a song to ${selected.name}")
                 }
                 is PartialAlbum -> {
                     when (selected) {
-                        is CollaborativePlaylist -> if (selected.addAll(item.tracks)) {
-                            toast("Added all tracks to '${selected.name}'")
-                        } else {
-                            toast("Duplicate ignored")
-                        }
+                        is CollaborativePlaylist -> selected.addAll(context, item.tracks)
                         is AlbumCollection -> if (selected.add(item)) {
                             toast(context.getString(R.string.playlist_added_track, selected.name))
                         } else {
                             toast("Duplicate ignored")
                         }
+                        else -> toast("Cannot add an album to ${selected.name}")
                     }
                 }
-            }
+                else -> toast("Unrecognized music type")
+            }.exhaustive
 
             (owner as? Closable)?.close()
-        }.also {
-            it.subscribeData(UserPrefs.playlists.openSubscription().map {
-                it.filter {
-                    when (item) {
-                        is Song -> it is MixTape || it is CollaborativePlaylist
-                        is PartialAlbum -> it is AlbumCollection || it is CollaborativePlaylist
-                        is HasTracks -> it is CollaborativePlaylist
-                        else -> TODO("Can't add Artist to playlist")
-                    }
-                }
-            })
         }
     }
 }

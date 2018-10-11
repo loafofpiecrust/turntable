@@ -33,7 +33,13 @@ import java.util.*
 import kotlin.coroutines.experimental.CoroutineContext
 
 // TODO: Make interface for music data types that has their shared qualities: mainly an uuid. Then, maybe that'll allow some other generalization too.
-abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>: RecyclerView.Adapter<VH>(), CoroutineScope {
+abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
+    val channel: ReceiveChannel<List<T>>
+): RecyclerView.Adapter<VH>(), CoroutineScope {
+    init {
+        subscribeData(channel)
+    }
+
     protected val supervisor = SupervisorJob()
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Default + supervisor
@@ -149,7 +155,9 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>: RecyclerView.Ada
     }
 }
 
-abstract class RecyclerBroadcastAdapter<T, VH: RecyclerView.ViewHolder> : RecyclerAdapter<T, VH>() {
+abstract class RecyclerBroadcastAdapter<T, VH: RecyclerView.ViewHolder>(
+    channel: ReceiveChannel<List<T>>
+) : RecyclerAdapter<T, VH>(channel) {
     private val itemJobs = mutableMapOf<VH, Job>()
 
     abstract val moveEnabled: Boolean

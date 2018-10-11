@@ -4,6 +4,7 @@ kotlin {
     targets {
         fromPreset(presets.jvm, 'android')
     }
+
     sourceSets {
         commonMain.dependencies {
             api 'org.jetbrains.kotlin:kotlin-stdlib-common'
@@ -21,6 +22,7 @@ kotlin {
         }
     }
 }
+
 configurations {
     compileClasspath
 }

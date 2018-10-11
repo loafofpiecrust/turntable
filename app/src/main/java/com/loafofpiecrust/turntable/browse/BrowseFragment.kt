@@ -68,14 +68,12 @@ class BrowseFragment: BaseFragment() {
             }
         }
         recyclerView {
-            layoutManager = LinearLayoutManager(ctx)
-            adapter = SongsAdapter { songs, pos ->
+            val history = UserPrefs.history.openSubscription()
+                .map { it.asReversed().take(4).map { it.song } }
+
+            layoutManager = LinearLayoutManager(context)
+            adapter = SongsAdapter(history) { songs, pos ->
                 MusicService.enact(PlayerAction.PlaySongs(songs, pos))
-            }.apply {
-                subscribeData(
-                    UserPrefs.history.openSubscription()
-                        .map { it.asReversed().take(4).map { it.song } }
-                )
             }
         }
     }
@@ -83,11 +81,8 @@ class BrowseFragment: BaseFragment() {
 
 
 class MusicAdapter(
-    chan: ReceiveChannel<List<Music>>
-): RecyclerAdapter<Music, RecyclerListItemOptimized>() {
-    init {
-        subscribeData(chan)
-    }
+    channel: ReceiveChannel<List<Music>>
+): RecyclerAdapter<Music, RecyclerListItemOptimized>(channel) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
         RecyclerListItemOptimized(parent, 3, false)

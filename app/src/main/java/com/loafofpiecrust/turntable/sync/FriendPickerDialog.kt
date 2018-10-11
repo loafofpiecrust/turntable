@@ -12,6 +12,7 @@ import com.loafofpiecrust.turntable.ui.BaseDialogFragment
 import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
 import com.loafofpiecrust.turntable.util.arg
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
@@ -19,8 +20,9 @@ import org.jetbrains.anko.support.v4.alert
 import org.jetbrains.anko.support.v4.toast
 
 private class UserAdapter(
+    channel: ReceiveChannel<List<User>>,
     val listener: (User) -> Unit
-): RecyclerAdapter<User, RecyclerListItemOptimized>() {
+): RecyclerAdapter<User, RecyclerListItemOptimized>(channel) {
     var selected: RecyclerListItemOptimized? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int)
@@ -54,14 +56,14 @@ class FriendPickerDialog(): BaseDialogFragment() {
     override fun ViewManager.createView() = recyclerView {
         minimumHeight = dimen(R.dimen.song_item_height) * 5
         layoutManager = LinearLayoutManager(context)
-        adapter = UserAdapter {
+        val friends = UserPrefs.friends.openSubscription().map { friends ->
+            friends.filter {
+                it.status == SyncService.Friend.Status.CONFIRMED
+            }.map { it.user }
+        }
+
+        adapter = UserAdapter(friends) {
             selected = it
-        }.apply {
-            subscribeData(UserPrefs.friends.openSubscription().map { friends ->
-                friends.filter {
-                    it.status == SyncService.Friend.Status.CONFIRMED
-                }.map { it.user }
-            })
         }
     }
 

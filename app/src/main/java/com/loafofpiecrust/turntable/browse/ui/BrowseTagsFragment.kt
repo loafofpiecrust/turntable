@@ -11,6 +11,8 @@ import com.loafofpiecrust.turntable.ui.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
+import com.loafofpiecrust.turntable.util.produceSingle
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.runBlocking
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.ctx
@@ -52,11 +54,7 @@ class BrowseTagsFragment: BaseFragment() {
 
     class TagAdapter(
         initialData: List<Tag>
-    ): RecyclerAdapter<Tag, RecyclerListItemOptimized>() {
-        init {
-            replaceData(initialData)
-        }
-
+    ): RecyclerAdapter<Tag, RecyclerListItemOptimized>(produceSingle(initialData)) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
             RecyclerListItemOptimized(parent, 2)
 

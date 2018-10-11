@@ -17,6 +17,7 @@ import com.loafofpiecrust.turntable.sync.User
 import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.imageResource
 import org.jetbrains.anko.recyclerview.v7.recyclerView
@@ -49,7 +50,13 @@ class PlaylistsFragment: BaseFragment() {
 
     override fun ViewManager.createView() = recyclerView {
         layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
-        adapter = Adapter { playlist ->
+
+        val playlists = if (user === SyncService.selfUser) {
+            UserPrefs.playlists.openSubscription()
+        } else produceSingle {
+            Playlist.allByUser(user)
+        }
+        adapter = Adapter(playlists) { playlist ->
             println("playlist: opening '${playlist.name}'")
             activity?.supportFragmentManager?.replaceMainContent(
                 when(playlist) {
@@ -59,19 +66,14 @@ class PlaylistsFragment: BaseFragment() {
                 },
                 true
             )
-        }.also { adapter ->
-            adapter.subscribeData(if (user === SyncService.selfUser) {
-                UserPrefs.playlists.openSubscription()
-            } else produceSingle {
-                Playlist.allByUser(user)
-            })
         }
     }
 
 
     class Adapter(
+        channel: ReceiveChannel<List<Playlist>>,
         val listener: (Playlist) -> Unit
-    ): RecyclerBroadcastAdapter<Playlist, RecyclerListItemOptimized>() {
+    ): RecyclerBroadcastAdapter<Playlist, RecyclerListItemOptimized>(channel) {
         override val dismissEnabled: Boolean
             get() = false
 
@@ -100,7 +102,7 @@ class PlaylistsFragment: BaseFragment() {
 
             given(item.color) {
                 val contrast = Palette.Swatch(it, 0).titleTextColor
-                card.backgroundTintList = ColorStateList.valueOf(it)
+                card.background.setTint(it)
                 mainLine.textColor = contrast
                 subLine.textColor = contrast
                 menu.tint = contrast

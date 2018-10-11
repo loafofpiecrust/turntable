@@ -19,6 +19,7 @@ import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.stringValue
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.android.Main
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
@@ -133,7 +134,10 @@ class SyncTabFragment: BaseFragment() {
         // list of friends
         recyclerView {
             layoutManager = LinearLayoutManager(context)
-            adapter = object : RecyclerAdapter<SyncService.Friend, RecyclerListItemOptimized>() {
+            val friends = UserPrefs.friends.openSubscription().map {
+                it.toList()//.filter { it.status != SyncService.Friend.Status.SENT_REQUEST }
+            }
+            adapter = object : RecyclerAdapter<SyncService.Friend, RecyclerListItemOptimized>(friends) {
                 override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
                     RecyclerListItemOptimized(parent, useIcon = true)
 
@@ -178,10 +182,6 @@ class SyncTabFragment: BaseFragment() {
                         }
                     }
                 }
-            }.apply {
-                subscribeData(UserPrefs.friends.openSubscription().map {
-                    it.toList()//.filter { it.status != SyncService.Friend.Status.SENT_REQUEST }
-                })
             }
         }
     }

@@ -122,7 +122,7 @@ fun ViewManager.songsList(
         }
     }
 
-    val adapter = SongsAdapter(category) { songs, idx ->
+    val adapter = SongsAdapter(songs.openSubscription(), category) { songs, idx ->
         MusicService.enact(PlayerAction.PlaySongs(songs, idx))
     }
 
@@ -184,7 +184,6 @@ fun ViewManager.songsList(
         })
 
 
-        adapter.subscribeData(songs.openSubscription())
         block.invoke(this)
     }
 }

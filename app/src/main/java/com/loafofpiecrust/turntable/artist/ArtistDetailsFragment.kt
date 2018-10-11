@@ -244,7 +244,7 @@ class ArtistDetailsFragment: BaseFragment() {
 
         // Albums by this artist
         AlbumsUI.Custom(
-            albums,
+            albums.openSubscription(),
             sortBy = AlbumsUI.SortBy.YEAR
         ).createView(this).lparams(width = matchParent) {
             behavior = AppBarLayout.ScrollingViewBehavior()

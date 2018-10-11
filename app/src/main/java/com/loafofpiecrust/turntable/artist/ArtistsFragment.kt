@@ -20,6 +20,7 @@ import com.loafofpiecrust.turntable.model.nameTransition
 import com.loafofpiecrust.turntable.style.turntableStyle
 import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.views.refreshRecyclerView
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.experimental.*
@@ -62,12 +63,12 @@ sealed class ArtistsUI(
         }
     }
 
-    override fun AnkoContext<Any>.render() = swipeRefreshLayout {
-        val scope = ViewScope(this)
+    override fun AnkoContext<Any>.render() = refreshRecyclerView {
+        if (startRefreshing) {
+            isRefreshing = true
+        }
 
-        stopRefreshOnReceive(artists.openSubscription(), startRefreshing)
-
-        val recycler = if (this@ArtistsUI is All) {
+        recycler = if (this@ArtistsUI is All) {
             fastScrollRecycler {
                 turntableStyle()
             }
@@ -76,33 +77,31 @@ sealed class ArtistsUI(
                 lparams(height = matchParent, width = matchParent)
                 turntableStyle()
             }
-        }
-
-        recycler.apply {
+        }.apply {
             val gutter = dimen(R.dimen.grid_gutter)
             padding = gutter
             addItemDecoration(ItemOffsetDecoration(gutter))
+        }
 
-            adapter = ArtistsAdapter(artists.openSubscription()) { holder, artists, idx ->
-                // smoothly transition the cover image!
-                holder.itemView.context.replaceMainContent(
-                    ArtistDetailsFragment.fromArtist(artists[idx], detailsMode),
-                    true,
-                    holder.transitionViews
-                )
-            }
+        adapter = ArtistsAdapter(artists.openSubscription()) { holder, artists, idx ->
+            // smoothly transition the cover image!
+            holder.itemView.context.replaceMainContent(
+                ArtistDetailsFragment.fromArtist(artists[idx], detailsMode),
+                true,
+                holder.transitionViews
+            )
+        }
 
-            layoutManager = GridLayoutManager(context, 3).also { grid ->
-                if (columnCount > 0) {
-                    grid.spanCount = columnCount
-                } else scope.launch {
-                    UserPrefs.artistGridColumns.consumeEach {
-                        (adapter as ArtistsAdapter).apply {
-                            gridSize = it
+        layoutManager = GridLayoutManager(context, 3).also { grid ->
+            if (columnCount > 0) {
+                grid.spanCount = columnCount
+            } else launch {
+                UserPrefs.artistGridColumns.consumeEach {
+                    (adapter as ArtistsAdapter).apply {
+                        gridSize = it
 //                            notifyDataSetChanged()
-                        }
-                        grid.spanCount = it
                     }
+                    grid.spanCount = it
                 }
             }
         }
@@ -126,11 +125,7 @@ sealed class ArtistsUI(
 class ArtistsAdapter(
     channel: ReceiveChannel<List<Artist>>,
     private val listener: (RecyclerItem, List<Artist>, Int) -> Unit
-): RecyclerAdapter<Artist, RecyclerItem>(), FastScrollRecyclerView.SectionedAdapter {
-    init {
-        subscribeData(channel)
-    }
-    
+): RecyclerAdapter<Artist, RecyclerItem>(channel), FastScrollRecyclerView.SectionedAdapter {
     var gridSize: Int = 3
 
     override fun getSectionName(position: Int)

@@ -134,7 +134,6 @@ configurations {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation project(':exoplayer-flac')
-    implementation project(':common')
 
 //    implementation "io.arrow-kt:arrow-core:$arrow_version"
 //    implementation "io.arrow-kt:arrow-syntax:$arrow_version"
@@ -248,8 +247,8 @@ dependencies {
 
     //    implementation 'co.zsmb:materialdrawer-kt:1.0.6'
     implementation 'org.jsoup:jsoup:1.11.3'
-    implementation 'com.github.MarcinMoskala.ActivityStarter:activitystarter:master-SNAPSHOT'
-    kapt 'com.github.MarcinMoskala.ActivityStarter:activitystarter-compiler:master-SNAPSHOT'
+    implementation 'com.github.MarcinMoskala.ActivityStarter:activitystarter:1.12-beta-2'
+    kapt 'com.github.MarcinMoskala.ActivityStarter:activitystarter-compiler:1.12-beta-2'
     def JLIBTORRENT_VERSION = '1.2.0.10'
     implementation 'com.frostwire:jlibtorrent:' + JLIBTORRENT_VERSION
     implementation "com.frostwire:jlibtorrent-android-arm:" + JLIBTORRENT_VERSION

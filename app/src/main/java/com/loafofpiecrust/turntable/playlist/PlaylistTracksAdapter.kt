@@ -13,6 +13,7 @@ import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
 import com.loafofpiecrust.turntable.util.consumeEach
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import org.jetbrains.anko.imageResource
 import org.jetbrains.anko.sdk27.coroutines.onClick
 import kotlin.math.abs
@@ -20,10 +21,7 @@ import kotlin.math.min
 
 class PlaylistTracksAdapter(
     private val playlist: CollaborativePlaylist
-): RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>() {
-    init {
-        subscribeData(playlist.tracksChannel)
-    }
+): RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>(playlist.tracksChannel) {
 
     override val moveEnabled get() = true
     override val dismissEnabled get() = true

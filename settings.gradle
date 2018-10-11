@@ -1,2 +1,1 @@
 include ":app", ":exoplayer-flac"
-include ":common"

@@ -28,6 +28,7 @@ import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.IO
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.*
+import kotlinx.coroutines.experimental.channels.Channel.Factory.CONFLATED
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.AnkoContext
 import org.jetbrains.anko.dimen
@@ -42,7 +43,14 @@ sealed class AlbumsUI(
     private val sortBy: SortBy? = null,
     private val columnCount: Int = 3
 ) : UIComponent() {
-    abstract val albums: BroadcastChannel<List<Album>>
+    abstract val albums: ReceiveChannel<List<Album>>
+    private val displayAlbums by lazy {
+        albums.map {
+            if (sortBy != null) {
+                it.sortedWith(sortBy.comparator)
+            } else it
+        }.broadcast(CONFLATED)
+    }
 
     override fun AnkoContext<Any>.render() = swipeRefreshLayout {
         val scope = ViewScope(this)
@@ -64,7 +72,7 @@ sealed class AlbumsUI(
                     setLayoutManager(grid)
                 }
             } else {
-                AlbumsAdapter(this@AlbumsUI is ByArtist, goToAlbum)
+                AlbumsAdapter(displayAlbums.openSubscription(), this@AlbumsUI is ByArtist, goToAlbum)
             }
 
         val recycler = if (this@AlbumsUI is All) {
@@ -97,18 +105,9 @@ sealed class AlbumsUI(
             }
 
             addItemDecoration(ItemOffsetDecoration(dimen(R.dimen.grid_gutter)))
-
-            val sub = albums.openSubscription().map {
-                if (sortBy != null) {
-                    it.sortedWith(sortBy.comparator)
-                } else it
-            }
-
-            if (adapter is AlbumsAdapter) {
-                adapter.subscribeData(sub)
-            } else if (adapter is AlbumSectionAdapter) {
+            if (adapter is AlbumSectionAdapter) {
                 scope.launch {
-                    sub.consumeEach {
+                    displayAlbums.consumeEach {
                         adapter.replaceData(it)
                     }
                 }
@@ -116,7 +115,7 @@ sealed class AlbumsUI(
         }
 
         scope.launch {
-            albums.consume {
+            displayAlbums.consume {
                 if (isEmpty) {
                     isRefreshing = true
                     receive()
@@ -156,7 +155,7 @@ sealed class AlbumsUI(
         override val albums get() =
             Library.instance.albumsMap.openSubscription().map {
                 it.values.sortedBy { it.id }
-            }.replayOne()
+            }
     }
     // TODO: Add OnPlaylist type.
     @Parcelize
@@ -187,11 +186,10 @@ sealed class AlbumsUI(
                     }
                 })
                 .map(Dispatchers.IO) { it?.albums ?: emptyList() }
-                .replayOne()
     }
 
     class Custom(
-        override val albums: BroadcastChannel<List<Album>>,
+        override val albums: ReceiveChannel<List<Album>>,
         splitByType: Boolean = false,
         sortBy: SortBy? = null
     ): AlbumsUI(splitByType, sortBy)

@@ -106,7 +106,7 @@ class SearchFragment : BaseFragment() {
                     cat.results,
                     startRefreshing = false
                 )
-                is Category.Albums -> AlbumsUI.Custom(cat.results).createView(this)
+                is Category.Albums -> AlbumsUI.Custom(cat.results.openSubscription()).createView(this)
                 is Category.Artists -> ArtistsUI.Custom(cat.results).createView(this)
             } as SwipeRefreshLayout
         }.lparams(matchParent, matchParent)
