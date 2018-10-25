@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="album">
+        <item quantity="one">Album</item>
+        <item quantity="other">Albums</item>
+    </plurals>
+
+    <!-- Albums -->
+    <string name="album_shuffle">Shuffle</string>
+    <string name="album_edit_metadata">Edit</string>
+    <string name="album_added_library">Added album to library</string>
+    <string name="album_removed_library">Removed album from library</string>
+
+    <!-- Album Editor -->
+    <string name="album_title_hint">Title</string>
+    <string name="album_artist_hint">Artist</string>
+    <string name="album_year_hint">Year</string>
+
+    <!-- Album status-->
+    <string name="album_remote">Not Downloaded</string>
+    <string name="album_local">Downloaded</string>
+    <string name="album_partial">Partially Downloaded</string>
+    <string name="album_already_downloaded">Album already downloaded</string>
+
+    <!-- Album types -->
+    <plurals name="Album_Type_LP">
+        <item quantity="one">Album</item>
+        <item quantity="other">Albums</item>
+    </plurals>
+
+    <plurals name="Album_Type_EP">
+        <item quantity="one">EP</item>
+        <item quantity="other">EPs</item>
+    </plurals>
+
+    <plurals name="Album_Type_SINGLE">
+        <item quantity="one">Single</item>
+        <item quantity="other">Singles</item>
+    </plurals>
+
+    <plurals name="Album_Type_LIVE">
+        <item quantity="other">Live</item>
+    </plurals>
+
+    <plurals name="Album_Type_COMPILATION">
+        <item quantity="one">Compilation</item>
+        <item quantity="other">Compilations</item>
+    </plurals>
+
+    <plurals name="Album_Type_OTHER">
+        <item quantity="other">Other</item>
+    </plurals>
+</resources>

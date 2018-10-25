@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Artists -->
+    <string name="artist_subline">%1$d Albums &#8226; %2$d Songs</string>
+    <string name="artist_date_range">%1$d – %2$s</string>
+    <string name="artist_pick_source">Choose Display Mode</string>
+    <string name="artist_content_source">Show: %1$s</string>
+    <string name="artist_content_library">Library</string>
+    <string name="artist_content_remote">Remote Only</string>
+    <string name="artist_content_all">All</string>
+    <string name="artist_active_now">Now</string>
+    <string name="artist_show_similar">Similar Artists</string>
+    <string name="similar_to_artist">Similar To %1$s</string>
+    <string name="artist_biography">Biography</string>
+    <string name="artist_features">(ft. %1$s)</string>
+</resources>

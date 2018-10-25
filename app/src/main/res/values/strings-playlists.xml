@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Type Names -->
+    <string name="CollaborativePlaylist">Playlist</string>
+    <string name="MixTape">Mixtape</string>
+    <string name="MutableMixtape">Mixtape</string>
+    <string name="AlbumCollection">Album Collection</string>
+
+    <!-- Playlists -->
+    <string name="playlist_sender">from %1$s</string>
+    <string name="playlist_author">%2$s by %1$s</string>
+    <string name="playlist_is_full">%1$s is full</string>
+    <string name="playlist_duplicate">\'%1$s\' already has that song</string>
+    <string name="playlist_added_track">Added to \'%1$s\'</string>
+    <string name="playlist_remove_item">Remove from Playlist</string>
+    <string name="mixtape_pick_side">Add to which side?</string>
+    <string name="mixtape_side">%1$s Side</string>
+    <string name="mixtape_side_named">%2$s: %1$s Side</string>
+    <string name="recommendations">Recommendations</string>
+    <string name="playlist_new">Add</string>
+    <string name="mixtapes_recent">Recent Mixtapes</string>
+    <string name="playlist_subscribe">Subscribe</string>
+    <string name="playlist_publish">Publish</string>
+    <string name="playlist_unpublish">Unpublish</string>
+    <string name="playlist_delete">Delete</string>
+    <string name="playlist_rename">Rename</string>
+    <string name="playlist_generate_similar">Get Recommendations</string>
+</resources>

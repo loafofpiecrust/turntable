@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sync -->
+    <string name="sync_details">Sync Details</string>
+    <string name="sync_latency">%1$dms</string>
+    <string name="synced_with_user">Synced with %1$s</string>
+    <string name="synced_with_group">Synced with group \'%1$s\'</string>
+    <string name="sync_disconnect">Disconnect</string>
+
+
+    <!-- Friends -->
+    <string name="user_befriend">Befriend</string>
+    <string name="user_sync_accept">Sync</string>
+    <string name="request_accept">Accept</string>
+    <string name="request_decline">Decline</string>
+    <string name="user_nonexistent">User \'%1$s\' doesn\'t exist.</string>
+    <string name="friend_add">Add Friend</string>
+    <string name="friend_pick">Choose a Friend</string>
+    <string name="friend_request_sent">Befriending %1$s</string>
+    <string name="friend_request_sent_line">Friendship request sent</string>
+    <string name="friend_request_already_added">%1$s is already a friend</string>
+    <string name="friend_request_received">Wants to be friends</string>
+    <string name="friend_from_contacts">From Contacts</string>
+    <string name="friend_from_email">Email Address</string>
+    <string name="friend_do_what">Do what with friend?</string>
+    <string name="friend_request_sync">Request Sync</string>
+    <string name="friend_confirm">Confirm Friendship</string>
+    <string name="friend_reject">Reject Friendship</string>
+    <string name="friend_request_cancel">Rescind Request</string>
+</resources>

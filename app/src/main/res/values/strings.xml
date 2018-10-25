@@ -1,115 +1,40 @@
 <resources>
+    <!-- App info -->
     <string name="app_name">Turntable</string>
 
+    <!-- General actions -->
+    <string name="share">Share</string>
+    <string name="download">Download</string>
+    <string name="add_to_library">Add To Library</string>
+    <string name="add_to_playlist">Add to Collection</string>
+    <string name="recommend">Recommend</string>
+    <string name="search">Search</string>
+    <string name="show_more">More</string>
+    <string name="show_history">History</string>
+
+    <!-- General status -->
+    <string name="no_internet">No Internet Connection</string>
+
+
+    <!-- Navigation -->
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
-
     <string name="action_settings">Settings</string>
     <!-- Drawer navigation to library base page -->
-    <string name="title_activity_library">Library</string>
-    <string name="tab_text_1">Tab 1</string>
-    <string name="tab_text_2">Tab 2</string>
-    <string name="tab_text_3">Tab 3</string>
-    <string name="title_activity_album">AlbumActivity</string>
-    <string name="share">Share</string>
+    <string name="action_library">Library</string>
 
     <!-- Last.FM -->
-    <string name="api_key">fc166cab90ed1689767f61d1ef9cc585</string>
-    <string name="secret">3776a178cbfbf5dc0d4365f639f39ba1</string>
+    <string name="lastfm_api_key">fc166cab90ed1689767f61d1ef9cc585</string>
+    <string name="lastfm_secret">3776a178cbfbf5dc0d4365f639f39ba1</string>
 
-    <string name="menu_dots">&#8942;</string>
     <string name="shuffle_all">Shuffle All</string>
-    <string name="separator">&#8226;</string>
 
-    <string name="album_remote">Not Downloaded</string>
-    <string name="album_local">Downloaded</string>
-    <string name="album_partial">Partially Downloaded</string>
 
     <string name="song_title_ft">%1$s ft. %2$s</string>
 
 
-    <!-- Playlists -->
-    <string name="playlist_sender">from %1$s</string>
-    <string name="playlist_author">%2$s by %1$s</string>
-    <string name="playlist_is_full">%1$s is full</string>
-    <string name="playlist_duplicate">\'%1$s\' already has that song</string>
-    <string name="playlist_added_track">Added to \'%1$s\'</string>
-    <string name="playlist_remove_item">Remove from Playlist</string>
-    <string name="mixtape_pick_side">Add to which side?</string>
-    <string name="mixtape_side">%1$s Side</string>
-    <string name="mixtape_side_named">%2$s: %1$s Side</string>
-    <string name="recommendations">Recommendations</string>
-    <string name="playlist_new">Add</string>
-    <string name="mixtapes_recent">Recent Mixtapes</string>
-    <string name="playlist_subscribe">Subscribe</string>
-    <string name="playlist_publish">Publish</string>
-    <string name="playlist_unpublish">Unpublish</string>
-    <string name="playlist_delete">Delete</string>
-    <string name="playlist_rename">Rename</string>
-    <string name="playlist_generate_similar">Get Recommendations</string>
-
-    <!-- Sync -->
-    <string name="sync_details">Sync Details</string>
-    <string name="sync_latency">%1$dms</string>
-    <string name="synced_with_user">Synced with %1$s</string>
-    <string name="synced_with_group">Synced with group \'%1$s\'</string>
-    <string name="sync_disconnect">Disconnect</string>
-
-    <!-- Friends -->
-    <string name="user_befriend">Befriend</string>
-    <string name="user_sync_accept">Sync</string>
-    <string name="request_accept">Accept</string>
-    <string name="request_decline">Decline</string>
-    <string name="user_nonexistent">User \'%1$s\' doesn\'t exist.</string>
-    <string name="friend_add">Add Friend</string>
-    <string name="friend_pick">Choose a Friend</string>
-    <string name="friend_request_sent">Befriending %1$s</string>
-    <string name="friend_request_sent_line">Friendship request sent</string>
-    <string name="friend_request_already_added">%1$s is already a friend</string>
-    <string name="friend_request_received">Wants to be friends</string>
-    <string name="friend_from_contacts">From Contacts</string>
-    <string name="friend_from_email">Email Address</string>
-    <string name="friend_do_what">Do what with friend?</string>
-    <string name="friend_request_sync">Request Sync</string>
-    <string name="friend_confirm">Confirm Friendship</string>
-    <string name="friend_reject">Reject Friendship</string>
-    <string name="friend_request_cancel">Rescind Request</string>
-
-    <!-- Artists -->
-    <string name="artist_subline">%1$d Albums &#8226; %2$d Songs</string>
-    <string name="artist_date_range">%1$d – %2$s</string>
-    <string name="artist_pick_source">Choose Display Mode</string>
-    <string name="artist_content_source">Show: %1$s</string>
-    <string name="artist_content_library">Library</string>
-    <string name="artist_content_remote">Remote Only</string>
-    <string name="artist_content_all">All</string>
-    <string name="artist_active_now">Now</string>
-    <string name="artist_show_similar">Similar Artists</string>
-    <string name="similar_to_artist">Similar To %1$s</string>
-    <string name="artist_biography">Biography</string>
-    <string name="artist_features">(ft. %1$s)</string>
-
-    <!-- Albums -->
-    <string name="album_shuffle">Shuffle</string>
-    <string name="album_edit_metadata">Edit</string>
-    <string name="album_added_library">Added album to library</string>
-    <string name="album_removed_library">Removed album from library</string>
-
-    <!-- Album Editor -->
-    <string name="album_title_hint">Title</string>
-    <string name="album_artist_hint">Artist</string>
-    <string name="album_year_hint">Year</string>
-
     <!-- Albums/General -->
-    <string name="download">Download</string>
-    <string name="add_to_library">Add To Library</string>
-    <string name="add_to_playlist">Add to Collection</string>
-    <string name="no_internet">No Internet Connection</string>
-    <string name="recommend">Recommend</string>
-    <string name="search">Search</string>
     <string name="set_grid_size">Grid Size</string>
-    <string name="show_more">More</string>
-    <string name="show_history">History</string>
     <string name="cancel">Cancel</string>
 
     <!-- Radios -->
@@ -138,44 +63,4 @@
     <string name="search_discogs">Discogs</string>
     <string name="search_musicbrainz">MusicBrainz</string>
     <string name="search_local">Local Library</string>
-
-    <!-- Type Names -->
-    <string name="CollaborativePlaylist">Playlist</string>
-    <string name="MixTape">Mixtape</string>
-    <string name="MutableMixtape">Mixtape</string>
-    <string name="AlbumCollection">Album Collection</string>
-
-
-    <plurals name="album">
-        <item quantity="one">Album</item>
-        <item quantity="other">Albums</item>
-    </plurals>
-    
-    <plurals name="Album_Type_LP">
-        <item quantity="one">Album</item>
-        <item quantity="other">Albums</item>
-    </plurals>
-
-    <plurals name="Album_Type_EP">
-        <item quantity="one">EP</item>
-        <item quantity="other">EPs</item>
-    </plurals>
-
-    <plurals name="Album_Type_SINGLE">
-        <item quantity="one">Single</item>
-        <item quantity="other">Singles</item>
-    </plurals>
-
-    <plurals name="Album_Type_LIVE">
-        <item quantity="other">Live</item>
-    </plurals>
-
-    <plurals name="Album_Type_COMPILATION">
-        <item quantity="one">Compilation</item>
-        <item quantity="other">Compilations</item>
-    </plurals>
-
-    <plurals name="Album_Type_OTHER">
-        <item quantity="other">Other</item>
-    </plurals>
 </resources>
