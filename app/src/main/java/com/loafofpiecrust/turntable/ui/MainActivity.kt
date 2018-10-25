@@ -131,7 +131,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                         true
                     }
                     menu.group(1, true, true) {
-                        menuItem(R.string.title_activity_library) {
+                        menuItem(R.string.action_library) {
                             isChecked = true
                             onClick {
                                 this@drawerLayout.closeDrawers()

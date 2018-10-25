@@ -11,6 +11,7 @@ import android.view.MenuItem
 import android.view.SubMenu
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -54,9 +55,14 @@ inline fun Menu.menuItem(
 
 inline fun Menu.menuItem(
     @StringRes titleRes: Int,
+    init: MenuItem.() -> Unit = {}
+) = menuItem(App.instance.getString(titleRes), null, null, false, init)
+
+inline fun Menu.menuItem(
+    @StringRes titleRes: Int,
     @DrawableRes iconId: Int? = null,
     @ColorInt color: Int? = null,
-    showIcon: Boolean = false,
+    showIcon: Boolean = true,
     init: MenuItem.() -> Unit = {}
 ) = menuItem(App.instance.getString(titleRes), iconId, color, showIcon, init)
 
@@ -121,7 +127,7 @@ inline fun Menu.group(
 
 fun MenuItem.onClick(
     context: CoroutineContext = Dispatchers.Main,
-    handler: suspend (v: MenuItem) -> Unit
+    handler: suspend CoroutineScope.(MenuItem) -> Unit
 ) {
     setOnMenuItemClickListener { v ->
         GlobalScope.launch(context) {

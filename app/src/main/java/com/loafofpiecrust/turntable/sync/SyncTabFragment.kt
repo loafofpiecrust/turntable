@@ -74,7 +74,7 @@ class SyncTabFragment: BaseFragment() {
                             })
                         }
                     }
-                    negativeButton(R.string.cancel) {}
+                    cancelButton {}
                 }.show()
             }
         )
