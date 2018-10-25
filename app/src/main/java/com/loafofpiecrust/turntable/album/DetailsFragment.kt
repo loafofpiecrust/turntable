@@ -126,14 +126,6 @@ open class AlbumDetailsUI(
                         transitionName = albumId.imageTransition
                     }
 
-                    // Downloaded status
-                    status = textView {
-                        //                        text = "Not Downloaded"
-                        text = context.getString(R.string.album_remote)
-                        textSizeDimen = R.dimen.small_text_size
-                        backgroundResource = R.drawable.rounded_rect
-                    }.also { coloredText += it }
-
                     // Year
                     year = textView {
                         textSizeDimen = R.dimen.small_text_size
@@ -152,12 +144,6 @@ open class AlbumDetailsUI(
                             )
                             size = matchConstraint
                             dimensionRation = "H,1:1"
-                        }
-                        status {
-                            connect(
-                                BOTTOM to BOTTOM of PARENT_ID margin padBy,
-                                END to END of PARENT_ID margin padBy
-                            )
                         }
                         year {
                             connect(
@@ -231,18 +217,6 @@ open class AlbumDetailsUI(
 
         // data binding
         launch {
-            album.openSubscription()
-                .map(Dispatchers.Default) {
-                    when (it) {
-                        is LocalAlbum -> if (it.hasTrackGaps) {
-                            context.getString(R.string.album_partial)
-                        } else context.getString(R.string.album_local)
-                        else -> context.getString(R.string.album_remote)
-                    }
-                }
-                .consumeEach { status.text = it }
-        }
-        launch {
             album.consumeEach { album ->
                 if (album.year > 0) {
                     year.text = album.year.toString()
@@ -308,7 +282,7 @@ open class AlbumDetailsUI(
                 }
             }
 
-            menuItem(R.string.add_to_library, R.drawable.ic_turned_in_not, showIcon = true) {
+            menuItem(R.string.add_to_library, R.drawable.ic_turned_in_not) {
                 context.library.findAlbum(album.id).consumeEach(Dispatchers.Main) { existing ->
                     if (existing != null) {
                         setIcon(R.drawable.ic_turned_in)
@@ -327,6 +301,11 @@ open class AlbumDetailsUI(
                 }
             }
         } else if (album is LocalAlbum) {
+            // Downloaded status
+            menuItem(R.string.add_to_library, R.drawable.ic_turned_in).onClick {
+                context.toast(R.string.album_already_downloaded)
+            }
+
             menuItem(R.string.album_edit_metadata).onClick {
                 AlbumEditorActivityStarter.start(context, album.id)
             }
