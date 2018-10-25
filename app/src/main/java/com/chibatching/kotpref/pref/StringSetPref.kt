@@ -5,13 +5,13 @@ import android.os.Build
 import com.chibatching.kotpref.KotprefModel
 import com.loafofpiecrust.turntable.util.distinctSeq
 import com.loafofpiecrust.turntable.util.skip
-import kotlinx.coroutines.experimental.GlobalScope
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.channels.distinct
-import kotlinx.coroutines.experimental.channels.take
-import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.channels.distinct
+import kotlinx.coroutines.channels.take
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 

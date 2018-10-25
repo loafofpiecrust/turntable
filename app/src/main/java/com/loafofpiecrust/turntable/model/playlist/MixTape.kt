@@ -4,39 +4,40 @@ import android.content.Context
 import com.google.firebase.firestore.Blob
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
-import com.loafofpiecrust.turntable.*
+import com.google.firebase.firestore.ListenerRegistration
+import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.sync.User
+import com.loafofpiecrust.turntable.puts
+import com.loafofpiecrust.turntable.shifted
+import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.GlobalScope
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.channels.map
-import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.selector
 import org.jetbrains.anko.toast
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
 
 /**
  * Playlist with a time limit and (possibly) multiple sides (eg. A Side, B Side, C Side)
  * Question: How should users browse mixtapes? By tag? popularity? recent?
  */
-data class MixTape(
+open class MixTape(
     override val owner: User,
     var type: Type,
     override var name: String,
     override var color: Int?,
     override val uuid: UUID = UUID.randomUUID()
-) : Playlist() {
+) : AbstractPlaylist() {
     override val icon: Int
         get() = R.drawable.ic_cassette
 
     /// For serialization
-//    private constructor(): this(SyncService.User(), Type.C60, "", null, UUID.randomUUID())
+//    private constructor(): this(Sync.User(), Type.C60, "", null, UUID.randomUUID())
 
     enum class Type(
         val sideCount: Int,
@@ -104,7 +105,7 @@ data class MixTape(
         }
     }
 
-    private val sides = ConflatedBroadcastChannel(
+    val sides = ConflatedBroadcastChannel(
         (0 until type.sideCount).map { emptyList<Song>() }
     )
 
@@ -147,6 +148,41 @@ data class MixTape(
     fun sideIsFull(sideIdx: Int) =
         durationOfSide(sideIdx) >= type.sideLength
 
+    fun updates(): ReceiveChannel<MixTape> {
+        val db = FirebaseFirestore.getInstance()
+        var listener: ListenerRegistration? = null
+        return GlobalScope.produce(onCompletion = { listener?.remove() }) {
+            listener = db.playlists().document(uuid.toString()).addSnapshotListener { snapshot, err ->
+                if (snapshot?.exists() == true) {
+                    val localChange = snapshot.metadata.hasPendingWrites()
+                    if (!localChange) {
+                        offer(fromDocument(snapshot))
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Extensions!!
+fun MutableMixtape.add(ctx: Context, song: Song) = ctx.run {
+    selector(getString(R.string.mixtape_pick_side), type.sideNames) { dialog, idx ->
+        val result = add(idx, song)
+        toast(when (result) {
+            MutableMixtape.AddResult.ADDED -> getString(R.string.playlist_added_track, name)
+            MutableMixtape.AddResult.SIDE_FULL -> getString(R.string.playlist_is_full, getString(R.string.mixtape_side_named, type.sideNames[idx], name))
+            MutableMixtape.AddResult.DUPLICATE_SONG -> getString(R.string.playlist_duplicate, name)
+        })
+    }
+}
+
+class MutableMixtape(
+    owner: User,
+    type: MixTape.Type,
+    name: String,
+    color: Int?,
+    uuid: UUID = UUID.randomUUID()
+): MixTape(owner, type, name, color, uuid), MutablePlaylist {
     enum class AddResult {
         SIDE_FULL,
         DUPLICATE_SONG,
@@ -241,17 +277,5 @@ data class MixTape(
 //                debug { "success? ${it.isSuccessful}. result: ${it.result}" }
 //            }
 //        }
-    }
-}
-
-// Extensions!!
-fun MixTape.add(ctx: Context, song: Song) = ctx.run {
-    selector(getString(R.string.mixtape_pick_side), type.sideNames) { dialog, idx ->
-        val result = add(idx, song)
-        toast(when (result) {
-            MixTape.AddResult.ADDED -> getString(R.string.playlist_added_track, name)
-            MixTape.AddResult.SIDE_FULL -> getString(R.string.playlist_is_full, getString(R.string.mixtape_side_named, type.sideNames[idx], name))
-            MixTape.AddResult.DUPLICATE_SONG -> getString(R.string.playlist_duplicate, name)
-        })
     }
 }

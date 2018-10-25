@@ -1,28 +1,29 @@
-package com.loafofpiecrust.turntable.browse
+package com.loafofpiecrust.turntable.repository.remote
 
 import android.content.Context
 import android.util.Base64
 import com.github.salomonbrys.kotson.*
 import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.album.RemoteAlbum
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.artist.RemoteArtist
-import com.loafofpiecrust.turntable.model.Music
+import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
-import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragment
+import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.lazy
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.*
-import org.jetbrains.anko.AnkoLogger
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.debug
 import org.jetbrains.anko.error
 import java.text.SimpleDateFormat
@@ -55,7 +56,7 @@ object Spotify: Repository {
                     track = it["track_number"].int,
                     disc = it["disc_number"].int,
                     duration = it["duration_ms"].int,
-                    year = null
+                    year = 0
                 )
 //                )
             }
@@ -83,7 +84,7 @@ object Spotify: Repository {
             apiRequest(
                 "artists/$id/albums",
                 mapOf("limit" to "50")
-            ).gson["items"].array.map {
+            ).gson["items"].array.lazy.map { it.obj }.map {
                 val imgs = it["images"].array
                 val artists = it["artists"].array
                 RemoteAlbum(
@@ -93,17 +94,17 @@ object Spotify: Repository {
                     ),
                     AlbumDetails(
                         it["id"].string,
-                        tryOr(null) { imgs.last()["url"].string },
-                        tryOr(null) { imgs.first()["url"].string }
+                        imgs.last()?.get("url")?.string,
+                        imgs.first()?.get("url")?.string
                     ),
-                    year = it["release_date"].nullString?.take(4)?.toInt(),
-                    type = when (it["album_type"].string) {
+                    year = it["release_date"]?.string?.take(4)?.toInt() ?: 0,
+                    type = when (it["album_type"]?.string) {
                         "single" -> Album.Type.SINGLE
                         "compilation" -> Album.Type.COMPILATION
                         else -> Album.Type.LP
                     }
                 )
-            }
+            }.toList()
         } }
         override val biography: String
             get() = ""
@@ -113,9 +114,9 @@ object Spotify: Repository {
 
             val res = Http.get("https://api.spotify.com/v1/artists/$id", headers = mapOf(
                 "Authorization" to "Bearer $accessToken"
-            )).gson
+            )).gson.obj
 
-            return tryOr(null) { res["images"][0]["url"].string }
+            return res["images"]?.get(0)?.get("url")?.string
         }
     }
 
@@ -280,7 +281,7 @@ object Spotify: Repository {
                 track = it["track_number"].int,
                 disc = it["disc_number"].int,
                 duration = it["duration_ms"].int,
-                year = null
+                year = 0
             )
 //            )
         }
@@ -293,22 +294,24 @@ object Spotify: Repository {
 //        task(UI) { println("recs: $res") }
 
         val tracks = res["tracks"].array
-        return tracks.map { it.obj }.map {
+        return tracks.lazy.map { it.obj }.map {
 //            RemoteSong(
             Song(
                 SongId(
                     it["name"].string,
-                    tryOr("") { it["album"]["name"].string },
-                    tryOr("") { it["album"]["artists"][0]["name"].string }
+                    AlbumId(
+                        it["album"]["name"].string,
+                        ArtistId(it["album"]["artists"][0]["name"].string)
+                    )
                 ),
                 track = it["track_number"].int,
                 disc = it["disc_number"].nullInt ?: 1,
                 duration = it["duration_ms"].int,
-                year = null
+                year = 0
             )
 //            )
 
-        }
+        }.toList()
     }
 
     private suspend fun recommendationsFor(
@@ -360,7 +363,7 @@ object Spotify: Repository {
         songs: List<SongId> = listOf()
     ) {
         val newPl = CollaborativePlaylist()
-        val recs = Spotify.recommendationsFor(
+        val recs = recommendationsFor(
             artists, albums, songs
         )
         recs.forEach { newPl.add(it) }
@@ -378,10 +381,11 @@ object Spotify: Repository {
         val a = searchFor(artist).firstOrNull() ?: return listOf()
         val res = apiRequest("artists/$a/related-artists").gson
 
-        return res["artists"].array.map { it.obj }.map {
+        return res["artists"].array.map {
+            val obj = it.obj
             RemoteArtist(
-                ArtistId(it["name"].string),
-                ArtistDetails(it["id"].string, tryOr(null) { it["images"][1]["url"].string })
+                ArtistId(obj["name"].string),
+                ArtistDetails(obj["id"].string, obj["images"]?.get(1)?.get("url")?.string)
             )
         }
     }
@@ -397,12 +401,12 @@ object Spotify: Repository {
             val track: Song
         )
     }
-    suspend fun getPlaylist(userId: String, playlistId: String, page: Int = 0): Spotify.Playlist {
+    suspend fun getPlaylist(userId: String, playlistId: String, page: Int = 0): Playlist {
         val res = apiRequest(
             "users/$userId/playlists/$playlistId",
             mapOf(
                 "limit" to "100",
-                "offset" to (page*100).toString(),
+                "offset" to (page * 100).toString(),
                 "fields" to "name,owner.display_name,tracks.items(added_at,track(track_number,disc_number,duration_ms,name,album(name,type,release_date),artists(name)))"
             )
         ).gson
@@ -420,7 +424,7 @@ object Spotify: Repository {
                     track = track["track_number"].int,
                     disc = track["disc_number"].int,
                     duration = track["duration_ms"].nullInt ?: 0,
-                    year = track["album"]["release_date"].nullString?.take(4)?.toInt()
+                    year = track["album"]["release_date"].nullString?.take(4)?.toInt() ?: 0
                 )
             )
         }
@@ -428,7 +432,7 @@ object Spotify: Repository {
             items + getPlaylist(userId, playlistId, page + 1).items
         } else items
 
-        return Spotify.Playlist(
+        return Playlist(
             name = res["name"].string,
             ownerName = res["owner"]["display_name"].string,
             items = finalTracks
@@ -446,7 +450,7 @@ object Spotify: Repository {
             "users/$userId/playlists",
             mapOf(
                 "limit" to "50",
-                "offset" to (page*50).toString()
+                "offset" to (page * 50).toString()
             )
         ).gson
 

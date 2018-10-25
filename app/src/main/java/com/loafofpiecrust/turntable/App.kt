@@ -2,36 +2,44 @@ package com.loafofpiecrust.turntable
 
 import android.app.Application
 import android.content.Context
-import android.net.*
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.util.DisplayMetrics
 import com.chibatching.kotpref.Kotpref
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.serializers.CompatibleFieldSerializer
 import com.evernote.android.state.StateSaver
 import com.google.firebase.FirebaseApp
-import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
+import com.loafofpiecrust.turntable.model.album.LocalAlbum
 import com.loafofpiecrust.turntable.model.artist.ArtistId
-import com.loafofpiecrust.turntable.player.StaticQueue
-import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.service.OnlineSearchService
-import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
-import com.loafofpiecrust.turntable.sync.User
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.model.queue.StaticQueue
+import com.loafofpiecrust.turntable.service.Library
+import com.loafofpiecrust.turntable.service.OnlineSearchService
+import com.loafofpiecrust.turntable.model.sync.Friend
+import com.loafofpiecrust.turntable.sync.Sync
+import com.loafofpiecrust.turntable.model.sync.User
+import com.loafofpiecrust.turntable.util.CBCSerializer
+import com.loafofpiecrust.turntable.util.distinctSeq
+import com.loafofpiecrust.turntable.util.threadLocalLazy
+import com.squareup.leakcanary.LeakCanary
 import de.javakaffee.kryoserializers.ArraysAsListSerializer
 import de.javakaffee.kryoserializers.SubListSerializers
 import de.javakaffee.kryoserializers.UUIDSerializer
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jetbrains.anko.connectivityManager
 import org.jetbrains.anko.windowManager
 import org.objenesis.strategy.StdInstantiatorStrategy
-import java.lang.ref.WeakReference
 import java.util.*
-import kotlin.coroutines.experimental.CoroutineContext
+import kotlin.coroutines.CoroutineContext
 
 
 class App: Application() {
@@ -48,6 +56,12 @@ class App: Application() {
         /// Safe because `App` is **always** a singleton by definition.
         lateinit var instance: App
             private set
+
+        inline fun launchWith(crossinline block: suspend (context: Context) -> Unit) {
+            launch {
+                block(instance)
+            }
+        }
 
         val kryo by threadLocalLazy {
             Kryo().apply {
@@ -69,7 +83,7 @@ class App: Application() {
                 register(ArtistId::class.java, 102)
 
                 register(Song::class.java, 103)
-                register(Album::class.java, 104)
+                register(LocalAlbum::class.java, 104)
 
                 register(emptyList<Nothing>().javaClass, 105)
                 register(UUID::class.java, UUIDSerializer(), 106)
@@ -78,7 +92,7 @@ class App: Application() {
 
                 register(User::class.java, 109)
                 register(StaticQueue::class.java, 110)
-                register(SyncService.Friend::class.java, 111)
+                register(Friend::class.java, 111)
                 register(ConflatedBroadcastChannel::class.java, 112)
             }
         }
@@ -102,14 +116,14 @@ class App: Application() {
         super.onCreate()
         instance = this
 
-        FirebaseApp.initializeApp(this)
+        if (LeakCanary.isInAnalyzerProcess(this)) {
+            // This process is dedicated to LeakCanary for heap analysis.
+            // You should not init your app in this process.
+            return
+        }
+        LeakCanary.install(this)
 
-//        if (LeakCanary.isInAnalyzerProcess(this)) {
-//            // This process is dedicated to LeakCanary for heap analysis.
-//            // You should not init your app in this process.
-//            return
-//        }
-//        LeakCanary.install(this)
+        FirebaseApp.initializeApp(this)
 
         StateSaver.setEnabledForAllActivitiesAndSupportFragments(this, true)
 
@@ -124,7 +138,7 @@ class App: Application() {
 //        fileSync.onCreate()
 
 //        startService(Intent(this, Library::class.java))
-        SyncService.initDeviceId()
+        Sync.initDeviceId()
 //        startService(Intent(this, OnlineSearchService::class.java))
 //        startService(Intent(this, FileSyncService::class.java))
 

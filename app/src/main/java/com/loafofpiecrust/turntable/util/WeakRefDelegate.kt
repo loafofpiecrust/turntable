@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.util
 
-import android.view.View
 import java.lang.ref.WeakReference
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
@@ -17,4 +16,4 @@ class WeakRefDelegate<T: Any>: ReadWriteProperty<Any, T> {
     }
 }
 
-inline fun <T: View> weak() = WeakRefDelegate<T>()
+inline fun <T: Any> weak() = WeakRefDelegate<T>()

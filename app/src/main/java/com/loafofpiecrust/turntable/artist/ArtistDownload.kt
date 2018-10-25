@@ -10,15 +10,14 @@ import com.frostwire.jlibtorrent.alerts.BlockFinishedAlert
 import com.frostwire.jlibtorrent.alerts.TorrentFinishedAlert
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.artist.Artist
-import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.util.consumeEach
 import com.loafofpiecrust.turntable.util.lazy
-import kotlinx.coroutines.experimental.GlobalScope
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
@@ -126,7 +125,7 @@ sealed class TorrentArtist(
 ////                                values.put(MediaStore.MediaColumns.DATA, path)
 ////                                val success = contentResolver.update(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, values, )
 //            }
-            sess.progress.consumeEach(UI) {
+            sess.progress.consumeEach(Dispatchers.Main) {
                 println("torrent: progress $it")
             }
 //            for (i in 0 until files.numFiles()) {
@@ -206,7 +205,7 @@ sealed class TorrentArtist(
             .maxBy { (idx, res) ->
                 // This means 2 folders that match can be distinguished by year
                 // Should also help distinguish between singles, EPs, and LPs
-                val year = album.year ?: 0
+                val year = album.year
                 val yearBias = if (year > 0 && res.file.name.contains(year.toString())) 1 else 0
                 res.matchRatio + yearBias
             }!!

@@ -3,13 +3,12 @@ package com.loafofpiecrust.turntable.ui
 import android.arch.lifecycle.Lifecycle
 import android.arch.lifecycle.LifecycleObserver
 import android.arch.lifecycle.OnLifecycleEvent
-import kotlinx.coroutines.experimental.Dispatchers
-import kotlinx.coroutines.experimental.Unconfined
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.channels.*
-import kotlinx.coroutines.experimental.withContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.*
+import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
-import kotlin.coroutines.experimental.CoroutineContext
+import kotlin.coroutines.CoroutineContext
 
 /**
  * View model usage:
@@ -60,9 +59,9 @@ class LifeObserver<T>(val chan: SendChannel<T>): LifecycleObserver {
 fun <T> ReceiveChannel<T>.connect(
     lifecycle: WeakReference<Lifecycle>,
     context: CoroutineContext = Dispatchers.Unconfined
-): ReceiveChannel<T> = produce(context) {
+): ReceiveChannel<T> = GlobalScope.produce(context) {
     val obs = LifeObserver(this)
-    withContext(UI) { lifecycle.get()?.addObserver(obs) }
+    withContext(Dispatchers.Main) { lifecycle.get()?.addObserver(obs) }
 
     consumeEach {
         if (!obs.paused) {

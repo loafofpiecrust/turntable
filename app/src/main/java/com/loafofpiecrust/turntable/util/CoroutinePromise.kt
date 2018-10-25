@@ -1,13 +1,10 @@
 package com.loafofpiecrust.turntable.util
 
 import com.loafofpiecrust.turntable.tryOr
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.channels.*
-import kotlinx.coroutines.experimental.selects.SelectClause1
-import kotlin.coroutines.experimental.Continuation
-import kotlin.coroutines.experimental.CoroutineContext
-import kotlin.coroutines.experimental.EmptyCoroutineContext
-import kotlin.coroutines.experimental.suspendCoroutine
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.*
+import kotlinx.coroutines.selects.SelectClause1
+import kotlin.coroutines.*
 
 val BG_POOL: CoroutineDispatcher = if (Runtime.getRuntime().availableProcessors() <= 2) {
     newFixedThreadPoolContext(2 * Runtime.getRuntime().availableProcessors(), "bg")
@@ -30,6 +27,17 @@ fun <T> CoroutineScope.produceSingle(
     return produce(context) {
         send(block())
     }
+}
+
+inline fun <T> CoroutineScope.broadcastSingle(
+    context: CoroutineContext = EmptyCoroutineContext,
+    crossinline block: suspend CoroutineScope.() -> T
+): BroadcastChannel<T> {
+    val channel = ConflatedBroadcastChannel<T>()
+    launch(context) {
+        channel.send(block())
+    }
+    return channel
 }
 
 class ReceiveDeferredChannel<E>(val deferred: Deferred<E>): ReceiveChannel<E> {
@@ -104,4 +112,21 @@ suspend inline fun <T> Deferred<T>.awaitOr(alternative: T): T {
     } catch (e: Throwable) {
         alternative
     }
+}
+
+inline fun <T, R> Deferred<T>.then(
+    context: CoroutineContext = EmptyCoroutineContext,
+    crossinline block: suspend CoroutineScope.(T) -> R
+): Deferred<R> {
+    return GlobalScope.async(context) {
+        block(await())
+    }
+}
+
+inline fun Job.then(
+    context: CoroutineContext = EmptyCoroutineContext,
+    crossinline block: suspend CoroutineScope.() -> Unit
+): Job = GlobalScope.launch(context) {
+    join()
+    block()
 }

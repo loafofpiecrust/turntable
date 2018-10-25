@@ -2,15 +2,11 @@ package com.loafofpiecrust.turntable.util
 
 import android.support.annotation.UiThread
 import android.view.View
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.channels.*
-import kotlinx.coroutines.experimental.selects.select
-import kotlinx.coroutines.experimental.selects.selectUnbiased
-import kotlinx.coroutines.experimental.selects.whileSelect
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.*
+import kotlinx.coroutines.selects.whileSelect
 import org.jetbrains.anko.sdk27.coroutines.onAttachStateChangeListener
-import kotlin.coroutines.experimental.CoroutineContext
-import kotlin.coroutines.experimental.EmptyCoroutineContext
-import kotlin.coroutines.experimental.coroutineContext
+import kotlin.coroutines.CoroutineContext
 
 
 fun <T, R> ReceiveChannel<T>.switchMap(
@@ -53,25 +49,25 @@ fun <T> ReceiveChannel<T>.replayOne(context: CoroutineContext = Dispatchers.Unco
 fun <E, R> combineLatest(
     a: ReceiveChannel<E>,
     b: ReceiveChannel<R>,
-    context: CoroutineContext = Unconfined
+    context: CoroutineContext = Dispatchers.Unconfined
 ): ReceiveChannel<Pair<E, R>> = combineLatest(a, b, context) { a, b -> a to b }
 
 fun <A, B, C> ReceiveChannel<A>.combineLatest(
     b: ReceiveChannel<B>,
     c: ReceiveChannel<C>,
-    context: CoroutineContext = Unconfined
+    context: CoroutineContext = Dispatchers.Unconfined
 ) = combineLatest(b, c, context) { a, b, c -> Triple(a, b, c) }
 
 
 fun <A, B, R> combineLatest(
     sourceA: ReceiveChannel<A>,
     sourceB: ReceiveChannel<B>,
-    context: CoroutineContext = Unconfined,
+    context: CoroutineContext = Dispatchers.Unconfined,
     combine: suspend (A, B) -> R
-): ReceiveChannel<R> = produce(context, onCompletion = {
+): ReceiveChannel<R> = GlobalScope.produce(context, onCompletion = {
     sourceA.cancel(it)
     sourceB.cancel(it)
-}) {
+}, block = {
     var latestA: A? = null
     var latestB: B? = null
 
@@ -93,18 +89,18 @@ fun <A, B, R> combineLatest(
             b != null
         }
     }
-}
+})
 
 fun <A, B, C, R> ReceiveChannel<A>.combineLatest(
     sourceB: ReceiveChannel<B>,
     sourceC: ReceiveChannel<C>,
-    context: CoroutineContext = Unconfined,
+    context: CoroutineContext = Dispatchers.Unconfined,
     combine: suspend (A, B, C) -> R
-): ReceiveChannel<R> = produce(context, onCompletion = {
+): ReceiveChannel<R> = GlobalScope.produce(context, onCompletion = {
     cancel(it)
     sourceB.cancel(it)
     sourceC.cancel(it)
-}) {
+}, block = {
     val sourceA = this@combineLatest
 
     var latestA: A? = null
@@ -140,11 +136,14 @@ fun <A, B, C, R> ReceiveChannel<A>.combineLatest(
             c != null
         }
     }
-}
+})
 
 
-fun <T> ReceiveChannel<T>.skip(n: Int, context: CoroutineContext = Unconfined): ReceiveChannel<T> {
-    return produce(context) {
+fun <T> ReceiveChannel<T>.skip(
+    n: Int,
+    context: CoroutineContext = Dispatchers.Unconfined
+): ReceiveChannel<T> {
+    return GlobalScope.produce(context, 0, null, {
         consume {
             for (_rem in 0 until n) {
                 receive()
@@ -153,13 +152,13 @@ fun <T> ReceiveChannel<T>.skip(n: Int, context: CoroutineContext = Unconfined): 
                 send(e)
             }
         }
-    }
+    })
 }
 
 
-fun <T> ReceiveChannel<T>.interrupt(context: CoroutineContext = Unconfined): ReceiveChannel<T> {
+fun <T> ReceiveChannel<T>.interrupt(context: CoroutineContext = Dispatchers.Unconfined): ReceiveChannel<T> {
     var job: Job? = null
-    return produce(context) {
+    return GlobalScope.produce(context) {
         consumeEach { e ->
             job?.cancelAndJoin()
             job = launch(coroutineContext) { send(e) }
@@ -188,7 +187,9 @@ fun <T> ReceiveChannel<T>.distinctBySeq(
     }
 }
 
-fun <T> ReceiveChannel<T>.changes(context: CoroutineContext = Unconfined) = produce(context) {
+fun <T> ReceiveChannel<T>.changes(
+    context: CoroutineContext = Dispatchers.Unconfined
+) = GlobalScope.produce(context) {
     consume {
         var prev = receive()
         for (elem in this) {
@@ -231,7 +232,7 @@ inline fun <E> ReceiveChannel<E>.consumeEach(
 inline fun <E, R> ReceiveChannel<E>.consume(
     ctx: CoroutineContext,
     crossinline action: suspend ReceiveChannel<E>.() -> R
-): Job = async(ctx) { consume { action(this) } }
+): Job = GlobalScope.async(ctx) { consume { action(this) } }
 
 
 

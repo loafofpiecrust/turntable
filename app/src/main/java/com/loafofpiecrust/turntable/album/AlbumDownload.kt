@@ -12,14 +12,14 @@ import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.artist.MusicDownload
 import com.loafofpiecrust.turntable.artist.TorrentArtist
 import com.loafofpiecrust.turntable.model.album.Album
-import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.song.YouTubeSong
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.awaitAll
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
@@ -166,7 +166,7 @@ sealed class TorrentAlbum(
         val info = retrieveInfo(sess)
         sess.info = info
         if (info != null) {
-            sess.progress.consumeEach(UI) {
+            sess.progress.consumeEach(Dispatchers.Main) {
                 println("torrent progress $it")
             }
             println("torrent info: $info")

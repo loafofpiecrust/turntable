@@ -7,13 +7,17 @@ import android.support.v7.widget.LinearLayoutManager
 import android.view.ViewGroup
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.model.sync.Friend
+import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
-import com.loafofpiecrust.turntable.ui.RecyclerAdapter
+import com.loafofpiecrust.turntable.views.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
 import com.loafofpiecrust.turntable.util.arg
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.map
+import com.loafofpiecrust.turntable.util.getValue
+import com.loafofpiecrust.turntable.util.lazy
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.alert
@@ -57,9 +61,9 @@ class FriendPickerDialog(): BaseDialogFragment() {
         minimumHeight = dimen(R.dimen.song_item_height) * 5
         layoutManager = LinearLayoutManager(context)
         val friends = UserPrefs.friends.openSubscription().map { friends ->
-            friends.filter {
-                it.status == SyncService.Friend.Status.CONFIRMED
-            }.map { it.user }
+            friends.lazy.filter { (user, status) ->
+                status == Friend.Status.CONFIRMED
+            }.map { it.key }.toList()
         }
 
         adapter = UserAdapter(friends) {
@@ -73,11 +77,10 @@ class FriendPickerDialog(): BaseDialogFragment() {
         // TODO: Prevent implicit dismissal
         positiveButton(acceptText) {
             selected?.let {
-                SyncService.send(this@FriendPickerDialog.message, it)
+                Sync.send(this@FriendPickerDialog.message, it)
             } ?: toast("Must choose a friend.")
         }
 
         cancelButton {}
     }.build() as Dialog
-
 }

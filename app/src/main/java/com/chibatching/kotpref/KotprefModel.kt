@@ -9,10 +9,10 @@ import com.chibatching.kotpref.filepref.objFilePref
 import com.chibatching.kotpref.pref.*
 import com.loafofpiecrust.turntable.awaitAllNotNull
 import com.loafofpiecrust.turntable.parMap
-import kotlinx.coroutines.experimental.Dispatchers
-import kotlinx.coroutines.experimental.IO
-import kotlinx.coroutines.experimental.awaitAll
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import java.util.*
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty

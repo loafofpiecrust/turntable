@@ -1,65 +1,56 @@
 package com.loafofpiecrust.turntable.model.playlist
 
-import android.content.Context
 import android.support.annotation.DrawableRes
-import android.view.Menu
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ServerTimestamp
+import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.MusicId
+import com.loafofpiecrust.turntable.model.Recommendation
+import com.loafofpiecrust.turntable.model.song.HasTracks
+import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repeat
-import com.loafofpiecrust.turntable.sync.SyncService
-import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.model.SavableMusic
-import com.loafofpiecrust.turntable.model.song.HasTracks
-import com.loafofpiecrust.turntable.model.song.SongId
-import com.loafofpiecrust.turntable.sync.Message
-import com.loafofpiecrust.turntable.sync.User
+import com.loafofpiecrust.turntable.model.sync.User
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.channels.firstOrNull
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.firstOrNull
+import kotlinx.coroutines.channels.produce
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.suspendCancellableCoroutine
+import org.jetbrains.anko.AnkoLogger
+import org.jetbrains.anko.error
+import org.jetbrains.anko.warn
 import java.util.*
-import kotlin.coroutines.experimental.suspendCoroutine
+import kotlin.coroutines.suspendCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 
 @Parcelize
 data class PlaylistId(
     override val name: String,
-    val uuid: UUID
-): MusicId {
+    val uuid: UUID = UUID.randomUUID()
+): MusicId, Recommendation {
     override val displayName get() = name
 }
 
-abstract class Playlist: SavableMusic, HasTracks {
-    abstract val owner: User
-    abstract var name: String
-    abstract var color: Int?
-    abstract val uuid: UUID
-
+interface Playlist: Music, HasTracks {
     // TODO: Integrate directly.
-    override val musicId get() = PlaylistId(name, uuid)
+    override val id get() = PlaylistId(name, uuid)
 
-    var createdTime: Date = Date()
-        private set
-
-    final override val tracks: List<Song>
-        get() = runBlocking { tracksChannel.firstOrNull() } ?: emptyList()
-    abstract val tracksChannel: ReceiveChannel<List<Song>>
+    val owner: User
+    var name: String
+    var color: Int?
+    val uuid: UUID
 
     @get:DrawableRes
-    abstract val icon: Int
+    val icon: Int
+}
 
-    @ServerTimestamp
-    open var lastModified: Date = Date()
-    /**
-     * Used to store the playlist "locally" in Google Drive
-     * TODO: Get rid of this in favor of centralizing _all_ playlists to Firestore.
-     */
-    open var remoteFileId: String? = null
-    var isPublished: Boolean = false
-    var isCompletable: Boolean = false
+interface MutablePlaylist: Playlist {
+    var isPublished: Boolean
 
     /// The first time, publishes this playlist to the database.
     /// After that, this pushes updates to the database entry.
@@ -75,9 +66,31 @@ abstract class Playlist: SavableMusic, HasTracks {
             isPublished = false
         }
     }
+}
+
+abstract class AbstractPlaylist: Playlist {
+
+    var createdTime: Date = Date()
+        private set
+
+    final override val tracks: List<Song>
+        get() = runBlocking { tracksChannel.firstOrNull() } ?: emptyList()
+    abstract val tracksChannel: ReceiveChannel<List<Song>>
+
+
+    @ServerTimestamp
+    open var lastModified: Date = Date()
+    /**
+     * Used to store the playlist "locally" in Google Drive
+     * TODO: Get rid of this in favor of centralizing _all_ playlists to Firestore.
+     */
+    open var remoteFileId: String? = null
+    var isPublished: Boolean = false
+    var isCompletable: Boolean = false
+
 
     /// @return true if there were changes in our version since last server revision.
-    open fun diffAndMerge(newer: Playlist): Boolean {
+    open fun diffAndMerge(newer: AbstractPlaylist): Boolean {
         this.name = newer.name
         this.color = newer.color
         this.lastModified = newer.lastModified
@@ -90,13 +103,55 @@ abstract class Playlist: SavableMusic, HasTracks {
         UserPrefs.playlists.repeat()
     }
 
+    companion object: AnkoLogger by AnkoLogger<Playlist>() {
+        suspend fun find(id: UUID): Playlist? {
+            val db = FirebaseFirestore.getInstance()
+            return suspendCoroutine { cont ->
+                db.collection("playlists").document(id.toString()).get().addOnCompleteListener { task ->
+                    val doc = task.result
+                    val err = task.exception
+                    if (err != null) {
+                        error { err.stackTrace }
+                    }
+                    if (task.isSuccessful && doc.exists()) {
+                        val format = doc.getString("format")!!
+                        cont.resume(when (format) {
+                            "mixtape" -> MixTape.fromDocument(doc)
+                            else -> CollaborativePlaylist.fromDocument(doc)
+                        })
+                    } else {
+                        cont.resume(null)
+                    }
+                }
+            }
+        }
 
-    open fun sendTo(user: User) {
-        publish()
-        SyncService.send(Message.Playlist(uuid), user)
-    }
+        fun findChannel(id: UUID): ReceiveChannel<Playlist?> {
+            val db = FirebaseFirestore.getInstance()
+            var listener: ListenerRegistration? = null
+            return GlobalScope.produce(onCompletion = { listener?.remove() }) {
+                val first = find(id)
+                send(first)
+                if (first != null) suspendCancellableCoroutine<Unit> { cont ->
+                    listener = db.playlists().document(id.toString()).addSnapshotListener { snapshot, err ->
+                        if (err != null) {
+                            cont.resumeWithException(err)
+                        }
+                        if (snapshot?.exists() == true) {
+                            val localChange = snapshot.metadata.hasPendingWrites()
+                            if (!localChange) {
+                                val format = snapshot.getString("format")!!
+                                offer(when (format) {
+                                    "mixtape" -> MixTape.fromDocument(snapshot)
+                                    else -> CollaborativePlaylist.fromDocument(snapshot)
+                                })
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-    companion object {
         suspend fun allByUser(owner: User): List<Playlist> {
             val db = FirebaseFirestore.getInstance()
             return suspendCoroutine { cont ->
@@ -106,16 +161,21 @@ abstract class Playlist: SavableMusic, HasTracks {
                     .addOnCompleteListener {
                         if (it.isSuccessful) {
                             cont.resume(it.result.mapNotNull {
-                                when (it.getString("format")) {
+                                val format = it.getString("format")
+                                when (format) {
                                     "mixtape" -> MixTape.fromDocument(it)
                                     "playlist" -> CollaborativePlaylist.fromDocument(it)
                                     "albums" -> AlbumCollection.fromDocument(it)
-                                    else -> throw IllegalStateException("Unrecognized playlist format")
+                                    else -> {
+                                        warn { "Unrecognized playlist format $format" }
+                                        null
+                                    }
                                 }.apply {
-                                    createdTime = it.getDate("createdTime") ?: createdTime
+//                                    createdTime = it.getDate("createdTime") ?: createdTime
                                 }
                             })
                         } else {
+                            error("Playlist query failed", it.exception)
                             cont.resume(listOf())
                         }
                     }
@@ -123,3 +183,5 @@ abstract class Playlist: SavableMusic, HasTracks {
         }
     }
 }
+
+fun FirebaseFirestore.playlists() = collection("playlists")

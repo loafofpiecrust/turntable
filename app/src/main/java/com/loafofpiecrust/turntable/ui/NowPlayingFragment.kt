@@ -9,17 +9,20 @@ import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.FloatingActionButton
 import android.view.View
 import android.view.ViewManager
-import android.widget.SeekBar
 import com.bumptech.glide.Glide
-import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.loadPalette
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.sync.*
+import com.loafofpiecrust.turntable.selector
+import com.loafofpiecrust.turntable.sync.FriendPickerDialog
+import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.sync.Sync
+import com.loafofpiecrust.turntable.sync.SyncDetailsDialog
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.channels.map
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
 import org.jetbrains.anko.constraint.layout.applyConstraintSet
@@ -28,7 +31,6 @@ import org.jetbrains.anko.constraint.layout.matchConstraint
 import org.jetbrains.anko.design.floatingActionButton
 import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.sdk27.coroutines.onSeekBarChangeListener
-import org.jetbrains.anko.support.v4.ctx
 
 open class NowPlayingFragment : BaseFragment() {
     var playButton: FloatingActionButton by weak()
@@ -43,7 +45,7 @@ open class NowPlayingFragment : BaseFragment() {
         }.consumeEachAsync { (song, req) ->
             if (req != null) {
                 req.listener(loadPalette(song.id.album) { palette, swatch ->
-                    view.backgroundColor = swatch?.rgb ?: context!!.getColorCompat(R.color.background)
+                    view.backgroundColor = swatch?.rgb ?: context!!.theme.color(android.R.attr.windowBackground)
                     val c =
                         (palette?.mutedSwatch
                             ?: palette?.darkMutedSwatch
@@ -89,7 +91,7 @@ open class NowPlayingFragment : BaseFragment() {
                     isSeeking = true
                 }
                 onStopTrackingTouch {
-                    MusicService.enact(PlayerAction.SeekTo(value.toLong()))
+                    MusicService.offer(PlayerAction.SeekTo(value.toLong()))
                     isSeeking = false
                 }
             }
@@ -111,24 +113,24 @@ open class NowPlayingFragment : BaseFragment() {
 
         val syncBtn = iconButton(R.drawable.ic_cast) {
             tintResource = R.color.md_white_1000
-            SyncService.mode.consumeEachAsync {
-                imageResource = if (it is SyncService.Mode.None) {
+            Sync.mode.consumeEachAsync {
+                imageResource = if (it is Sync.Mode.None) {
                     onClick { v ->
                         // Open sync options: contact choice
                         v!!.context.selector("Sync options", listOf(
                             "Sync with Friend" to {
                                 FriendPickerDialog(
-                                    Message.SyncRequest(),
+                                    Sync.Request(),
                                     "Request Sync"
-                                ).show(context)
+                                ).show(v.context)
                             }
-                        ))()
+                        )).invoke()
                     }
                     R.drawable.ic_cast
                 } else {
                     onClick { v ->
                         // Open sync details dialog!
-                        SyncDetailsDialog().show(ctx)
+                        SyncDetailsDialog().show(v!!.context)
                     }
                     R.drawable.ic_cast_connected
                 }
@@ -137,7 +139,7 @@ open class NowPlayingFragment : BaseFragment() {
 
         val prevBtn = iconButton(R.drawable.ic_skip_previous) {
             onClick {
-                MusicService.enact(PlayerAction.RelativePosition(-1))
+                MusicService.offer(PlayerAction.RelativePosition(-1))
             }
         }
 
@@ -153,12 +155,12 @@ open class NowPlayingFragment : BaseFragment() {
                 if (playing) {
                     imageResource = R.drawable.ic_pause
                     onClick {
-                        MusicService.enact(PlayerAction.Pause())
+                        MusicService.offer(PlayerAction.Pause())
                     }
                 } else {
                     imageResource = R.drawable.ic_play_arrow
                     onClick {
-                        MusicService.enact(PlayerAction.Play())
+                        MusicService.offer(PlayerAction.Play())
                     }
                 }
             }
@@ -167,7 +169,7 @@ open class NowPlayingFragment : BaseFragment() {
 
         val nextBtn = iconButton(R.drawable.ic_skip_next) {
             onClick {
-                MusicService.enact(PlayerAction.RelativePosition(1))
+                MusicService.offer(PlayerAction.RelativePosition(1))
             }
         }
 

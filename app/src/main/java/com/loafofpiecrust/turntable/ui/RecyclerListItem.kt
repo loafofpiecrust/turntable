@@ -2,20 +2,17 @@ package com.loafofpiecrust.turntable.ui
 
 import android.support.constraint.ConstraintSet.CHAIN_PACKED
 import android.support.constraint.ConstraintSet.PARENT_ID
-import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.TextView
-import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.style.rippleBorderless
-import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.launch
+import com.loafofpiecrust.turntable.util.iconButton
+import com.loafofpiecrust.turntable.util.size
+import com.loafofpiecrust.turntable.util.tint
+import com.loafofpiecrust.turntable.views.RecyclerItem
 import org.jetbrains.anko.*
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
 import org.jetbrains.anko.constraint.layout.applyConstraintSet
@@ -65,7 +62,7 @@ open class RecyclerListItemOptimized(
 
     val overflow = iconButton(R.drawable.ic_overflow) {
         id = R.id.itemMenuDots
-        tintResource = R.color.text
+        tint = context.colorAttr(android.R.attr.textColor)
     }
 
     val iconSize = dimen(R.dimen.icon_size)

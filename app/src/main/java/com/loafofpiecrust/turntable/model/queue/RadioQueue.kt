@@ -1,14 +1,13 @@
 package com.loafofpiecrust.turntable.model.queue
 
-import com.loafofpiecrust.turntable.browse.Spotify
-import com.loafofpiecrust.turntable.player.MusicPlayer
-import com.loafofpiecrust.turntable.shifted
+import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.song.Song
-import kotlinx.coroutines.experimental.GlobalScope
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.runBlocking
+import com.loafofpiecrust.turntable.shifted
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlin.math.max
 
 class RadioQueue private constructor(
@@ -16,7 +15,7 @@ class RadioQueue private constructor(
     private val recommendations: MutableList<Song>,
     override val list: List<Song>,
     override val position: Int
-): MusicPlayer.Queue {
+): Queue {
     companion object {
         private const val lookAhead = 2
         private var job: Job? = null
@@ -37,7 +36,7 @@ class RadioQueue private constructor(
     override val current: Song?
         get() = list.getOrNull(position)
 
-    override fun next(): MusicPlayer.Queue {
+    override fun toNext(): Queue {
         runBlocking { job?.join() } // cancel any Spotify loading
 
         val toAdd = maxOf(0, lookAhead - list.size + position + 2)
@@ -61,7 +60,7 @@ class RadioQueue private constructor(
         )
     }
 
-    override fun prev(): MusicPlayer.Queue = if (position > 0) {
+    override fun toPrev(): Queue = if (position > 0) {
         RadioQueue(
             seed,
             recommendations,
@@ -70,13 +69,13 @@ class RadioQueue private constructor(
         )
     } else this
 
-    override fun shifted(from: Int, to: Int): MusicPlayer.Queue =
+    override fun shifted(from: Int, to: Int): Queue =
         RadioQueue(seed, recommendations, list.shifted(from, to), position)
 
     /**
      * Consider recycling songs between the current and new positions
      */
-    override fun shiftedPosition(newPos: Int): MusicPlayer.Queue {
+    override fun shiftedPosition(newPos: Int): Queue {
         return if (newPos > position) {
             // shift forward
             runBlocking { job?.join() } // cancel any Spotify loading

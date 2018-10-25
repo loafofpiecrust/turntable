@@ -10,13 +10,12 @@ import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
-import com.loafofpiecrust.turntable.sync.User
+import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.util.deserialize
 import com.loafofpiecrust.turntable.util.serialize
-import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.channels.firstOrNull
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.channels.firstOrNull
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import java.util.*
 import kotlin.test.Test
 

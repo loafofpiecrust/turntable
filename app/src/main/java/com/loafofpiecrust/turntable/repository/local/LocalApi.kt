@@ -1,14 +1,15 @@
-package com.loafofpiecrust.turntable.browse
+package com.loafofpiecrust.turntable.repository.local
 
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
-import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
-import kotlinx.coroutines.experimental.channels.first
+import com.loafofpiecrust.turntable.repository.Repository
+import com.loafofpiecrust.turntable.service.Library
+import kotlinx.coroutines.channels.first
 import me.xdrop.fuzzywuzzy.FuzzySearch
 
 
@@ -49,5 +50,4 @@ object LocalApi: Repository {
     override suspend fun fullArtwork(artist: Artist, search: Boolean): String? {
         return null
     }
-
 }

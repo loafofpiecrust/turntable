@@ -9,13 +9,13 @@ import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.text
 import com.loafofpiecrust.turntable.youtube.YtFile
 import com.loafofpiecrust.turntable.youtube.YtFormat
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import java.io.*
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.util.regex.Pattern
-import kotlin.coroutines.experimental.suspendCoroutine
+import kotlin.coroutines.suspendCoroutine
 
 
 /**
@@ -83,17 +83,17 @@ class YouTubeDash(val context: Context) {
 
 
         val dashUrl = if (!sigEnc) {
-            async(UI) { println("youtube: no cipher") }
+            async(Dispatchers.Main) { println("youtube: no cipher") }
             // This is a normal video
             val mat = patDashManifest1.matcher(streamMap)
             streamMap = URLDecoder.decode(streamMap, "UTF-8")
             if (mat.find()) {
                 URLDecoder.decode(mat.group(1), "UTF-8").also {
-                    async(UI) { println("youtube: got a uuid? '$it'") }
+                    async(Dispatchers.Main) { println("youtube: got a uuid? '$it'") }
                 }
             } else null
         } else {
-            async(UI) { println("youtube: encrypted!") }
+            async(Dispatchers.Main) { println("youtube: encrypted!") }
             // This is encrypted or something, use JS to get around it.
 
             if (decipherJsFileName == null ||
@@ -106,19 +106,19 @@ class YouTubeDash(val context: Context) {
                 "User-Agent" to USER_AGENT
             )).text
 
-            async(UI) { println("youtube: before '$streamMap'") }
+            async(Dispatchers.Main) { println("youtube: before '$streamMap'") }
             // wtf?
             val line = res.lineSequence().find { it.contains(STREAM_MAP_STRING) }
             if (line != null) {
                 streamMap = line.replace("\\u0026", "&")
             }
-            async(UI) { println("youtube: after '$streamMap'") }
+            async(Dispatchers.Main) { println("youtube: after '$streamMap'") }
 
             // Find JS file to decrypt everything
 
             var mat = patDecryptionJsFile.matcher(streamMap)
             if (mat.find()) {
-                async(UI) { println("youtube: found js decryption file?") }
+                async(Dispatchers.Main) { println("youtube: found js decryption file?") }
                 // Replace windows path-separators with Unix ones
                 val curJsFileName = mat.group(1).replace("\\/", "/")
                 if (decipherJsFileName == null || decipherJsFileName != curJsFileName) {
@@ -133,17 +133,17 @@ class YouTubeDash(val context: Context) {
             if (mat.find()) {
                 val dashUrl = mat.group(1).replace("\\/", "/")
                 mat = patDashManifestEncSig.matcher(dashUrl)
-                async(UI) { println("youtube: got dash uuid? '$dashUrl'") }
+                async(Dispatchers.Main) { println("youtube: got dash uuid? '$dashUrl'") }
                 if (mat.find()) {
                     signatures.append(0, mat.group(1))
                     dashUrl
                 } else {
                     // no dash?
-                    async(UI) { println("youtube: turns out maybe not.") }
+                    async(Dispatchers.Main) { println("youtube: turns out maybe not.") }
                     null
                 }
             } else {
-                async(UI) { println("youtube: no dash manifest up in here.") }
+                async(Dispatchers.Main) { println("youtube: no dash manifest up in here.") }
                 null
             }
         }
@@ -177,15 +177,15 @@ class YouTubeDash(val context: Context) {
         }
 
         return if (signatures.size() > 0 && dashUrl != null) {
-            async(UI) { println("youtube: deciphering signatures") }
+            async(Dispatchers.Main) { println("youtube: deciphering signatures") }
             // get the cipher via JS to decipher the uuid signatures (or something...)
             val deciphered = decipherSignature(signatures)
             if (deciphered == null) {
                 // nothing, didn't work
-                async(UI) { println("youtube: deciphering failed") }
+                async(Dispatchers.Main) { println("youtube: deciphering failed") }
                 null
             } else {
-                async(UI) { println("youtube: success!!!") }
+                async(Dispatchers.Main) { println("youtube: success!!!") }
                 val sigs = deciphered.split("\n")
 //                val end = minOf(signatures.size(), sigs.size)
                 val idx = signatures.indexOfKey(0)
@@ -355,7 +355,7 @@ class YouTubeDash(val context: Context) {
         stb.append("};decipher();")
 
         // Apparently should happen on the UI thread? Maybe since this uses WebView (?)
-        async(UI) {
+        async(Dispatchers.Main) {
             val js = JsEvaluator(this@YouTubeDash.context)
             js.evaluate(stb.toString(), object: JsCallback {
                 override fun onResult(p0: String?) {

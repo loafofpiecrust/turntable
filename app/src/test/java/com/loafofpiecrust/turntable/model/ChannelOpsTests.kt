@@ -3,9 +3,9 @@ package com.loafofpiecrust.turntable.model
 import ch.tutteli.atrium.api.cc.en_GB.toBe
 import ch.tutteli.atrium.verbs.expect
 import com.loafofpiecrust.turntable.util.switchMap
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.channels.*
-import kotlin.coroutines.experimental.CoroutineContext
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.*
+import kotlin.coroutines.CoroutineContext
 import kotlin.test.Test
 import kotlin.test.expect
 

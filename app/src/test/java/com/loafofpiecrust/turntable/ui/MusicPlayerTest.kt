@@ -9,9 +9,9 @@ import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.test
-import kotlinx.coroutines.experimental.channels.firstOrNull
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.channels.firstOrNull
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric

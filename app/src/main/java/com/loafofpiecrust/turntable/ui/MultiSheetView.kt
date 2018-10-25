@@ -9,18 +9,20 @@ import android.view.View
 import android.view.ViewManager
 import android.widget.FrameLayout
 import com.loafofpiecrust.turntable.R
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.launch
 import org.jetbrains.anko.design.coordinatorLayout
 import org.jetbrains.anko.dimen
-import org.jetbrains.anko.dip
 import org.jetbrains.anko.frameLayout
 import org.jetbrains.anko.matchParent
 import org.jetbrains.anko.sdk27.coroutines.onClick
 
 class MultiSheetView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : CoordinatorLayout(context, attrs, defStyleAttr) {
 
-    constructor(context: Context, init: MultiSheetView.() -> Unit): this(context) {
-        block = init
-        block.invoke(this)
+    constructor(context: Context, block: MultiSheetView.() -> Unit): this(context) {
+        this.block()
 
         mainContainer = mainContentInit?.invoke(this)?.apply {
             layoutParams = CoordinatorLayout.LayoutParams(matchParent, matchParent).apply {
@@ -120,8 +122,6 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
             false
         }
     }
-
-    lateinit var block: MultiSheetView.() -> Unit
 
     private lateinit var bottomSheetBehavior1: CustomBottomSheetBehavior<*>
     private lateinit var  bottomSheetBehavior2: CustomBottomSheetBehavior<*>
@@ -267,6 +267,18 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
                 bottomSheetBehavior1.setPeekHeight(peekHeight)
             }
             (mainContainer.layoutParams as CoordinatorLayout.LayoutParams).bottomMargin = peekHeight
+        }
+    }
+
+    fun CoroutineScope.bindHidden(channel: ReceiveChannel<Boolean>) {
+        launch {
+            channel.consumeEach { shouldHide ->
+                if (shouldHide) {
+                    if (!isHidden) hide(true, true)
+                } else {
+                    if (isHidden) unhide(true)
+                }
+            }
         }
     }
 

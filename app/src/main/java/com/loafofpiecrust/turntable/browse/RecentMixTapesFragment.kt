@@ -10,6 +10,8 @@ import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragment
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.util.produceSingle
+import com.loafofpiecrust.turntable.views.RecyclerAdapter
+import com.loafofpiecrust.turntable.views.RecyclerItem
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.frameLayout
 import org.jetbrains.anko.recyclerview.v7.recyclerView

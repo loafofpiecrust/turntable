@@ -1,11 +1,11 @@
 package com.loafofpiecrust.turntable.song
 
 //import com.loafofpiecrust.turntable.service.MusicService2
+import android.content.Context
 import android.os.Parcelable
 import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
-import android.support.v7.widget.helper.ItemTouchHelper
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.View
@@ -16,17 +16,19 @@ import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.style.turntableStyle
 import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.BaseFragment
+import com.loafofpiecrust.turntable.ui.UIComponent
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.views.refreshableRecyclerView
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.channels.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.*
+import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
+import org.jetbrains.anko.AnkoContext
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.swipeRefreshLayout
 import java.util.*
@@ -122,8 +124,18 @@ fun ViewManager.songsList(
         }
     }
 
-    val adapter = SongsAdapter(songs.openSubscription(), category) { songs, idx ->
-        MusicService.enact(PlayerAction.PlaySongs(songs, idx))
+
+//    val adapter = SongsAdapter(songs.openSubscription(), category) { songs, idx ->
+//        MusicService.offer(PlayerAction.PlaySongs(songs, idx))
+//    }
+    val adapter = SongsOnDiscAdapter(
+        songs.openSubscription().map {
+            it.groupBy { "Disc ${it.disc}" }
+        }
+    ) { song ->
+        val songs = songs.openSubscription().first()
+        val idx = songs.indexOf(song)
+        MusicService.offer(PlayerAction.PlaySongs(songs, idx))
     }
 
     val recycler = if (category is SongsFragment.Category.All) {
@@ -142,42 +154,6 @@ fun ViewManager.songsList(
         val linear = LinearLayoutManager(context)
         layoutManager = linear
         this.adapter = adapter
-        if (category is SongsFragment.Category.Playlist) {
-            val playlist = runBlocking { context.library.findPlaylist(category.id).first() }
-            val helper = ItemTouchHelper(object: ItemTouchHelper.SimpleCallback(
-                ItemTouchHelper.UP or ItemTouchHelper.DOWN,
-                ItemTouchHelper.START or ItemTouchHelper.END
-            ) {
-                override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
-//                                    ctx.music.shiftQueueItem(viewHolder.adapterPosition, target.adapterPosition)
-//                                adapter.onItemMove(viewHolder.adapterPosition, target.adapterPosition)
-                    when (playlist) {
-                        is CollaborativePlaylist -> playlist.move(
-                            viewHolder.adapterPosition,
-                            target.adapterPosition
-                        )
-                    }
-                    return true
-                }
-
-                override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-//                                adapter.onItemDismiss(viewHolder.adapterPosition)
-//                                    ctx.music.removeFromQueue(viewHolder.adapterPosition)
-                    when (playlist) {
-                        is CollaborativePlaylist -> playlist.remove(
-                            viewHolder.adapterPosition
-                        )
-                    }
-                }
-
-                override fun getMoveThreshold(viewHolder: RecyclerView.ViewHolder)
-                    = 0.2f
-
-                override fun isLongPressDragEnabled() = true
-                override fun isItemViewSwipeEnabled() = true
-            })
-            helper.attachToRecyclerView(this)
-        }
 
         addItemDecoration(DividerItemDecoration(context, linear.orientation).apply {
             setDrawable(context.getDrawable(R.drawable.song_divider))
@@ -186,4 +162,60 @@ fun ViewManager.songsList(
 
         block.invoke(this)
     }
+}
+
+
+sealed class SongsUI: UIComponent() {
+    protected open val useFastScroll get() = false
+    abstract val songs: BroadcastChannel<List<Song>>
+
+    override fun Menu.prepareOptions(context: Context) {
+        menuItem(R.string.show_history).onClick {
+            context.replaceMainContent(
+                SongsFragment(SongsFragment.Category.History(null))
+            )
+        }
+    }
+    override fun CoroutineScope.render(ui: AnkoContext<Any>) = ui.refreshableRecyclerView {
+        channel = songs.openSubscription()
+
+        val adapter = SongsAdapter(songs.openSubscription()) { songs, idx ->
+            MusicService.offer(PlayerAction.PlaySongs(songs, idx))
+        }
+
+        contentView {
+            if (useFastScroll) {
+                fastScrollRecycler {
+                    turntableStyle()
+                }
+            } else {
+                recyclerView {
+                    turntableStyle()
+                }
+            }.apply {
+                clipToPadding = false
+
+                val linear = LinearLayoutManager(context)
+                layoutManager = linear
+                this.adapter = adapter
+
+                addItemDecoration(DividerItemDecoration(context, linear.orientation).apply {
+                    setDrawable(context.getDrawable(R.drawable.song_divider))
+                })
+            }
+        }
+    }
+
+    @Parcelize
+    class All: SongsUI(), Parcelable {
+        override val useFastScroll get() = true
+        override val songs: BroadcastChannel<List<Song>> =
+            Library.instance.songsMap.openSubscription().map {
+                it.values.sortedBy { it.id }
+            }.broadcast(CONFLATED)
+    }
+
+    class Custom(
+        override val songs: BroadcastChannel<List<Song>>
+    ): SongsUI()
 }

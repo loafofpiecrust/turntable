@@ -10,16 +10,18 @@ import android.support.v4.app.Fragment
 import android.support.v7.app.AppCompatActivity
 import android.view.*
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.channels.BroadcastChannel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.consumeEach
+import com.loafofpiecrust.turntable.util.arg
+import com.loafofpiecrust.turntable.util.getValue
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.BroadcastChannel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.consumeEach
 import org.jetbrains.anko.*
+import org.jetbrains.anko.sdk27.coroutines.onAttachStateChangeListener
 import org.jetbrains.anko.support.v4.alert
-import kotlin.coroutines.experimental.CoroutineContext
-import kotlin.coroutines.experimental.EmptyCoroutineContext
+import java.util.*
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
@@ -27,31 +29,36 @@ interface Closable {
     fun close()
 }
 
+
+
 /// Implement AnkoComponent to access the Anko preview compiler.
 abstract class UIComponent: CoroutineScope, AnkoComponent<Any> {
-    private val supervisor by lazy { SupervisorJob() }
-    private val viewScope by lazy { SupervisorJob() }
-    private var currentScope by lazyDefault { supervisor }
-    override val coroutineContext: CoroutineContext
-        get() = Dispatchers.Main + currentScope
+    private val supervisor = SupervisorJob()
+    final override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Main + supervisor
 
     fun createView(context: Context, container: Closable): View {
-        currentScope = viewScope
-        return AnkoContext.create(context, container).render().also {
-            currentScope = supervisor
-        }
+        return createView(AnkoContext.create(context, container))
     }
     fun createView(parent: ViewGroup): View {
-        currentScope = viewScope
-        return AnkoContext.createDelegate(parent).render().also {
-            currentScope = supervisor
-        }
+        return createView(AnkoContext.createDelegate(parent))
     }
 
     final override fun createView(ui: AnkoContext<Any>): View {
-        return ui.render()
+        val viewScope = object: CoroutineScope {
+            val job = SupervisorJob(supervisor)
+            override val coroutineContext
+                get() = Dispatchers.Main + job
+        }
+        return viewScope.render(ui).also { view ->
+            view.onAttachStateChangeListener {
+                onViewDetachedFromWindow {
+                    viewScope.job.cancel()
+                }
+            }
+        }
     }
-    protected abstract fun AnkoContext<Any>.render(): View
+    protected abstract fun CoroutineScope.render(ui: AnkoContext<Any>): View
 
     open fun Fragment.onCreate() {}
     open fun Activity.onCreate() {}
@@ -59,10 +66,10 @@ abstract class UIComponent: CoroutineScope, AnkoComponent<Any> {
     open fun Menu.prepareOptions(context: Context) {}
 
     fun onDestroy() {
-        supervisor.cancel()
+        supervisor.cancelChildren()
     }
     fun onDestroyView() {
-        viewScope.cancelChildren()
+//        viewScope.cancelChildren()
     }
 
     fun pushToMain(context: Context) {
@@ -94,7 +101,8 @@ abstract class UIComponent: CoroutineScope, AnkoComponent<Any> {
 /// Allow creating fragments/activities from Parcelable Components
 /// Otherwise, only plain views can be created.
 fun <T> T.createFragment(): Fragment where T : UIComponent, T: Parcelable {
-    return UniversalFragment(this).also {
+    return UniversalFragment().also {
+        it.component = this
         it.onCreate()
     }
 }
@@ -172,22 +180,29 @@ class UniversalActivity: AppCompatActivity(), Closable {
     }
 }
 
-class UniversalFragment(): Fragment(), Closable {
-    internal constructor(args: UIComponent): this() {
-        this.composedArgs = args
-    }
-
-    private var composedArgs: UIComponent by arg()
+class UniversalFragment: Fragment(), Closable {
+    var component: UIComponent by arg()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        return composedArgs.run {
+        return component.run {
             createView(requireContext(), this@UniversalFragment)
+        }.also {
+            // Stable method of recursively assigning sibling-unique IDs
+            // to every view in the hierarchy.
+            // This guarantees that every view can save and restore state.
+            val className = component.javaClass.canonicalName
+            it.childrenRecursiveSequence().forEachIndexed { index, child ->
+                if (child.id == View.NO_ID) {
+                    // Assigns a positive unique hash for each view ID
+                    child.id = Objects.hash(className, index) and Int.MAX_VALUE
+                }
+            }
         }
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
         super.onCreateOptionsMenu(menu, inflater)
-        composedArgs.apply {
+        component.apply {
             menu.prepareOptions(requireContext())
         }
     }
@@ -198,12 +213,17 @@ class UniversalFragment(): Fragment(), Closable {
 
     override fun onDestroy() {
         super.onDestroy()
-        composedArgs.onDestroy()
+        // Only shut down the component when the fragment is being removed.
+        // Otherwise, it's a config change and the same component instance
+        // will be revived for use in the fragment.
+        if (isRemoving) {
+            component.onDestroy()
+        }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        composedArgs.onDestroyView()
+        component.onDestroyView()
     }
 
     override fun close() {
@@ -213,6 +233,12 @@ class UniversalFragment(): Fragment(), Closable {
             }
         }
     }
+
+//    companion object {
+//        internal fun from(component: UIComponent) = UniversalFragment().apply {
+//            this.component = component
+//        }
+//    }
 }
 
 private class DefaultValue<T: Any>(val defaultBuilder: () -> T): ReadWriteProperty<Any, T> {

@@ -6,11 +6,10 @@ import com.chibatching.kotpref.KotprefModel
 import com.chibatching.kotpref.pref.AbstractPref
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.GlobalScope
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.error
 import kotlin.reflect.KProperty
 
@@ -31,7 +30,7 @@ class objPref<T: Any>(val default: T): AbstractPref<T>() {
         return preference.getString(property.name, null)?.let {
             try {
 //                App.kryo.objectFromBytes<T>(it.toByteArray(Charsets.ISO_8859_1))
-                runBlocking { deserialize<T>(it) }
+                runBlocking { deserialize(it) as T }
             } catch(e: Throwable) {
                 error("Property ${property.name} failed to load, using default value.", e)
                 default

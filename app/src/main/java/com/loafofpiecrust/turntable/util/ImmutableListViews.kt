@@ -1,10 +1,6 @@
 package com.loafofpiecrust.turntable.util
 
 import com.loafofpiecrust.turntable.tryOr
-import kotlinx.coroutines.experimental.Deferred
-import kotlinx.coroutines.experimental.GlobalScope
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.runBlocking
 
 
 inline fun <T> List<T>.with(elem: T, pos: Int): List<T>

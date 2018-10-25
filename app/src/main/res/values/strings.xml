@@ -142,5 +142,40 @@
     <!-- Type Names -->
     <string name="CollaborativePlaylist">Playlist</string>
     <string name="MixTape">Mixtape</string>
+    <string name="MutableMixtape">Mixtape</string>
     <string name="AlbumCollection">Album Collection</string>
+
+
+    <plurals name="album">
+        <item quantity="one">Album</item>
+        <item quantity="other">Albums</item>
+    </plurals>
+    
+    <plurals name="Album_Type_LP">
+        <item quantity="one">Album</item>
+        <item quantity="other">Albums</item>
+    </plurals>
+
+    <plurals name="Album_Type_EP">
+        <item quantity="one">EP</item>
+        <item quantity="other">EPs</item>
+    </plurals>
+
+    <plurals name="Album_Type_SINGLE">
+        <item quantity="one">Single</item>
+        <item quantity="other">Singles</item>
+    </plurals>
+
+    <plurals name="Album_Type_LIVE">
+        <item quantity="other">Live</item>
+    </plurals>
+
+    <plurals name="Album_Type_COMPILATION">
+        <item quantity="one">Compilation</item>
+        <item quantity="other">Compilations</item>
+    </plurals>
+
+    <plurals name="Album_Type_OTHER">
+        <item quantity="other">Other</item>
+    </plurals>
 </resources>

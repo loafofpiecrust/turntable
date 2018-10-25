@@ -14,16 +14,18 @@ import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.ImageView
 import com.bumptech.glide.Glide
-import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.browse.LocalApi
+import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.repository.local.LocalApi
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
+import com.loafofpiecrust.turntable.parMap
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.channels.first
+import com.loafofpiecrust.turntable.tryOr
+import com.loafofpiecrust.turntable.util.generateChildrenIds
+import com.loafofpiecrust.turntable.util.size
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.consumeEach
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import org.jetbrains.anko.*
@@ -79,7 +81,8 @@ class AlbumEditorActivity : BaseActivity() {
             }
         }
         val year = textInputLayout {
-            yearEdit = editText(album.year?.toString() ?: "") {
+            val year = album.year.takeIf { it != -1 }
+            yearEdit = editText(year?.toString() ?: "") {
                 inputType = EditorInfo.TYPE_CLASS_NUMBER
                 hintResource = R.string.album_year_hint
                 maxLines = 1
@@ -162,7 +165,7 @@ class AlbumEditorActivity : BaseActivity() {
         }
 
         album.tracks.parMap { song ->
-            given(Library.instance.sourceForSong(song.id)) { path ->
+            Library.instance.sourceForSong(song.id)?.let { path ->
                 tryOr(null) {
                     val internal = File(path)
                     val f = if (internal.canWrite()) {

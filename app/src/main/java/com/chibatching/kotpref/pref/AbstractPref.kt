@@ -4,11 +4,10 @@ import android.content.SharedPreferences
 import com.chibatching.kotpref.KotprefModel
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.channels.sendBlocking
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.channels.sendBlocking
+import kotlinx.coroutines.launch
 import org.jetbrains.anko.AnkoLogger
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty

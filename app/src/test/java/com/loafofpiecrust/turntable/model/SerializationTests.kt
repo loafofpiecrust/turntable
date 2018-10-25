@@ -11,10 +11,10 @@ import com.loafofpiecrust.turntable.parMap
 import com.loafofpiecrust.turntable.util.ALT_BG_POOL
 import com.loafofpiecrust.turntable.util.deserialize
 import com.loafofpiecrust.turntable.util.serialize
-import kotlinx.coroutines.experimental.awaitAll
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.firstOrNull
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.firstOrNull
+import kotlinx.coroutines.runBlocking
 import java.util.*
 import kotlin.test.*
 

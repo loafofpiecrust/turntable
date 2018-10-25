@@ -12,8 +12,6 @@ import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.mcxiaoke.koi.ext.closeQuietly
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.selects.select
 import org.nustaq.serialization.FSTConfiguration
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -23,7 +21,6 @@ import java.util.zip.Deflater
 import java.util.zip.DeflaterOutputStream
 import java.util.zip.Inflater
 import java.util.zip.InflaterInputStream
-import kotlin.coroutines.experimental.coroutineContext
 
 //
 // KRYO
@@ -103,13 +100,13 @@ suspend fun serialize(stream: OutputStream, obj: Any) {
     }
 }
 
-suspend fun <T> deserialize(bytes: ByteArray): T {
+suspend fun deserialize(bytes: ByteArray): Any {
 //    @Suppress("UNCHECKED_CAST")
 //    return fst.asObject(bytes) as T
     return App.kryo.objectFromBytes(bytes)
 }
 
-suspend fun <T> deserialize(stream: InputStream): T {
+fun deserialize(stream: InputStream): Any {
 //    val input = fst.getObjectInput(stream)
 //    @Suppress("UNCHECKED_CAST")
 //    return (input.readObject() as T).also {
@@ -118,18 +115,18 @@ suspend fun <T> deserialize(stream: InputStream): T {
     return App.kryo.let {
         val input = Input(stream)
         @Suppress("UNCHECKED_CAST")
-        val res = it.readClassAndObject(input) as T
+        val res = it.readClassAndObject(input)
         input.close()
         res
     }
 }
 
 // Generic serialization abstractions
-suspend fun <T: Any> Blob.toObject(): T {
-    return deserialize(toByteString().newInput())
+suspend inline fun <reified T> Blob.toObject(): T {
+    return deserialize(toByteString().newInput()) as T
 }
 suspend fun serializeToString(obj: Any): String = Base64.encodeToString(serialize(obj), Base64.NO_WRAP)
-suspend fun <T: Any> deserialize(input: String): T = deserialize(Base64.decode(input, Base64.NO_WRAP))
+suspend fun deserialize(input: String): Any = deserialize(Base64.decode(input, Base64.NO_WRAP))
 
 
 

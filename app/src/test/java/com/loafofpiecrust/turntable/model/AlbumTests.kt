@@ -3,12 +3,12 @@ package com.loafofpiecrust.turntable.model
 import ch.tutteli.atrium.api.cc.en_GB.*
 import ch.tutteli.atrium.verbs.assert
 import ch.tutteli.atrium.verbs.expect
-import com.loafofpiecrust.turntable.browse.Repository
+import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.album.*
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 
 
@@ -30,7 +30,7 @@ class LocalAlbumTests {
             )
         )
 
-        assert(album.musicId).toBe(album.id)
+        assert(album.id).toBe(album.id)
         assert(album.type).toBe(Album.Type.SINGLE)
         assert(album.year).notToBeNullBut(2017)
         assert(album.tracks.first().id.displayName).toBe("Night Night")

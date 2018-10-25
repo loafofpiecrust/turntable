@@ -1,14 +1,10 @@
 package com.loafofpiecrust.turntable.service
 
-import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
 import android.database.ContentObserver
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Handler
-import android.os.IBinder
 import android.provider.MediaStore
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestBuilder
@@ -24,20 +20,21 @@ import com.loafofpiecrust.turntable.model.album.*
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.artist.LocalArtist
+import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.model.song.LocalSongId
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
-import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.ui.BaseService
 import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.intValue
 import com.mcxiaoke.koi.ext.longValue
 import com.mcxiaoke.koi.ext.stringValue
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.awaitAll
-import kotlinx.coroutines.experimental.channels.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.first
+import kotlinx.coroutines.channels.map
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
@@ -279,7 +276,7 @@ class Library : BaseService() {
     }
 
 
-    private fun fillMissingArtwork() = async {
+    private fun fillMissingArtwork() = launch {
         val albums = albumsMap.openSubscription().first().values
         val cache = albumCovers.openSubscription().first()
 //        val addedCache = listOf<AlbumMetadata>()
@@ -363,7 +360,7 @@ class Library : BaseService() {
         }
     }
 
-    private fun fillArtistArtwork() = async {
+    private fun fillArtistArtwork() = launch {
         val cache = artistMeta.openSubscription().first()
         artistsMap.openSubscription().first().values.forEach { artist ->
             val key = ArtistMetadata(artist.id, null)
@@ -392,24 +389,15 @@ class Library : BaseService() {
             }
             val res = json.obj
 
-            if (res.has("artist")) {
-                val uri = tryOr(null) { res["artist"]["image"][3]["#text"].string }
-                if (uri != null && uri.isNotEmpty()) {
-                    launch {
-                        synchronized(UserPrefs.artistMeta) {
-                            UserPrefs.artistMeta appends key.copy(artworkUri = uri)
-                        }
-                        launch(Dispatchers.Main) {
-                            Glide.with(App.instance)
-                                .load(uri)
-//                                .apply(Library.ARTWORK_OPTIONS.signature(ObjectKey(key)))
-                                .preload()
-                        }
-                    }
-                } else {
-                    UserPrefs.artistMeta appends key
+            res["artist"]?.get("image")?.get(3)?.get("#text")?.string?.let { uri ->
+                UserPrefs.artistMeta appends key.copy(artworkUri = uri)
+                launch(Dispatchers.Main) {
+                    Glide.with(App.instance)
+                        .load(uri)
+//                      .apply(Library.ARTWORK_OPTIONS.signature(ObjectKey(key)))
+                        .preload()
                 }
-            } else {
+            } ?: run {
                 UserPrefs.artistMeta appends key
             }
 
@@ -417,7 +405,7 @@ class Library : BaseService() {
         }
     }
 
-    fun addRemoteAlbum(album: Album) = async {
+    fun addRemoteAlbum(album: Album) = launch {
 //        val existing = findAlbum(album.uuid).first()
 //        if (existing == null) {
         // Ensure the tracks are loaded before saving.
@@ -427,7 +415,7 @@ class Library : BaseService() {
 //        }
     }
 
-    fun removeRemoteAlbum(album: Album) = async {
+    fun removeRemoteAlbum(album: Album) = launch {
         val all = UserPrefs.remoteAlbums.value
         val idx = all.indexOfFirst { it.id == album.id }
         if (idx != -1) {
@@ -566,7 +554,7 @@ class Library : BaseService() {
                     if (duration == 0 || (Song.MIN_DURATION <= duration && duration <= Song.MAX_DURATION)) {
                         var artist = cur.stringValue(MediaStore.Audio.Media.ARTIST)
                         val albumArtist = tryOr(artist) {
-                            cur.stringValue("album_artist")
+                            cur.getString(cur.getColumnIndex("album_artist")) ?: artist
                         }
                         if (artist == "" || artist == "<unknown>") {
                             artist = albumArtist
@@ -579,7 +567,7 @@ class Library : BaseService() {
 //                        val album = cur.stringValue(MediaStore.Audio.Media.ALBUM)
                         val data = cur.stringValue(MediaStore.Audio.Media.DATA)
                         val index = cur.intValue(MediaStore.Audio.Media.TRACK)
-                        val year = cur.intValue(MediaStore.Audio.Media.YEAR).takeIf { it > 0 }
+                        val year = cur.intValue(MediaStore.Audio.Media.YEAR)
 
                         val (disc, track) = if (index >= 1000) {
                             // There may be multiple discs

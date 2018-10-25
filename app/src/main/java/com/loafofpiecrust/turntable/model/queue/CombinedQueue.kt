@@ -1,17 +1,15 @@
 package com.loafofpiecrust.turntable.model.queue
 
-import com.loafofpiecrust.turntable.player.MusicPlayer
-import com.loafofpiecrust.turntable.player.StaticQueue
-import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.util.with
 import com.loafofpiecrust.turntable.util.without
 
 data class CombinedQueue(
-    val primary: MusicPlayer.Queue,
+    val primary: Queue,
     val nextUp: List<Song>,
     val isPlayingNext: Boolean = false
-): MusicPlayer.Queue {
+): Queue {
     override val list: List<Song> =
         if (nextUp.isNotEmpty()) {
             primary.list.with(nextUp, primary.position + 1)
@@ -24,28 +22,28 @@ data class CombinedQueue(
     override val current: Song? get() = list.getOrNull(position)
 
 
-    override fun next(): MusicPlayer.Queue {
+    override fun toNext(): Queue {
         return if (isPlayingNext) {
             if (nextUp.size > 1) { // need more than 1 because currently playing the first one.
                 // position stays the same since we just pop a nextUp
                 CombinedQueue(primary, nextUp.drop(1), true)
             } else {
                 // still drop the currently playing in 'nextUp', but we're done playing the next ones.
-                CombinedQueue(primary.next(), nextUp.drop(1), false)
+                CombinedQueue(primary.toNext(), nextUp.drop(1), false)
             }
         } else {
             if (nextUp.isNotEmpty()) {
                 CombinedQueue(primary, nextUp, true)
             } else {
-                CombinedQueue(primary.next(), nextUp, false)
+                CombinedQueue(primary.toNext(), nextUp, false)
             }
         }
     }
 
-    override fun prev(): MusicPlayer.Queue =
-        CombinedQueue(primary.prev(), nextUp, false)
+    override fun toPrev(): Queue =
+        CombinedQueue(primary.toPrev(), nextUp, false)
 
-    override fun shifted(from: Int, to: Int): MusicPlayer.Queue {
+    override fun shifted(from: Int, to: Int): Queue {
         // first determine if the 'from' index is within the nextUp
         val firstNextPos = if (isPlayingNext) position else position + 1
         val lastNextPos = firstNextPos + nextUp.size
@@ -76,7 +74,7 @@ data class CombinedQueue(
      * This differs from Spotify's functionality which distinguishes which
      * part of the queue you're shifting within.
      */
-    override fun shiftedPosition(newPos: Int): MusicPlayer.Queue {
+    override fun shiftedPosition(newPos: Int): Queue {
         if (newPos == position) return this
 
         // first decide if the new position is within up next or past it.
@@ -118,7 +116,7 @@ data class CombinedQueue(
         return this.copy(primary = p)
     }
 
-    fun restoreSequential(backup: MusicPlayer.Queue): CombinedQueue =
+    fun restoreSequential(backup: Queue): CombinedQueue =
         if (backup is StaticQueue) {
             // find the current song in the backup list, and make that the position
             this.copy(primary = backup.copy(position = backup.list.indexOf(primary.current)))

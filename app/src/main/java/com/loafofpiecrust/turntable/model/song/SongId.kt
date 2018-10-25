@@ -17,7 +17,7 @@ data class SongId(
     val artist: ArtistId = album.artist,
     var features: List<ArtistId> = emptyList()
 ): MusicId, Parcelable, Comparable<SongId> {
-    private constructor(): this("", "", "")
+    internal constructor(): this("", AlbumId())
     constructor(title: String, album: String, artist: String, songArtist: String = artist):
         this(title, AlbumId(album, ArtistId(artist)), ArtistId(songArtist))
 

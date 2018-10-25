@@ -3,18 +3,23 @@ package com.loafofpiecrust.turntable.model.playlist
 import com.google.firebase.firestore.Blob
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
-import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.model.album.Album
-import com.loafofpiecrust.turntable.model.album.PartialAlbum
+import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.repository.Repository
+import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.sync.User
-import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.GlobalScope
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.map
-import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.runBlocking
+import com.loafofpiecrust.turntable.puts
+import com.loafofpiecrust.turntable.shifted
+import com.loafofpiecrust.turntable.model.sync.User
+import com.loafofpiecrust.turntable.util.lazy
+import com.loafofpiecrust.turntable.util.serialize
+import com.loafofpiecrust.turntable.util.toObject
+import com.loafofpiecrust.turntable.util.without
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.util.*
 
 
@@ -23,23 +28,27 @@ class AlbumCollection(
     override var name: String,
     override var color: Int?,
     override val uuid: UUID
-) : Playlist() {
+) : AbstractPlaylist(), MutablePlaylist {
     /// For serialization
     private constructor(): this(User(), "", null, UUID.randomUUID())
 
-    private val _albums = ConflatedBroadcastChannel(listOf<Album>())
+    private val _albums = ConflatedBroadcastChannel(listOf<AlbumId>())
 
-    val albums: ReceiveChannel<List<Album>> get() = _albums.openSubscription()
+    val albums: ReceiveChannel<List<AlbumId>> get() = _albums.openSubscription()
 
     override val icon: Int
         get() = R.drawable.ic_album
 
-    val items: ReceiveChannel<List<PartialAlbum>>
-        get() = albums.map { it.map { it.toPartial() } }
-
-
+    /**
+     * NOTE: Is this even valuable or usable?
+     * Maybe just return empty for a non-playable collection.
+     */
     override val tracksChannel: ReceiveChannel<List<Song>>
-        get() = items.map { it.lazy.flatMap { it.tracks.lazy }.toList() }
+        get() = albums.map {
+            it.mapNotNull { Repository.find(it) }.lazy
+                .flatMap { it.tracks.lazy }
+                .toList()
+        }
 
     companion object {
         fun fromDocument(doc: DocumentSnapshot): AlbumCollection = runBlocking {
@@ -56,15 +65,15 @@ class AlbumCollection(
     }
 
 
-    override fun diffAndMerge(newer: Playlist): Boolean {
+    override fun diffAndMerge(newer: AbstractPlaylist): Boolean {
         if (newer is AlbumCollection) {
             _albums puts newer._albums.value
         }
         return false
     }
 
-    fun add(album: Album): Boolean {
-        val isNew = _albums.value.find { it.id == album.id } == null
+    fun add(album: AlbumId): Boolean {
+        val isNew = _albums.value.find { it == album } == null
         if (isNew) {
             _albums puts _albums.value + album
             updateLastModified()
@@ -72,7 +81,7 @@ class AlbumCollection(
         return isNew
     }
 
-    fun addAll(albums: List<Album>) {
+    fun addAll(albums: List<AlbumId>) {
         updateLastModified()
         _albums puts _albums.value + albums
     }

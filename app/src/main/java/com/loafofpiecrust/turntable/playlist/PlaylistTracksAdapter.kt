@@ -4,16 +4,15 @@ import android.view.View
 import android.view.ViewGroup
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
-import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.player.MusicService
+import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.sync.PlayerAction
-import com.loafofpiecrust.turntable.ui.RecyclerBroadcastAdapter
+import com.loafofpiecrust.turntable.views.RecyclerBroadcastAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
 import com.loafofpiecrust.turntable.util.consumeEach
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import org.jetbrains.anko.imageResource
 import org.jetbrains.anko.sdk27.coroutines.onClick
 import kotlin.math.abs
@@ -48,7 +47,7 @@ class PlaylistTracksAdapter(
 
     override fun RecyclerListItemOptimized.onBind(item: Song, position: Int, job: Job) {
         card.onClick {
-            MusicService.enact(PlayerAction.PlaySongs(data, position))
+            MusicService.offer(PlayerAction.PlaySongs(data, position))
         }
 
         mainLine.text = item.id.displayName
@@ -56,7 +55,7 @@ class PlaylistTracksAdapter(
         if (playlist.isCompletable) {
             track.visibility = View.INVISIBLE
             statusIcon.visibility = View.VISIBLE
-            UserPrefs.history.consumeEach(UI + job) { history ->
+            UserPrefs.history.consumeEach(Dispatchers.Main + job) { history ->
                 val entry = history.find { it.song.id == item.id }
                 if (entry != null && entry.timestamp > playlist.createdTime.time) {
                     statusIcon.imageResource = R.drawable.ic_check_box

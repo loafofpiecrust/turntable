@@ -1,14 +1,14 @@
 package com.loafofpiecrust.turntable.model
 
 import android.os.Parcelable
-import java.io.Serializable
 
 interface Music {
-    val musicId: MusicId
+    val id: MusicId
 }
 
-interface SavableMusic: Music, Serializable
-interface MusicId: Parcelable {
+interface Recommendation: Parcelable
+
+interface MusicId: Parcelable, Recommendation {
     val name: String
     val displayName: String
 }

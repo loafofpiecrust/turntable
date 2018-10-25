@@ -6,10 +6,13 @@ import android.view.View
 import android.view.ViewManager
 import android.widget.EditText
 import android.widget.LinearLayout
-import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.browse.Spotify
+import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.repository.remote.Spotify
+import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
+import com.loafofpiecrust.turntable.model.playlist.PlaylistId
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
@@ -17,17 +20,16 @@ import com.loafofpiecrust.turntable.sync.Message
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.popMainContent
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.Dispatchers
-import kotlinx.coroutines.experimental.GlobalScope
-import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.alert
-import org.jetbrains.anko.support.v4.ctx
 import org.jetbrains.anko.support.v4.toast
 import java.util.*
 
@@ -70,7 +72,7 @@ class PlaylistDetailsFragment: BaseFragment() {
     }
 
     override fun ViewManager.createView(): View = linearLayout {
-        backgroundColorResource = R.color.background
+//        backgroundColorResource = R.color.background
         orientation = LinearLayout.VERTICAL
 //        fitsSystemWindows = true
 
@@ -163,24 +165,24 @@ class PlaylistDetailsFragment: BaseFragment() {
 
                     menuItem(R.string.share, showIcon = false).onClick {
                         FriendPickerDialog(
-                            Message.Playlist(playlistId),
+                            Message.Recommend(PlaylistId(playlistTitle, playlistId)),
                             "Share"
-                        ).show(ctx)
+                        ).show(context)
                     }
 
                     // TODO: Only show if playlist isn't already saved.
                     menuItem(R.string.playlist_subscribe, showIcon = false).onClick {
-                        ctx.library.addPlaylist(playlist)
+                        context.library.addPlaylist(playlist)
                     }
 
 //                    menuItem("Make Completable", showIcon = false).onClick {
 //                        playlist.isCompletable = true
 //                    }
 
-                }.lparams(width = matchParent, height = dimen(R.dimen.toolbar_height)) {
+                }.lparams(width = matchParent) {
                     //                    scrollFlags = SCROLL_FLAG_SCROLL and SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
                 }
-            }.lparams(width= matchParent)
+            }.lparams(width = matchParent)
 
 //            frameLayout {
 //                uuid = R.uuid.songs

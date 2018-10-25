@@ -7,28 +7,25 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.browse.Spotify
-import com.loafofpiecrust.turntable.model.Music
-import com.loafofpiecrust.turntable.model.SavableMusic
-import com.loafofpiecrust.turntable.model.album.Album
-import com.loafofpiecrust.turntable.model.album.AlbumId
-import com.loafofpiecrust.turntable.model.album.PartialAlbum
-import com.loafofpiecrust.turntable.model.song.HasTracks
+import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
-import com.loafofpiecrust.turntable.sync.User
-import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.GlobalScope
-import kotlinx.coroutines.experimental.channels.*
-import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.runBlocking
-import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.error
+import com.loafofpiecrust.turntable.model.sync.User
+import com.loafofpiecrust.turntable.util.replayOne
+import com.loafofpiecrust.turntable.util.serialize
+import com.loafofpiecrust.turntable.util.toObject
+import com.loafofpiecrust.turntable.util.withReplaced
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.toast
 import java.io.Serializable
 import java.util.*
-import java.util.concurrent.TimeUnit
-import kotlin.coroutines.experimental.suspendCoroutine
+import kotlin.coroutines.suspendCoroutine
+import kotlin.coroutines.resume
 
 /**
  * Optionally collaborative playlist that syncs to the user's Google Drive storage.
@@ -39,7 +36,7 @@ class CollaborativePlaylist (
     override var name: String,
     override var color: Int?,
     override val uuid: UUID
-) : Playlist() {
+) : AbstractPlaylist(), MutablePlaylist {
     override val icon: Int
         get() = R.drawable.ic_boombox_color
 
@@ -151,7 +148,7 @@ class CollaborativePlaylist (
     }
 
     /// @return true if there were changes in our version since last server revision. (eg. Republish or not)
-    override fun diffAndMerge(other: Playlist): Boolean {
+    override fun diffAndMerge(other: AbstractPlaylist): Boolean {
         (other as? CollaborativePlaylist)?.let { other ->
             val ours = operations.value
             val theirs = other.operations.value
@@ -261,27 +258,6 @@ class CollaborativePlaylist (
 //            }
 //        }
 
-        suspend fun find(id: UUID): Playlist? {
-            val db = FirebaseFirestore.getInstance()
-            return suspendCoroutine { cont ->
-                db.collection("playlists").document(id.toString()).get().addOnCompleteListener { task ->
-                    val doc = task.result
-                    val err = task.exception
-                    if (err != null) {
-                        error { err.stackTrace }
-                    }
-                    if (task.isSuccessful && doc.exists()) {
-                        val format = doc.getString("format")!!
-                        cont.resume(when (format) {
-//                            "mixtape" -> MixTape.fromDocument(doc)
-                            else -> fromDocument(doc)
-                        })
-                    } else {
-                        cont.resume(null)
-                    }
-                }
-            }
-        }
 
         suspend fun fromSpotifyPlaylist(userId: String, id: String): Result<CollaborativePlaylist, Throwable> {
             val playlist = try {

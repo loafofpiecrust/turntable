@@ -11,11 +11,10 @@ import android.view.MenuItem
 import android.view.SubMenu
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import kotlinx.coroutines.experimental.Dispatchers
-import kotlinx.coroutines.experimental.GlobalScope
-import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.launch
-import kotlin.coroutines.experimental.CoroutineContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlin.coroutines.CoroutineContext
 
 
 inline fun Toolbar.menuItem(

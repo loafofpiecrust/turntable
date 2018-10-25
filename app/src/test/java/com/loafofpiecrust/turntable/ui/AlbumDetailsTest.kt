@@ -15,9 +15,9 @@ import com.loafofpiecrust.turntable.model.album.LocalAlbum
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
-import kotlinx.coroutines.experimental.channels.consume
-import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.channels.consume
+import kotlinx.coroutines.channels.first
+import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric

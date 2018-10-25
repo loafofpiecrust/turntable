@@ -6,11 +6,9 @@ import android.os.Bundle
 import android.support.v4.app.BundleCompat
 import android.support.v4.app.Fragment
 import android.support.v7.app.AppCompatActivity
-import com.loafofpiecrust.turntable.tryOr
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.runBlocking
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
-
 
 /**
  * Eases the Fragment.newInstance ceremony by marking the fragment's args with this delegate
@@ -18,24 +16,10 @@ import kotlin.reflect.KProperty
  *
  * Inspired by Adam Powell, he mentioned it during his IO/17 talk about Kotlin
  */
-class FragmentArgument<T: Any>(private val defaultValue: (() -> T)?) : ReadWriteProperty<Fragment, T> {
-    private var value: T? = null
+class FragmentArgument<T: Any>(val defaultValue: (() -> T)?) {
+    var value: T? = null
 
-    override operator fun getValue(thisRef: Fragment, property: KProperty<*>): T {
-        if (value == null) {
-            value = thisRef.arguments?.get(property.name)?.let { storedValue ->
-                try {
-                    @Suppress("UNCHECKED_CAST")
-                    (storedValue as? T) ?: runBlocking { deserialize<T>(storedValue as ByteArray) }
-                } catch (e: Throwable) {
-                    defaultValue?.invoke()
-                }
-            } ?: defaultValue?.invoke()
-        }
-        return value ?: throw IllegalStateException("Property ${property.name} could not be read")
-    }
-
-    override operator fun setValue(thisRef: Fragment, property: KProperty<*>, value: T) {
+    operator fun setValue(thisRef: Fragment, property: KProperty<*>, value: T) {
         if (thisRef.arguments == null) thisRef.arguments = android.os.Bundle()
 
         val args = thisRef.arguments
@@ -63,6 +47,19 @@ class FragmentArgument<T: Any>(private val defaultValue: (() -> T)?) : ReadWrite
     }
 }
 
+inline operator fun <reified T: Any> FragmentArgument<T>.getValue(thisRef: Fragment, property: KProperty<*>): T {
+    if (value == null) {
+        value = thisRef.arguments?.get(property.name)?.let { storedValue ->
+            if (storedValue is T) {
+                storedValue
+            } else runBlocking {
+                deserialize(storedValue as ByteArray) as T
+            }
+        } ?: defaultValue?.invoke()
+    }
+    return value ?: throw IllegalStateException("Property ${property.name} could not be read")
+}
+
 fun <T: Any> Fragment.arg() = FragmentArgument<T>(null)
 fun <T: Any> Fragment.arg(defaultValue: T) = FragmentArgument { defaultValue }
 fun <T: Any> Fragment.arg(defaultValue: () -> T) = FragmentArgument(defaultValue)
@@ -80,7 +77,7 @@ class ActivityArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty
                 val storedValue = args[property.name]
 
                 @Suppress("UNCHECKED_CAST")
-                value = (storedValue as? T) ?: runBlocking { deserialize<T>(storedValue as ByteArray) }
+                value = (storedValue as? T) ?: runBlocking { deserialize(storedValue as ByteArray) as T }
             } catch (e: Throwable) {
                 // If the argument wasn't provided, attempt to fallback on the default value.
                 value = defaultValue

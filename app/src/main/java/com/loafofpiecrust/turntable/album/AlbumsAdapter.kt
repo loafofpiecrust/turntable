@@ -1,35 +1,57 @@
 package com.loafofpiecrust.turntable.album
 
-import android.graphics.Typeface
-import android.support.v7.widget.CardView
 import android.support.v7.widget.RecyclerView
 import android.view.ViewGroup
-import android.widget.TextView
-import com.afollestad.sectionedrecyclerview.SectionedViewHolder
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions
-import com.bumptech.glide.signature.ObjectKey
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.loadPalette
-import com.loafofpiecrust.turntable.util.getColorCompat
-import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.model.imageTransition
 import com.loafofpiecrust.turntable.model.nameTransition
-import com.loafofpiecrust.turntable.util.textStyle
-import com.loafofpiecrust.turntable.ui.RecyclerAdapter
-import com.loafofpiecrust.turntable.ui.RecyclerGridItem
-import com.loafofpiecrust.turntable.ui.RecyclerItem
-import com.loafofpiecrust.turntable.ui.SectionedRecyclerAdapter
-import com.loafofpiecrust.turntable.util.cancelSafely
+import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.views.RecyclerAdapter
+import com.loafofpiecrust.turntable.views.RecyclerGridItem
+import com.loafofpiecrust.turntable.ui.SectionedAdapter
+import com.loafofpiecrust.turntable.util.pluralResource
+import com.loafofpiecrust.turntable.views.SimpleHeaderViewHolder
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.consumeEach
-import org.jetbrains.anko.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.jetbrains.anko.colorAttr
+import org.jetbrains.anko.imageResource
+import org.jetbrains.anko.sdk27.coroutines.onClick
+import org.jetbrains.anko.textColor
+
+private fun RecyclerGridItem.bindAlbum(
+    album: Album,
+    byArtist: Boolean
+) {
+
+    mainLine.text = album.id.displayName
+    subLine.text = if (byArtist) {
+        if (album.year > 0) {
+            album.year.toString()
+        } else ""
+    } else {
+        album.id.artist.name
+    }
+
+    // TODO: Generalize transition elements between list and grid layouts
+    mainLine.transitionName = album.id.nameTransition
+    coverImage.transitionName = album.id.imageTransition
+
+    card.setCardBackgroundColor(UserPrefs.primaryColor.value)
+    val textColor = itemView.context.colorAttr(android.R.attr.textColor)
+    mainLine.textColor = textColor
+    subLine.textColor = textColor
+}
 
 // Album categories: All, ByArtist
 // Song categories: All, ByArtist, Album, Playlist
@@ -41,9 +63,8 @@ import org.jetbrains.anko.*
 class AlbumsAdapter(
     channel: ReceiveChannel<List<Album>>,
     private val byArtist: Boolean,
-    private val listener: ((RecyclerItem, Album) -> Unit)?
-) : RecyclerAdapter<Album, RecyclerItem>(channel), FastScrollRecyclerView.SectionedAdapter {
-
+    private val listener: ((RecyclerGridItem, Album) -> Unit)?
+) : RecyclerAdapter<Album, RecyclerGridItem>(channel), FastScrollRecyclerView.SectionedAdapter {
     override fun itemsSame(a: Album, b: Album, aIdx: Int, bIdx: Int) =
         a.id == b.id
 
@@ -53,63 +74,43 @@ class AlbumsAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int)
         = RecyclerGridItem(parent, 3)
 
-    private val imageJobs = HashMap<RecyclerItem, Job>()
-    override fun onBindViewHolder(holder: RecyclerItem, position: Int) {
+    private val imageJobs = HashMap<RecyclerGridItem, Job>()
+    override fun onBindViewHolder(holder: RecyclerGridItem, position: Int) = holder.run {
         // Runs as you re-scroll
         // So, could grab directly from a stream of the albums rather than a fixed list passed in
         val album = data[position]
-
-        holder.card.setOnClickListener {
-            listener?.invoke(holder, album)
-        }
-
-        holder.mainLine.text = album.id.displayName
-        holder.subLine.text = if (byArtist) {
-            album.year?.toString() ?: ""
-        } else {
-            album.id.artist.name
-        }
-
-        // TODO: Generalize transition elements between list and grid layouts
-        holder.mainLine.transitionName = album.id.nameTransition
-        holder.coverImage?.transitionName = album.id.imageTransition
-
-        if (holder.card is CardView) {
-            holder.card.setCardBackgroundColor(UserPrefs.primaryColor.value)
-        } else {
-            holder.card.backgroundColor = UserPrefs.primaryColor.value
-        }
-        holder.mainLine.textColor = holder.card.context.getColorCompat(R.color.text)
-        holder.subLine.textColor = holder.card.context.getColorCompat(R.color.text)
+        bindAlbum(album, byArtist)
 
         val opts = RequestOptions()
             .placeholder(R.drawable.ic_default_album)
 
-        if (holder.coverImage != null) {
-            holder.coverImage.imageResource = R.drawable.ic_default_album
-            val job = GlobalScope.launch {
-                album.loadThumbnail(Glide.with(holder.card.context)).consumeEach {
-                    val req = it?.apply(opts)
-                        ?.transition(DrawableTransitionOptions().crossFade(200))
-                        ?.listener(album.loadPalette(holder.card, holder.mainLine, holder.subLine))
+        val job = launch {
+            album.loadThumbnail(Glide.with(coverImage)).consumeEach {
+                val req = it?.apply(opts)
+                    ?.transition(DrawableTransitionOptions().crossFade(200))
+                    ?.listener(album.loadPalette(card, mainLine, subLine))
 
-                    withContext(Dispatchers.Main) {
-                        req?.into(holder.coverImage) ?: run {
-                            holder.coverImage.imageResource = R.drawable.ic_default_album
-                        }
+                withContext(Dispatchers.Main) {
+                    req?.into(coverImage) ?: run {
+                        coverImage.imageResource = R.drawable.ic_default_album
                     }
                 }
             }
-            imageJobs.put(holder, job)?.cancelSafely()
         }
+
+        imageJobs.put(holder, job)?.cancel()
+
+        card.setOnClickListener {
+            listener?.invoke(holder, album)
+        }
+
+        Unit
     }
 
-    override fun onViewRecycled(holder: RecyclerItem) {
-        imageJobs.remove(holder)?.cancelSafely()
-        if (holder.coverImage != null) {
-            Glide.with(holder.card.context)
-                .clear(holder.coverImage)
-        }
+    override fun onViewRecycled(holder: RecyclerGridItem) {
+        imageJobs.remove(holder)?.cancel()
+        Glide.with(holder.card.context)
+            .clear(holder.coverImage)
     }
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
@@ -119,84 +120,58 @@ class AlbumsAdapter(
     }
 }
 
-class AlbumSectionAdapter(
-    private val listener: (RecyclerItem, Album) -> Unit?
-): SectionedRecyclerAdapter<Album, Album.Type, SectionedViewHolder>(
-    groupBy = { it.type }
+
+class AlbumAdapterSectioned(
+    originalChannel: ReceiveChannel<List<Album>>,
+    private val listener: (RecyclerGridItem, Album) -> Unit?
+): SectionedAdapter<Album, Album.Type, RecyclerGridItem, SimpleHeaderViewHolder>(
+    originalChannel.map { albums ->
+        albums.groupBy { it.type }
+    }
 ) {
-    override fun onBindFooterViewHolder(holder: SectionedViewHolder?, section: Int) {
-        
-    }
+    override val moveEnabled get() = false
+    override val dismissEnabled get() = false
 
-    override fun onBindHeaderViewHolder(holder: SectionedViewHolder, section: Int, expanded: Boolean) {
-        val holder = (holder as? HeaderItem) ?: return
-        val type = groupedData[section].first
+    override fun onCreateItemViewHolder(parent: ViewGroup) =
+        RecyclerGridItem(parent)
 
-        holder.mainLine.text = type.name
-    }
+    override fun onCreateHeaderViewHolder(parent: ViewGroup) =
+        SimpleHeaderViewHolder(parent)
 
-    private val imageJobs = HashMap<RecyclerItem, Job>()
-    override fun onBindViewHolder(holder: SectionedViewHolder, section: Int, relativePosition: Int, absolutePosition: Int) {
-        val holder = (holder as? RecyclerGridItem) ?: return
-        val album = groupedData[section].second[relativePosition]
+    override fun RecyclerGridItem.onBindItem(item: Album, position: Int, job: Job) {
+        bindAlbum(item, true)
 
-        holder.header.transitionName = album.id.nameTransition
-        holder.coverImage?.transitionName = album.id.imageTransition
+        val opts = RequestOptions()
+            .placeholder(R.drawable.ic_default_album)
 
-        holder.card.setOnClickListener {
-            listener.invoke(holder, album)
-        }
+        launch(job) {
+            item.loadThumbnail(Glide.with(coverImage)).consumeEach {
+                val req = it?.apply(opts)
+                    ?.transition(DrawableTransitionOptions().crossFade(200))
+                    ?.listener(item.loadPalette(card, mainLine, subLine))
 
-        holder.mainLine.text = album.id.displayName
-//        if (byArtist) {
-            holder.subLine.text = album.year?.toString() ?: ""
-//        } else {
-//            holder.subLine.text = album.artist
-//        }
-
-
-        holder.card.backgroundColor = UserPrefs.primaryColor.value
-        holder.mainLine.textColor = holder.card.context.getColorCompat(R.color.text)
-        holder.subLine.textColor = holder.card.context.getColorCompat(R.color.text)
-
-
-        if (holder.coverImage != null) {
-            val opts = RequestOptions()
-//            .override(250)
-                .placeholder(R.drawable.ic_default_album)
-                .signature(ObjectKey(album.id.displayName))
-
-            imageJobs.put(holder, launch(Dispatchers.Main) {
-                album.loadThumbnail(Glide.with(holder.card.context)).consumeEach {
-                    it?.apply(opts)
-                        ?.transition(DrawableTransitionOptions().crossFade(200))
-                        ?.listener(album.loadPalette(holder.card, holder.mainLine, holder.subLine))
-                        ?.into(holder.coverImage) ?: run {
-                            holder.coverImage.imageResource = R.drawable.ic_default_album
-                        }
+                withContext(Dispatchers.Main) {
+                    req?.into(coverImage) ?: run {
+                        coverImage.imageResource = R.drawable.ic_default_album
+                    }
                 }
-            })?.cancelSafely()
+            }
+        }
+
+        card.onClick {
+            listener(this@onBindItem, item)
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SectionedViewHolder {
-        return when (viewType) {
-            VIEW_TYPE_HEADER -> HeaderItem(parent)
-            else -> RecyclerGridItem(parent, 3)
-        }
+    override fun SimpleHeaderViewHolder.onBindHeader(key: Album.Type, job: Job) {
+        val context = itemView.context
+        val title = context.resources.getQuantityString(key.pluralResource(context), 10)
+        mainLine.text = title
     }
 
+    override fun dataItemsSame(a: Album, b: Album) = a.id == b.id
+    override fun dataContentsSame(a: Album, b: Album) =
+        a.id == b.id && a.year == b.year && a.type == b.type
 
-    inner class HeaderItem(
-        parent: ViewGroup
-    ) : SectionedViewHolder(AnkoContext.create(parent.context, parent).linearLayout {
-        padding = dimen(R.dimen.text_content_margin)
-        textView {
-            id = R.id.mainLine
-            textStyle = Typeface.BOLD
-        }
-    }) {
-        val mainLine: TextView = itemView.find(R.id.mainLine)
-    }
 
 }

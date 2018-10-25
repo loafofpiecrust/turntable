@@ -3,19 +3,15 @@ package com.loafofpiecrust.turntable.util
 import android.support.v4.view.ViewPager
 import android.view.View
 import android.widget.TextView
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.channels.BroadcastChannel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.consumeEach
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.BroadcastChannel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.consumeEach
 import org.jetbrains.anko.sdk27.coroutines.onAttachStateChangeListener
 import org.jetbrains.anko.support.v4.onPageChangeListener
-import kotlin.coroutines.experimental.CoroutineContext
+import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KFunction
-import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KMutableProperty0
-import kotlin.reflect.KProperty
 
 
 fun <T> bindOneWay(obs: ReceiveChannel<T>, setter: (T) -> Unit) {

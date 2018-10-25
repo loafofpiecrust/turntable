@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable.browse.ui
+package com.loafofpiecrust.turntable.browse
 
 import android.support.v7.widget.LinearLayoutManager
 import android.view.View
@@ -7,15 +7,13 @@ import android.view.ViewManager
 import com.github.salomonbrys.kotson.*
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.ui.RecyclerAdapter
+import com.loafofpiecrust.turntable.views.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.produceSingle
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-import org.jetbrains.anko.support.v4.ctx
 import org.jetbrains.anko.verticalLayout
 
 class BrowseTagsFragment: BaseFragment() {
@@ -46,7 +44,7 @@ class BrowseTagsFragment: BaseFragment() {
 
     override fun ViewManager.createView(): View = verticalLayout {
         recyclerView {
-            layoutManager = LinearLayoutManager(ctx)
+            layoutManager = LinearLayoutManager(context)
             adapter = TagAdapter(popularTags)
         }
     }

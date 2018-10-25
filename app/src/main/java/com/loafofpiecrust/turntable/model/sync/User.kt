@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable.sync
+package com.loafofpiecrust.turntable.model.sync
 
 import android.os.Parcelable
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey
@@ -6,9 +6,7 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBIgnore
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.GlobalScope
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.*
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
 
@@ -20,12 +18,17 @@ data class User(
     var deviceId: String,
     var displayName: String?
 ): Parcelable {
-    constructor(): this("", "", null)
+    internal constructor(): this("", "", null)
+
+    override fun hashCode(): Int = username.hashCode()
+    override fun equals(other: Any?) =
+        other is User && other.username == this.username
 
     @get:DynamoDBIgnore
-    val name get() = displayName?.let {
-        if (it.isNotBlank()) it else username
-    } ?: username
+    val name: String get() =
+        if (displayName.isNullOrBlank()) {
+            username
+        } else displayName!!
 
     companion object: AnkoLogger by AnkoLogger<User>() {
         fun resolve(username: String): User? = run {
@@ -50,11 +53,7 @@ data class User(
         }
     }
 
-    fun refresh() = GlobalScope.async {
-        val db = OnlineSearchService.instance.dbMapper
-        val remote = db.load(User::class.java, username)
-        deviceId = remote.deviceId
-        displayName = remote.displayName
-        this@User
+    fun refresh(): Deferred<User> = GlobalScope.async(Dispatchers.IO) {
+        resolve(username)!!
     }
 }

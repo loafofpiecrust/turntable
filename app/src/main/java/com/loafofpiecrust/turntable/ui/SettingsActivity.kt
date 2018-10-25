@@ -1,17 +1,12 @@
 package com.loafofpiecrust.turntable.ui
 
 import activitystarter.MakeActivityStarter
-import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
-import android.view.View
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.prefs.MainPrefsFragment
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import kotlinx.coroutines.experimental.channels.consumeEach
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.navigationIconResource
-import org.jetbrains.anko.appcompat.v7.titleResource
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.design.appBarLayout
 

@@ -3,6 +3,7 @@ package com.loafofpiecrust.turntable.album
 import android.content.Context
 import android.graphics.Color.TRANSPARENT
 import android.graphics.Typeface.BOLD
+import android.graphics.drawable.Drawable
 import android.os.Parcelable
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.AppBarLayout
@@ -18,18 +19,24 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
-import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.browse.Repository
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
+import com.loafofpiecrust.turntable.App
+import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.repository.Repository
+import com.loafofpiecrust.turntable.collapsingToolbarlparams
 import com.loafofpiecrust.turntable.model.album.*
-import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.model.imageTransition
 import com.loafofpiecrust.turntable.model.nameTransition
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.PlaylistPicker
-import com.loafofpiecrust.turntable.service.Library
+import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.library
+import com.loafofpiecrust.turntable.song.SongsFragment
 import com.loafofpiecrust.turntable.song.songsList
 import com.loafofpiecrust.turntable.style.detailsStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
@@ -40,10 +47,12 @@ import com.loafofpiecrust.turntable.ui.UIComponent
 import com.loafofpiecrust.turntable.ui.showDialog
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.channels.*
-import kotlinx.coroutines.experimental.channels.Channel.Factory.CONFLATED
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.*
+import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
+import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
@@ -59,18 +68,16 @@ open class AlbumDetailsUI(
     val albumId: AlbumId
 ): UIComponent(), Parcelable {
     class Resolved(album: Album): AlbumDetailsUI(album.id) {
-        override val album = produceSingle { album }.replayOne()
+        override val album = ConflatedBroadcastChannel(album)
     }
 
-    open val album by lazy {
+    open val album: BroadcastChannel<Album> by lazy {
         async(Dispatchers.IO) {
             Repository.find(albumId)!!
         }.broadcast()
     }
 
     override fun Fragment.onCreate() {
-        val transDur = 400L
-
         val trans = TransitionSet()
             .addTransition(ChangeBounds())
             .addTransition(ChangeTransform())
@@ -79,11 +86,11 @@ open class AlbumDetailsUI(
         sharedElementEnterTransition = trans
         sharedElementReturnTransition = trans
 
-        enterTransition = Fade().setDuration(transDur)
+        enterTransition = Fade()
     }
 
 
-    override fun AnkoContext<Any>.render() = coordinatorLayout {
+    override fun CoroutineScope.render(ui: AnkoContext<Any>) = ui.coordinatorLayout {
         id = R.id.container
         backgroundColor = TRANSPARENT
 
@@ -124,7 +131,6 @@ open class AlbumDetailsUI(
                         //                        text = "Not Downloaded"
                         text = context.getString(R.string.album_remote)
                         textSizeDimen = R.dimen.small_text_size
-//                        backgroundColor = Color.BLACK
                         backgroundResource = R.drawable.rounded_rect
                     }.also { coloredText += it }
 
@@ -238,10 +244,10 @@ open class AlbumDetailsUI(
         }
         launch {
             album.consumeEach { album ->
-                if (album.year != null) {
+                if (album.year > 0) {
                     year.text = album.year.toString()
                 } else {
-                    visibility = View.GONE
+                    year.visibility = View.GONE
                 }
             }
         }
@@ -253,9 +259,22 @@ open class AlbumDetailsUI(
                 }
                 .consumeEach { (album, req) ->
                     req?.transition(DrawableTransitionOptions().crossFade(200))
-                        ?.listener(album.loadPalette(appBar, mainLine, subLine, collapser))
+                        ?.addListener(album.loadPalette(appBar, mainLine, subLine, collapser))
+                        ?.addListener(object: RequestListener<Drawable> {
+                            override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>?, isFirstResource: Boolean): Boolean {
+                                appBar.backgroundColor = UserPrefs.primaryColor.value
+                                return false
+                            }
+
+                            override fun onResourceReady(resource: Drawable?, model: Any?, target: Target<Drawable>?, dataSource: DataSource?, isFirstResource: Boolean): Boolean {
+                                return false
+                            }
+                        })
                         ?.into(image)
-                        ?: run { image.imageResource = R.drawable.ic_default_album }
+                        ?: run {
+                            image.imageResource = R.drawable.ic_default_album
+                            appBar.backgroundColor = UserPrefs.primaryColor.value
+                        }
                 }
         }
     }
@@ -263,19 +282,19 @@ open class AlbumDetailsUI(
     private fun Menu.prepareOptions(context: Context, album: Album) {
         menuItem(R.string.album_shuffle, R.drawable.ic_shuffle, showIcon =false).onClick(Dispatchers.Default) {
             if (album.tracks.isNotEmpty()) {
-                MusicService.enact(PlayerAction.PlaySongs(album.tracks, mode = MusicPlayer.OrderMode.SHUFFLE))
+                MusicService.offer(PlayerAction.PlaySongs(album.tracks, mode = MusicPlayer.OrderMode.SHUFFLE))
             }
         }
 
         menuItem(R.string.recommend).onClick {
             FriendPickerDialog(
-                Message.Recommendation(album.toPartial()),
+                Message.Recommend(album.id),
                 context.getString(R.string.recommend)
             ).show(context)
         }
 
         menuItem(R.string.add_to_playlist).onClick {
-            PlaylistPicker(album.toPartial()).showDialog(context)
+            PlaylistPicker(album.id).showDialog(context)
         }
 
         if (album is RemoteAlbum) {

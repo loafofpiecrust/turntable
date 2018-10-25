@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable.browse
+package com.loafofpiecrust.turntable.repository
 
 import android.support.annotation.StringRes
 import com.loafofpiecrust.turntable.R
@@ -10,14 +10,19 @@ import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.artist.RemoteArtist
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
+import com.loafofpiecrust.turntable.repository.local.LocalApi
+import com.loafofpiecrust.turntable.repository.local.SearchCache
+import com.loafofpiecrust.turntable.repository.remote.Discogs
+import com.loafofpiecrust.turntable.repository.remote.MusicBrainz
+import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.tryOr
-import kotlinx.coroutines.experimental.isActive
+import kotlinx.coroutines.isActive
 import org.jetbrains.anko.AnkoLogger
-import kotlin.coroutines.experimental.coroutineContext
+import kotlin.coroutines.coroutineContext
 
 interface Repository: AnkoLogger {
     @get:StringRes
-    val displayName: Int
+    val displayName: Int get() = -1
 
     suspend fun searchArtists(query: String): List<Artist>
     suspend fun searchAlbums(query: String): List<Album>
@@ -37,7 +42,7 @@ interface Repository: AnkoLogger {
             get() = R.string.search
 
         /// All Music APIs in descending order of priority
-        val DEFAULT_SOURCES = arrayOf<Repository>(
+        val DEFAULT_SOURCES: Array<Repository> = arrayOf(
             SearchCache,
             Discogs,
             MusicBrainz,
@@ -66,7 +71,8 @@ interface Repository: AnkoLogger {
 
 
         override suspend fun find(artist: ArtistId): Artist?
-            = LocalApi.find(artist) ?: findOnline(artist)
+            = LocalApi.find(artist)
+            ?: findOnline(artist)
 
         suspend fun findOnline(artist: ArtistId): Artist?
             = overSources { find(artist) }?.also { SearchCache.cache(it) }
@@ -89,7 +95,8 @@ interface Repository: AnkoLogger {
                 searchSongs(query).takeIf { it.isNotEmpty() }
             } ?: listOf()
 
-        override suspend fun fullArtwork(album: Album, search: Boolean): String? = SearchCache.fullArtwork(album) ?: tryOr(null) {
+        override suspend fun fullArtwork(album: Album, search: Boolean): String? = SearchCache.fullArtwork(album)
+            ?: tryOr(null) {
             if (album is RemoteAlbum) {
                 album.remoteId.artworkUrl ?: when (album.remoteId) {
                     is Discogs.AlbumDetails -> Discogs.fullArtwork(album, search)
@@ -104,7 +111,8 @@ interface Repository: AnkoLogger {
             }
         }?.also { SearchCache.cacheArtwork(album, it) }
 
-        override suspend fun fullArtwork(artist: Artist, search: Boolean): String? = SearchCache.fullArtwork(artist) ?: tryOr(null) {
+        override suspend fun fullArtwork(artist: Artist, search: Boolean): String? = SearchCache.fullArtwork(artist)
+            ?: tryOr(null) {
             if (artist is RemoteArtist) {
                 when (artist.details) {
                     is Discogs.ArtistDetails -> Discogs.fullArtwork(artist, search)

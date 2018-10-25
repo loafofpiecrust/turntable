@@ -49,9 +49,9 @@ fun View.generateChildrenIds() {
     if (id == View.NO_ID) {
         id = View.generateViewId()
     }
-    childrenSequence().forEach {
-        if (it.id == View.NO_ID) {
-            it.id = View.generateViewId()
+    childrenSequence().forEach { v ->
+        if (v.id == View.NO_ID) {
+            v.id = View.generateViewId()
         }
     }
 }

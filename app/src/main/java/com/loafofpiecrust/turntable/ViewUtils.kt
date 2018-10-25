@@ -7,9 +7,10 @@ import android.content.Intent
 import android.graphics.Color
 import android.support.design.widget.CollapsingToolbarLayout
 import android.support.v4.app.Fragment
+import android.view.Gravity
+import android.view.Menu
+import android.view.View
 import android.widget.PopupMenu
-import android.view.*
-import android.widget.ImageButton
 import com.github.daemontus.Option
 import com.github.daemontus.Result
 import com.github.daemontus.asError
@@ -17,16 +18,19 @@ import com.github.daemontus.unwrapOrElse
 import com.github.salomonbrys.kotson.jsonNull
 import com.github.salomonbrys.kotson.registerTypeAdapter
 import com.google.gson.GsonBuilder
-import com.loafofpiecrust.turntable.util.BG_POOL
 import com.loafofpiecrust.turntable.util.hasValue
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.SendChannel
-import org.jetbrains.anko.*
-import org.jetbrains.anko.sdk27.coroutines.onClick
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.SendChannel
+import org.jetbrains.anko.alert
+import org.jetbrains.anko.wrapContent
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.coroutines.experimental.*
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.coroutines.suspendCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 
 fun msToTimeString(ms: Int): String {
@@ -80,7 +84,7 @@ inline fun <T> Collection<T>.dedupMergeSorted(isDup: (T, T) -> Boolean, merger: 
     return result.apply { trimToSize() }
 }
 
-inline fun <T> Sequence<T>.dedupMergeSorted(crossinline isDup: (T, T) -> Boolean, crossinline merger: (T, T) -> T) = buildSequence {
+inline fun <T> Sequence<T>.dedupMergeSorted(crossinline isDup: (T, T) -> Boolean, crossinline merger: (T, T) -> T) = sequence {
     var prev: T? = null
     forEach { curr ->
         prev = if (prev != null) {
@@ -313,6 +317,14 @@ inline fun <T, E, R> Result<T, E>.flatMap(
 ): Result<R, E> = when (this) {
     is Result.Ok -> mapper(this.ok)
     is Result.Error -> this.error.asError()
+}
+
+inline fun <T> intoResult(block: () -> T): Result<T, Exception> {
+    return try {
+        Result.Ok(block())
+    } catch (e: Exception) {
+        Result.Error(e)
+    }
 }
 
 

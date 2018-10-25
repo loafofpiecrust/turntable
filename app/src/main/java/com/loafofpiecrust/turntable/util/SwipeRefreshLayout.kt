@@ -1,9 +1,9 @@
 package com.loafofpiecrust.turntable.util
 
 import android.support.v4.widget.SwipeRefreshLayout
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.consume
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.consume
+import kotlinx.coroutines.launch
 
 
 fun SwipeRefreshLayout.stopRefreshOnReceive(channel: ReceiveChannel<*>, startRefreshing: Boolean = true) {

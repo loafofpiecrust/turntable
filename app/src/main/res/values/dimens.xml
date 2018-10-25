@@ -28,6 +28,8 @@
     <dimen name="fullscreen_card_margin">16dp</dimen>
 
     <dimen name="base_elevation">0dp</dimen>
+    <dimen name="default_elevation">1dp</dimen>
+    <dimen name="raised_elevation">8dp</dimen>
     <dimen name="low_elevation">2dp</dimen>
     <dimen name="medium_elevation">4dp</dimen>
     <dimen name="high_elevation">8dp</dimen>

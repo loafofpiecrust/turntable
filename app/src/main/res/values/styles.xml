@@ -1,18 +1,15 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryDark">@color/primary_dark</item>
-        <item name="android:textColor">@color/text</item>
-        <item name="android:windowBackground">@color/background</item>
         <!--<item name="android:popupBackground">@color/background</item>-->
         <!--<item name="android:textSize">@dimen/standard_text_size</item>-->
         <!--<iidname="android:background">#000000</item>-->
         <item name="colorAccent">@color/accent</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="windowNoTitle">true</item>
         <item name="android:windowContentTransitions">true</item>
         <item name="android:windowSharedElementsUseOverlay">true</item>
         <item name="android:windowAllowEnterTransitionOverlap">true</item>
@@ -25,9 +22,17 @@
         <item name="android:spinnerStyle">@style/Widget.AppCompat.Spinner.Underlined</item>
     </style>
 
-    <style name="AppTheme.NoActionBar" parent="AppTheme">
-        <item name="windowActionBar">false</item>
-        <item name="windowNoTitle">true</item>
+    <style name="AppTheme.Light" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">false</item>
+        <!--<item name="android:colorBackground">@color/md_white_1000</item>-->
+        <item name="android:textColor">#000000d9</item>
+    </style>
+
+    <style name="AppTheme.Dark" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">false</item>
+        <item name="android:textColor">#ffffffd9</item>
     </style>
 
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark">

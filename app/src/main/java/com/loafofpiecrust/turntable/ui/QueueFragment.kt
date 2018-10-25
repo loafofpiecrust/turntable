@@ -10,20 +10,20 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewManager
 import android.widget.LinearLayout
-import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.model.queue.CombinedQueue
+import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.model.queue.indexWithinUpNext
-import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.player.StaticQueue
-import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.player.MusicService
+import com.loafofpiecrust.turntable.model.queue.StaticQueue
+import com.loafofpiecrust.turntable.popupMenu
+import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.song.songOptions
 import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.channels.*
+import com.loafofpiecrust.turntable.views.RecyclerBroadcastAdapter
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.*
 import org.jetbrains.anko.*
 import org.jetbrains.anko.cardview.v7.cardView
 import org.jetbrains.anko.recyclerview.v7.recyclerView
@@ -38,14 +38,14 @@ class QueueFragment : BaseFragment() {
 
         linearLayout {
             orientation = LinearLayout.VERTICAL
-            backgroundColor = context.getColorCompat(R.color.background)
+            backgroundColor = context.theme.color(android.R.attr.windowBackground)
 
             // Currently playing song
             val currentItem = RecyclerListItemOptimized(this, 3).also {
                 addView(it.itemView)
             }
             currentItem.statusIcon.imageResource = R.drawable.ic_play_circle_outline
-            UserPrefs.accentColor.consumeEach(UI) {
+            UserPrefs.accentColor.consumeEach(Dispatchers.Main) {
                 currentItem.mainLine.textColor = it
                 currentItem.subLine.textColor = it
                 currentItem.statusIcon.tint = it
@@ -122,11 +122,11 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>(
         queue.value.indexWithinUpNext(index)
 
     override fun onItemMove(fromIdx: Int, toIdx: Int) {
-        MusicService.enact(PlayerAction.ShiftQueueItem(fromIdx, toIdx))
+        MusicService.offer(PlayerAction.ShiftQueueItem(fromIdx, toIdx))
     }
 
     override fun onItemDismiss(idx: Int) {
-        MusicService.enact(PlayerAction.RemoveFromQueue(idx))
+        MusicService.offer(PlayerAction.RemoveFromQueue(idx))
     }
 
     var currentPosition: Int = 0
@@ -174,7 +174,7 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>(
             val c = if (relPos == 0) {
                 UserPrefs.accentColor.value
             } else {
-                itemView.context.getColorCompat(R.color.text)
+                itemView.context.colorAttr(android.R.attr.textColor)
             }
 
             mainLine.text = song.id.displayName
@@ -192,7 +192,7 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>(
             }
 
             card.onClick {
-                MusicService.enact(PlayerAction.QueuePosition(index))
+                MusicService.offer(PlayerAction.QueuePosition(index))
             }
 
             menu.onClick { v ->
@@ -202,7 +202,7 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>(
                         val q = runBlocking { music.player.queue.first() }
                         if (q.primary is StaticQueue) {
                             menuItem(R.string.queue_remove).onClick {
-                                MusicService.enact(PlayerAction.RemoveFromQueue(index))
+                                MusicService.offer(PlayerAction.RemoveFromQueue(index))
                             }
                         }
                     }

@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable.browse
+package com.loafofpiecrust.turntable.repository.remote
 
 import com.github.salomonbrys.kotson.*
 import com.google.gson.JsonObject
@@ -9,17 +9,17 @@ import com.loafofpiecrust.turntable.model.album.RemoteAlbum
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.artist.RemoteArtist
-import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.model.song.RemoteSongId
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
+import com.loafofpiecrust.turntable.repository.Repository
+import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.awaitOr
 import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.text
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.*
-import org.jetbrains.anko.AnkoLogger
+import kotlinx.coroutines.*
 import org.jetbrains.anko.error
 import org.jetbrains.anko.info
 import org.jsoup.Jsoup
@@ -105,8 +105,7 @@ object MusicBrainz: Repository {
                     )
                 },
                 details?.first ?: AlbumDetails(mbid),
-                type = type,
-                year = null
+                type = type
             ) //to it["score"].string.toInt()
         }.awaitAllNotNull()
     }
@@ -194,16 +193,18 @@ object MusicBrainz: Repository {
 //                async(UI) { println("album track '${name}'") }
 
 //                    RemoteSong(
+
+                    val artistName = recording["artist-credit"]?.get(0)?.get("name")?.string
                     Song(
                         SongId(
                             title,
                             albumId,
-                            tryOr(albumId.artist) { ArtistId(recording["artist-credit"][0]["name"].string) }
+                            artistName?.let { ArtistId(it) } ?: albumId.artist
                         ),
                         duration = recording["length"]?.int ?: 0,
                         track = recording["position"]?.int ?: idx+1,
                         disc = discIdx + 1,
-                        year = year,
+                        year = year ?: 0,
                         platformId = RemoteSongId(
                             recording["id"]?.string,
                             rgid,
@@ -217,7 +218,7 @@ object MusicBrainz: Repository {
                     null
                 }
             }.filterNotNull()
-        }.flatMap { it }.sortedBy { it.discTrack }
+        }.flatten().sortedBy { it.discTrack }
     }
 
     override suspend fun searchArtists(query: String): List<Artist> {
@@ -267,22 +268,19 @@ object MusicBrainz: Repository {
             "fmt" to "json",
             "query" to query
         )).gson["recordings"].array.map {
+            val albumObj = it["releases"][0]
             val artistName = it["artist-credit"][0]["artist"]["name"].string
-//            RemoteSong(
+            val artistId = ArtistId(artistName)
             Song(
                 SongId(
                     it["title"].string,
-                    it["releases"][0]["title"].string,
-                    artistName,
-                    artistName
+                    AlbumId(albumObj["title"].string, artistId)
                 ),
-                track = it["releases"][0]["media"][0]["track"][0]["number"].nullString?.toInt()
-                    ?: 0,
+                track = albumObj["media"][0]["track"][0]["number"].string.toInt(),
                 disc = 1,
                 duration = it["length"].int,
-                year = null
+                year = 0
             )
-//            )
         }
     }
 
@@ -375,7 +373,7 @@ object MusicBrainz: Repository {
 
                 album
             }
-        }.awaitAll().flatMap { it }
+        }.awaitAll().flatten()
     }
 
 

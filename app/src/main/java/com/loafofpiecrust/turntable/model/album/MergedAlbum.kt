@@ -14,12 +14,13 @@ class MergedAlbum(
 
     override val id get() = a.id
     override val type: Album.Type get() = minOf(a.type, b.type)
-    override val year: Int? get() {
+    override val year: Int
+        get() {
         val yearA = a.year
         val yearB = b.year
-        return if (yearA != null && yearA > 0 && yearB != null && yearB > 0) {
+        return if (yearA > 0 && yearB > 0) {
             minOf(yearA, yearB)
-        } else yearA ?: yearB
+        } else yearA.takeIf { it > 0 } ?: yearB
     }
     override val tracks: List<Song> by lazy {
         (a.tracks + b.tracks)

@@ -2,8 +2,7 @@ package com.chibatching.kotpref.pref
 
 import android.content.SharedPreferences
 import com.chibatching.kotpref.KotprefModel
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.async
 import kotlin.reflect.KProperty
 
 

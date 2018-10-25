@@ -7,11 +7,9 @@ import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
-import com.loafofpiecrust.turntable.util.consumeEach
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
+import kotlinx.coroutines.channels.ReceiveChannel
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
-import org.jetbrains.anko.support.v4.ctx
 
 class BiographyFragment: BaseDialogFragment() {
     //    @Arg(optional = true) lateinit var artistId: ArtistId

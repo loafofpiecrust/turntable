@@ -140,9 +140,9 @@ dependencies {
 
     implementation "de.ruedigermoeller:fst:2.56"
 
-    //    debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.1'
+        debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.1'
 
-    //    releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.1'
+        releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.1'
 
     //    // Optional, if you use support library fragments:
 
@@ -223,8 +223,8 @@ dependencies {
 
     // TODO: Evaluate method count here...
     implementation 'com.karumi:dexter:4.1.0'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:0.30.0'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:0.30.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:0.30.2-eap13'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:0.30.2-eap13'
 
     //    implementation 'org.jetbrains.kotlinx:kotlinx-collections-immutable:0.1'
 
@@ -248,6 +248,7 @@ dependencies {
     //    implementation 'co.zsmb:materialdrawer-kt:1.0.6'
     implementation 'org.jsoup:jsoup:1.11.3'
     implementation 'com.github.MarcinMoskala.ActivityStarter:activitystarter:1.12-beta-2'
+    implementation 'com.github.MarcinMoskala.ActivityStarter:activitystarter-kotlin:1.12-beta-2'
     kapt 'com.github.MarcinMoskala.ActivityStarter:activitystarter-compiler:1.12-beta-2'
     def JLIBTORRENT_VERSION = '1.2.0.10'
     implementation 'com.frostwire:jlibtorrent:' + JLIBTORRENT_VERSION

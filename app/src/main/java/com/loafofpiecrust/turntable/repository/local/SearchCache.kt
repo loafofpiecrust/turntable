@@ -1,17 +1,15 @@
-package com.loafofpiecrust.turntable.browse
+package com.loafofpiecrust.turntable.repository.local
 
+import com.loafofpiecrust.turntable.model.Music
+import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
-import com.loafofpiecrust.turntable.model.Music
-import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.repository.Repository
 
 object SearchCache: Repository {
-    override val displayName: Int
-        get() = -1
-
     private const val CACHE_COUNT = 25
 
     override suspend fun searchArtists(query: String) = emptyList<Artist>()

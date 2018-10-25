@@ -1,33 +1,36 @@
 package com.loafofpiecrust.turntable.artist
 
+import android.os.Parcelable
 import android.support.annotation.StringRes
+import android.support.constraint.ConstraintSet
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.AppBarLayout
 import android.support.design.widget.CollapsingToolbarLayout.LayoutParams.COLLAPSE_MODE_PIN
+import android.support.v4.app.Fragment
+import android.support.v4.widget.SwipeRefreshLayout
 import android.transition.*
 import android.view.Gravity
 import android.view.View
-import android.view.ViewManager
 import android.widget.ImageView
 import com.bumptech.glide.Glide
-import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.model.album.Album
+import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumsUI
-import com.loafofpiecrust.turntable.browse.Repository
-import com.loafofpiecrust.turntable.model.artist.Artist
-import com.loafofpiecrust.turntable.model.artist.ArtistId
-import com.loafofpiecrust.turntable.model.artist.MergedArtist
-import com.loafofpiecrust.turntable.model.artist.loadPalette
-import com.loafofpiecrust.turntable.service.Library
+import com.loafofpiecrust.turntable.repository.Repository
+import com.loafofpiecrust.turntable.collapsingToolbarlparams
+import com.loafofpiecrust.turntable.model.artist.*
 import com.loafofpiecrust.turntable.model.imageTransition
 import com.loafofpiecrust.turntable.model.nameTransition
+import com.loafofpiecrust.turntable.puts
+import com.loafofpiecrust.turntable.selector
+import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.standardStyle
-import com.loafofpiecrust.turntable.ui.BaseFragment
+import com.loafofpiecrust.turntable.ui.UIComponent
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.Dispatchers
-import kotlinx.coroutines.experimental.IO
-import kotlinx.coroutines.experimental.channels.*
-import kotlinx.coroutines.experimental.channels.Channel.Factory.CONFLATED
+import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
@@ -42,40 +45,53 @@ import org.jetbrains.anko.sdk27.coroutines.onClick
 /**
  * We want to be able to open Artist remoteInfo with either:
  * 1. full artist
- * 2. artist uuid (from Song/Album)
- * 3. artist uuid (from saved state)
+ * 2. artist id (from Song/Album)
+ * 3. artist id (from saved state)
  */
-class ArtistDetailsFragment: BaseFragment() {
-    private var artistId: ArtistId by arg()
+@Parcelize
+open class ArtistDetailsUI(
+    private val artistId: ArtistId,
+    private val initialMode: Mode = Mode.LIBRARY_AND_REMOTE
+) : UIComponent(), Parcelable {
+    /**
+     * TODO: Save this state to the Parcel
+     */
+    private val currentMode = ConflatedBroadcastChannel(initialMode)
 
-    enum class Mode(@StringRes val resource: Int) {
-        LIBRARY_AND_REMOTE(R.string.artist_content_all),
-        LIBRARY(R.string.artist_content_library),
-        REMOTE(R.string.artist_content_remote),
+    protected open val artist by lazy(LazyThreadSafetyMode.NONE) {
+        Library.instance.findArtist(artistId).map {
+            it ?: Repository.findOnline(artistId)!!
+        }.replayOne()
     }
-    private var initialMode: Mode by arg(Mode.LIBRARY)
 
-    // Procedural creation:
-    // init: artistId is known
-    //       create channel of found artist from uuid (maybe local or remote)
-    // onResume: start receiving events on the UI (reopen channels)
-    // onPause: stop receiving events to the UI (cancel channels)
-    // onResume: resume receiving events on the UI (reopen channels)
-    // onDestroy: get rid of any trace of channels, we don't care anymore
+    private val albums by lazy {
+        currentMode.openSubscription()
+            .switchMap { mode ->
+                when (mode) {
+                    // TODO: Do some caching of remotes here. Do this inside Repository :)
+                    Mode.LIBRARY -> Library.instance.findArtist(artistId)
+                    Mode.REMOTE -> produceSingle { Repository.findOnline(artistId) }
+                    Mode.LIBRARY_AND_REMOTE -> Library.instance.findArtist(artistId).map { local ->
+                        val remote = Repository.findOnline(artistId)
+                        if (local != null && remote != null) {
+                            MergedArtist(local, remote)
+                        } else local ?: remote
+                    }
+                }
+            }
+            .map(Dispatchers.IO) { it?.albums ?: emptyList() }
+            .replayOne()
+    }
 
-    // Restoration:
-    // onCreate: load artistId from bundle and find it via a channel
-    private lateinit var artist: BroadcastChannel<Artist>
-    private lateinit var albums: BroadcastChannel<List<Album>>
+    private val albumsUI by lazy {
+        AlbumsUI.Custom(
+            albums.openSubscription(),
+            sortBy = AlbumsUI.SortBy.YEAR,
+            splitByType = true
+        )
+    }
 
-
-    private val currentMode by lazy { ConflatedBroadcastChannel(initialMode) }
-
-
-//    private var localArtist: ReceiveChannel<Artist>? = null
-//    private var remoteArtist: ReceiveChannel<Artist>? = null
-
-    init {
+    override fun Fragment.onCreate() {
         val trans = TransitionSet()
             .addTransition(ChangeBounds())
             .addTransition(ChangeTransform())
@@ -88,39 +104,7 @@ class ArtistDetailsFragment: BaseFragment() {
         exitTransition = Fade()
     }
 
-    override fun onCreate() {
-        super.onCreate()
-
-        // TODO: Generalize this some more
-        if (!::artist.isInitialized) {
-            artist = Library.instance.findArtist(artistId).map {
-                it ?: Repository.findOnline(artistId)!!
-            }.broadcast(CONFLATED)
-        }
-
-        if (!::albums.isInitialized) {
-            albums = currentMode.openSubscription()
-                .switchMap { mode ->
-                    when (mode) {
-                        // TODO: Do some caching of remotes here. Do this inside Repository :)
-                        Mode.LIBRARY -> Library.instance.findArtist(artistId)
-                        Mode.REMOTE -> produceSingle { Repository.findOnline(artistId) }
-                        Mode.LIBRARY_AND_REMOTE -> Library.instance.findArtist(artistId).map { local ->
-                            val remote = Repository.findOnline(artistId)
-                            if (local != null && remote != null) {
-                                MergedArtist(local, remote)
-                            } else local ?: remote
-                        }
-                    }
-                }
-                .map(Dispatchers.IO) { it?.albums ?: emptyList() }
-                .broadcast(CONFLATED)
-        }
-
-//        exitTransition = Fade()
-    }
-
-    override fun ViewManager.createView() = coordinatorLayout {
+    override fun CoroutineScope.render(ui: AnkoContext<Any>) = ui.coordinatorLayout {
         id = R.id.container
 
         appBarLayout {
@@ -148,10 +132,10 @@ class ArtistDetailsFragment: BaseFragment() {
                             val end = artist.endYear
                             if (start != null && start != end) {
                                 visibility = View.VISIBLE
-                                text = getString(
+                                text = context.getString(
                                     R.string.artist_date_range,
                                     start,
-                                    end ?: getString(R.string.artist_active_now)
+                                    end ?: context.getString(R.string.artist_active_now)
                                 )
                             } else {
                                 visibility = View.GONE
@@ -165,17 +149,17 @@ class ArtistDetailsFragment: BaseFragment() {
                         textSizeDimen = R.dimen.small_text_size
 
                         currentMode.consumeEachAsync { mode ->
-                            text = getString(
+                            text = context.getString(
                                 R.string.artist_content_source,
-                                getString(mode.resource)
+                                context.getString(mode.resource)
                             )
                         }
 
                         onClick {
                             currentMode puts context.selector(
-                                getString(R.string.artist_pick_source),
+                                context.getString(R.string.artist_pick_source),
                                 Mode.values().toList(),
-                                format = { getString(it.resource) }
+                                format = { context.getString(it.resource) }
                             )
                         }
                     }
@@ -197,10 +181,11 @@ class ArtistDetailsFragment: BaseFragment() {
                                 TOP to TOP of image margin padBy,
                                 START to END of image margin padBy
                             )
+                            verticalChainStyle = ConstraintSet.CHAIN_PACKED
                         }
                         mode {
                             connect(
-                                START to START of year,
+                                START to END of image margin padBy,
                                 TOP to BOTTOM of year margin padBy,
                                 BOTTOM to BOTTOM of image margin padBy
                             )
@@ -223,6 +208,7 @@ class ArtistDetailsFragment: BaseFragment() {
                 transitionName = artistId.nameTransition
                 artist.consumeEachAsync {
                     menu.clear()
+                    menu.artistOptions(context, it)
 //                    it.optionsMenu(context, menu)
                 }
             }.lparams(width = matchParent) {
@@ -243,24 +229,28 @@ class ArtistDetailsFragment: BaseFragment() {
 
 
         // Albums by this artist
-        AlbumsUI.Custom(
-            albums.openSubscription(),
-            sortBy = AlbumsUI.SortBy.YEAR
-        ).createView(this).lparams(width = matchParent) {
+        val albumsView = albumsUI.createView(this).lparams(width = matchParent) {
             behavior = AppBarLayout.ScrollingViewBehavior()
         }
+
+        currentMode.openSubscription()
+            .skip(1)
+            .consumeEachAsync {
+                (albumsView as? SwipeRefreshLayout)?.isRefreshing = true
+            }
     }
 
 
-    companion object {
-        fun fromId(id: ArtistId) = ArtistDetailsFragment().apply {
-            this.artistId = id
-        }
+    class Resolved(
+        artist: Artist,
+        mode: Mode
+    ): ArtistDetailsUI(artist.id, mode) {
+        override val artist = ConflatedBroadcastChannel(artist)
+    }
 
-        fun fromArtist(artist: Artist, mode: Mode) = ArtistDetailsFragment().apply {
-            initialMode = mode
-            artistId = artist.id
-            this.artist = ConflatedBroadcastChannel(artist)
-        }
+    enum class Mode(@StringRes val resource: Int) {
+        LIBRARY_AND_REMOTE(R.string.artist_content_all),
+        LIBRARY(R.string.artist_content_library),
+        REMOTE(R.string.artist_content_remote),
     }
 }

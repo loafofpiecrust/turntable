@@ -5,27 +5,29 @@ import android.support.v7.widget.RecyclerView
 import android.view.View
 import android.view.ViewGroup
 import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
+import com.loafofpiecrust.turntable.model.playlist.MutableMixtape
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
-import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.sync.PlayerAction
-import com.loafofpiecrust.turntable.ui.RecyclerAdapter
+import com.loafofpiecrust.turntable.views.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
+import com.loafofpiecrust.turntable.ui.SectionedAdapter
 import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.views.SimpleHeaderViewHolder
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
-import kotlinx.coroutines.experimental.Dispatchers
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.channels.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import org.jetbrains.anko.colorAttr
 import org.jetbrains.anko.image
 import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.textColor
@@ -64,7 +66,7 @@ open class SongsAdapter(
 //                holder.playingIcon.imageResource = R.drawable.ic_shuffle
 //                holder.playingIcon.visibility = View.VISIBLE
                 holder.card.onClick {
-                    MusicService.enact(PlayerAction.PlaySongs(data, mode = MusicPlayer.OrderMode.SHUFFLE))
+                    MusicService.offer(PlayerAction.PlaySongs(data, mode = MusicPlayer.OrderMode.SHUFFLE))
                 }
                 return
             }
@@ -137,8 +139,8 @@ open class SongsAdapter(
 
         launch(Dispatchers.Main + subs) {
             MusicService.instance.switchMap {
-                it?.let {
-                    combineLatest(it.player.queue, App.instance.internetStatus)
+                it?.let { music ->
+                    combineLatest(music.player.queue, App.instance.internetStatus)
                 }
             }.consumeEach { (q, internet) ->
                 if (song.id == q.current?.id) {
@@ -162,9 +164,9 @@ open class SongsAdapter(
 //                }
 
                     val isLocal = Library.instance.sourceForSong(song.id) != null
-                    val c = ctx.getColorCompat(if (internet == App.InternetStatus.OFFLINE && !isLocal) {
-                        R.color.text_unavailable
-                    } else R.color.text)
+                    val c = if (internet == App.InternetStatus.OFFLINE && !isLocal) {
+                        ctx.getColorCompat(R.color.text_unavailable)
+                    } else ctx.colorAttr(android.R.attr.textColor)
                     holder.mainLine.textColor = c
                     holder.subLine.textColor = c
                     holder.track.textColor = c
@@ -179,7 +181,7 @@ open class SongsAdapter(
                     given (runBlocking { ctx.library.findPlaylist(category.id).first() }) { pl ->
                         menuItem(R.string.playlist_remove_item).onClick {
                             when (pl) {
-                                is MixTape -> pl.remove(category.sideIdx, position)
+                                is MutableMixtape -> pl.remove(category.sideIdx, position)
                                 is CollaborativePlaylist -> pl.remove(position)
                             }
                         }
@@ -187,13 +189,13 @@ open class SongsAdapter(
                 }
 
                 menuItem(R.string.queue_last).onClick {
-                    MusicService.enact(PlayerAction.Enqueue(listOf(song), MusicPlayer.EnqueueMode.NEXT))
+                    MusicService.offer(PlayerAction.Enqueue(listOf(song), MusicPlayer.EnqueueMode.NEXT))
                 }
                 menuItem(R.string.queue_next).onClick {
-                    MusicService.enact(PlayerAction.Enqueue(listOf(song), MusicPlayer.EnqueueMode.IMMEDIATELY_NEXT))
+                    MusicService.offer(PlayerAction.Enqueue(listOf(song), MusicPlayer.EnqueueMode.IMMEDIATELY_NEXT))
                 }
 
-                songOptions(holder.itemView.context, song)
+                songOptions(v.context, song)
             }
         }
         holder.menu.setOnClickListener(openOverflow)
@@ -242,3 +244,39 @@ open class SongsAdapter(
     }
 }
 
+
+class SongsOnDiscAdapter(
+    originalChannel: ReceiveChannel<Map<String, List<Song>>>,
+    private val onClickItem: suspend (Song) -> Unit
+): SectionedAdapter<Song, String, RecyclerListItemOptimized, SimpleHeaderViewHolder>(
+    originalChannel
+) {
+    override val moveEnabled get() = false
+    override val dismissEnabled get() = false
+
+    override fun onCreateItemViewHolder(parent: ViewGroup) =
+        RecyclerListItemOptimized(parent)
+
+    override fun onCreateHeaderViewHolder(parent: ViewGroup) =
+        SimpleHeaderViewHolder(parent)
+
+    override fun RecyclerListItemOptimized.onBindItem(item: Song, position: Int, job: Job) {
+        track.text = (position + 1).toString()
+        mainLine.text = item.id.displayName
+
+        card.onClick {
+            onClickItem(item)
+        }
+    }
+
+
+    override fun SimpleHeaderViewHolder.onBindHeader(key: String, job: Job) {
+//        val songs = runBlocking { originalChannel.openSubscription().first() }
+//        val multipleDiscs = songs.lazy.distinctBy { it.disc }.count() > 1
+//        if (multipleDiscs) {
+            mainLine.text = key
+//        } else {
+//            itemView.visibility = View.GONE
+//        }
+    }
+}

@@ -13,11 +13,12 @@ import com.loafofpiecrust.turntable.artist.ArtistsUI
 import com.loafofpiecrust.turntable.browse.BrowseFragment
 import com.loafofpiecrust.turntable.playlist.PlaylistsFragment
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.song.SongsFragment
+import com.loafofpiecrust.turntable.song.SongsUI
 import com.loafofpiecrust.turntable.sync.SyncTabFragment
-import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.map
+import com.loafofpiecrust.turntable.util.combineLatest
+import com.loafofpiecrust.turntable.util.replayOne
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.navigationIconResource
 import org.jetbrains.anko.appcompat.v7.toolbar
@@ -27,6 +28,11 @@ import org.jetbrains.anko.support.v4.onPageChangeListener
 import org.jetbrains.anko.support.v4.viewPager
 import java.lang.ref.Reference
 import java.lang.ref.WeakReference
+import kotlin.collections.List
+import kotlin.collections.getOrNull
+import kotlin.collections.mutableMapOf
+import kotlin.collections.set
+import kotlin.collections.toList
 
 @MakeActivityStarter
 class LibraryFragment: BaseFragment() {
@@ -61,12 +67,12 @@ class LibraryFragment: BaseFragment() {
 
         val tabFragments = { key: String -> when (key) {
             "Albums" -> AlbumsUI.All().createFragment()
-            "Songs" -> SongsFragment.all() // all songs yo
+            "Songs" -> SongsUI.All().createFragment() // all songs yo
             "Artists" -> ArtistsUI.All().createFragment() // artists
             "Playlists" -> PlaylistsFragment() // playlists!
             "Friends" -> SyncTabFragment()
             "Recommendations" -> BrowseFragment()
-            else -> throw IllegalStateException()
+            else -> throw Error("Unrecognized Library tab \'$key\'")
         }.also { fragments[key] = WeakReference(it) } }
 
         var tabs: TabLayout? = null

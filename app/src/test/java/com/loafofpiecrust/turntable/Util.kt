@@ -2,7 +2,7 @@ package com.loafofpiecrust.turntable
 
 import ch.tutteli.atrium.api.cc.en_GB.isA
 import ch.tutteli.atrium.creating.Assert
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.runBlocking
 import pl.miensol.shouldko.internal.addSourceLineToAssertionError
 import kotlin.test.assertEquals
 

@@ -10,17 +10,16 @@ import android.view.ViewGroup
 import android.view.ViewManager
 import android.widget.ImageView
 import com.bumptech.glide.Glide
+import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.util.recyclerViewPager
-import com.loafofpiecrust.turntable.screenSize
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.player.MusicService
+import com.loafofpiecrust.turntable.screenSize
 import com.loafofpiecrust.turntable.sync.PlayerAction
-import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.channels.consumeEach
+import com.loafofpiecrust.turntable.util.recyclerViewPager
+import com.loafofpiecrust.turntable.util.switchMap
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.consumeEach
 import org.jetbrains.anko.*
 import org.jetbrains.anko.cardview.v7.cardView
 
@@ -41,7 +40,7 @@ class PlayerAlbumCoverFragment : BaseFragment() {
         var fromInteraction = true
         addOnPageChangedListener { prev, curr ->
             if (fromInteraction) {
-                MusicService.enact(PlayerAction.QueuePosition(curr))
+                MusicService.offer(PlayerAction.QueuePosition(curr))
             }
         }
 
@@ -72,15 +71,13 @@ class PlayerAlbumCoverFragment : BaseFragment() {
             val q = list ?: return
             val song = q[position]
 
-            val job = Job()
-            subs.put(holder, job)?.cancelSafely()
-            async(UI + job) {
+            subs.put(holder, App.async(Dispatchers.Main) {
                 song.loadCover(Glide.with(holder.view)).consumeEach {
                     it?.into(holder.image) ?: run {
                         holder.image.imageResource = R.drawable.ic_default_album
                     }
                 }
-            }
+            })?.cancel()
         }
 
 
@@ -109,7 +106,7 @@ class PlayerAlbumCoverFragment : BaseFragment() {
 
             // Don't halt any UI
             // Run diff in background thread
-            launch(Dispatchers.Default) {
+            GlobalScope.launch(Dispatchers.Default) {
                 val diff = DiffUtil.calculateDiff(Differ(q, newSongs))
                 launch(Dispatchers.Main) {
                     // go back to UI thread to update the view

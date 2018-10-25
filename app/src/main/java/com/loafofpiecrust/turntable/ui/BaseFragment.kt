@@ -6,24 +6,20 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.IBinder
-import android.support.v4.app.*
+import android.support.v4.app.DialogFragment
+import android.support.v4.app.Fragment
+import android.support.v4.app.FragmentActivity
 import android.support.v7.app.AppCompatActivity
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.view.ViewManager
-import com.loafofpiecrust.turntable.R
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.channels.BroadcastChannel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.consumeEach
+import android.view.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.BroadcastChannel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.consumeEach
 import org.jetbrains.anko.AnkoContext
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.info
-import kotlin.coroutines.experimental.CoroutineContext
-import kotlin.coroutines.experimental.EmptyCoroutineContext
-import kotlin.reflect.KMutableProperty0
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 
 interface ViewComponentScope: CoroutineScope {
     val job: Job
@@ -65,6 +61,12 @@ abstract class BaseFragment: Fragment(), AnkoLogger, ViewComponentScope {
 
     abstract fun ViewManager.createView(): View
 
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
+        menu.createOptions()
+    }
+
+    open fun Menu.createOptions() {}
+
     open fun onCreate() {}
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -94,8 +96,8 @@ abstract class BaseFragment: Fragment(), AnkoLogger, ViewComponentScope {
     fun View.fragment(alwaysReplace: Boolean = false, createFragment: () -> Fragment) {
         if (isFirstInit || alwaysReplace) {
             info { "creating fragment" }
-            // BEWARE: This will crash if within a navigable fragment!!
             if (this.id == View.NO_ID) {
+                // BEWARE: This will crash if within a navigable fragment!!
                 this.id = View.generateViewId()
             }
 
@@ -157,7 +159,6 @@ abstract class BaseActivity: AppCompatActivity(), AnkoLogger, ViewComponentScope
         super.onCreate(savedInstanceState)
         isFirstInit = savedInstanceState == null
         ActivityStarter.fill(this, savedInstanceState)
-        setTheme(R.style.AppTheme)
         setContentView(AnkoContext.create(this, this).createView())
     }
 
@@ -183,7 +184,7 @@ abstract class BaseActivity: AppCompatActivity(), AnkoLogger, ViewComponentScope
     }
 }
 
-abstract class BaseService: Service(), CoroutineScope {
+abstract class BaseService: Service(), CoroutineScope, AnkoLogger {
     private val job = SupervisorJob()
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Default + job

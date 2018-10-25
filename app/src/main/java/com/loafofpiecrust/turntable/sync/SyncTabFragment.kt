@@ -5,22 +5,26 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.ContactsContract
 import android.support.v7.widget.LinearLayoutManager
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.ViewGroup
-import android.view.ViewManager
+import android.view.*
 import android.widget.EditText
-import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.model.sync.Friend
+import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.putsMapped
+import com.loafofpiecrust.turntable.selector
 import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.ui.RecyclerAdapter
+import com.loafofpiecrust.turntable.views.RecyclerAdapter
 import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.util.menuItem
+import com.loafofpiecrust.turntable.util.onClick
+import com.loafofpiecrust.turntable.util.then
 import com.mcxiaoke.koi.ext.stringValue
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.android.Main
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.map
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.sdk27.coroutines.onClick
@@ -55,11 +59,12 @@ class SyncTabFragment: BaseFragment() {
                     }
                     positiveButton(R.string.user_befriend) {
                         val key = textBox.text.toString()
-                        this@SyncTabFragment.launch {
-                            val user = withContext(Dispatchers.IO) { User.resolve(key) }
+                        async(Dispatchers.IO) {
+                            User.resolve(key)
+                        }.then(Dispatchers.Main) { user ->
                             // TODO: Use localized strings in xml
                             toast(if (user != null) {
-                                if (SyncService.requestFriendship(user)) {
+                                if (Sync.requestFriendship(user)) {
                                     getString(R.string.friend_request_sent, user.displayName)
                                 } else {
                                     getString(R.string.friend_request_already_added, user.displayName)
@@ -79,6 +84,11 @@ class SyncTabFragment: BaseFragment() {
                 selector(getString(R.string.friend_add), choices).invoke()
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Friend.Request.clearNotifications()
     }
 
     private fun requestPickContact() {
@@ -106,7 +116,7 @@ class SyncTabFragment: BaseFragment() {
                 val user = User.resolve(email)
                 withContext(Dispatchers.Main) {
                     toast(if (user != null) {
-                        if (SyncService.requestFriendship(user)) {
+                        if (Sync.requestFriendship(user)) {
                             getString(R.string.friend_request_sent, user.name)
                         } else {
                             getString(R.string.friend_request_already_added, user.name)
@@ -135,32 +145,37 @@ class SyncTabFragment: BaseFragment() {
         recyclerView {
             layoutManager = LinearLayoutManager(context)
             val friends = UserPrefs.friends.openSubscription().map {
-                it.toList()//.filter { it.status != SyncService.Friend.Status.SENT_REQUEST }
+                it.map { (user, status) -> Friend(user, status) }.toList()
+                //.filter { it.status != Sync.Friend.Status.SENT_REQUEST }
             }
-            adapter = object : RecyclerAdapter<SyncService.Friend, RecyclerListItemOptimized>(friends) {
+            adapter = object : RecyclerAdapter<Friend, RecyclerListItemOptimized>(friends) {
                 override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
                     RecyclerListItemOptimized(parent, useIcon = true)
 
                 override fun onBindViewHolder(holder: RecyclerListItemOptimized, position: Int) {
                     val friend = data[position]
                     holder.apply {
+                        menu.visibility = View.GONE
                         mainLine.text = friend.user.name
                         subLine.text = when (friend.status) {
-                            SyncService.Friend.Status.CONFIRMED -> friend.user.deviceId
-                            SyncService.Friend.Status.RECEIVED_REQUEST -> getString(R.string.friend_request_received)
-                            SyncService.Friend.Status.SENT_REQUEST -> getString(R.string.friend_request_sent_line)
+                            Friend.Status.CONFIRMED -> friend.user.deviceId
+                            Friend.Status.RECEIVED_REQUEST -> getString(R.string.friend_request_received)
+                            Friend.Status.SENT_REQUEST -> getString(R.string.friend_request_sent_line)
                         }
                         val choices = when (friend.status) {
-                            SyncService.Friend.Status.CONFIRMED -> listOf(
+                            Friend.Status.CONFIRMED -> listOf(
                                 getString(R.string.friend_request_sync) to {
                                     val user = friend.user.refresh()
                                     launch {
-                                        SyncService.requestSync(user.await())
+                                        Sync.requestSync(user.await())
                                     }
                                     toast("Requested sync with ${friend.user.name}")
+                                },
+                                "Remove as Friend" to {
+                                    UserPrefs.friends putsMapped { it - friend.user }
                                 }
                             )
-                            SyncService.Friend.Status.RECEIVED_REQUEST -> listOf(
+                            Friend.Status.RECEIVED_REQUEST -> listOf(
                                 getString(R.string.friend_confirm) to {
                                     friend.respondToRequest(true)
                                 },
@@ -168,12 +183,12 @@ class SyncTabFragment: BaseFragment() {
                                     friend.respondToRequest(false)
                                 }
                             )
-                            SyncService.Friend.Status.SENT_REQUEST -> listOf(
+                            Friend.Status.SENT_REQUEST -> listOf(
                                 getString(R.string.friend_request_cancel) to {
-                                    UserPrefs.friends putsMapped { it - friend }
+                                    UserPrefs.friends putsMapped { it - friend.user }
                                 },
                                 "Resend Request" to {
-                                    SyncService.requestFriendship(friend.user)
+                                    Sync.requestFriendship(friend.user)
                                 }
                             )
                         }

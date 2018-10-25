@@ -1,18 +1,17 @@
 package com.loafofpiecrust.turntable.util
 
-import android.support.v4.util.Pools
-import kotlinx.coroutines.experimental.GlobalScope
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.channels.Channel
-import kotlinx.coroutines.experimental.channels.actor
-import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.runBlocking
-import kotlinx.coroutines.experimental.selects.select
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.actor
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.selects.select
 import java.util.*
-import kotlin.coroutines.experimental.CoroutineContext
-import kotlin.coroutines.experimental.EmptyCoroutineContext
-import kotlin.coroutines.experimental.suspendCoroutine
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.coroutines.suspendCoroutine
+import kotlin.coroutines.resume
 
 /* Copyright (c) 2008-2018, Nathan Sweet
  * All rights reserved.
@@ -48,7 +47,7 @@ class InstancePool<T: Any>(
     )
     private val box = GlobalScope.actor<Task>(capacity = Channel.UNLIMITED) {
         // events are an acquisition request
-        consumeEach { task ->
+        for (task in channel) {
             val x = if (instances.size < capacity) {
                 builder.invoke()
             } else select {

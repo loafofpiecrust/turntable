@@ -1,9 +1,5 @@
 package com.loafofpiecrust.turntable.ui
 
-//import com.loafofpiecrust.turntable.youtube.YouTubeExtractor
-
-//import com.google.api.services.drive.DriveScopes
-import activitystarter.ActivityStarter
 import activitystarter.Arg
 import activitystarter.MakeActivityStarter
 import android.Manifest
@@ -31,23 +27,31 @@ import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
-import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumDetailsUI
+import com.loafofpiecrust.turntable.artist.ArtistDetailsUI
+import com.loafofpiecrust.turntable.repository.remote.Spotify
+import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.model.album.AlbumId
-import com.loafofpiecrust.turntable.artist.ArtistDetailsFragment
 import com.loafofpiecrust.turntable.model.artist.ArtistId
-import com.loafofpiecrust.turntable.browse.Spotify
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.puts
+import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.sync.Message
+import com.loafofpiecrust.turntable.model.sync.Friend
 import com.loafofpiecrust.turntable.sync.PlayerAction
-import com.loafofpiecrust.turntable.sync.SyncService
-import com.loafofpiecrust.turntable.sync.User
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.sync.Sync
+import com.loafofpiecrust.turntable.model.sync.User
+import com.loafofpiecrust.turntable.util.group
+import com.loafofpiecrust.turntable.util.onClick
+import com.loafofpiecrust.turntable.util.switchMap
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.channels.consumeEach
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.*
 import org.jetbrains.anko.design.navigationView
 import org.jetbrains.anko.support.v4.drawerLayout
@@ -68,6 +72,31 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
 
     override fun onPermissionsChecked(report: MultiplePermissionsReport) {
         Library.instance.initData()
+        requestLogin()
+    }
+
+    private fun requestLogin() {
+        try {
+            val lastAcc = FirebaseAuth.getInstance().currentUser
+            if (lastAcc != null) {
+                Sync.login(lastAcc)
+            } else {
+                val providers = listOf(
+                    AuthUI.IdpConfig.GoogleBuilder().build()
+                )
+
+                // Create and launch sign-in intent
+                startActivityForResult(
+                    AuthUI.getInstance()
+                        .createSignInIntentBuilder()
+                        .setAvailableProviders(providers)
+                        .build(),
+                    69
+                )
+            }
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
     }
 
     private lateinit var sheets: MultiSheetView
@@ -84,8 +113,6 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
     }
 
     override fun ViewManager.createView() = MultiSheetView(this@MainActivity) {
-        backgroundResource = R.color.background
-
         mainContent {
             drawers = drawerLayout {
                 // main content
@@ -124,12 +151,12 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
         }
         firstSheet {
             id = R.id.nowPlayingPanel
-            backgroundResource = R.color.background
+//            backgroundColor = attribute(android.R.attr.windowBackground).data
             fragment { NowPlayingFragment() }
         }
         firstSheetPeek {
             id = R.id.miniPlayer
-            backgroundResource = R.color.background
+//            backgroundResource = R.color.background
             fragment { MiniPlayerFragment() }
         }
 
@@ -147,9 +174,13 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                 queueSheet?.onSheetStateChanged(state)
             }
         }
-    }.also {
-        it.hide(true, false)
-        sheets = it
+    }.apply {
+        sheets = this
+        // Start out with collapsed sheets
+        hide(true, false)
+        bindHidden(MusicService.player.switchMap {
+            it?.queue?.map { it.current == null }
+        })
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -171,126 +202,15 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
             )
             .withListener(this)
             .check()
-
-        // TODO: Separate requests for reading and writing, maybe?
-
-//        if (savedInstanceState == null) {
-//            supportFragmentManager.beginTransaction()
-//                .replace(R.uuid.mainContentContainer, LibraryFragment())
-//                .commit()
-//        }
-
-        // Start out with collapsed sheets
-//        sheets.hide(true, false)
-        launch {
-            MusicService.instance.switchMap {
-                it?.player?.queue
-            }.consumeEach { q ->
-                if (q.current == null) {
-                    if (!sheets.isHidden) {
-                        sheets.hide(true, true)
-                    }
-                } else if (sheets.isHidden) {
-                    sheets.unhide(true)
-                }
-            }
-        }
-
-
-//        drawer {
-//            closeOnClick = true
-//
-//            primaryItem("Library") {
-//                selectable = false
-//                onClick { _ ->
-////                    supportFragmentManager.replaceMainContent(
-////                        LibraryFragmentStarter.newInstance(),
-////                        false
-////                    )
-//                    false
-//                }
-//            }
-//            primaryItem("Settings") {
-//                selectable = false
-//                onClick { _ ->
-//                    SettingsActivityStarter.start(ctx)
-//                    false
-//                }
-//            }
-//            primaryItem("User Sync") {
-//                selectable = false
-//                onClick { _ ->
-//                    alert("Who to sync with?") {
-//                        var textBox: EditText? = null
-//                        customView {
-//                            textBox = editText {
-//                                hint = "User uuid to sync with"
-//                            }
-//                        }
-//                        positiveButton("Sync") {
-//                            val uuid = textBox!!.text.toString()
-//                            task {
-//                                SyncService.User.resolve(uuid)
-//                            }.success(UI) { user ->
-//                                if (user != null) {
-//                                    SyncService.instance.requestSync(user)
-//                                } else {
-//                                    println("sync: user $uuid not found")
-//                                    toast("User '$uuid' not found.")
-//                                }
-//                            }
-//                        }
-//                        negativeButton("Cancel") {}
-//                    }.show()
-//                    false
-//                }
-//            }
-//
-//            primaryItem("SD Card Permissions") {
-//                selectable = false
-//                onClick { _ ->
-//                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-//                    startActivityForResult(intent, 42)
-//                    false
-//                }
-//            }
-//        }
-
-
-        // TODO: Check if already logged in or something so we don't get the dark flash every startup
-
-//        val lastAcc = GoogleSignIn.getLastSignedInAccount(ctx)
-        try {
-            val lastAcc = FirebaseAuth.getInstance().currentUser
-            if (lastAcc != null) {
-                SyncService.login(lastAcc)
-            } else {
-                val providers = listOf(
-                    AuthUI.IdpConfig.GoogleBuilder().build()
-                )
-
-                // Create and launch sign-in intent
-                startActivityForResult(
-                    AuthUI.getInstance()
-                        .createSignInIntentBuilder()
-                        .setAvailableProviders(providers)
-                        .build(),
-                    69
-                )
-            }
-        } catch (e: Throwable) {
-            e.printStackTrace()
-        }
     }
 
     lateinit var gclient: GoogleApiClient
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        setIntent(intent)
-        ActivityStarter.fill(this, intent.extras)
 
-        val action = action
+        val action = intent.getParcelableExtra<Action>("action")
+        info { action }
         when (action) {
             // TODO: Impl with BottomSheet
 //            is Action.OpenNowPlaying -> slider?.panelState = SlidingUpPanelLayout.PanelState.EXPANDED
@@ -298,16 +218,16 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                 val sender = action.sender
                 alert("${sender.name} wants to be friends") {
                     positiveButton(R.string.user_befriend) {
-                        SyncService.send(
-                            Message.FriendResponse(true),
-                            SyncService.Mode.OneOnOne(sender)
+                        Sync.send(
+                            Friend.Response(true),
+                            sender
                         )
-                        UserPrefs.friends putsMapped { it + SyncService.Friend(sender, SyncService.Friend.Status.CONFIRMED) }
+                        UserPrefs.friends putsMapped { it + (sender to Friend.Status.CONFIRMED) }
                     }
                     negativeButton(R.string.request_decline) {
-                        SyncService.send(
-                            Message.FriendResponse(false),
-                            SyncService.Mode.OneOnOne(sender)
+                        Sync.send(
+                            Friend.Response(false),
+                            sender
                         )
                     }
                 }.show()
@@ -319,14 +239,11 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                         // set sync mode to One on One, enable sync
                         // change some UI element to indicate sync mode (in Now Playing?)
                         // TODO: Send display uuid or have that somewhere.
-                        SyncService.confirmSync(sender)
+                        Sync.confirmSync(sender)
                         toast("Now synced with ${sender.name}")
                     }
                     negativeButton(R.string.request_decline) {
-                        SyncService.send(
-                            Message.SyncResponse(false),
-                            SyncService.Mode.OneOnOne(sender)
-                        )
+                        Sync.declineSync(sender)
                     }
                 }.show()
             }
@@ -350,7 +267,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                     GlobalScope.launch {
                         val song = Spotify.searchSongs(query).firstOrNull()
                         if (song != null) {
-                            MusicService.enact(PlayerAction.PlaySongs(listOf(song)))
+                            MusicService.offer(PlayerAction.PlaySongs(listOf(song)))
                         }
                     }
 //                }
@@ -365,10 +282,13 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
         super.onActivityResult(requestCode, resultCode, data)
 //        if (resultCode != RESULT_OK) return
 
+        MainActivityStarter.fill(this, data?.extras)
+        info { action }
+
         if (requestCode == 69 && data != null) {
             val result = IdpResponse.fromResultIntent(data)
             if (resultCode == RESULT_OK) {
-                SyncService.login(FirebaseAuth.getInstance().currentUser!!)
+                Sync.login(FirebaseAuth.getInstance().currentUser!!)
             } else {
                 // Login failed!
                 result?.error?.printStackTrace()
@@ -410,8 +330,8 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
 //        val params = url.queryParameterNames
         when (url.host) {
             "album" -> {
-                val title = url.getQueryParameter("name")
-                val artist = url.getQueryParameter("artist")
+                val title = url.getQueryParameter("name")!!
+                val artist = url.getQueryParameter("artist")!!
                 replaceMainContent(
                     AlbumDetailsUI(
                         AlbumId(title, ArtistId(artist))
@@ -419,16 +339,16 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                 )
             }
             "artist" -> {
-                val name = url.getQueryParameter("id")
-                given(ArtistDetailsFragment.fromId(ArtistId(name))) {
-                    replaceMainContent(it, true)
-                }
+                val name = url.getQueryParameter("id")!!
+                replaceMainContent(
+                    ArtistDetailsUI(ArtistId(name)).createFragment()
+                )
             }
             "sync-request" -> {
-                val id = url.getQueryParameter("from")
+                val id = url.getQueryParameter("from")!!
 //                val displayName = url.getQueryParameter("id")
-                given(User.resolve(id)) {
-                    SyncService.requestSync(it)
+                User.resolve(id)?.let {
+                    Sync.requestSync(it)
                 }
             }
             "lets-be-friends" -> {
@@ -436,9 +356,9 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
 //                val uuid = url.getQueryParameter("id")
 
                 val other = given(User.resolve(id)) {
-                    SyncService.Friend(it, SyncService.Friend.Status.CONFIRMED)
+                    Friend(it, Friend.Status.CONFIRMED)
                 }
-                if (other != null && !UserPrefs.friends.value.contains(other)) {
+                if (other != null && !UserPrefs.friends.value.contains(other.user)) {
                     other.respondToRequest(true)
                 }
             }
@@ -459,8 +379,10 @@ fun FragmentManager.replaceMainContent(fragment: Fragment, allowBackNav: Boolean
     beginTransaction().apply {
 //        currentFragment?.exitTransition = Fade()
         setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
-        sharedElems?.forEach {
-            addSharedElement(it, it.transitionName)
+        sharedElems?.forEach { view ->
+            view.transitionName?.let { tag ->
+                addSharedElement(view, tag)
+            }
         }
         replace(R.id.mainContentContainer, fragment)
         if (allowBackNav) {

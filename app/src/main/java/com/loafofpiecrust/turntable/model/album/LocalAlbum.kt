@@ -1,20 +1,16 @@
 package com.loafofpiecrust.turntable.model.album
 
-import android.content.Context
-import android.view.Menu
-import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.util.menuItem
-import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.ui.AlbumEditorActivityStarter
 
 
 data class LocalAlbum(
     override val id: AlbumId,
     override val tracks: List<Song>
 ): Album {
-    override val year: Int?
-        get() = tracks.find { it.year != null }?.year
+    private constructor(): this(AlbumId(), emptyList())
+
+    override val year: Int
+        get() = tracks.first { it.year > 0 }.year
 
     override val type by lazy {
         when {

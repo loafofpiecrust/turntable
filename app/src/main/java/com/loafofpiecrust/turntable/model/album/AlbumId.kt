@@ -1,10 +1,8 @@
 package com.loafofpiecrust.turntable.model.album
 
-import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.MusicId
-import com.loafofpiecrust.turntable.model.song.withoutArticle
+import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.util.compareTo
-import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import java.text.Collator
 import java.util.*
@@ -15,10 +13,9 @@ data class AlbumId(
     override val name: String,
     val artist: ArtistId
 ): MusicId, Comparable<AlbumId> {
-    private constructor(): this("", ArtistId(""))
+    internal constructor(): this("", ArtistId())
 
-    val sortChar: Char get() = sortName.first().toUpperCase()
-    private val sortName: CharSequence get() = displayName.withoutArticle()
+    val sortChar: Char get() = displayName.first().toUpperCase()
     val dbKey: String get() = "$displayName~${artist.dbKey}".toLowerCase()
 
     val discNumber: Int get() =
@@ -35,7 +32,6 @@ data class AlbumId(
     /// Whatever (Maxi Edition) - EP => Whatever
     /// What We... (Deluxe Version) => What We...
     /// It's a Deluxe Edition => It's a Deluxe Edition
-    @IgnoredOnParcel
     @delegate:Transient
     override val displayName: String by lazy {
         val toRemove = arrayOf(
@@ -72,13 +68,18 @@ data class AlbumId(
     override fun compareTo(other: AlbumId) =
         COMPARATOR.compare(this, other)
 
+    @delegate:Transient
+    private val collationKey by lazy {
+        COLLATOR.getCollationKey(displayName)
+    }
+
 
     companion object {
         val COLLATOR: Collator = Collator.getInstance().apply {
             strength = Collator.PRIMARY
         }
-        val COMPARATOR = compareBy<AlbumId, String>(COLLATOR) {
-            it.displayName
+        val COMPARATOR = compareBy<AlbumId> {
+            it.collationKey
         }.thenBy { it.artist }
 
         private val TYPE_SUFFIX_PAT = Regex(

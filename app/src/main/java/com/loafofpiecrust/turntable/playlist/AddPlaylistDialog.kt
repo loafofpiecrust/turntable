@@ -1,31 +1,35 @@
 package com.loafofpiecrust.turntable.playlist
 
 import android.content.Context
+import android.graphics.Color
 import android.os.Parcelable
 import android.support.transition.Slide
 import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.view.ViewManager
-import android.widget.*
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.model.SavableMusic
-import com.loafofpiecrust.turntable.model.album.PartialAlbum
+import com.loafofpiecrust.turntable.model.Recommendation
+import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.playlist.AlbumCollection
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
-import com.loafofpiecrust.turntable.model.song.*
+import com.loafofpiecrust.turntable.model.playlist.MutableMixtape
+import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.sync.SyncService
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.style.standardStyle
+import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
 import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.onTextChange
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.navigationIconResource
 import org.jetbrains.anko.appcompat.v7.toolbar
@@ -38,18 +42,18 @@ import kotlin.reflect.KClass
 
 class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
     companion object {
-        fun withItems(items: List<SavableMusic>) = AddPlaylistDialog().apply {
+        fun withItems(items: List<Recommendation>) = AddPlaylistDialog().apply {
             startingTracks = TrackList(items)
         }
     }
 
     @Parcelize
-    private data class TrackList(val tracks: List<SavableMusic> = listOf()): Parcelable
+    private data class TrackList(val tracks: List<Recommendation> = listOf()): Parcelable
     private var startingTracks by arg { TrackList() }
 
     private var playlistName: String = ""
     private var playlistType: KClass<*> = CollaborativePlaylist::class
-    private val playlistColor = ConflatedBroadcastChannel(UserPrefs.accentColor.value)
+    private val playlistColor = ConflatedBroadcastChannel<Int>()
     private var mixTapeType = MixTape.Type.C60
 
     override fun onStart() {
@@ -74,8 +78,8 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
     private fun createAndFinish() {
         val pl = when (playlistType) {
             // TODO: Use the actual user uuid string.
-            MixTape::class -> MixTape(
-                SyncService.selfUser,
+            MixTape::class -> MutableMixtape(
+                Sync.selfUser,
                 mixTapeType,
                 playlistName,
                 playlistColor.value,
@@ -84,7 +88,7 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
                 addAll(0, startingTracks.tracks.mapNotNull { it as? Song })
             }
             CollaborativePlaylist::class -> CollaborativePlaylist(
-                SyncService.selfUser,
+                Sync.selfUser,
                 playlistName,
                 playlistColor.value,
                 UUID.randomUUID()
@@ -94,13 +98,13 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
                 }
             }
             AlbumCollection::class -> AlbumCollection(
-                SyncService.selfUser,
+                Sync.selfUser,
                 playlistName,
                 playlistColor.value,
                 UUID.randomUUID()
             ).apply {
                 startingTracks.tracks.forEach {
-                    (it as? PartialAlbum)?.let { add(it) }
+                    (it as? AlbumId)?.let { add(it) }
                 }
             }
             else -> kotlin.error("Unreachable")
@@ -110,10 +114,11 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
     }
 
     override fun ViewManager.createView() = verticalLayout {
-        backgroundColorResource = R.color.background
+        backgroundColor = context.colorAttr(android.R.attr.windowBackground)
 
         appBarLayout {
             topPadding = dimen(R.dimen.statusbar_height)
+            backgroundColor = UserPrefs.primaryColor.value
             playlistColor.consumeEachAsync {
                 backgroundColor = it
             }
@@ -152,7 +157,7 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
                         context.inputMethodManager.hideSoftInputFromWindow(it.windowToken, 0)
                     }
                     ColorPickerDialog.newBuilder()
-                        .setColor(playlistColor.value)
+                        .setColor(playlistColor.valueOrNull ?: Color.BLACK)
                         .setAllowCustom(true)
                         .setAllowPresets(true)
                         .setShowColorShades(true)

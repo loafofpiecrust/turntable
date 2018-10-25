@@ -1,9 +1,9 @@
 package com.loafofpiecrust.turntable.model.artist
 
-import com.loafofpiecrust.turntable.model.album.Album
-import com.loafofpiecrust.turntable.model.album.MergedAlbum
 import com.loafofpiecrust.turntable.dedupMerge
 import com.loafofpiecrust.turntable.mergeNullables
+import com.loafofpiecrust.turntable.model.album.Album
+import com.loafofpiecrust.turntable.model.album.MergedAlbum
 import kotlin.math.max
 import kotlin.math.min
 

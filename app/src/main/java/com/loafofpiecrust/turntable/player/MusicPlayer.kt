@@ -11,26 +11,27 @@ import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory
-import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.appends
 import com.loafofpiecrust.turntable.model.queue.CombinedQueue
+import com.loafofpiecrust.turntable.model.queue.Queue
+import com.loafofpiecrust.turntable.model.queue.StaticQueue
 import com.loafofpiecrust.turntable.model.queue.indexWithinUpNext
-import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.model.song.HistoryEntry
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.util.BG_POOL
+import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.puts
+import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.util.with
 import com.loafofpiecrust.turntable.util.without
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.map
-import kotlinx.coroutines.experimental.channels.produce
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.channels.produce
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
 import org.jetbrains.anko.error
-import org.jetbrains.anko.info
-import kotlin.coroutines.experimental.CoroutineContext
+import kotlin.coroutines.CoroutineContext
 
 class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScope {
     override val coroutineContext: CoroutineContext = SupervisorJob()
@@ -38,18 +39,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
     enum class EnqueueMode {
         NEXT, // Adds to the end of an "Up Next" section of the queue just after the current song.
         IMMEDIATELY_NEXT, // Will play _immediately_ after the current song
-    }
-
-    interface Queue {
-        val list: List<Song>
-        val position: Int
-        val current: Song?
-
-        fun next(): Queue
-        fun prev(): Queue
-        fun shifted(from: Int, to: Int): Queue
-        fun shiftedPosition(newPos: Int): Queue
-        fun peek(): Song? = list.getOrNull(position + 1)
     }
 
 
@@ -107,24 +96,34 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
 
 
     private var nonShuffledQueue: Queue? = null
-    private val _queue = ConflatedBroadcastChannel(CombinedQueue(StaticQueue(listOf(), 0), listOf()))
+    private val _queue = UserPrefs.queue
     val queue: ReceiveChannel<CombinedQueue> get() = _queue.openSubscription()
 
     val currentSong: ReceiveChannel<Song?> get() = queue.map { it.current }
 
 
-    data class BufferState(val duration: Long, val position: Long, val bufferedPosition: Long)
+    data class BufferState(
+        val duration: Long,
+        val position: Long,
+        val bufferedPosition: Long
+    )
+    val currentBufferState get() = BufferState(
+        player.duration,
+        player.currentPosition,
+        player.bufferedPosition
+    )
     val bufferState: ReceiveChannel<BufferState> get() = produce {
-        while (isActive) {
+        while (true) {
             try {
                 if (player.currentTimeline != null && player.currentTimeline.windowCount > 0) {
-                    send(BufferState(player.duration, player.currentPosition, player.bufferedPosition))
+                    send(currentBufferState)
                 }
             } finally {
             }
             delay(350)
         }
     }
+
 
     private val _isPlaying: ConflatedBroadcastChannel<Boolean> = ConflatedBroadcastChannel(false)
     val isPlaying get() = _isPlaying.openSubscription()
@@ -245,6 +244,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
         if (reason == Player.TIMELINE_CHANGE_REASON_PREPARED) {
             val q = _queue.value
             if (player.currentWindowIndex != q.position && timeline.windowCount > 0) {
+
 //                player.seekToDefaultPosition(min(timeline.windowCount - 1, q.position))
             }
         }
@@ -268,7 +268,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
 //        })
 
 
-    private fun stop() {
+    fun stop() {
         pause()
         player.stop()
     }
@@ -371,7 +371,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
 
     fun playNext() {
         addCurrentToHistory()
-        val q = _queue.value.next()
+        val q = _queue.value.toNext()
         _queue puts q as CombinedQueue
 
         if (q.position != player.currentWindowIndex) {
@@ -381,7 +381,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
 
     fun playPrevious() {
         addCurrentToHistory()
-        val q = _queue.value.prev()
+        val q = _queue.value.toPrev()
         _queue puts q as CombinedQueue
 //        q
 //    }.then(UI) { q ->
@@ -393,8 +393,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
     fun shiftQueuePosition(pos: Int) {
         val q = _queue.value
         when (pos) {
-            q.position - 1 -> playPrevious()
-            q.position + 1 -> playNext()
+            q.position - 1 -> if (pos >= 0) playPrevious()
+            q.position + 1 -> if (pos < q.list.size) playNext()
             else -> {
                 val q = _queue.value.shiftedPosition(pos)
                 _queue puts q as CombinedQueue
@@ -409,8 +409,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
     fun shiftQueuePositionRelative(diff: Int) {
         val q = _queue.value
         when (diff) {
-            -1 -> playPrevious()
-            1 -> playNext()
+            -1 -> if (q.position > 0) playPrevious()
+            1 -> if (q.position + 1 < q.list.size) playNext()
             else -> {
                 val q = _queue.value.shiftedPosition(q.position + diff)
                 _queue puts q as CombinedQueue
@@ -478,8 +478,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
     }
 
     //    @Synchronized
-    fun togglePause() {
-        if (player.playWhenReady) {
+    fun togglePause(): Boolean {
+        return if (player.playWhenReady) {
             pause()
         } else {
             play()

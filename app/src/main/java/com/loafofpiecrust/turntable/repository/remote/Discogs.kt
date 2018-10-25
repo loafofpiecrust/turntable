@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable.browse
+package com.loafofpiecrust.turntable.repository.remote
 
 import com.github.salomonbrys.kotson.*
 import com.google.gson.JsonObject
@@ -11,14 +11,15 @@ import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.artist.RemoteArtist
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
+import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.mapNotFailed
 import com.loafofpiecrust.turntable.util.text
 import com.mcxiaoke.koi.ext.closeQuietly
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import okhttp3.Response
 import org.jetbrains.anko.debug
 import org.jetbrains.anko.error
@@ -50,6 +51,7 @@ object Discogs: Repository {
 //        val members:
     ): RemoteArtist.Details {
         override val albums: List<Album> by lazy {
+            info { "discography for $id" }
             runBlocking { discographyHtml(id) }
 //            runBlocking { discography(uuid) }
         }
@@ -97,28 +99,30 @@ object Discogs: Repository {
 //            error(e)
         }
 
-    private suspend fun searchFor(artist: ArtistId): List<Int> {
-        return doSearch(artist.displayName, mapOf(
+    private suspend fun searchFor(artist: ArtistId): List<Int> =
+        doSearch(artist.displayName, mapOf(
             "type" to "artist"
         )).map {
             it["id"].int
         }
-    }
 
-    private suspend fun searchFor(album: AlbumId): List<RemoteAlbum> {
-        return doSearch(album.displayName, mapOf(
+    private suspend fun searchFor(album: AlbumId): List<RemoteAlbum> =
+        doSearch(album.displayName, mapOf(
             "type" to "release",
-            "artist" to album.artist.name,
+            "artist" to album.artist.displayName,
 //            "year" to album.year.toString(),
             "per_page" to "5"
         )).mapNotFailed {
-            val artist = cleanArtistName(it["artists"][0]["name"].string)
+            val title = it["title"].string.split(" - ")
+            // We have to split the title...
+            val artistId = cleanArtistName(title[0].trim())
+            val albumId = AlbumId(title[1].trim(), artistId)
             RemoteAlbum(
-                AlbumId(it["name"].string, artist),
-                AlbumDetails("${it["type"].string}s/${it["id"].string}")
+                albumId,
+                AlbumDetails("${it["type"].string}s/${it["id"].string}"),
+                year = it["year"].nullString?.toIntOrNull() ?: 0
             )
         }
-    }
 
     private suspend fun doSearch(query: String, params: Map<String, String>): List<JsonObject> {
         // TODO: Heed rate limits!
@@ -127,8 +131,8 @@ object Discogs: Repository {
         ))["results"].array.map { it.obj }
     }
 
-    override suspend fun searchArtists(query: String): List<Artist> {
-        return doSearch(query, mapOf(
+    override suspend fun searchArtists(query: String): List<Artist> =
+        doSearch(query, mapOf(
             "type" to "artist"
         )).mapNotFailed {
             RemoteArtist(
@@ -136,10 +140,9 @@ object Discogs: Repository {
                 ArtistDetails(it["id"].int, "", it["thumb"].nullString)
             )
         }
-    }
 
-    override suspend fun searchAlbums(query: String): List<Album> {
-        return doSearch(query, mapOf(
+    override suspend fun searchAlbums(query: String): List<Album> =
+        doSearch(query, mapOf(
             "type" to "master"
         )).map {
             val titleParts = it["title"].string.split(" - ", limit=2)
@@ -152,34 +155,29 @@ object Discogs: Repository {
                     it["id"].int.toString(),
                     thumbnailUrl = it["thumb"].nullString
                 ),
-                year = it["year"].nullString?.toIntOrNull()
+                year = it["year"].nullString?.toIntOrNull() ?: 0
             )
         }
-    }
 
     /// Song search is not supported by Discogs.
     override suspend fun searchSongs(query: String): List<Song> = listOf()
 
-    override suspend fun find(album: AlbumId): Album? {
-        // TODO: ensure that the result is identical or fuzzy match of >=98
-        return given(searchFor(album).firstOrNull()) {
-            it
-        }
-    }
+    // TODO: ensure that the result is identical or fuzzy match of >=98
+    override suspend fun find(album: AlbumId): Album? =
+        searchFor(album).firstOrNull()
 
-    override suspend fun find(artist: ArtistId): Artist? {
-        return given(searchFor(artist).firstOrNull()) {
+    override suspend fun find(artist: ArtistId): Artist? =
+        searchFor(artist).firstOrNull()?.let {
             val res = apiRequest("https://api.discogs.com/artists/$it").obj
             RemoteArtist(
                 artist,
                 ArtistDetails(
                     it,
-                    res["profile"].nullString ?: "",
-                    res["images"]?.get(0)?.get("uri")?.nullString
+                    res["profile"]?.string ?: "",
+                    res["images"]?.get(0)?.get("uri")?.string
                 )
             )
         }
-    }
 
 //    override suspend fun find(song: Song): Song.Details? {
 //        return given(searchFor(song.uuid).firstOrNull()) {
@@ -252,7 +250,7 @@ object Discogs: Repository {
                             ?.get("uri")?.string
                     ),
 //                    artworkUrl = null,
-                    year = it["year"].nullInt,
+                    year = it["year"].nullInt ?: 0,
                     type = type
                 ) to relType
             } else null
@@ -264,7 +262,7 @@ object Discogs: Repository {
         val id = when {
             album is RemoteAlbum -> {
                 val remote = album.remoteId
-                if (remote is Discogs.AlbumDetails) {
+                if (remote is AlbumDetails) {
                     remote.id
                 } else searchFor(album.id).firstOrNull()
             }
@@ -344,14 +342,14 @@ object Discogs: Repository {
                     synchronized(releases) {
                         totalMasterReqs += 1
                     }
-                val det = master.remoteId as Discogs.AlbumDetails
+                val det = master.remoteId as AlbumDetails
                     val res = apiRequest(
                         "https://api.discogs.com/${det.id}/versions",
                         mapOf("per_page" to "5")
                     )
-                    releasesToAlbums(null,
-                        res["versions"].array.map { it.obj }
-                    )
+                releasesToAlbums(null,
+                    res["versions"].array.map { it.obj }
+                )
 //                    it
 //                }
 //            }
@@ -425,8 +423,8 @@ object Discogs: Repository {
         val res = Jsoup.parse(txt).body()
         info { "discography parse took ${System.nanoTime() - start}ns" }
         start = System.nanoTime()
-        val profile = res.getElementsByClass("profile").first()
-        val artist = ArtistId(profile.child(0).text())
+//        val profile = res.getElementsByClass("profile").first()
+//        val artist = ArtistId(profile.child(0).text())
         val table = res.getElementById("artist").child(0)
 
         var currType: Album.Type? = Album.Type.LP
@@ -448,8 +446,7 @@ object Discogs: Repository {
                 val title = titleLink.text()
                 val linkParts = titleLink.attr("href").split('/')
                 val id = linkParts[linkParts.size - 2] + "s/" + linkParts.last()
-                val ty = tryOr(currType) {
-                    val format = cols.first { it.hasClass("format") }.text()
+                val ty = cols.find { it.hasClass("format") }?.text()?.let { format ->
                     val types = format.substring(1, format.length - 1).split(", ")
 
                     when {
@@ -458,21 +455,21 @@ object Discogs: Repository {
                         types.contains("Comp") -> Album.Type.COMPILATION
                         else -> currType
                     }
-                }
+                } ?: currType
                 val year = cols.first { it.hasClass("year") }.text().toIntOrNull()
 
                 val thumbLink = cols.firstOrNull { it.hasClass("image") }
                     ?.getElementsByClass("thumbnail_center")?.firstOrNull()
                     ?.child(0)?.attr("data-src")
 
-                val artist = ArtistId(
+                val artistId = cleanArtistName(
                     cols.first { it.hasClass("artist") }.text()
                 )
 
                 RemoteAlbum(
-                    AlbumId(title, artist),
+                    AlbumId(title, artistId),
                     AlbumDetails(id, thumbLink),
-                    year = year,
+                    year = year ?: 0,
                     type = ty!!
                 )
             }
@@ -517,7 +514,7 @@ object Discogs: Repository {
                 track = idx + 1,
                 disc = 1,
                 duration = duration,
-                year = null
+                year = 0
             )
 //            )
         }

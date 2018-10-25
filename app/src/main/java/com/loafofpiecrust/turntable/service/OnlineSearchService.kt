@@ -20,7 +20,7 @@ import com.github.salomonbrys.kotson.nullObj
 import com.github.salomonbrys.kotson.obj
 import com.github.salomonbrys.kotson.string
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.album.*
+import com.loafofpiecrust.turntable.album.YouTubeFullAlbum
 import com.loafofpiecrust.turntable.artist.MusicDownload
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
@@ -33,12 +33,12 @@ import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.addToMediaStore
 import com.mcxiaoke.koi.ext.intValue
 import com.mcxiaoke.koi.ext.stringValue
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.map
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import okhttp3.Cookie
 import okhttp3.HttpUrl
 import org.jaudiotagger.audio.AudioFileIO
@@ -49,7 +49,8 @@ import java.io.File
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
-import kotlin.coroutines.experimental.Continuation
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.resume
 
 
 class OnlineSearchService : BaseService(), AnkoLogger {
@@ -147,10 +148,10 @@ class OnlineSearchService : BaseService(), AnkoLogger {
                 entry == null -> StreamStatus.Unknown()
                 entry.youtubeId == null -> StreamStatus.Unavailable()
                 else -> tryOr(StreamStatus.Unknown()) {
-                    entry.stream128 = given(entry.stream128) {
+                    entry.stream128 = entry.stream128?.let {
                         decompress(it)
                     }
-                    entry.stream192 = given(entry.stream192) {
+                    entry.stream192 = entry.stream192?.let {
                         decompress(it)
                     }
 
@@ -226,7 +227,7 @@ class OnlineSearchService : BaseService(), AnkoLogger {
         DynamoDBMapper(database)
     }
 
-    fun saveYouTubeStreamUrl(entry: SongDBEntry) = async {
+    fun saveYouTubeStreamUrl(entry: SongDBEntry) = launch {
         try {
             dbMapper.save(SongDBEntry(
                 entry.id.toLowerCase(),
@@ -749,12 +750,12 @@ class OnlineSearchService : BaseService(), AnkoLogger {
                                 if (dl.song.disc > 0) {
                                     tags.setField(FieldKey.DISC_NO, dl.song.disc.toString())
                                 }
-                                dl.song.year?.let {
+                                dl.song.year.let {
                                     if (it > 0) {
                                         tags.setField(FieldKey.YEAR, it.toString())
                                     }
                                 }
-                                AudioFileIO.write(ctx, f)
+                                AudioFileIO.write(this@OnlineSearchService, f)
                                 App.instance.addToMediaStore(path)
                             } catch (e: Exception) {
                                 e.printStackTrace()

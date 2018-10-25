@@ -11,10 +11,8 @@ import com.google.android.exoplayer2.trackselection.TrackSelection
 import com.google.android.exoplayer2.upstream.Allocator
 import com.google.android.exoplayer2.upstream.DataSource
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.util.BG_POOL
-import kotlinx.coroutines.experimental.GlobalScope
-import kotlinx.coroutines.experimental.launch
-import java.util.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 class StreamMediaSource(
@@ -23,14 +21,23 @@ class StreamMediaSource(
     private val extractorsFactory: ExtractorsFactory,
     private val listener: ((Boolean) -> Unit)? = null
 ): BaseMediaSource(), MediaSource.SourceInfoRefreshListener {
+    private var attemptCount: Int = 0
     private var innerSource: MediaSource? = null
     private var player: ExoPlayer? = null
 
     override fun createPeriod(id: MediaSource.MediaPeriodId, allocator: Allocator): MediaPeriod? {
-        return if (innerSource == null) {
+        return if (attemptCount > 2 && innerSource == null) {
+            refreshSourceInfo(Timeline.EMPTY, null)
+            null
+        } else if (innerSource == null) {
             return StreamMediaPeriod(song, sourceFactory, extractorsFactory, id, allocator) { src ->
-                innerSource = src
-                src?.prepareSource(player, false, this)
+                if (src == null) {
+                    attemptCount += 1
+                    refreshSourceInfo(Timeline.EMPTY, null)
+                } else {
+                    innerSource = src
+                    src.prepareSource(player, false, this)
+                }
             }
         } else {
             innerSource!!.createPeriod(id, allocator)
@@ -139,9 +146,10 @@ class StreamMediaPeriod(
             }
             true
         } else {
-            throw MissingResourceException("No stream to load!", Song.Media::class.java.simpleName, song.id.toString())
+            sourceCallback.invoke(source)
 //            callback.onContinueLoadingRequested(this)
-            false
+            // song can't be loaded?
+            true
         }
     }
 

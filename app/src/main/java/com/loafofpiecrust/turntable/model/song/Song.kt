@@ -1,33 +1,25 @@
 package com.loafofpiecrust.turntable.model.song
 
-//import com.devbrackets.android.playlistcore.manager.IPlaylistItem
-//import com.devbrackets.android.playlistcore.manager.ListPlaylistManager
-//import com.loafofpiecrust.turntable.service.PlaylistManager
-import android.content.Context
 import android.graphics.drawable.Drawable
 import android.os.Parcelable
 import android.support.v7.graphics.Palette
-import android.view.Menu
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
 import com.loafofpiecrust.turntable.App
-import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.model.Music
-import com.loafofpiecrust.turntable.model.MusicId
-import com.loafofpiecrust.turntable.model.SavableMusic
-import com.loafofpiecrust.turntable.model.album.loadPalette
-import com.loafofpiecrust.turntable.playlist.PlaylistPicker
+import com.loafofpiecrust.turntable.model.Recommendation
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.OnlineSearchService
-import com.loafofpiecrust.turntable.ui.showDialog
-import com.loafofpiecrust.turntable.util.menuItem
-import com.loafofpiecrust.turntable.util.onClick
+import com.loafofpiecrust.turntable.util.redirectTo
 import com.loafofpiecrust.turntable.util.subSequenceView
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.channels.map
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.filterNotNull
+import kotlinx.coroutines.channels.first
+import kotlinx.coroutines.channels.produce
 import java.util.concurrent.TimeUnit
 
 // All possible music status':
@@ -64,15 +56,14 @@ interface HasTracks: Music {
 
 @Parcelize
 data class Song(
-    val id: SongId,
+    override val id: SongId,
     val track: Int,
     val disc: Int,
     val duration: Int, // milliseconds
-    val year: Int?,
+    val year: Int,
     @Transient
     val platformId: PlatformId? = null
-): SavableMusic, Parcelable, HasTracks {
-    override val musicId: MusicId get() = id
+): Music, Parcelable, HasTracks, Recommendation {
     override val tracks: List<Song> get() = listOf(this)
     /**
      * Comparable/sortable value for disc and track
@@ -116,8 +107,8 @@ data class Song(
 //
 ////        menuItem("Recommend").onClick {
 ////            FriendPickerDialogStarter.newInstance(
-////                SyncService.Message.Recommendation(this@Song.uuid),
-////                "Send Recommendation"
+////                Sync.Message.Recommend(this@Song.uuid),
+////                "Send Recommend"
 ////            ).show(context)
 ////        }
 ////
@@ -129,7 +120,7 @@ data class Song(
 //    }
 
     suspend fun loadMedia(): Media? {
-        val existing = Library.instance.sourceForSong(id)
+        val existing = Library.instance.sourceForSong(this.id)
         if (existing != null) {
             return Media(existing)
         }
@@ -158,25 +149,23 @@ data class Song(
         } else null
     }
 
-    fun loadCover(req: RequestManager, cb: (Palette?, Palette.Swatch?) -> Unit = { a, b -> }): ReceiveChannel<RequestBuilder<Drawable>?> = run {
-        Library.instance.findAlbumExtras(id.album).map {
-            //if (it != null) {
-            // This album cover is either local or cached.
-//                GlobalScope.produceSingle {
-            req.load(it?.artworkUri)
-                .listener(loadPalette(id, cb))
-//                }
-            /*} else when {
-                // The song happens to know its artwork url.
-                artworkUrl != null -> produceTask {
-                    req.load(artworkUrl)
-                        .apply(Library.ARTWORK_OPTIONS)
-                        .listener(loadPalette(info.uuid, cb))
+    fun loadCover(req: RequestManager, cb: (Palette?, Palette.Swatch?) -> Unit = { a, b -> }): ReceiveChannel<RequestBuilder<Drawable>?> =
+        GlobalScope.produce {
+            val localArt = Library.instance.loadAlbumCover(req, id.album)
+            val first = localArt.receive()
+            send(if (first != null) {
+                first
+            } else {
+                val remoteAlbum = Repository.find(id.album)
+                if (remoteAlbum != null) {
+                    req.load(Repository.fullArtwork(remoteAlbum, true))
+                } else {
+                    null
                 }
-                else -> produceTask { null }
-            }*/
+            })
+
+            localArt.filterNotNull().redirectTo(channel)
         }
-    }
 
     data class Media(val url: String, val start: Int = 0, val end: Int = 0)
     interface PlatformId: Parcelable
@@ -256,8 +245,8 @@ data class Song(
 //
 //        menuItem("Recommend").onClick {
 //            FriendPickerDialogStarter.newInstance(
-//                SyncService.Message.Recommendation(this@Song.uuid),
-//                "Send Recommendation"
+//                Sync.Message.Recommend(this@Song.uuid),
+//                "Send Recommend"
 //            ).show(ctx)
 //        }
 //

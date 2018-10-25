@@ -7,14 +7,13 @@ import com.chibatching.kotpref.pref.AbstractPref
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.Deferred
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.channels.Channel
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.experimental.channels.actor
-import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.actor
+import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
 import java.io.FileOutputStream
@@ -27,6 +26,12 @@ abstract class BaseObjFilePref<T: Any>(
     protected var lastModify = 0L
     private var className: String? = null
     private var name: String? = null
+
+    init {
+        subject.consumeEach(BG_POOL) {
+            lastModify = System.nanoTime()
+        }
+    }
 
 //    private sealed class Action {
 //        object Save: Action()
@@ -73,13 +78,7 @@ abstract class BaseObjFilePref<T: Any>(
     }
 }
 
-class objFilePref<T: Any>(default: T): BaseObjFilePref<T>(default) {
-    init {
-        subject.consumeEach(BG_POOL) {
-            lastModify = System.nanoTime()
-        }
-    }
-
+inline fun <reified T: Any> objFilePref(default: T) = object: BaseObjFilePref<T>(default) {
     override fun setToPreference(property: KProperty<*>, value: T, preference: SharedPreferences) {
     }
 
@@ -90,13 +89,13 @@ class objFilePref<T: Any>(default: T): BaseObjFilePref<T>(default) {
         val res = try {
             val file = App.instance.filesDir.resolve(fileName)
             if (file.exists()) {
-                runBlocking { deserialize<T>(file.inputStream()) }
+                deserialize(file.inputStream()) as T
             } else default
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             error("Preference '${property.name}' failed to load.", e)
             default
         }
 
-        return res!!
+        return res
     }
 }

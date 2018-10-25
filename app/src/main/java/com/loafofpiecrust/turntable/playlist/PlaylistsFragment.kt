@@ -1,27 +1,35 @@
 package com.loafofpiecrust.turntable.playlist
 
-import android.content.res.ColorStateList
 import android.support.v7.graphics.Palette
 import android.support.v7.widget.LinearLayoutManager
-import android.view.*
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.ViewGroup
+import android.view.ViewManager
+import android.widget.EditText
+import com.github.daemontus.unwrap
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.appends
 import com.loafofpiecrust.turntable.browse.RecentMixTapesFragment
-import com.loafofpiecrust.turntable.given
+import com.loafofpiecrust.turntable.model.playlist.AbstractPlaylist
+import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.shifted
-import com.loafofpiecrust.turntable.sync.SyncService
-import com.loafofpiecrust.turntable.sync.User
+import com.loafofpiecrust.turntable.sync.Sync
+import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import org.jetbrains.anko.backgroundColor
-import org.jetbrains.anko.imageResource
+import com.loafofpiecrust.turntable.views.RecyclerBroadcastAdapter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.launch
+import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-import org.jetbrains.anko.textColor
+import org.jetbrains.anko.support.v4.alert
 
 
 class PlaylistsFragment: BaseFragment() {
@@ -34,7 +42,7 @@ class PlaylistsFragment: BaseFragment() {
             this.columnCount = columnCount
         }
     }
-    private var user: User by arg { SyncService.selfUser }
+    private var user: User by arg { Sync.selfUser }
     private var columnCount: Int by arg()
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
@@ -46,21 +54,47 @@ class PlaylistsFragment: BaseFragment() {
         menu.menuItem(R.string.playlist_new, R.drawable.ic_add, showIcon =true).onClick {
             AddPlaylistDialog().show(requireContext(), fullscreen = true)
         }
+
+        menu.menuItem("From Spotify").onClick {
+            alert {
+                title = "Playlist From Spotify"
+
+                lateinit var userEdit: EditText
+                lateinit var idEdit: EditText
+                customView {
+                    verticalLayout {
+                        userEdit = editText {
+                            hint = "User ID"
+                        }
+                        idEdit = editText {
+                            hint = "Playlist ID"
+                        }
+                    }
+                }
+
+                positiveButton("Load") {
+                    launch(Dispatchers.IO) {
+                        UserPrefs.playlists appends CollaborativePlaylist.fromSpotifyPlaylist(userEdit.text.toString(), idEdit.text.toString()).unwrap()
+                    }
+                }
+                cancelButton {}
+            }.show()
+        }
     }
 
     override fun ViewManager.createView() = recyclerView {
         layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
 
-        val playlists = if (user === SyncService.selfUser) {
+        val playlists = if (user === Sync.selfUser) {
             UserPrefs.playlists.openSubscription()
         } else produceSingle {
-            Playlist.allByUser(user)
+            AbstractPlaylist.allByUser(user)
         }
         adapter = Adapter(playlists) { playlist ->
             println("playlist: opening '${playlist.name}'")
             activity?.supportFragmentManager?.replaceMainContent(
                 when(playlist) {
-                    is MixTape -> MixTapeDetailsFragment.newInstance(playlist.uuid, playlist.name)
+                    is MixTape -> MixtapeDetailsUI(playlist.id).createFragment()
 //                    is AlbumCollection -> AlbumsUI.Custom(playlist.albums.broadcast(CONFLATED)).createFragment()
                     else -> PlaylistDetailsFragment.newInstance(playlist.uuid, playlist.name)
                 },
@@ -93,16 +127,16 @@ class PlaylistsFragment: BaseFragment() {
             val ctx = itemView.context
             val typeName = item.javaClass.localizedName(ctx)
             mainLine.text = item.name
-            subLine.text = if (item.owner == SyncService.selfUser) {
+            subLine.text = if (item.owner == Sync.selfUser) {
                 typeName
             } else {
                 ctx.getString(R.string.playlist_author, item.owner.name, typeName)
             }
 //            header.transitionName = "playlistHeader${item.name}"
 
-            given(item.color) {
+            item.color?.let {
                 val contrast = Palette.Swatch(it, 0).titleTextColor
-                card.background.setTint(it)
+                card.backgroundColor = it
                 mainLine.textColor = contrast
                 subLine.textColor = contrast
                 menu.tint = contrast

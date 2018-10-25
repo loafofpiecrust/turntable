@@ -31,7 +31,7 @@ package com.loafofpiecrust.turntable.service
 //        instance = this
 //    }
 //
-//    private val googleAccount get() = SyncService.googleAccount
+//    private val googleAccount get() = Sync.googleAccount
 ////    private val drive: Drive by lazy {
 ////        val cred = GoogleAccountCredential.usingOAuth2(App.instance, SCOPES.toList()).apply {
 ////            selectedAccount = googleAccount?.account

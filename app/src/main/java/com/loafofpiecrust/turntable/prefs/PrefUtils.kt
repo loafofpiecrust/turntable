@@ -3,7 +3,7 @@ package com.loafofpiecrust.turntable.prefs
 import android.preference.*
 import com.jaredrummler.android.colorpicker.ColorPreference
 import com.loafofpiecrust.turntable.util.hasValue
-import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import org.jetbrains.anko.ctx
 
 

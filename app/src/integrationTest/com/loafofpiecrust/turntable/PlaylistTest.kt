@@ -1,13 +1,11 @@
 package com.loafofpiecrust.turntable
 
-import ch.tutteli.atrium.api.cc.en_GB.isA
 import ch.tutteli.atrium.api.cc.en_GB.isNotEmpty
 import ch.tutteli.atrium.verbs.expect
 import com.github.daemontus.Result
-import com.loafofpiecrust.turntable.browse.Spotify
+import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
-import kotlinx.coroutines.experimental.channels.first
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
