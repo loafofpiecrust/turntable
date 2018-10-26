@@ -15,14 +15,14 @@
 # debugging stack traces.
 -keepattributes SourceFile,LineNumberTable
 #-keep com.sothree.slidinguppanel.*
--keep class com.loafofpiecrust.turntable.** { *; }
+#-keep class com.loafofpiecrust.turntable.** { *; }
 #-keep class com.loafofpiecrust.turntable.**$** { *; }
 #-keep class com.loafofpiecrust.turntable.ui.*$** { *; }
 -keep class * extends com.bumptech.glide.module.AppGlideModule
 -keep class com.loafofpiecrust.**$Parcelable { *; }
 #-keep class com.frostwire.jlibtorrent.swig.** { *; }
 #-keep class com.google.firebase.provider.FirebaseInitProvider
--keep class * extends android.content.ContentProvider
+#-keep class * extends android.content.ContentProvider
 -keep class com.loafofpiecrust.turntable.R
 # If you keep the line number information, uncomment this to
 # hide the original source file uuid.
@@ -113,12 +113,13 @@
 #-keepnames interface ** { *; }
 #-keepnames enum ** { *; }
 
--keep public class * extends android.view.View {
-    public <init>(android.content.Context);
-    public <init>(android.content.Context, android.util.AttributeSet);
-    public <init>(android.content.Context, android.util.AttributeSet, int);
-    public void set*(...);
-}
+# Only necessary for XML layouts.
+#-keep public class * extends android.view.View {
+#    public <init>(android.content.Context);
+#    public <init>(android.content.Context, android.util.AttributeSet);
+#    public <init>(android.content.Context, android.util.AttributeSet, int);
+#    public void set*(...);
+#}
 -keep class android.support.v7.widget.ListViewCompat
 
 -keepclassmembers class com.loafofpiecrust.** {
@@ -133,10 +134,11 @@
 #    public <init>(android.content.Context, android.util.AttributeSet, int);
 #}
 
--keepclassmembers class * extends android.content.Context {
-   public void *(android.view.View);
-   public void *(android.view.MenuItem);
-}
+# Only necessary for XML layouts.
+#-keepclassmembers class * extends android.content.Context {
+#   public void *(android.view.View);
+#   public void *(android.view.MenuItem);
+#}
 
 -keepclassmembers class * implements android.os.Parcelable {
     static ** CREATOR;
@@ -149,15 +151,15 @@
 #-keepclassmembers class * {
 #    @android.webkit.JavascriptInterface <methods>;
 #}
--keepclasseswithmembernames class * {
-    native <methods>;
-}
+#-keepclasseswithmembernames class * {
+#    native <methods>;
+#}
 
--keepclassmembers,allowoptimization enum * {
-    <init>(...);
-    public static **[] values();
-    public static ** valueOf(java.lang.String);
-}
+#-keepclassmembers,allowoptimization enum * {
+#    <init>(...);
+#    public static **[] values();
+#    public static ** valueOf(java.lang.String);
+#}
 
 #-keepclassmembers class org.apache.http.message.* {
 #    static ** INSTANCE;
