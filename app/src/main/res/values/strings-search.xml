@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Search APIs -->
+    <string name="search_hint">Search…</string>
+    <string name="search_spotify">Spotify</string>
+    <string name="search_discogs">Discogs</string>
+    <string name="search_musicbrainz">MusicBrainz</string>
+    <string name="search_local">Local Library</string>
+</resources>

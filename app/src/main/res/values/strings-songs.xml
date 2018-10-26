@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="song_title_ft">%1$s ft. %2$s</string>
+
+    <!-- Menu item to queue at the end of "Next Up" -->
+    <string name="queue_last">Queue</string>
+    <!-- Menu item to queue right after the current song -->
+    <string name="queue_next">Queue Next</string>
+
+    <!-- Queue -->
+    <string name="queue_up_next">Up Next</string>
+    <string name="queue_remove">Remove from Queue</string>
+
+    <string name="shuffle_all">Shuffle All</string>
+</resources>

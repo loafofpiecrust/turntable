@@ -27,40 +27,17 @@
     <string name="lastfm_api_key">fc166cab90ed1689767f61d1ef9cc585</string>
     <string name="lastfm_secret">3776a178cbfbf5dc0d4365f639f39ba1</string>
 
-    <string name="shuffle_all">Shuffle All</string>
-
-
-    <string name="song_title_ft">%1$s ft. %2$s</string>
-
 
     <!-- Albums/General -->
     <string name="set_grid_size">Grid Size</string>
-    <string name="cancel">Cancel</string>
 
     <!-- Radios -->
     <string name="radio_start">Start Radio</string>
     <string name="radio_no_data">Not enough data for %1$s</string>
-
-    <!-- Songs -->
-    <!-- Menu item to queue at the end of "Next Up" -->
-    <string name="queue_last">Queue</string>
-    <!-- Menu item to queue right after the current song -->
-    <string name="queue_next">Queue Next</string>
 
     <!-- Tabs -->
     <string name="tab_albums">Albums</string>
     <string name="tab_artists">Artists</string>
     <string name="tab_songs">Songs</string>
     <string name="tab_playlists">Playlists</string>
-
-    <!-- Queue -->
-    <string name="queue_up_next">Up Next</string>
-    <string name="queue_remove">Remove from Queue</string>
-
-    <!-- Search APIs -->
-    <string name="search_hint">Search…</string>
-    <string name="search_spotify">Spotify</string>
-    <string name="search_discogs">Discogs</string>
-    <string name="search_musicbrainz">MusicBrainz</string>
-    <string name="search_local">Local Library</string>
 </resources>
