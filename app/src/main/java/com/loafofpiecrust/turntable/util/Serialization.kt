@@ -12,7 +12,7 @@ import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.mcxiaoke.koi.ext.closeQuietly
-import org.nustaq.serialization.FSTConfiguration
+//import org.nustaq.serialization.FSTConfiguration
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -56,7 +56,10 @@ fun <T> Kryo.objectFromBytes(bytes: ByteArray, decompress: Boolean = false): T {
     return (readClassAndObject(input) as T).also { input.closeQuietly() }
 }
 
-private inline fun <reified T> Kryo.concreteFromBytes(bytes: ByteArray, decompress: Boolean = false): T {
+private inline fun <reified T> Kryo.concreteFromBytes(
+    bytes: ByteArray,
+    decompress: Boolean = false
+): T {
     val input = if (decompress) {
         Input(InflaterInputStream(ByteArrayInputStream(bytes)))
     } else Input(bytes)
@@ -66,18 +69,18 @@ private inline fun <reified T> Kryo.concreteFromBytes(bytes: ByteArray, decompre
 //
 // FST
 //
-private val fst by lazy {
-    FSTConfiguration.createAndroidDefaultConfiguration().apply {
-        isForceSerializable = true
-        registerClass(
-            Album::class.java,
-            Song::class.java,
-            SongId::class.java,
-            AlbumId::class.java,
-            CollaborativePlaylist.Operation::class.java
-        )
-    }
-}
+//private val fst by lazy {
+//    FSTConfiguration.createAndroidDefaultConfiguration().apply {
+//        isForceSerializable = true
+//        registerClass(
+//            Album::class.java,
+//            Song::class.java,
+//            SongId::class.java,
+//            AlbumId::class.java,
+//            CollaborativePlaylist.Operation::class.java
+//        )
+//    }
+//}
 suspend fun serialize(obj: Any?): ByteArray {
 //    val output = fst.objectOutput
 //    output.writeObject(obj)
