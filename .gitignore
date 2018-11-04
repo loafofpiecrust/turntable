@@ -1,4 +1,6 @@
 *.iml
+*.jks
+
 .gradle
 /local.properties
 .DS_Store
@@ -9,5 +11,5 @@
 /app/debug
 .idea/
 /app/release/
+/projectFilesBackup
 
-*.jks
