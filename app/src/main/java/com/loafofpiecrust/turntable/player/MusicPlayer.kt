@@ -12,15 +12,13 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory
 import com.loafofpiecrust.turntable.appends
-import com.loafofpiecrust.turntable.model.queue.CombinedQueue
-import com.loafofpiecrust.turntable.model.queue.Queue
-import com.loafofpiecrust.turntable.model.queue.StaticQueue
-import com.loafofpiecrust.turntable.model.queue.indexWithinUpNext
+import com.loafofpiecrust.turntable.model.queue.*
 import com.loafofpiecrust.turntable.model.song.HistoryEntry
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.putsMapped
+import com.loafofpiecrust.turntable.util.startWith
 import com.loafofpiecrust.turntable.util.with
 import com.loafofpiecrust.turntable.util.without
 import kotlinx.coroutines.*
@@ -99,7 +97,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
     private val _queue = UserPrefs.queue
     val queue: ReceiveChannel<CombinedQueue> get() = _queue.openSubscription()
 
-    val currentSong: ReceiveChannel<Song?> get() = queue.map { it.current }
+    val currentSong: ReceiveChannel<Song?>
+        get() = queue.map { it.current }.startWith(null)
 
 
     data class BufferState(
@@ -143,6 +142,13 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
         get() = player.volume
         set(value) { player.volume = value }
 
+
+    init {
+        // Handle case of restoring state after process death.
+        if (!_queue.value.isEmpty()) {
+            prepareSource()
+        }
+    }
 
     fun release() {
         player.release()
@@ -233,7 +239,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
     // Called when ExoPlayer changes tracks (mapped to windows)
     override fun onPositionDiscontinuity(reason: Int) {
         if (reason == ExoPlayer.DISCONTINUITY_REASON_PERIOD_TRANSITION) {
-            playNext()
+            shiftQueuePosition(player.currentWindowIndex)
+//            playNext()
         }
     }
 
@@ -334,9 +341,9 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
             player.prepare(mediaSource)
             player.playWhenReady = false
         }
-        val q = _queue.value
+
         when (mode) {
-            EnqueueMode.IMMEDIATELY_NEXT -> _queue puts run {
+            EnqueueMode.IMMEDIATELY_NEXT -> _queue putsMapped { q ->
                 mediaSource?.addMediaSources(
                     q.position + 1,
                     songs.map { StreamMediaSource(it, sourceFactory, extractorsFactory) }
@@ -344,7 +351,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
                 val pos = if (q.isPlayingNext) 1 else 0
                 q.copy(nextUp = q.nextUp.with(songs, pos))
             }
-            EnqueueMode.NEXT -> _queue puts run {
+            EnqueueMode.NEXT -> _queue putsMapped { q ->
                 mediaSource?.addMediaSources(
                     q.primary.position + q.nextUp.size + 1,
                     songs.map { StreamMediaSource(it, sourceFactory, extractorsFactory) }
@@ -352,10 +359,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
                 q.copy(nextUp = q.nextUp + songs)
             }
         }
-    }
-
-    fun enqueue(song: Song, mode: EnqueueMode) = run {
-        enqueue(listOf(song), mode)
     }
 
     fun removeFromQueue(position: Int) {
@@ -432,14 +435,20 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
 //        }
     }
 
-    fun replaceQueue(q: Queue) {
-        _queue putsMapped { prev ->
-            if (prev.isPlayingNext) {
-                CombinedQueue(q, prev.nextUp.drop(1))
-            } else {
-                CombinedQueue(q, prev.nextUp)
-            }
+    fun replaceQueue(q: CombinedQueue) {
+        _queue puts q
+        if (q.isEmpty()) {
+            stop()
+        } else {
+            prepareSource()
         }
+//        _queue putsMapped { prev ->
+//            if (prev.isPlayingNext) {
+//                CombinedQueue(q, prev.nextUp.drop(1))
+//            } else {
+//                CombinedQueue(q, prev.nextUp)
+//            }
+//        }
     }
 
 

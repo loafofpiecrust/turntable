@@ -32,10 +32,9 @@ import kotlin.coroutines.resume
  * It can be shared with other users and edited by them as well.
  */
 class CollaborativePlaylist (
+    override val id: PlaylistId,
     override val owner: User,
-    override var name: String,
-    override var color: Int?,
-    override val uuid: UUID
+    override var color: Int?
 ) : AbstractPlaylist(), MutablePlaylist {
     override val icon: Int
         get() = R.drawable.ic_boombox_color
@@ -89,15 +88,16 @@ class CollaborativePlaylist (
             songs
         }
 
-    constructor(): this(User(), "", null, UUID.randomUUID())
+    constructor(): this(PlaylistId(""), User(), null)
 
     override fun updateLastModified() {
         super.updateLastModified()
         if (isPublished) publish()
     }
 
+    /// FIXME
     fun rename(newName: String) {
-        name = newName
+//        id.name = newName
         updateLastModified()
     }
 
@@ -160,7 +160,8 @@ class CollaborativePlaylist (
 
             operations puts combined
 
-            name = other.name
+            // FIXME
+//            name = other.name
             color = other.color
             lastModified = maxOf(lastModified, other.lastModified)
             return combined != theirs
@@ -173,11 +174,11 @@ class CollaborativePlaylist (
         GlobalScope.launch {
             val db = FirebaseFirestore.getInstance()
 //        val batch = db.batch()
-            val doc = db.collection("playlists").document(uuid.toString())
+            val doc = db.collection("playlists").document(id.uuid.toString())
             doc.set(mapOf(
 //                "type" to type.toString(),
                 "format" to "playlist",
-                "name" to name,
+                "name" to id.name,
                 "color" to color,
                 "lastModified" to lastModified,
                 "createdTime" to createdTime,
@@ -204,7 +205,7 @@ class CollaborativePlaylist (
     fun sync() = if (isPublished && syncListener == null) {
         val db = FirebaseFirestore.getInstance()
         syncListener?.remove()
-        syncListener = db.collection("playlists").document(uuid.toString()).addSnapshotListener { doc, err ->
+        syncListener = db.collection("playlists").document(id.uuid.toString()).addSnapshotListener { doc, err ->
             if (err != null) {
                 error { err.stackTrace }
             }
@@ -225,10 +226,9 @@ class CollaborativePlaylist (
     companion object {
         fun fromDocument(doc: DocumentSnapshot): CollaborativePlaylist = runBlocking {
             CollaborativePlaylist(
+                PlaylistId(doc.getString("name")!!, UUID.fromString(doc.id)),
                 doc.getBlob("owner")!!.toObject(),
-                doc.getString("name")!!,
-                doc.getLong("color")?.toInt(),
-                UUID.fromString(doc.id)
+                doc.getLong("color")?.toInt()
             ).apply {
                 operations puts doc.getBlob("operations")!!.toObject()
                 lastModified = doc.getDate("lastModified")!!
@@ -259,18 +259,20 @@ class CollaborativePlaylist (
 //        }
 
 
-        suspend fun fromSpotifyPlaylist(userId: String, id: String): Result<CollaborativePlaylist, Throwable> {
+        suspend fun fromSpotifyPlaylist(userId: String, id: String): Result<CollaborativePlaylist, Exception> {
             val playlist = try {
                 Spotify.getPlaylist(userId, id)
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 return Result.Error(e)
             }
 
             return Result.Ok(CollaborativePlaylist(
+                PlaylistId(
+                    playlist.name,
+                    UUID.nameUUIDFromBytes(id.toByteArray())
+                ),
                 User("", "", playlist.ownerName),
-                playlist.name,
-                null,
-                UUID.nameUUIDFromBytes(id.toByteArray())
+                null
             ).apply {
                 operations puts playlist.items.map {
                     val track = it.track
@@ -287,7 +289,7 @@ class CollaborativePlaylist (
 fun CollaborativePlaylist.add(context: Context, song: Song) = addAll(context, listOf(song))
 fun CollaborativePlaylist.addAll(context: Context, songs: Iterable<Song>) = context.run {
     toast(when {
-        addAll(songs) -> getString(R.string.playlist_added_track, name)
-        else -> getString(R.string.playlist_duplicate, name)
+        addAll(songs) -> getString(R.string.playlist_added_track, id.name)
+        else -> getString(R.string.playlist_duplicate, id.name)
     })
 }

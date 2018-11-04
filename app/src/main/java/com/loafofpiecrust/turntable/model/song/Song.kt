@@ -10,32 +10,17 @@ import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.Recommendation
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.repository.Repositories
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.OnlineSearchService
-import com.loafofpiecrust.turntable.util.redirectTo
-import com.loafofpiecrust.turntable.util.subSequenceView
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.filterNotNull
 import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.channels.produce
-import java.util.concurrent.TimeUnit
 
-// All possible music status':
-// - Local: has an uuid, can be played. May be partial album (if album)
-// - Not local, not downloading yet (queued in sync / DL'd from search)
-// - Not local, downloading from torrent (queued in sync / DL'd from search)
-// - Not local, downloading from youtube (queued in sync / DL'd from search)
-// - Not local, downloading from p2p/udp (queued in sync)
-// - Not local, downloading from larger collection torrent (song from album, song/album from artist)
-
-
-// All possible statuses of a song:
-// Remote:
-// - Unknown: no remoteInfo confirmed
-// - Partial: metadata confirmed, no stream urls
-// - Resolved: confirmed metadata and stream urls
 
 fun CharSequence.withoutArticle(): CharSequence = when {
     startsWith("the ", true) -> subSequenceView(4)
@@ -54,70 +39,44 @@ interface HasTracks: Music {
 }
 
 
+// All possible music status':
+// - Local: has an id, can be played. May be partial album (if album)
+// - Not local, not downloading yet (queued in sync / DL'd from search)
+// - Not local, downloading from torrent (queued in sync / DL'd from search)
+// - Not local, downloading from youtube (queued in sync / DL'd from search)
+// - Not local, downloading from p2p/udp (queued in sync)
+// - Not local, downloading from larger collection torrent (song from album, song/album from artist)
+
+// All possible statuses of a song:
+// Remote:
+// - Unknown: no remoteInfo confirmed
+// - Partial: metadata confirmed, no stream urls
+// - Resolved: confirmed metadata and stream urls
 @Parcelize
 data class Song(
     override val id: SongId,
+    /// This song's track number in the [Album] it comes from.
     val track: Int,
+    /// The disc number of this song on the [Album] it comes from.
     val disc: Int,
-    val duration: Int, // milliseconds
+    /// Air-time in milliseconds
+    val duration: Int,
+    /// Publish year of this song, generally the same as the album it comes from.
     val year: Int,
+    /// Platform-specific identifier
     @Transient
     val platformId: PlatformId? = null
 ): Music, Parcelable, HasTracks, Recommendation {
     override val tracks: List<Song> get() = listOf(this)
+
     /**
      * Comparable/sortable value for disc and track
      * Assumes that a disc will never have over 999 tracks.
+     *
      * Example: Disc 2, Track 27 => 2027
      */
     val discTrack: Int get() = disc * 1000 + track
 
-
-//    override fun optionsMenu(context: Context, menu: Menu) = menu.run {
-//        menuItem(R.string.add_to_playlist).onClick {
-//            PlaylistPicker(this@Song).showDialog(context)
-//        }
-//
-////        menuItem("Go to album").onClick(BG_POOL) {
-////            val album = Library.instance.findAlbumOfSong(this@Song).first()
-////            withContext(UI) {
-////                if (album != null) {
-////                    context.replaceMainContent(
-////                        DetailsFragment(album.uuid), true
-////                    )
-////                }
-////            }
-////        }
-////        menuItem("Go to artist").onClick {
-////            val artist = if (local is Song.LocalDetails.Downloaded) {
-////                Library.instance.findArtist(uuid.artist).first()
-////            } else {
-////                Repository.find(uuid.artist) ?: run {
-////                    context.toast("No remote artist for '${this@Song.uuid}'")
-////                    return@onClick
-////                }
-////            }
-////
-////            if (artist != null) {
-////                context.replaceMainContent(
-////                    ArtistDetailsFragment.fromArtist(artist), true
-////                )
-////            }
-////        }
-//
-////        menuItem("Recommend").onClick {
-////            FriendPickerDialogStarter.newInstance(
-////                Sync.Message.Recommend(this@Song.uuid),
-////                "Send Recommend"
-////            ).show(context)
-////        }
-////
-////        menuItem("Clear Streams").onClick {
-////            OnlineSearchService.instance.reloadSongStreams(this@Song.uuid)
-////            OnlineSearchService.instance.reloadAlbumStreams(this@Song.uuid.album)
-////        }
-//
-//    }
 
     suspend fun loadMedia(): Media? {
         val existing = Library.instance.sourceForSong(this.id)
@@ -156,309 +115,27 @@ data class Song(
             send(if (first != null) {
                 first
             } else {
-                val remoteAlbum = Repository.find(id.album)
+                val remoteAlbum = Repositories.find(id.album)
                 if (remoteAlbum != null) {
-                    req.load(Repository.fullArtwork(remoteAlbum, true))
+                    req.load(Repositories.fullArtwork(remoteAlbum, true))
                 } else {
                     null
                 }
             })
 
-            localArt.filterNotNull().redirectTo(channel)
+            sendFrom(localArt.filterNotNull())
         }
 
     data class Media(val url: String, val start: Int = 0, val end: Int = 0)
+
+    /**
+     * Source-specific ID providing info to locate related content from the same source.
+     * For example, a [PlatformId] implementation may provide Android Media Query IDs.
+     */
     interface PlatformId: Parcelable
 
     companion object {
-        val MIN_DURATION = TimeUnit.SECONDS.toMillis(5)
-        val MAX_DURATION = TimeUnit.MINUTES.toMillis(60)
+        val MIN_DURATION = 5.seconds
+        val MAX_DURATION = 1.hours
     }
-}
-
-
-//@Parcelize
-//data class Song(
-//    var local: LocalDetails?,
-//    val remote: RemoteDetails?,
-////    val name: String,
-////    var album: String,
-////    val artist: String,
-//    val uuid: SongId,
-//    val track: Int,
-//    var disc: Int,
-//    val duration: Int, // milliseconds
-//    val year: Int? = null,
-//    var artworkUrl: String? = null
-//) : Music, Parcelable {
-//    /**
-//     * Comparable/sortable value for disc and track
-//     * Assumes that a disc will never have over 999 tracks.
-//     * Example: Disc 2, Track 27 => 2027
-//     */
-//    val discTrack: Int get() = disc * 1000 + track
-//
-//    override fun optionsMenu(ctx: Context, popupMenu: Menu) = with(popupMenu) {
-//        menuItem("Add to playlist").onClick {
-//            PlaylistPickerDialog.forItem(this@Song).show(ctx)
-//        }
-//
-//        menuItem("Go to album").onClick(BG_POOL) {
-//            val album = Library.instance.findAlbumOfSong(this@Song).first()
-//            withContext(UI) {
-//                if (album != null) {
-//                    ctx.replaceMainContent(
-//                        DetailsFragmentStarter.newInstance(album.uuid), true
-//                    )
-//                }
-//            }
-//            // We need to provide for songs having different artist than albums
-////                    val cat = if (song.uuid.album != 0L) {
-////                        AlbumActivity.Category.Local(song.uuid.album)
-////                    } else {
-////                        val album = Album.findOnline(song.album, song.artist, song.year)
-////                        if (album != null) {
-////                            AlbumActivity.Category.Remote(album)
-////                        } else {
-////                            v.context.toast("No remote album for '${song.name}'")
-////                            return@onClick
-////                        }
-////                    }
-////                    AlbumActivityStarter.start(v.context, cat)
-//        }
-//        menuItem("Go to artist").onClick {
-//            val artist = if (local is Song.LocalDetails.Downloaded) {
-//                Library.instance.findArtist(uuid.artist).first()
-//            } else {
-//                Repository.find(uuid.artist) ?: run {
-//                    ctx.toast("No remote artist for '${this@Song.uuid}'")
-//                    return@onClick
-//                }
-//            }
-//
-//            if (artist != null) {
-//                ctx.replaceMainContent(
-//                    ArtistDetailsFragment.fromArtist(artist), true
-//                )
-//            }
-//        }
-//
-//        menuItem("Recommend").onClick {
-//            FriendPickerDialogStarter.newInstance(
-//                Sync.Message.Recommend(this@Song.uuid),
-//                "Send Recommend"
-//            ).show(ctx)
-//        }
-//
-//        menuItem("Clear Streams").onClick {
-//            OnlineSearchService.instance.reloadSongStreams(this@Song.uuid)
-//            OnlineSearchService.instance.reloadAlbumStreams(this@Song.uuid.album)
-//        }
-//    }
-//
-//    /// For serialization libraries
-//    constructor(): this(
-//        null, null,
-//        SongId("", "", ""), 1, 1, 0
-//    )
-//
-//    companion object {
-//        val MIN_DURATION = TimeUnit.SECONDS.toMillis(5)
-//        val MAX_DURATION = TimeUnit.MINUTES.toMillis(60)
-//
-//        fun justForSearch(title: String, album: String, artist: String, duration: Int = 0) = Song(
-//            null, null,
-//            SongId(title, AlbumId(album, ArtistId(artist))),
-//            0, 0, duration
-//        )
-//        fun justForSearch(uuid: SongId, duration: Int = 0) = Song(
-//            null, null, uuid,
-//            0, 0, duration
-//        )
-//    }
-//
-//    data class RemoteDetails(
-//        val uuid: String?,
-//        val albumId: String?,
-//        val artistId: String?,
-//        val normalStream: String? = null, // Usually 128 kb/s
-//        val hqStream: String? = null, // Usually 160 kb/s
-//        val start: Int = -1 // Position to start the stream from
-//    ): Serializable
-//
-//    sealed class LocalDetails: Serializable {
-//        data class Downloaded(
-//            val path: String,
-//            val uuid: Long,
-//            val albumId: Long,
-//            val artistId: Long
-//        ): LocalDetails()
-//
-//        data class Downloading(
-//            val uuid: Long
-//        ): LocalDetails()
-//    }
-//
-//    data class Media(val url: String, val start: Int = 0, val end: Int = 0)
-//
-//
-//    override val simpleName: String get() = uuid.displayName
-//    val searchKey get() = (uuid.name + uuid.album.sortName + uuid.album.artist.sortName).toLowerCase()
-//
-//    private val hasData get() = (local is LocalDetails.Downloaded || remote != null)
-//
-////    val uuid: Int get() = searchKey.hashCode()
-//
-//    val localMedia: Media? get() = run {
-//        val local = local
-//        if (local is LocalDetails.Downloaded) {
-//            Media(local.path)
-//        } else null
-//    }
-//
-//    suspend fun remoteMedia(): Media? {
-//        val local = local
-//        return if (local !is Song.LocalDetails.Downloaded) {
-//            val existing = Library.instance.findSongFuzzy(this@Song).first()
-//
-//            val internetStatus = App.instance.internetStatus.first()
-//            if (internetStatus == App.InternetStatus.OFFLINE && existing?.local == null) {
-//                return null
-//            }
-//
-//            val mode = UserPrefs.HQStreamingMode.valueOf(UserPrefs.hqStreamingMode.value)
-//            val hqStreaming = when (mode) {
-//                UserPrefs.HQStreamingMode.ONLY_UNMETERED -> internetStatus == App.InternetStatus.UNLIMITED
-//                UserPrefs.HQStreamingMode.ALWAYS -> true
-//                UserPrefs.HQStreamingMode.NEVER -> false
-//            }
-//            if (remote?.normalStream != null) {
-//                val stream = if (hqStreaming) {
-//                    remote.hqStream ?: remote.normalStream
-//                } else remote.normalStream
-//                Media(stream, remote.start, remote.start + this.duration)
-//            } else {
-//                // This is a remote song, find the stream uuid
-//                // Well, we might have a song that's pretty much the same. Check first.
-//                // (Last line of defense against minor typos/discrepancies/album versions)
-//                if (existing != null && existing != this@Song && existing.hasData) {
-//                    val local = existing.local
-//                    when {
-//                        local is Song.LocalDetails.Downloaded -> {
-//                            Media(local.path)
-//                        }
-//                        existing.remote != null -> {
-//                            val stream = if (hqStreaming) {
-//                                existing.remote.hqStream ?: existing.remote.normalStream
-//                            } else existing.remote.normalStream
-//                            stream?.let {
-//                                Media(it, existing.remote.start, existing.remote.start + existing.duration)
-//                            }
-//                        }
-//                        else -> return null // unreachable last case given existing.hasData == true
-//                    }
-//                } else {
-//                    val (track, yt) = OnlineSearchService.instance.getSongStreams(this@Song)
-//                    if (yt is OnlineSearchService.StreamStatus.Available) {
-//                        val stream = if (hqStreaming) {
-//                            yt.hqStream ?: yt.stream
-//                        } else yt.stream
-//                        stream?.let { url ->
-//                            val start = track.remote?.start ?: 0
-//                            Media(url, start, start + track.duration)
-//                        }
-//                    } else null
-//                }
-//            }
-//        } else Media(local.path)
-//    }
-//
-//    suspend fun download() {
-//        try {
-//            given(OnlineSearchService.instance.getSongStreams(this)) { (song, streams) ->
-//                if (streams !is OnlineSearchService.StreamStatus.Available) {
-//                    return@given null
-//                }
-//                // lq is .m4a, hq is .webm
-//                val (downloadUrl, ext) = streams.stream to "m4a"
-//
-//                val req = DownloadManager.Request(Uri.parse(downloadUrl))
-//                req.setTitle("${song.uuid.name} | ${song.uuid.artist}")
-//
-////                                    req.allowScanningByMediaScanner()
-//
-//                req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
-//                req.setDestinationInExternalPublicDir(
-//                    Environment.DIRECTORY_MUSIC,
-//                    "${song.uuid.filePath}.$ext"
-//                )
-//
-//                val uuid = App.instance.downloadManager.enqueue(req)
-//                this.local = LocalDetails.Downloading(uuid)
-//
-//                OnlineSearchService.instance.addDownload(
-//                    OnlineSearchService.SongDownload(song, 0.0, uuid)
-//                )
-//            }
-//        } catch (e: Exception) {
-//            task(UI) { e.printStackTrace() }
-//        }
-//    }
-//
-//    fun loadCover(req: RequestManager, cb: (Palette?, Palette.Swatch?) -> Unit = { a, b -> }): ReceiveChannel<RequestBuilder<Drawable>?> = run {
-////        val album = Album.justForSearch(uuid.album)
-////        album.loadCover(req).map {
-////            it?.listener(loadPalette(uuid.album, cb))
-////        }
-//        Library.instance.findAlbumExtras(uuid.album).switchMap {
-//            if (it != null) {
-//                // This album cover is either local or cached.
-//                produceTask {
-//                    req.load(it.artworkUri)
-//                        .apply(Library.ARTWORK_OPTIONS)
-//                        .listener(loadPalette(uuid, cb))
-//                }
-//            } else {
-//                when {
-//                    // The song happens to know its artwork url.
-//                    artworkUrl != null -> produceTask {
-//                        req.load(artworkUrl)
-//                            .apply(Library.ARTWORK_OPTIONS)
-//                            .listener(loadPalette(uuid, cb))
-//                    }
-//
-////                    remote != null -> {
-////                        // TODO: Find the album cover from just the name.
-////                        val prefix = "http://coverartarchive.org/release-group/${remote.albumId}"
-////                        req.load(if (remote.albumId != null) "$prefix/front-500" else null)
-////                            .apply(Library.ARTWORK_OPTIONS)
-////                            .thumbnail(req.load("$prefix/front-250"))
-////                    }
-//                    else -> LocalAlbum(uuid.album, emptyList()).loadCover(req).map {
-//                        it?.listener(loadPalette(uuid.album, cb))
-//                    }
-////                    else -> {
-////                        if (Repository.find(Album.justForSearch(uuid.album))?.artworkUrl)
-////                    }
-//                }
-//            }
-//        }
-//    }
-//
-//    fun minimize(): Song = this.copy(local = null, remote = null, artworkUrl = null)
-//    fun minimizeForSync(): Song = this.copy(local = null, artworkUrl = null)
-//}
-
-fun String.toFileName(): String {
-    val builder = StringBuilder(this.length)
-    forEach { c ->
-        val valid = !("|\\?*<\":>/".contains(c))
-
-        if (valid) {
-            builder.append(c)
-        } else {
-            builder.append(' ')
-        }
-    }
-    return builder.toString()
 }

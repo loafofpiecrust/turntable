@@ -13,6 +13,10 @@ class MergedAlbum(
     }
 
     override val id get() = a.id
+    /**
+     * The "largest" type associated with their album being merged.
+     * TODO: Re-calculate the type based on whether these are local or remote.
+     */
     override val type: Album.Type get() = minOf(a.type, b.type)
     override val year: Int
         get() {
@@ -27,7 +31,7 @@ class MergedAlbum(
             .sortedBy { it.discTrack }
             .dedupMergeSorted(
                 { a, b -> a.disc == b.disc && a.id == b.id },
-                // TODO: Use MergedSong here!
+                // TODO: Use MergedSong here?
                 { a, b -> a }
             )
     }

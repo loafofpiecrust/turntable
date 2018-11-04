@@ -15,6 +15,7 @@ import com.loafofpiecrust.turntable.playlist.PlaylistsFragment
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.song.SongsUI
 import com.loafofpiecrust.turntable.sync.SyncTabFragment
+import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.util.combineLatest
 import com.loafofpiecrust.turntable.util.replayOne
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel

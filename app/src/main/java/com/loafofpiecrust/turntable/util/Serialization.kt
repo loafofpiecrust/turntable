@@ -6,21 +6,13 @@ import com.esotericsoftware.kryo.io.Input
 import com.esotericsoftware.kryo.io.Output
 import com.google.firebase.firestore.Blob
 import com.loafofpiecrust.turntable.App
-import com.loafofpiecrust.turntable.model.album.Album
-import com.loafofpiecrust.turntable.model.album.AlbumId
-import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
-import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.model.song.SongId
 import com.mcxiaoke.koi.ext.closeQuietly
 //import org.nustaq.serialization.FSTConfiguration
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
-import java.util.zip.Deflater
-import java.util.zip.DeflaterOutputStream
-import java.util.zip.Inflater
-import java.util.zip.InflaterInputStream
+import java.util.zip.*
 
 //
 // KRYO
@@ -31,7 +23,7 @@ private fun Kryo.concreteToBytes(obj: Any, expectedSize: Int = 256, compress: Bo
     writeObject(os, obj)
     os.flush()
     return baos.toByteArray().also {
-        os.closeQuietly()
+        os.close()
     }
 }
 
@@ -40,12 +32,12 @@ fun Kryo.objectToBytes(obj: Any?, expectedSize: Int = 512, compress: Boolean = f
         val baos = ByteArrayOutputStream(expectedSize)
         val os = Output(DeflaterOutputStream(baos))
         writeClassAndObject(os, obj)
-        os.closeQuietly()
+        os.close()
         baos.toByteArray()
     } else {
         val os = Output(expectedSize, -1)
         writeClassAndObject(os, obj)
-        os.toBytes().also { os.closeQuietly() }
+        os.toBytes().also { os.close() }
     }
 }
 
@@ -53,7 +45,7 @@ fun <T> Kryo.objectFromBytes(bytes: ByteArray, decompress: Boolean = false): T {
     val input = if (decompress) {
         Input(InflaterInputStream(ByteArrayInputStream(bytes)))
     } else Input(bytes)
-    return (readClassAndObject(input) as T).also { input.closeQuietly() }
+    return (readClassAndObject(input) as T).also { input.close() }
 }
 
 private inline fun <reified T> Kryo.concreteFromBytes(
@@ -63,7 +55,7 @@ private inline fun <reified T> Kryo.concreteFromBytes(
     val input = if (decompress) {
         Input(InflaterInputStream(ByteArrayInputStream(bytes)))
     } else Input(bytes)
-    return readObject(input, T::class.java).also { input.closeQuietly() }
+    return readObject(input, T::class.java).also { input.close() }
 }
 
 //
@@ -117,7 +109,6 @@ fun deserialize(stream: InputStream): Any {
 //    }
     return App.kryo.let {
         val input = Input(stream)
-        @Suppress("UNCHECKED_CAST")
         val res = it.readClassAndObject(input)
         input.close()
         res
@@ -128,18 +119,21 @@ fun deserialize(stream: InputStream): Any {
 suspend inline fun <reified T> Blob.toObject(): T {
     return deserialize(toByteString().newInput()) as T
 }
-suspend fun serializeToString(obj: Any): String = Base64.encodeToString(serialize(obj), Base64.NO_WRAP)
-suspend fun deserialize(input: String): Any = deserialize(Base64.decode(input, Base64.NO_WRAP))
+suspend fun serializeToString(obj: Any): String = serialize(obj).toBase64()
+suspend fun deserialize(input: String): Any = deserialize(input.fromBase64())
+
+fun ByteArray.toBase64(): String = Base64.encodeToString(this, Base64.NO_WRAP)
+fun String.fromBase64(): ByteArray = Base64.decode(this, Base64.NO_WRAP)
 
 
 
 //
 // COMPRESSION
 //
-fun compress(input: String): String {
-    val compressed = ByteArray(input.length)
+fun String.compress(): String {
+    val compressed = ByteArray(length)
     val len = Deflater().run {
-        setInput(input.toByteArray(Charsets.UTF_8))
+        setInput(toByteArray(Charsets.UTF_8))
         finish()
         val len = deflate(compressed)
         end()
@@ -148,10 +142,25 @@ fun compress(input: String): String {
     return String(compressed, 0, len, Charsets.ISO_8859_1)
 }
 
-fun decompress(input: String): String {
-    val decompressed = ByteArray(input.length * 2)
+fun ByteArray.compress(): ByteArray {
+    val compressed = ByteArray(size)
+    val len = Deflater().let { deflater ->
+        deflater.setInput(this)
+        deflater.finish()
+        val len = deflater.deflate(compressed)
+        deflater.end()
+        len
+    }
+    return compressed.sliceArray(0..len)
+}
+//fun ByteArray.compress(): OutputStream {
+//    return DeflaterOutputStream(ByteArrayOutputStream(thi))
+//}
+
+fun String.decompress(): String {
+    val decompressed = ByteArray(length * 2)
     val len = Inflater().run {
-        val bytes = input.toByteArray(Charsets.ISO_8859_1)
+        val bytes = toByteArray(Charsets.ISO_8859_1)
         setInput(bytes, 0, bytes.size)
         val len = inflate(decompressed)
         end()
@@ -160,3 +169,6 @@ fun decompress(input: String): String {
     return String(decompressed, 0, len, Charsets.UTF_8)
 }
 
+fun ByteArray.decompress(): InputStream {
+    return InflaterInputStream(ByteArrayInputStream(this))
+}

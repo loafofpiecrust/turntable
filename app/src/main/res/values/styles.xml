@@ -33,6 +33,8 @@
         <item name="android:windowTranslucentStatus">true</item>
         <item name="android:windowDrawsSystemBarBackgrounds">false</item>
         <item name="android:textColor">#ffffffd9</item>
+        <item name="colorPrimary">@color/md_purple_300</item>
+        <item name="colorAccent">@color/accent</item>
     </style>
 
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark">

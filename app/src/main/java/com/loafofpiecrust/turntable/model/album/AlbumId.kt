@@ -7,31 +7,40 @@ import kotlinx.android.parcel.Parcelize
 import java.text.Collator
 import java.util.*
 
-
+/**
+ * Unique identifier for an [Album]
+ * Used to determine duplicate and mergeable albums in a discography.
+ */
 @Parcelize
 data class AlbumId(
+    /// Original name
     override val name: String,
     val artist: ArtistId
 ): MusicId, Comparable<AlbumId> {
+    @Deprecated("Serializer use only")
     internal constructor(): this("", ArtistId())
 
     val sortChar: Char get() = displayName.first().toUpperCase()
     val dbKey: String get() = "$displayName~${artist.dbKey}".toLowerCase()
 
+    @Deprecated("Should be ")
     val discNumber: Int get() =
         DISC_SUFFIX_PAT.find(name)?.let { m ->
             m.groups[2]?.value?.toIntOrNull()
         } ?: 1
 
-    /// Cut out versions and types at the end for a CLEAN uuid
-    /// Examples:
-    /// Whoa - Single => Whoa
-    /// Whoa - Fine & Single => Whoa - Fine & Single
-    /// I'm Still Single => I'm Still Single
-    /// What's Going On (Deluxe Edition) => What's Going On
-    /// Whatever (Maxi Edition) - EP => Whatever
-    /// What We... (Deluxe Version) => What We...
-    /// It's a Deluxe Edition => It's a Deluxe Edition
+    /**
+     * Cut out versions and types at the end for a CLEAN unique display name.
+     *
+     * Examples:
+     * Whoa - Single => Whoa
+     * Whoa - Fine & Single => Whoa - Fine & Single
+     * I'm Still Single => I'm Still Single
+     * What's Going On (Deluxe Edition) => What's Going On
+     * Whatever (Maxi Edition) - EP => Whatever
+     * What We... (Deluxe Version) => What We...
+     * It's a Deluxe Edition => It's a Deluxe Edition
+     */
     @delegate:Transient
     override val displayName: String by lazy {
         val toRemove = arrayOf(
@@ -50,11 +59,11 @@ data class AlbumId(
             }
         }
 
+        // TODO: Move quote simplification to remote API implementations.
         if (name.isNotEmpty()) {
             name
         } else {
             this.artist.name
-            // TODO: Move quote simplification to remote API implementations.
         }.simplifyQuotes()
     }
 

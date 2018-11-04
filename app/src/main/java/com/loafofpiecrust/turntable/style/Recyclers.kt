@@ -10,7 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import org.jetbrains.anko.colorAttr
 
 
-inline fun FastScrollRecyclerView.turntableStyle() {
+fun FastScrollRecyclerView.turntableStyle() {
     (RecyclerView::turntableStyle)(this)
 
     UserPrefs.secondaryColor.bind(this@turntableStyle).consumeEach(Dispatchers.Main) {
@@ -23,6 +23,6 @@ inline fun FastScrollRecyclerView.turntableStyle() {
     addOnItemTouchListener(this)
 }
 
-inline fun RecyclerView.turntableStyle() {
+fun RecyclerView.turntableStyle() {
 //    itemAnimator = SlideInUpAnimator()
 }

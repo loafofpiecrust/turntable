@@ -8,6 +8,7 @@ import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.artist.MusicDownload
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.model.song.filePath
 import com.loafofpiecrust.turntable.parMap
 import com.loafofpiecrust.turntable.provided
 import com.loafofpiecrust.turntable.service.OnlineSearchService
@@ -17,7 +18,6 @@ import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
 import org.jetbrains.anko.downloadManager
-import java.util.regex.Pattern
 import kotlin.math.abs
 
 sealed class SongDownload: MusicDownload
@@ -32,12 +32,12 @@ data class YouTubeSong(
     companion object: AnkoLogger by AnkoLogger<YouTubeSong>() {
         const val API_KEY = BuildConfig.YOUTUBE_API_KEY
         private val PAT_UNOFFICIAL by lazy {
-            Pattern.compile("\\b(live|remix|mix|cover|unofficial|instrumental|sessions)\\b")
+            Regex("\\b(live|remix|mix|cover|unofficial|instrumental|sessions)\\b")
         }
-        private val PAT_TIME_S by lazy { Pattern.compile("PT(\\d+)S") }
-        private val PAT_TIME_M by lazy { Pattern.compile("PT(\\d+)M") }
-        private val PAT_TIME_MS by lazy { Pattern.compile("PT(\\d+)M(\\d+)S") }
-        private val PAT_TIME_HMS by lazy { Pattern.compile("PT(\\d+)H(\\d+)M(\\d+)S") }
+        private val PAT_TIME_S by lazy { Regex("PT(\\d+)S") }
+        private val PAT_TIME_M by lazy { Regex("PT(\\d+)M") }
+        private val PAT_TIME_MS by lazy { Regex("PT(\\d+)M(\\d+)S") }
+        private val PAT_TIME_HMS by lazy { Regex("PT(\\d+)H(\\d+)M(\\d+)S") }
 
         suspend fun search(song: Song): YouTubeSong? {
 //            val ub = Uri.parse("http://youtube.com/results?sp=EgIQAVAU").buildUpon()
@@ -133,9 +133,9 @@ data class YouTubeSong(
                     val title = details["title"].string.toLowerCase()
 
                     // Unless specifically requested, ignore live versions, mixes, covers, etc.
-                    val m = PAT_UNOFFICIAL.matcher(title)
-                    if (m.find()) {
-                        if (!song.id.name.contains(m.group(1), ignoreCase = true)) {
+                    val m = PAT_UNOFFICIAL.find(title)
+                    if (m != null) {
+                        if (!song.id.name.contains(m.groupValues[1], ignoreCase = true)) {
                             return@parMap null
                         }
                     }
@@ -153,9 +153,9 @@ data class YouTubeSong(
 
 
                     // Also check for _dates_ in the name, as those are almost always live sessions!
-                    val datePat = Pattern.compile("((\\d+/\\d+/\\d+)|(\\d+-\\d+-\\d+)|(\\d+.\\d+.\\d+))").matcher(title)
-                    if (datePat.find()) {
-                        if (!song.id.name.contains(datePat.group(1))) {
+                    val datePat = Regex("((\\d+/\\d+/\\d+)|(\\d+-\\d+-\\d+)|(\\d+.\\d+.\\d+))")
+                    datePat.find(title)?.let { m ->
+                        if (!song.id.name.contains(m.groupValues[1])) {
                             return@parMap null
                         }
                     }
@@ -186,35 +186,26 @@ data class YouTubeSong(
                         else -> minOf(viewCount.toInt() / 1000, 5)
                     }
                     val durationStr = item["contentDetails"]["duration"].string
-                    val onlyMin = PAT_TIME_M.matcher(durationStr)
-                    val ms = PAT_TIME_MS.matcher(durationStr)
-                    val hms = PAT_TIME_HMS.matcher(durationStr)
-                    val onlySec = PAT_TIME_S.matcher(durationStr)
-                    val duration = when {
-                        ms.find() -> {
-                            val min = ms.group(1).toInt()
-                            val sec = ms.group(2).toInt()
-                            (sec + min * 60) * 1_000 // ms
-                        }
-                        onlyMin.find() -> {
-                            val min = onlyMin.group(1).toInt()
-                            min * 60_000
-                        }
-                        hms.find() -> {
-                            val hr = hms.group(1).toInt()
-                            val min = hms.group(2).toInt()
-                            val sec = hms.group(3).toInt()
-                            (sec + (min + hr * 60) * 60) * 1_000 // ms
-                        }
-                        onlySec.find() -> {
-                            val sec = onlySec.group(1).toInt()
-                            sec * 1_000 // ms
-                        }
-                        else -> {
-                            debug { "youtube: unknown duration '$durationStr'" }
-                            0
-                        }
-                    }
+                    val onlyMin = PAT_TIME_M.find(durationStr)
+                    val ms = PAT_TIME_MS.find(durationStr)
+                    val hms = PAT_TIME_HMS.find(durationStr)
+                    val onlySec = PAT_TIME_S.find(durationStr)
+                    val duration = PAT_TIME_MS.find(durationStr)?.let { ms ->
+                        val min = ms.groupValues[1].toInt()
+                        val sec = ms.groupValues[2].toInt()
+                        (sec + min * 60) * 1_000 // ms
+                    } ?: PAT_TIME_M.find(durationStr)?.let { onlyMin ->
+                        val min = onlyMin.groupValues[1].toInt()
+                        min * 60_000
+                    } ?: PAT_TIME_HMS.find(durationStr)?.let { hms ->
+                        val hr = hms.groupValues[1].toInt()
+                        val min = hms.groupValues[2].toInt()
+                        val sec = hms.groupValues[3].toInt()
+                        (sec + (min + hr * 60) * 60) * 1_000 // ms
+                    } ?: PAT_TIME_S.find(durationStr)?.let { onlySec ->
+                        val sec = onlySec.groupValues[1].toInt()
+                        sec * 1_000 // ms
+                    } ?: 0
 
 
                     val durationDiff = abs(duration - song.duration)

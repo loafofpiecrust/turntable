@@ -2,7 +2,9 @@ package com.loafofpiecrust.turntable.ui
 
 //import com.loafofpiecrust.turntable.service.MusicService2
 import android.content.Context
+import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.v7.util.DiffUtil
+import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.View
@@ -14,14 +16,19 @@ import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.screenSize
 import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.util.recyclerViewPager
+import com.loafofpiecrust.turntable.util.size
 import com.loafofpiecrust.turntable.util.switchMap
+import com.loafofpiecrust.turntable.views.ItemOffsetDecoration
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.consumeEach
 import org.jetbrains.anko.*
 import org.jetbrains.anko.cardview.v7.cardView
+import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
+import org.jetbrains.anko.constraint.layout.applyConstraintSet
+import org.jetbrains.anko.constraint.layout.constraintLayout
+import org.jetbrains.anko.constraint.layout.matchConstraint
 
 class PlayerAlbumCoverFragment : BaseFragment() {
 
@@ -29,13 +36,11 @@ class PlayerAlbumCoverFragment : BaseFragment() {
 //    var slidingPanel: SlidingUpPanelLayout? = null
 
     override fun ViewManager.createView(): View = recyclerViewPager {
-        layoutManager = LinearLayoutManager(activity, LinearLayoutManager.HORIZONTAL, false)
+        layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         adapter = Adapter()
         triggerOffset = 0.2f
         isSinglePageFling = true
         isClickable = true
-        clipToPadding = false
-        clipToOutline = false
 
         var fromInteraction = true
         addOnPageChangedListener { prev, curr ->
@@ -50,7 +55,7 @@ class PlayerAlbumCoverFragment : BaseFragment() {
         }.consumeEachAsync { q ->
             (adapter as Adapter).updateData(q.list, q.position)
             fromInteraction = false
-            if (Math.abs(q.position - prev) > 8) { // smooth scroll would take too long
+            if (Math.abs(q.position - prev) > 5) { // smooth scroll would take too long
                 scrollToPosition(q.position)
             } else {
                 smoothScrollToPosition(q.position)
@@ -124,30 +129,26 @@ class PlayerAlbumCoverFragment : BaseFragment() {
             val image = view.findViewById<ImageView>(R.id.image)!!
             companion object {
                 fun create(context: Context): ViewHolder = ViewHolder(AnkoContext.create(context).frameLayout {
-                    val padBy = dimen(R.dimen.fullscreen_card_margin)
-                    val screenWidth = context.screenSize.width - (padBy * 2)
-                    padding = padBy
-                    bottomPadding = padBy / 2
-                    topPadding = padBy / 2 + dimen(R.dimen.statusbar_height)
+                    padding = dimen(R.dimen.fullscreen_card_margin)
                     clipToPadding = false
-                    clipToOutline = false
-//                        minimumHeight = screenWidth
-
 
                     cardView {
                         cardElevation = dimen(R.dimen.medium_elevation).toFloat()
-                        frameLayout {
-                            imageView {
+                        constraintLayout {
+                            val img = imageView {
                                 id = R.id.image
                                 scaleType = ImageView.ScaleType.CENTER_CROP
-                                adjustViewBounds = true
-                            }.lparams {
-                                width = matchParent
-//                                    height = matchParent
-                                height = screenWidth
+                            }
+
+                            applyConstraintSet {
+                                img {
+                                    dimensionRation = "H,1:1"
+                                    width = matchParent
+                                    height = matchConstraint
+                                }
                             }
                         }
-                    }.lparams(width = matchParent, height = screenWidth)
+                    }
                 })
             }
         }

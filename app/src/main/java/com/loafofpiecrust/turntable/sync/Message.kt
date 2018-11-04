@@ -4,19 +4,24 @@ import android.os.Parcelable
 import com.loafofpiecrust.turntable.appends
 import com.loafofpiecrust.turntable.model.Recommendation
 import com.loafofpiecrust.turntable.model.playlist.AbstractPlaylist
+import com.loafofpiecrust.turntable.model.queue.CombinedQueue
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.util.Duration
+import com.loafofpiecrust.turntable.util.days
+import com.loafofpiecrust.turntable.util.minutes
 import kotlinx.android.parcel.Parcelize
+import org.jetbrains.anko.info
+import java.io.Serializable
 import java.util.*
-import java.util.concurrent.TimeUnit
 
 interface Message {
     fun minimize(): Message = this
     /// seconds
-    val timeout: Long get() = TimeUnit.MINUTES.toSeconds(3)
+    val timeout: Duration get() = 3.minutes
     val requiresSession: Boolean get() = false
 
     suspend fun onReceive(sender: User)
@@ -26,7 +31,7 @@ interface Message {
     data class Recommend(
         val content: Recommendation
     ): Message {
-        override val timeout get() = TimeUnit.DAYS.toSeconds(28)
+        override val timeout get() = 28.days
         override suspend fun onReceive(sender: User) {
             UserPrefs.recommendations appends content
         }
@@ -73,25 +78,25 @@ sealed class PlayerAction: Message, Parcelable {
      * }
      */
     @Parcelize
-    class Play: PlayerAction() {
+    object Play : PlayerAction() {
         override fun MusicService.enact(): Boolean =
             requestFocus() && player.play()
     }
 
     @Parcelize
-    class Pause: PlayerAction() {
+    object Pause : PlayerAction() {
         override fun MusicService.enact() =
             player.pause() && abandonFocus()
     }
 
     @Parcelize
-    class TogglePause: PlayerAction() {
+    object TogglePause : PlayerAction() {
         override fun MusicService.enact() =
             player.togglePause()
     }
 
     @Parcelize
-    class Stop: PlayerAction() {
+    object Stop : PlayerAction() {
         override fun MusicService.enact(): Boolean {
             player.stop()
             return true
@@ -157,6 +162,17 @@ sealed class PlayerAction: Message, Parcelable {
     }
 
     @Parcelize
+    data class ReplaceQueue(
+        val queue: CombinedQueue
+    ): PlayerAction() {
+        override fun MusicService.enact(): Boolean {
+            info { "Aligning queue for sync" }
+            player.replaceQueue(queue)
+            return true
+        }
+    }
+
+    @Parcelize
     data class SeekTo(val pos: Long): PlayerAction() {
         override fun MusicService.enact(): Boolean {
             player.seekTo(pos)
@@ -165,7 +181,7 @@ sealed class PlayerAction: Message, Parcelable {
     }
 
     @Parcelize
-    class ClearQueue: PlayerAction() {
+    object ClearQueue: PlayerAction() {
         override fun MusicService.enact(): Boolean {
             player.clearQueue()
             return true

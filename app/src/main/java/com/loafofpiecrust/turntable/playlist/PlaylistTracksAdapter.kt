@@ -9,18 +9,21 @@ import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.views.RecyclerBroadcastAdapter
-import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
-import com.loafofpiecrust.turntable.util.consumeEach
+import com.loafofpiecrust.turntable.ui.RecyclerListItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.launch
 import org.jetbrains.anko.imageResource
 import org.jetbrains.anko.sdk27.coroutines.onClick
+import kotlin.coroutines.CoroutineContext
 import kotlin.math.abs
 import kotlin.math.min
 
 class PlaylistTracksAdapter(
+    parentContext: CoroutineContext,
     private val playlist: CollaborativePlaylist
-): RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>(playlist.tracksChannel) {
+): RecyclerBroadcastAdapter<Song, RecyclerListItem>(parentContext, playlist.tracksChannel) {
 
     override val moveEnabled get() = true
     override val dismissEnabled get() = true
@@ -41,11 +44,11 @@ class PlaylistTracksAdapter(
         playlist.remove(idx)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerListItemOptimized {
-        return RecyclerListItemOptimized(parent)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerListItem {
+        return RecyclerListItem(parent)
     }
 
-    override fun RecyclerListItemOptimized.onBind(item: Song, position: Int, job: Job) {
+    override fun RecyclerListItem.onBind(item: Song, position: Int, job: Job) {
         card.onClick {
             MusicService.offer(PlayerAction.PlaySongs(data, position))
         }
@@ -55,12 +58,14 @@ class PlaylistTracksAdapter(
         if (playlist.isCompletable) {
             track.visibility = View.INVISIBLE
             statusIcon.visibility = View.VISIBLE
-            UserPrefs.history.consumeEach(Dispatchers.Main + job) { history ->
-                val entry = history.find { it.song.id == item.id }
-                if (entry != null && entry.timestamp > playlist.createdTime.time) {
-                    statusIcon.imageResource = R.drawable.ic_check_box
-                } else {
-                    statusIcon.imageResource = R.drawable.ic_check_box_outline_blank
+            launch(Dispatchers.Main + job) {
+                UserPrefs.history.consumeEach { history ->
+                    val entry = history.find { it.song.id == item.id }
+                    if (entry != null && entry.timestamp > playlist.createdTime.time) {
+                        statusIcon.imageResource = R.drawable.ic_check_box
+                    } else {
+                        statusIcon.imageResource = R.drawable.ic_check_box_outline_blank
+                    }
                 }
             }
         } else {

@@ -19,7 +19,6 @@ import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.selector
 import org.jetbrains.anko.toast
 import java.util.*
-import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 
 /**
@@ -27,11 +26,10 @@ import kotlin.coroutines.resume
  * Question: How should users browse mixtapes? By tag? popularity? recent?
  */
 open class MixTape(
+    override val id: PlaylistId,
     override val owner: User,
     var type: Type,
-    override var name: String,
-    override var color: Int?,
-    override val uuid: UUID = UUID.randomUUID()
+    override var color: Int?
 ) : AbstractPlaylist() {
     override val icon: Int
         get() = R.drawable.ic_cassette
@@ -56,11 +54,13 @@ open class MixTape(
     companion object: AnkoLogger {
         fun fromDocument(doc: DocumentSnapshot): MixTape = runBlocking {
             MixTape(
+                PlaylistId(
+                    doc.getString("name")!!,
+                    UUID.fromString(doc.id)
+                ),
                 doc.getBlob("owner")!!.toObject(),
                 Type.valueOf(doc.getString("type")!!),
-                doc.getString("name")!!,
-                doc.getLong("color")?.toInt(),
-                UUID.fromString(doc.id)
+                doc.getLong("color")?.toInt()
             ).apply {
                 sides puts doc.getBlob("tracks")!!.toObject()
                 lastModified = doc.getDate("lastModified")!!
@@ -68,13 +68,13 @@ open class MixTape(
             }
         }
 
-        suspend fun queryMostRecent(daysOld: Long, limit: Int = 100): List<MixTape> {
+        suspend fun queryMostRecent(daysOld: Duration, limit: Int = 100): List<MixTape> {
             return GlobalScope.suspendAsync<List<MixTape>> { cont ->
                 val db = FirebaseFirestore.getInstance()
-                val now = System.currentTimeMillis()
+                val now = currentTime()
                 db.collection("playlists")
                     .whereEqualTo("format", "mixtape")
-                    .whereGreaterThan("lastModified", now - TimeUnit.DAYS.toMillis(daysOld))
+                    .whereGreaterThan("lastModified", (now - daysOld).toMillis().toLong())
                     .get()
                     .addOnCompleteListener {
                         if (it.isSuccessful) {
@@ -118,9 +118,9 @@ open class MixTape(
      */
     val isPublishable get() = Math.abs(totalDuration - type.totalLength) <= 5
 
-    private val totalDuration get() = TimeUnit.MILLISECONDS.toMinutes(
-        tracks.sumBy { trackDuration(it) }.toLong()
-    )
+    private val totalDuration get() =
+        tracks.sumByDouble { trackDuration(it).inMinutes().value }
+            .toLong()
 
     /**
      * Duration of the given song in milliseconds.
@@ -128,10 +128,10 @@ open class MixTape(
      * 4 minutes is assumed as a common song length.
      * (SUBJECT TO CHANGE)
      */
-    private fun trackDuration(song: Song): Int {
+    private fun trackDuration(song: Song): Duration {
         return if (song.duration == 0) {
-            TimeUnit.MINUTES.toMillis(4).toInt()
-        } else song.duration
+            4.minutes
+        } else song.duration.milliseconds
     }
 
     fun tracksOnSide(sideIdx: Int): ReceiveChannel<List<Song>> =
@@ -141,9 +141,11 @@ open class MixTape(
     /**
      * Total length of one side of the mixtape, in minutes.
      */
-    private fun durationOfSide(sideIdx: Int) = TimeUnit.MILLISECONDS.toMinutes(
-        runBlocking { tracksOnSide(sideIdx).first() }.sumBy { trackDuration(it) }.toLong()
-    )
+    private fun durationOfSide(sideIdx: Int) =
+        runBlocking { tracksOnSide(sideIdx).first() }
+            .sumByDouble { trackDuration(it).inMinutes().value }
+            .toLong()
+
 
     fun sideIsFull(sideIdx: Int) =
         durationOfSide(sideIdx) >= type.sideLength
@@ -152,7 +154,7 @@ open class MixTape(
         val db = FirebaseFirestore.getInstance()
         var listener: ListenerRegistration? = null
         return GlobalScope.produce(onCompletion = { listener?.remove() }) {
-            listener = db.playlists().document(uuid.toString()).addSnapshotListener { snapshot, err ->
+            listener = db.playlists().document(id.uuid.toString()).addSnapshotListener { snapshot, err ->
                 if (snapshot?.exists() == true) {
                     val localChange = snapshot.metadata.hasPendingWrites()
                     if (!localChange) {
@@ -169,20 +171,19 @@ fun MutableMixtape.add(ctx: Context, song: Song) = ctx.run {
     selector(getString(R.string.mixtape_pick_side), type.sideNames) { dialog, idx ->
         val result = add(idx, song)
         toast(when (result) {
-            MutableMixtape.AddResult.ADDED -> getString(R.string.playlist_added_track, name)
-            MutableMixtape.AddResult.SIDE_FULL -> getString(R.string.playlist_is_full, getString(R.string.mixtape_side_named, type.sideNames[idx], name))
-            MutableMixtape.AddResult.DUPLICATE_SONG -> getString(R.string.playlist_duplicate, name)
+            MutableMixtape.AddResult.ADDED -> getString(R.string.playlist_added_track, id.name)
+            MutableMixtape.AddResult.SIDE_FULL -> getString(R.string.playlist_is_full, getString(R.string.mixtape_side_named, type.sideNames[idx], id.name))
+            MutableMixtape.AddResult.DUPLICATE_SONG -> getString(R.string.playlist_duplicate, id.name)
         })
     }
 }
 
 class MutableMixtape(
+    id: PlaylistId,
     owner: User,
     type: MixTape.Type,
-    name: String,
-    color: Int?,
-    uuid: UUID = UUID.randomUUID()
-): MixTape(owner, type, name, color, uuid), MutablePlaylist {
+    color: Int?
+): MixTape(id, owner, type, color), MutablePlaylist {
     enum class AddResult {
         SIDE_FULL,
         DUPLICATE_SONG,
@@ -247,11 +248,11 @@ class MutableMixtape(
     override fun publish() {
         GlobalScope.launch {
             val db = FirebaseFirestore.getInstance()
-            db.collection("playlists").document(uuid.toString())
+            db.collection("playlists").document(id.uuid.toString())
                 .set(mapOf(
                     "type" to type.toString(),
                     "format" to "mixtape",
-                    "name" to name,
+                    "name" to id.name,
                     "color" to color,
                     "lastModified" to lastModified,
                     "createdTime" to createdTime,

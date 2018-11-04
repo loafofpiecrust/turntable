@@ -28,6 +28,7 @@ import org.jetbrains.anko.colorAttr
 import org.jetbrains.anko.imageResource
 import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.textColor
+import kotlin.coroutines.CoroutineContext
 
 private fun RecyclerGridItem.bindAlbum(
     album: Album,
@@ -61,10 +62,11 @@ private fun RecyclerGridItem.bindAlbum(
  * [RecyclerView.Adapter] that can display a [Album]
  */
 class AlbumsAdapter(
+    parentContext: CoroutineContext,
     channel: ReceiveChannel<List<Album>>,
     private val byArtist: Boolean,
     private val listener: ((RecyclerGridItem, Album) -> Unit)?
-) : RecyclerAdapter<Album, RecyclerGridItem>(channel), FastScrollRecyclerView.SectionedAdapter {
+) : RecyclerAdapter<Album, RecyclerGridItem>(parentContext, channel), FastScrollRecyclerView.SectionedAdapter {
     override fun itemsSame(a: Album, b: Album, aIdx: Int, bIdx: Int) =
         a.id == b.id
 
@@ -122,9 +124,11 @@ class AlbumsAdapter(
 
 
 class AlbumAdapterSectioned(
+    parentContext: CoroutineContext,
     originalChannel: ReceiveChannel<List<Album>>,
     private val listener: (RecyclerGridItem, Album) -> Unit?
 ): SectionedAdapter<Album, Album.Type, RecyclerGridItem, SimpleHeaderViewHolder>(
+    parentContext,
     originalChannel.map { albums ->
         albums.groupBy { it.type }
     }

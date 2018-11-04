@@ -18,16 +18,14 @@ import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.loadPalette
 import com.loafofpiecrust.turntable.model.queue.RadioQueue
 import com.loafofpiecrust.turntable.player.MusicService
+import com.loafofpiecrust.turntable.repository.Repositories
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.sync.Message
 import com.loafofpiecrust.turntable.sync.PlayerAction
-import com.loafofpiecrust.turntable.ui.createFragment
+import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.ui.replaceMainContent
-import com.loafofpiecrust.turntable.util.menuItem
-import com.loafofpiecrust.turntable.util.onClick
-import com.loafofpiecrust.turntable.util.produceSingle
-import com.loafofpiecrust.turntable.util.redirectTo
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -38,16 +36,21 @@ import org.jetbrains.anko.toast
 
 interface Artist: Music {
     override val id: ArtistId
+
+    /// Discography
     val albums: List<Album>
+
+    /// First year the artist is active
     val startYear: Int?
+
+    /// Last year active, or null if still active
     val endYear: Int?
+
+    /// Personal biographical info
+    /// Specific to remote artists
+    /// TODO: Move biography to somewhere involved with [RemoteArtist]
     val biography: String?
 
-    data class Member(
-        val name: String,
-        val id: String,
-        val active: Boolean
-    )
 
     fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
         Library.instance.loadArtistImage(req, this.id).map {
@@ -58,9 +61,9 @@ interface Artist: Music {
     fun loadArtwork(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
         GlobalScope.produce {
             val localArt = Library.instance.loadArtistImage(req, this@Artist.id)
-            send(localArt.receive() ?: req.load(Repository.fullArtwork(this@Artist, true)))
+            send(localArt.receive() ?: req.load(Repositories.fullArtwork(this@Artist, true)))
 
-            localArt.filterNotNull().redirectTo(channel)
+            sendFrom(localArt.filterNotNull())
         }
 
 
@@ -119,12 +122,12 @@ fun Menu.artistOptions(context: Context, artist: Artist) {
     // TODO: Sync with radios...
     // TODO: Sync with any type of queue!
     menuItem(R.string.radio_start).onClick(Dispatchers.Default) {
-        MusicService.offer(PlayerAction.Pause(), false)
+        MusicService.offer(PlayerAction.Pause, false)
 
         val radio = RadioQueue.fromSeed(listOf(artist))
         if (radio != null) {
 //                MusicService.offer(Sync.Message.ReplaceQueue(radio))
-            MusicService.offer(PlayerAction.Play())
+            MusicService.offer(PlayerAction.Play)
         } else {
             context.toast(context.getString(R.string.radio_no_data, artist.id.displayName))
         }

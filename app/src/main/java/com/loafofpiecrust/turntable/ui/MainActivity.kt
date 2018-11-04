@@ -18,6 +18,7 @@ import android.support.v4.widget.DrawerLayout
 import android.view.Gravity
 import android.view.View
 import android.view.ViewManager
+import com.chibatching.kotpref.KotprefModel
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.IdpResponse
 import com.google.android.gms.common.api.GoogleApiClient
@@ -30,19 +31,20 @@ import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumDetailsUI
 import com.loafofpiecrust.turntable.artist.ArtistDetailsUI
-import com.loafofpiecrust.turntable.repository.remote.Spotify
-import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
+import com.loafofpiecrust.turntable.model.sync.Friend
+import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.player.MusicService
+import com.loafofpiecrust.turntable.prefs.SettingsActivityStarter
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.putsMapped
+import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.model.sync.Friend
 import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.sync.Sync
-import com.loafofpiecrust.turntable.model.sync.User
+import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.util.group
 import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.util.switchMap
@@ -94,7 +96,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                     69
                 )
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
@@ -151,12 +153,12 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
         }
         firstSheet {
             id = R.id.nowPlayingPanel
-//            backgroundColor = attribute(android.R.attr.windowBackground).data
+            backgroundColor = colorAttr(android.R.attr.windowBackground)
             fragment { NowPlayingFragment() }
         }
         firstSheetPeek {
             id = R.id.miniPlayer
-//            backgroundResource = R.color.background
+            backgroundColor = colorAttr(android.R.attr.windowBackground)
             fragment { MiniPlayerFragment() }
         }
 
@@ -218,17 +220,10 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                 val sender = action.sender
                 alert("${sender.name} wants to be friends") {
                     positiveButton(R.string.user_befriend) {
-                        Sync.send(
-                            Friend.Response(true),
-                            sender
-                        )
-                        UserPrefs.friends putsMapped { it + (sender to Friend.Status.CONFIRMED) }
+                        Friend.respondToRequest(sender, true)
                     }
                     negativeButton(R.string.request_decline) {
-                        Sync.send(
-                            Friend.Response(false),
-                            sender
-                        )
+                        Friend.respondToRequest(sender, false)
                     }
                 }.show()
             }
@@ -355,23 +350,21 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                 val id = url.getQueryParameter("id")
 //                val uuid = url.getQueryParameter("id")
 
-                val other = given(User.resolve(id)) {
+                val other = User.resolve(id)?.let {
                     Friend(it, Friend.Status.CONFIRMED)
                 }
-                if (other != null && !UserPrefs.friends.value.contains(other.user)) {
-                    other.respondToRequest(true)
+                if (other != null && !Friend.friends.value.contains(other.user)) {
+                    Friend.respondToRequest(other.user, true)
                 }
             }
         }
-
-        null
     }
 
 
     override fun onPause() {
         super.onPause()
         // Save preference files here!
-        runBlocking(Dispatchers.IO) { UserPrefs.saveFiles() }
+        runBlocking(Dispatchers.IO) { KotprefModel.saveFiles() }
     }
 }
 

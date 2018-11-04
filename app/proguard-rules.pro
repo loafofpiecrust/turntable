@@ -11,6 +11,19 @@
 
 #-verbose
 
+-keep class com.loafofpiecrust.turntable.** { *; }
+
+# Serialization
+-keepattributes *Annotation*, InnerClasses
+-dontnote kotlinx.serialization.SerializationKt
+-keep,includedescriptorclasses class com.loafofpiecrust.turntable.**$$serializer { *; }
+-keepclassmembers class com.loafofpiecrust.turntable.** {
+    *** Companion;
+}
+-keepclasseswithmembers class com.loafofpiecrust.turntable.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
 # Uncomment this to preserve the line number information for
 # debugging stack traces.
 -keepattributes SourceFile,LineNumberTable

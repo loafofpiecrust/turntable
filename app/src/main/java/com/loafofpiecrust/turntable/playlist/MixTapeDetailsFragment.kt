@@ -17,14 +17,14 @@ import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.sync.Message
 import com.loafofpiecrust.turntable.sync.PlayerAction
-import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
+import com.loafofpiecrust.turntable.ui.RecyclerListItem
 import com.loafofpiecrust.turntable.ui.SectionedAdapter
-import com.loafofpiecrust.turntable.ui.UIComponent
+import com.loafofpiecrust.turntable.ui.universal.UIComponent
+import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import com.loafofpiecrust.turntable.util.*
 import com.loafofpiecrust.turntable.views.SimpleHeaderViewHolder
 import com.mcxiaoke.koi.ext.toast
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
@@ -34,6 +34,7 @@ import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.recyclerview.v7.recyclerView
+import kotlin.coroutines.CoroutineContext
 
 @Parcelize
 open class MixtapeDetailsUI(
@@ -54,7 +55,7 @@ open class MixtapeDetailsUI(
         override val playlist = playlist.replayOne()
     }
 
-    override fun CoroutineScope.render(ui: AnkoContext<Any>) = ui.verticalLayout {
+    override fun ViewContext.render() = verticalLayout {
 //        backgroundColorResource = R.color.background
 
         appBarLayout {
@@ -103,14 +104,17 @@ open class MixtapeDetailsUI(
         recyclerView {
             layoutManager = LinearLayoutManager(context)
             adapter = SongsOnDiscAdapter(
+                coroutineContext,
                 playlist.openSubscription().switchMap { pl ->
                     pl!!.sides.openSubscription().map {
                         pl to it
                     }
                 }.map { (mixtape, sides) ->
                     var index = 0
-                    sides.associateBy { mixtape.type.sideNames[index++] + " Side" }
-                }
+                    sides.associateBy { mixtape.type.sideNames[index++] }
+                },
+                R.string.mixtape_side,
+                formatSubtitle = { it.id.artist.displayName }
             ) { song ->
                 val allTracks = playlist.value!!.tracks
                 val idx = allTracks.indexOf(song)
@@ -137,8 +141,10 @@ open class MixtapeDetailsUI(
 }
 
 class MixTapeTracksAdapter(
+    parentContext: CoroutineContext,
     val mixtape: ConflatedBroadcastChannel<MixTape?>
-): SectionedAdapter<Song, Int, RecyclerListItemOptimized, SimpleHeaderViewHolder>(
+): SectionedAdapter<Song, Int, RecyclerListItem, SimpleHeaderViewHolder>(
+    parentContext,
     mixtape.openSubscription().switchMap {
         it!!.sides.openSubscription()
     }.map {
@@ -147,12 +153,12 @@ class MixTapeTracksAdapter(
     }
 ) {
     override fun onCreateItemViewHolder(parent: ViewGroup) =
-        RecyclerListItemOptimized(parent)
+        RecyclerListItem(parent)
 
     override fun onCreateHeaderViewHolder(parent: ViewGroup) =
         SimpleHeaderViewHolder(parent)
 
-    override fun RecyclerListItemOptimized.onBindItem(item: Song, position: Int, job: Job) {
+    override fun RecyclerListItem.onBindItem(item: Song, position: Int, job: Job) {
         mainLine.text = item.id.displayName
         subLine.text = item.id.artist.displayName
     }

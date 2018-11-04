@@ -5,9 +5,7 @@ import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
 class CreatePlaylistTests {
     val disc1Id = AlbumId(
         "Jackson C. Frank (Disc 1)",
@@ -47,7 +45,7 @@ class CreatePlaylistTests {
 //        val playlists = runBlocking { UserPrefs.playlists.openSubscription().firstOrNull() }
 //        expect(playlists?.firstOrNull()).notToBeNull {
 //            isA<Playlist> {
-//                property(subject::owner).toBe(SyncSession.selfUser)
+//                property(subject::owner).toBe(MessageReceiverService.selfUser)
 //                property(subject::name).toBe("My First Playlist")
 //                expect(runBlocking { subject.tracks.first() }).toBe(listOf(track1, track2))
 //            }

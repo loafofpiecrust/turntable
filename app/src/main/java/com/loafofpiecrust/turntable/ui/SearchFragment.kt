@@ -20,9 +20,10 @@ import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.popupMenu
+import com.loafofpiecrust.turntable.repository.Repositories
 import com.loafofpiecrust.turntable.song.SongsAdapter
-import com.loafofpiecrust.turntable.song.SongsFragment
-import com.loafofpiecrust.turntable.song.songsList
+import com.loafofpiecrust.turntable.song.SongsUI
+import com.loafofpiecrust.turntable.ui.universal.createView
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
@@ -63,7 +64,7 @@ class SearchFragment : BaseFragment() {
     @State var prevQuery = ""
     private var searchJob: Job? = null
 
-    private var repository: Repository = Repository.Companion
+    private var repository: Repository = Repositories
     private var results: SwipeRefreshLayout? = null
 
 
@@ -103,14 +104,11 @@ class SearchFragment : BaseFragment() {
             id = R.id.results
             topPadding = dip(64)
             results = when (cat) {
-                is Category.Songs -> songsList(
-                    SongsFragment.Category.All,
-                    cat.results,
-                    startRefreshing = false
-                )
+                is Category.Songs -> SongsUI.Custom(cat.results).createView(this)
                 is Category.Albums -> AlbumsUI.Custom(cat.results.openSubscription()).createView(this)
-                is Category.Artists -> ArtistsUI.Custom(cat.results).createView(this)
+                is Category.Artists -> ArtistsUI.Custom(cat.results, false).createView(this)
             } as SwipeRefreshLayout
+            results?.isRefreshing = false
         }.lparams(matchParent, matchParent)
 
         searchBar {
@@ -139,7 +137,7 @@ class SearchFragment : BaseFragment() {
             setMenuIcon(context.getDrawable(R.drawable.ic_cake))
             setOnMenuClickListener {
                 popupMenu(Gravity.END) {
-                    (sequenceOf(LocalApi) + Repository.DEFAULT_SOURCES.asSequence())
+                    (sequenceOf(LocalApi) + Repositories.ALL.asSequence())
                         .filter { it.displayName != -1 }
                         .forEach { api ->
                             val name = getString(api.displayName)

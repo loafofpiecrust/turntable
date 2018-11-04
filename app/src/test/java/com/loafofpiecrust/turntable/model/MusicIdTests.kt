@@ -11,6 +11,7 @@ import com.loafofpiecrust.turntable.model.song.SongId
 import kotlin.test.Test
 import ch.tutteli.atrium.verbs.assert
 import ch.tutteli.atrium.verbs.expect
+import com.loafofpiecrust.turntable.model.song.dbKey
 
 class AlbumIdTests {
     @Test fun `simple self-titled`() {

@@ -22,12 +22,12 @@ private fun Class<*>.nameResource(context: Context): Int {
 fun Class<*>.localizedName(context: Context): String {
     return try {
         context.getString(nameResource(context))
-    } catch (e: Throwable) {
+    } catch (e: Exception) {
         scopedName
     }
 }
 
-inline fun KClass<*>.localizedName(context: Context) = java.localizedName(context)
+fun KClass<*>.localizedName(context: Context) = java.localizedName(context)
 
 fun Enum<*>.localizedName(context: Context): String {
     return try {
@@ -44,4 +44,19 @@ fun Enum<*>.nameResource(context: Context, type: String = "string"): Int {
     val className = javaClass.scopedName.replace('.', '_')
     val stringId = "${className}_$name"
     return context.resources.getIdentifier(stringId, type, context.packageName)
+}
+
+
+
+fun String.toFileName(): String {
+    val builder = StringBuilder(this.length)
+    forEach { c ->
+        val valid = c !in "|\\/?*<\":"
+        if (valid) {
+            builder.append(c)
+        } else {
+            builder.append(' ')
+        }
+    }
+    return builder.toString()
 }

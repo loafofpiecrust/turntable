@@ -71,7 +71,7 @@ class PlayingNotification(private val service: MusicService) {
                 setMediaSession(service.mediaSession.sessionToken)
                 setShowCancelButton(true)
                 setCancelButtonIntent(service.notifyIntent(
-                    PlayerAction.Stop()
+                    PlayerAction.Stop
                 ))
             })
 
@@ -79,13 +79,15 @@ class PlayingNotification(private val service: MusicService) {
                 NotificationCompat.PRIORITY_MAX
             } else NotificationCompat.PRIORITY_HIGH
 
+            setOnlyAlertOnce(true)
             setSmallIcon(R.drawable.ic_album)
             setContentTitle(song.id.displayName)
             setContentText(song.id.artist.displayName)
-            setContentInfo(song.id.album.displayName)
+//            setTicker(song.id.album.displayName)
             setAutoCancel(false)
 //            setOngoing(playing)
             setColorized(true)
+            setShowWhen(false)
             paletteColor?.let { color = it }
 //            setBadgeIconType(R.drawable.ic_cake)
             // Colors the name only
@@ -101,9 +103,9 @@ class PlayingNotification(private val service: MusicService) {
 
             // Toggle pause
             if (playing) {
-                addAction(R.drawable.ic_pause, "Pause", service.notifyIntent(PlayerAction.Pause()))
+                addAction(R.drawable.ic_pause, "Pause", service.notifyIntent(PlayerAction.Pause))
             } else {
-                addAction(R.drawable.ic_play_arrow, "Play", service.notifyIntent(PlayerAction.Play()))
+                addAction(R.drawable.ic_play_arrow, "Play", service.notifyIntent(PlayerAction.Play))
             }
 
             // Next
@@ -147,10 +149,11 @@ class PlayingNotification(private val service: MusicService) {
             PlaybackStateCompat.STATE_PLAYING
         } else PlaybackStateCompat.STATE_PAUSED
 
-//        mediaSession.setPlaybackState(PlaybackStateCompat.Builder()
-//            .setState(state, player.currentPosition, 1f)
-//            .setBufferedPosition(player.bufferedPosition)
-//            .build())
+        val seekState = service.player.currentBufferState
+        service.mediaSession.setPlaybackState(PlaybackStateCompat.Builder()
+            .setState(state, seekState.position, 1f)
+            .setBufferedPosition(seekState.bufferedPosition)
+            .build())
 
         service.mediaSession.isActive = playing
     }

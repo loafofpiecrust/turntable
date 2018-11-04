@@ -21,13 +21,15 @@ import com.loafofpiecrust.turntable.model.artist.*
 import com.loafofpiecrust.turntable.model.imageTransition
 import com.loafofpiecrust.turntable.model.nameTransition
 import com.loafofpiecrust.turntable.puts
+import com.loafofpiecrust.turntable.repository.Repositories
 import com.loafofpiecrust.turntable.selector
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.standardStyle
-import com.loafofpiecrust.turntable.ui.UIComponent
+import com.loafofpiecrust.turntable.ui.universal.UIComponent
+import com.loafofpiecrust.turntable.ui.universal.ViewContext
+import com.loafofpiecrust.turntable.ui.universal.createView
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.map
@@ -60,7 +62,7 @@ open class ArtistDetailsUI(
 
     protected open val artist by lazy(LazyThreadSafetyMode.NONE) {
         Library.instance.findArtist(artistId).map {
-            it ?: Repository.findOnline(artistId)!!
+            it ?: Repositories.findOnline(artistId)!!
         }.replayOne()
     }
 
@@ -70,9 +72,9 @@ open class ArtistDetailsUI(
                 when (mode) {
                     // TODO: Do some caching of remotes here. Do this inside Repository :)
                     Mode.LIBRARY -> Library.instance.findArtist(artistId)
-                    Mode.REMOTE -> produceSingle { Repository.findOnline(artistId) }
+                    Mode.REMOTE -> produceSingle { Repositories.findOnline(artistId) }
                     Mode.LIBRARY_AND_REMOTE -> Library.instance.findArtist(artistId).map { local ->
-                        val remote = Repository.findOnline(artistId)
+                        val remote = Repositories.findOnline(artistId)
                         if (local != null && remote != null) {
                             MergedArtist(local, remote)
                         } else local ?: remote
@@ -104,7 +106,7 @@ open class ArtistDetailsUI(
         exitTransition = Fade()
     }
 
-    override fun CoroutineScope.render(ui: AnkoContext<Any>) = ui.coordinatorLayout {
+    override fun ViewContext.render() = coordinatorLayout {
         id = R.id.container
 
         appBarLayout {

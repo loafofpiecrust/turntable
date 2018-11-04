@@ -37,13 +37,10 @@ data class PlaylistId(
 }
 
 interface Playlist: Music, HasTracks {
-    // TODO: Integrate directly.
-    override val id get() = PlaylistId(name, uuid)
+    override val id: PlaylistId
 
     val owner: User
-    var name: String
     var color: Int?
-    val uuid: UUID
 
     @get:DrawableRes
     val icon: Int
@@ -61,7 +58,7 @@ interface MutablePlaylist: Playlist {
         if (isPublished) {
             val db = FirebaseFirestore.getInstance()
             db.collection("playlists")
-                .document(uuid.toString())
+                .document(id.uuid.toString())
                 .delete()
             isPublished = false
         }
@@ -91,7 +88,7 @@ abstract class AbstractPlaylist: Playlist {
 
     /// @return true if there were changes in our version since last server revision.
     open fun diffAndMerge(newer: AbstractPlaylist): Boolean {
-        this.name = newer.name
+//        this.id = newer.id
         this.color = newer.color
         this.lastModified = newer.lastModified
         this.remoteFileId = newer.remoteFileId

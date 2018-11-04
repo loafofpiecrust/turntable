@@ -63,7 +63,7 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
                     sheet2Peek = frameLayout {
                         secondSheetPeekInit?.invoke(this)
                     }.lparams(width=matchParent, height=sheet2PeekHeight)
-                }.lparams(width=matchParent, height=sheet2PeekHeight*3) {
+                }.lparams(width=matchParent, height=sheet2PeekHeight*4) {
                     behavior = CustomBottomSheetBehavior<FrameLayout>().apply {
                         peekHeight = sheet2PeekHeight
                     }.also { bottomSheetBehavior2 = it }
@@ -129,7 +129,7 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
     private var sheetStateChangeListener: SheetStateChangeListener? = null
 
     private val sheet1PeekHeight: Int = dimen(R.dimen.song_item_height)
-    private val sheet2PeekHeight: Int = dimen(R.dimen.song_item_height) * 2 + dimen(R.dimen.small_text_size) + dimen(R.dimen.text_content_margin)
+    private val sheet2PeekHeight: Int = dimen(R.dimen.song_item_height) + dimen(R.dimen.small_text_size) + dimen(R.dimen.text_content_margin)
 
     val isHidden: Boolean
         get() = bottomSheetBehavior1.peekHeight < sheet1PeekHeight

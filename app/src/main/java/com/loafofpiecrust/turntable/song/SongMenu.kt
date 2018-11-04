@@ -6,12 +6,15 @@ import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumDetailsUI
 import com.loafofpiecrust.turntable.artist.ArtistDetailsUI
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.player.MusicPlayer
+import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.PlaylistPicker
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.sync.Message
-import com.loafofpiecrust.turntable.ui.createFragment
+import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.ui.replaceMainContent
-import com.loafofpiecrust.turntable.ui.showDialog
+import com.loafofpiecrust.turntable.ui.universal.showDialog
 import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick
 
@@ -37,5 +40,20 @@ fun Menu.songOptions(context: Context, song: Song) {
             Message.Recommend(song),
             context.getString(R.string.share)
         ).show(context)
+    }
+}
+
+fun Menu.queueOptions(context: Context, song: Song) {
+    menuItem(R.string.queue_last).onClick {
+        MusicService.offer(PlayerAction.Enqueue(
+            listOf(song),
+            MusicPlayer.EnqueueMode.NEXT
+        ))
+    }
+    menuItem(R.string.queue_next).onClick {
+        MusicService.offer(PlayerAction.Enqueue(
+            listOf(song),
+            MusicPlayer.EnqueueMode.IMMEDIATELY_NEXT
+        ))
     }
 }

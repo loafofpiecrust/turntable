@@ -20,9 +20,10 @@ import com.loafofpiecrust.turntable.playlist.MixtapeDetailsUI
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.song.SongsAdapter
-import com.loafofpiecrust.turntable.song.SongsFragment
+import com.loafofpiecrust.turntable.song.SongsUI
 import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.*
+import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.views.RecyclerAdapter
@@ -34,6 +35,7 @@ import org.jetbrains.anko.*
 import org.jetbrains.anko.cardview.v7.cardView
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.sdk27.coroutines.onClick
+import kotlin.coroutines.CoroutineContext
 
 /**
  * Home page for browsing recommendations, history, friends, etc.
@@ -65,6 +67,7 @@ class BrowseFragment: BaseFragment() {
             recyclerView {
                 layoutManager = LinearLayoutManager(context)
                 adapter = MusicAdapter(
+                    coroutineContext,
                     UserPrefs.recommendations.openSubscription()
                         .map { it.take(4) }
                 )
@@ -81,9 +84,9 @@ class BrowseFragment: BaseFragment() {
                 button(R.string.show_more).lparams {
                     gravity = Gravity.END
                 }.onClick {
-                    context.replaceMainContent(SongsFragment(
-                        SongsFragment.Category.History()
-                    ))
+                    context.replaceMainContent(
+                        SongsUI.History().createFragment()
+                    )
                 }
             }
             recyclerView {
@@ -91,7 +94,7 @@ class BrowseFragment: BaseFragment() {
                     .map { it.asReversed().take(4).map { it.song } }
 
                 layoutManager = LinearLayoutManager(context)
-                adapter = SongsAdapter(history) { songs, pos ->
+                adapter = SongsAdapter(coroutineContext, history) { songs, pos ->
                     MusicService.offer(PlayerAction.PlaySongs(songs, pos))
                 }
             }
@@ -101,13 +104,14 @@ class BrowseFragment: BaseFragment() {
 
 
 class MusicAdapter(
+    parentContext: CoroutineContext,
     channel: ReceiveChannel<List<Recommendation>>
-): RecyclerAdapter<Recommendation, RecyclerListItemOptimized>(channel) {
+): RecyclerAdapter<Recommendation, RecyclerListItem>(parentContext, channel) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-        RecyclerListItemOptimized(parent, 3, false)
+        RecyclerListItem(parent, 3, false)
 
-    override fun onBindViewHolder(holder: RecyclerListItemOptimized, position: Int) {
+    override fun onBindViewHolder(holder: RecyclerListItem, position: Int) {
         val item = data[position]
 
 //        holder.mainLine.text = item.id.displayName

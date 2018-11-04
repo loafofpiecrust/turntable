@@ -23,8 +23,7 @@ class BiographyFragment: BaseDialogFragment() {
         }
     }
 
-    override fun ViewManager.createView() = linearLayout {
-        orientation = LinearLayout.VERTICAL
+    override fun ViewManager.createView() = verticalLayout {
         fitsSystemWindows = true
 
         // TODO: Add full-res artist image, as not-cropped as possible.

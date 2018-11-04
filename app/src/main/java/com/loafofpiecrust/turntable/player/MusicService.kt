@@ -23,6 +23,7 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.sync.Sync
+import com.loafofpiecrust.turntable.sync.SyncSession
 import com.loafofpiecrust.turntable.ui.BaseService
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +42,7 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
     companion object {
         private val _instance = ConflatedBroadcastChannel<WeakReference<MusicService>>()
         val instance get() = _instance.openSubscription().map { it.get() }
-        val player get() = instance.map { it?.player }
+        val player get() = instance.map { it?.player }.startWith(null)
 
         val currentSongColor: BroadcastChannel<Int> =
             player.switchMap { it?.queue }
@@ -135,15 +136,15 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
             applicationContext,
             "com.loafofpiecrust.turntable",
             null,
-            notifyIntent(PlayerAction.Play())
+            notifyIntent(PlayerAction.Play)
         ).apply {
             setCallback(object : MediaSessionCompat.Callback() {
                 override fun onPlay() {
-                    offer(PlayerAction.Play())
+                    offer(PlayerAction.Play)
                 }
 
                 override fun onPause() {
-                    offer(PlayerAction.Pause())
+                    offer(PlayerAction.Pause)
                 }
 
                 override fun onSkipToNext() {
@@ -156,9 +157,9 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
 
     private var isFocused = false
 
-    fun notifyIntent(msg: PlayerAction, context: Context? = this): PendingIntent = PendingIntent.getService(
+    fun notifyIntent(msg: PlayerAction, shouldSync: Boolean = true, context: Context? = this): PendingIntent = PendingIntent.getService(
         context ?: App.instance, 69 + msg.hashCode(),
-        MusicServiceStarter.getIntent(context, msg),
+        MusicServiceStarter.getIntent(context, msg, shouldSync),
         PendingIntent.FLAG_UPDATE_CURRENT // Signals the existing MusicService instance
     )
 
@@ -167,10 +168,10 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
         val state = intent.getIntExtra("state", 0)
         when (state) {
             0 -> if (UserPrefs.pauseOnUnplug.valueOrNull == true) {
-                offer(PlayerAction.Pause())
+                offer(PlayerAction.Pause)
             }
             1 -> if (UserPrefs.resumeOnPlug.valueOrNull == true && !player.queue.isEmpty && player.shouldAutoplay) {
-                offer(PlayerAction.Play())
+                offer(PlayerAction.Play)
             }
         }
     }
@@ -179,7 +180,7 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
         // Pause when the device is about to become "noisy"
         // This usually means: headphones unplugged
         if (UserPrefs.pauseOnUnplug.value) {
-            offer(PlayerAction.Pause())
+            offer(PlayerAction.Pause)
         }
     }
 
@@ -257,17 +258,17 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
     private fun doAction(msg: PlayerAction, shouldSync: Boolean) {
         val success = msg.run { this@MusicService.enact() }
         if (success && shouldSync) {
-            Sync.sendToSession(msg)
+            SyncSession.sendToActive(msg)
         }
     }
 
     override fun onAudioFocusChange(change: Int) {
         isFocused = (change == AUDIOFOCUS_GAIN || change == AUDIOFOCUS_GAIN_TRANSIENT || change == AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
         when (change) {
-            AUDIOFOCUS_GAIN -> doAction(PlayerAction.Play(), false)
-            AUDIOFOCUS_LOSS -> doAction(PlayerAction.Pause(), false)
-            AUDIOFOCUS_LOSS_TRANSIENT -> doAction(PlayerAction.Pause(), false)
-            AUDIOFOCUS_GAIN_TRANSIENT -> doAction(PlayerAction.Play(), false)
+            AUDIOFOCUS_GAIN -> doAction(PlayerAction.Play, false)
+            AUDIOFOCUS_LOSS -> doAction(PlayerAction.Pause, false)
+            AUDIOFOCUS_LOSS_TRANSIENT -> doAction(PlayerAction.Pause, false)
+            AUDIOFOCUS_GAIN_TRANSIENT -> doAction(PlayerAction.Play, false)
             AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
                 // just decrease volume
                 if (UserPrefs.reduceVolumeOnFocusLoss.value) {

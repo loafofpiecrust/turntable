@@ -2,11 +2,10 @@ package com.loafofpiecrust.turntable.util
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
-import com.mcxiaoke.koi.ext.closeQuietly
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.io.IOException
 import okhttp3.*
-import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -109,7 +108,7 @@ suspend fun Call.executeSuspended(): Response = suspendCancellableCoroutine { co
             try {
                 cont.resume(response)
             } catch (e: CancellationException) {
-                response.closeQuietly()
+                response.close()
             }
         }
     })

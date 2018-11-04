@@ -13,6 +13,9 @@ import org.jetbrains.anko.recyclerview.v7.recyclerView
 class RecommendationsFragment: BaseFragment() {
     override fun ViewManager.createView() = recyclerView {
         layoutManager = LinearLayoutManager(context)
-        adapter = MusicAdapter(UserPrefs.recommendations.openSubscription())
+        adapter = MusicAdapter(
+            coroutineContext,
+            UserPrefs.recommendations.openSubscription()
+        )
     }
 }

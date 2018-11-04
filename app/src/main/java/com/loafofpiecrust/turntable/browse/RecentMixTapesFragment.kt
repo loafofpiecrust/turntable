@@ -4,43 +4,43 @@ import android.support.v7.widget.LinearLayoutManager
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewManager
-import com.loafofpiecrust.turntable.given
 import com.loafofpiecrust.turntable.model.playlist.MixTape
-import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragment
+import com.loafofpiecrust.turntable.playlist.PlaylistDetailsUI
 import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.ui.*
+import com.loafofpiecrust.turntable.ui.universal.createFragment
+import com.loafofpiecrust.turntable.util.days
 import com.loafofpiecrust.turntable.util.produceSingle
 import com.loafofpiecrust.turntable.views.RecyclerAdapter
 import com.loafofpiecrust.turntable.views.RecyclerItem
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.frameLayout
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-import java.util.concurrent.TimeUnit
-
 
 class RecentMixTapesFragment: BaseFragment() {
     override fun ViewManager.createView(): View = with(this) {
         val mixtapes = produceSingle {
-            MixTape.queryMostRecent(TimeUnit.DAYS.toMillis(10))
+            MixTape.queryMostRecent(10.days)
         }
 
         frameLayout {
             recyclerView {
                 layoutManager = LinearLayoutManager(context)
-                adapter = object : RecyclerAdapter<MixTape, RecyclerItem>(mixtapes) {
+                adapter = object : RecyclerAdapter<MixTape, RecyclerItem>(job, mixtapes) {
                     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerItem =
-                        RecyclerListItemOptimized(parent, 3, true)
+                        RecyclerListItem(parent, 3, true)
 
                     override fun onBindViewHolder(holder: RecyclerItem, position: Int) {
                         val mt = data[position]
-                        holder.mainLine.text = mt.name
+                        holder.mainLine.text = mt.id.name
                         holder.subLine.text = mt.type.name
-                        given(mt.color) { holder.card.backgroundColor = it }
+                        mt.color?.let { holder.card.backgroundColor = it }
 
                         holder.card.setOnClickListener { v ->
                             v.context.library.cachePlaylist(mt)
-                            val frag = PlaylistDetailsFragment.newInstance(mt.uuid, mt.name)
-                            v.context.replaceMainContent(frag, true)
+                            v.context.replaceMainContent(
+                                PlaylistDetailsUI(mt.id).createFragment()
+                            )
                         }
                     }
                 }

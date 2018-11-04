@@ -3,6 +3,9 @@ package com.loafofpiecrust.turntable.prefs
 import activitystarter.MakeActivityStarter
 import android.os.Bundle
 import android.preference.PreferenceFragment
+import com.chibatching.kotpref.KotprefModel
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 
 @MakeActivityStarter
@@ -55,6 +58,13 @@ class MainPrefsFragment : PreferenceFragment() {
                 entries = UserPrefs.HQStreamingMode.values().map { it.name }.toTypedArray()
                 entryValues = entries
             }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        GlobalScope.launch {
+            KotprefModel.saveFiles()
         }
     }
 }

@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.model.album
 
-//import com.loafofpiecrust.turntable.model.PaperParcelAlbum
 import android.graphics.drawable.Drawable
 import android.os.Parcelable
 import android.support.design.widget.CollapsingToolbarLayout
@@ -14,15 +13,15 @@ import com.bumptech.glide.RequestManager
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.signature.ObjectKey
 import com.github.florent37.glidepalette.GlidePalette
-import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.model.song.HasTracks
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.repository.Repositories
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.util.lazy
-import com.loafofpiecrust.turntable.util.redirectTo
+import com.loafofpiecrust.turntable.util.sendFrom
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.filterNotNull
@@ -33,49 +32,53 @@ import org.jetbrains.anko.colorAttr
 import org.jetbrains.anko.textColor
 import java.io.Serializable
 
-//@Parcelize
-//data class PartialAlbum(
-//    val id: AlbumId,
-//    val year: Int?,
-//    val type: Album.Type
-//): SavableMusic, Parcelable {
-//    internal constructor(): this(AlbumId(), null, Album.Type.LP)
-//
-//    override val id: MusicId get() = id
-//
-//    @Transient
-//    private val resolved = GlobalScope.async(Dispatchers.IO, start = CoroutineStart.LAZY) {
-//        Repository.find(id)
-//    }
-//    suspend fun resolve(): Album? = resolved.await()
-//}
 
+/**
+ * Album from any source made up of a list of tracks
+ */
 interface Album: Music, HasTracks {
     override val id: AlbumId
+
+    /**
+     * Year this album was originally published.
+     *
+     * Any value <= 0 is considered invalid, meaning we don't know what year this was published.
+     */
     val year: Int
 
     /**
-     * The order of this enum determines the order of Album types in a discography.
+     * The order of [Type] variants determines the order of album types in a discography.
      */
     enum class Type {
-        LP, // A full album, or LP
-        EP, // A shorter release, or EP
-        SINGLE, // A single, maybe with a B-side or some remixes
-        LIVE, // A recording of a live show
-        COMPILATION, // A collection or compilation that wasn't an original release
-        OTHER // Something else altogether
+        /// A full album, or LP
+        LP,
+        /// A shorter release, or EP
+        EP,
+        /// A single, maybe with a B-side or some remixes
+        SINGLE,
+        /// A recording of a live show
+        LIVE,
+        /// A collection or compilation that wasn't an original release
+        COMPILATION,
+        /// Something else altogether
+        OTHER
     }
-    val type: Type
 
-//    fun toPartial() = PartialAlbum(id, year, type)
+    /**
+     * The type of this album, often determined by naming and length.
+     *
+     * An album's type determines how sets of albums are grouped
+     * and how tracks on the album are searched for.
+     */
+    val type: Type
 
 
     fun loadCover(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
         GlobalScope.produce {
             val localArt = Library.instance.loadAlbumCover(req, this@Album.id)
-            send(localArt.receive() ?: req.load(Repository.fullArtwork(this@Album, true)))
+            send(localArt.receive() ?: req.load(Repositories.fullArtwork(this@Album, true)))
 
-            localArt.filterNotNull().redirectTo(channel)
+            sendFrom(localArt.filterNotNull())
         }
 
     fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
@@ -89,15 +92,14 @@ interface Album: Music, HasTracks {
         val artworkUrl: String?
 
         suspend fun resolveTracks(album: AlbumId): List<Song>
-
-        /// Priority of this entry, on a rough scale of [0, 100]
-        /// where 100 is the best match possible.
     }
 }
 
+/// Whether this album has any track discontinuities
+/// For example, if we have Track 1 then Track 3 but no Track 2, then there's a gap.
 val Album.hasTrackGaps: Boolean get() =
     tracks.lazy.zipWithNext().any { (lastSong, song) ->
-        (song.track - lastSong.track > 1)
+        song.disc == lastSong.disc && (song.track - lastSong.track > 1)
     }
 
 fun Album.loadPalette(vararg views: View)
@@ -135,18 +137,18 @@ fun loadPalette(id: MusicId, views: Array<out View>) =
         }
     }
 
-fun loadPalette(id: MusicId, cb: (Palette?, Palette.Swatch?) -> Unit) = GlidePalette.with(id.displayName)
-    .intoCallBack { palette ->
+fun loadPalette(id: MusicId, cb: (Palette?, Palette.Swatch?) -> Unit) =
+    GlidePalette.with(id.displayName).intoCallBack { palette ->
         if (palette == null) {
             cb(null, null)
-            return@intoCallBack
+        } else {
+            val vibrant = palette.vibrantSwatch
+            val vibrantDark = palette.darkVibrantSwatch
+            val muted = palette.mutedSwatch
+            val mutedDark = palette.darkMutedSwatch
+            val dominant = palette.dominantSwatch
+            cb(palette, vibrant ?: muted ?: vibrantDark ?: mutedDark ?: dominant)
         }
-        val vibrant = palette.vibrantSwatch
-        val vibrantDark = palette.darkVibrantSwatch
-        val muted = palette.mutedSwatch
-        val mutedDark = palette.darkMutedSwatch
-        val dominant = palette.dominantSwatch
-        cb(palette, vibrant ?: muted ?: vibrantDark ?: mutedDark ?: dominant)
 //        val darkThreshold = 0.6f
 //        cb(palette, if (vibrant != null && vibrant.hsl[2] <= darkThreshold) {
 //            vibrant

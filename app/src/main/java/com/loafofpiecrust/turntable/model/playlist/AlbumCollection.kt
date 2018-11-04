@@ -10,6 +10,8 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.model.sync.User
+import com.loafofpiecrust.turntable.repository.Repositories
+import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.util.lazy
 import com.loafofpiecrust.turntable.util.serialize
 import com.loafofpiecrust.turntable.util.toObject
@@ -24,13 +26,12 @@ import java.util.*
 
 
 class AlbumCollection(
+    override val id: PlaylistId,
     override val owner: User,
-    override var name: String,
-    override var color: Int?,
-    override val uuid: UUID
+    override var color: Int?
 ) : AbstractPlaylist(), MutablePlaylist {
     /// For serialization
-    private constructor(): this(User(), "", null, UUID.randomUUID())
+    private constructor(): this(PlaylistId(""), Sync.selfUser, null)
 
     private val _albums = ConflatedBroadcastChannel(listOf<AlbumId>())
 
@@ -45,7 +46,7 @@ class AlbumCollection(
      */
     override val tracksChannel: ReceiveChannel<List<Song>>
         get() = albums.map {
-            it.mapNotNull { Repository.find(it) }.lazy
+            it.mapNotNull { Repositories.find(it) }.lazy
                 .flatMap { it.tracks.lazy }
                 .toList()
         }
@@ -53,10 +54,9 @@ class AlbumCollection(
     companion object {
         fun fromDocument(doc: DocumentSnapshot): AlbumCollection = runBlocking {
             AlbumCollection(
+                PlaylistId(doc.getString("name")!!, UUID.fromString(doc.id)),
                 doc.getBlob("owner")!!.toObject(),
-                doc.getString("name")!!,
-                doc.getLong("color")?.toInt(),
-                UUID.fromString(doc.id)
+                doc.getLong("color")?.toInt()
             ).apply {
                 isPublished = true
                 _albums puts doc.getBlob("albums")!!.toObject()
@@ -102,11 +102,11 @@ class AlbumCollection(
         GlobalScope.launch {
             val db = FirebaseFirestore.getInstance()
             db.collection("playlists")
-                .document(uuid.toString())
+                .document(id.uuid.toString())
                 .set(mapOf(
                     "format" to "albums",
                     "owner" to Blob.fromBytes(serialize(owner)),
-                    "name" to name,
+                    "name" to id.name,
                     "color" to color,
                     "lastModified" to lastModified,
                     "albums" to Blob.fromBytes(serialize(_albums.value))

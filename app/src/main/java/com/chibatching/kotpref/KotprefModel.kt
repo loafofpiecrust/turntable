@@ -29,8 +29,6 @@ abstract class KotprefModel {
      */
     val context: Context by lazy { Kotpref.context!! }
 
-    protected val files = mutableListOf<BaseObjFilePref<*>>()
-
     /**
      * Preference file uuid
      */
@@ -195,11 +193,6 @@ abstract class KotprefModel {
     protected fun stringSetPref(key: Int, default: () -> Set<String>)
             = stringSetPref(context.getString(key), default)
 
-
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    protected inline fun <reified T: Any> pref(default: T)
-        = com.chibatching.kotpref.filepref.objFilePref(default).also { files.add(it) }
-
     /**
      * Begin bulk edit mode. You must commit or cancel after bulk edit finished.
      */
@@ -233,8 +226,18 @@ abstract class KotprefModel {
         kotprefInTransaction = false
     }
 
-    suspend fun saveFiles() {
-        files.parMap(Dispatchers.IO) { it.save() }.awaitAll()
+
+    companion object {
+        @PublishedApi
+        internal val files = mutableListOf<BaseObjFilePref<*>>()
+
+        suspend fun saveFiles() {
+            files.parMap(Dispatchers.IO) { it.save() }.awaitAll()
+        }
     }
 }
 
+
+@TargetApi(Build.VERSION_CODES.HONEYCOMB)
+inline fun <reified T: Any> preference(default: T)
+    = com.chibatching.kotpref.filepref.objFilePref(default).also { KotprefModel.files.add(it) }

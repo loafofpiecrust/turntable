@@ -1,37 +1,28 @@
 package com.chibatching.kotpref.filepref
 
 import android.content.SharedPreferences
-import com.chibatching.kotpref.Kotpref
-import com.chibatching.kotpref.KotprefModel
 import com.chibatching.kotpref.pref.AbstractPref
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.channels.actor
-import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.*
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
-import java.io.FileOutputStream
 import kotlin.reflect.KProperty
 
 abstract class BaseObjFilePref<T: Any>(
-    open val default: T? = null
-): AbstractPref<T>(default), AnkoLogger {
+    val default: T
+): AbstractPref<T>(), AnkoLogger {
     private var lastWrite = 0L
-    protected var lastModify = 0L
+    private val lastModify = subject.openSubscription().map {
+        System.nanoTime()
+    }.replayOne()
     private var className: String? = null
     private var name: String? = null
 
-    init {
-        subject.consumeEach(BG_POOL) {
-            lastModify = System.nanoTime()
-        }
-    }
 
 //    private sealed class Action {
 //        object Save: Action()
@@ -40,17 +31,16 @@ abstract class BaseObjFilePref<T: Any>(
 //            val property: KProperty<*>
 //        ): Action()
 //    }
-//    private val saveActor = actor<Action>(BG_POOL, capacity = Channel.CONFLATED) {
-//        consumeEach { e ->
-//            if (e is Action.Save) {
-//            }
-//        }
-//    }
+    private val saveActor = GlobalScope.actor<Unit>(capacity = Channel.CONFLATED) {
+        consumeEach {
+            doSave()
+        }
+    }
 
     protected val fileName: String get() = "$className.$name.prop"
 
-    fun save() {
-        if (name == null || className == null || lastModify < lastWrite) return
+    private fun doSave() {
+        if (name == null || className == null || lastModify.value < lastWrite) return
         try {
             val file = App.instance.filesDir.resolve(fileName)
             if (!file.exists()) {
@@ -64,29 +54,38 @@ abstract class BaseObjFilePref<T: Any>(
         }
     }
 
+    fun save() {
+        saveActor.offer(Unit)
+    }
+
 
     override fun getValue(thisRef: Any, property: KProperty<*>): ConflatedBroadcastChannel<T> {
-        className = thisRef.javaClass.simpleName
+        className = thisRef.javaClass.scopedName
         name = property.name
 
         if (!subject.hasValue) {
             getFromPreference(property, UserPrefs.kotprefPreference).also {
                 subject.offer(it)
             }
+            GlobalScope.launch {
+                subject.openSubscription().skip(1).consumeEach {
+                    save()
+                }
+            }
         }
         return subject
     }
-}
 
-inline fun <reified T: Any> objFilePref(default: T) = object: BaseObjFilePref<T>(default) {
     override fun setToPreference(property: KProperty<*>, value: T, preference: SharedPreferences) {
     }
 
     override fun setToEditor(property: KProperty<*>, value: T, editor: SharedPreferences.Editor) {
     }
+}
 
+inline fun <reified T: Any> objFilePref(default: T) = object: BaseObjFilePref<T>(default) {
     override fun getFromPreference(property: KProperty<*>, preference: SharedPreferences): T {
-        val res = try {
+        return try {
             val file = App.instance.filesDir.resolve(fileName)
             if (file.exists()) {
                 deserialize(file.inputStream()) as T
@@ -95,7 +94,5 @@ inline fun <reified T: Any> objFilePref(default: T) = object: BaseObjFilePref<T>
             error("Preference '${property.name}' failed to load.", e)
             default
         }
-
-        return res
     }
 }

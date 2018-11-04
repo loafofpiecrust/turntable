@@ -12,22 +12,33 @@ import kotlin.coroutines.CoroutineContext
 fun <T, R> ReceiveChannel<T>.switchMap(
     context: CoroutineContext = Dispatchers.Unconfined,
     transform: suspend (T) -> ReceiveChannel<R>?
-): ReceiveChannel<R> = GlobalScope.produce(context) {
+): ReceiveChannel<R> {
     var currentJob: Job? = null
-    consumeEach {
-        currentJob?.cancel()
-        transform(it)?.let { newChan ->
-            currentJob = async(coroutineContext) {
-                newChan.redirectTo(channel)
+    return GlobalScope.produce(context, onCompletion = { err ->
+        currentJob?.cancel(err)
+        cancel(err)
+    }) {
+        consumeEach {
+            currentJob?.cancelAndJoin()
+            transform(it)?.let { newChan ->
+                currentJob = launch {
+                    sendFrom(newChan)
+                }
             }
         }
     }
-    currentJob?.cancel()
 }
 
-suspend inline fun <T> ReceiveChannel<T>.redirectTo(
-    channel: SendChannel<T>
-) = consumeEach { channel.send(it) }
+fun <T> ReceiveChannel<T>.startWith(
+    element: T
+) = GlobalScope.produce(Dispatchers.Unconfined, onCompletion = consumes()) {
+    if (isEmpty) {
+        send(element)
+    }
+    consumeEach {
+        send(it)
+    }
+}
 
 suspend inline fun <T> SendChannel<T>.sendFrom(
     channel: ReceiveChannel<T>
@@ -51,12 +62,6 @@ fun <E, R> combineLatest(
     b: ReceiveChannel<R>,
     context: CoroutineContext = Dispatchers.Unconfined
 ): ReceiveChannel<Pair<E, R>> = combineLatest(a, b, context) { a, b -> a to b }
-
-fun <A, B, C> ReceiveChannel<A>.combineLatest(
-    b: ReceiveChannel<B>,
-    c: ReceiveChannel<C>,
-    context: CoroutineContext = Dispatchers.Unconfined
-) = combineLatest(b, c, context) { a, b, c -> Triple(a, b, c) }
 
 
 fun <A, B, R> combineLatest(
@@ -91,17 +96,17 @@ fun <A, B, R> combineLatest(
     }
 })
 
-fun <A, B, C, R> ReceiveChannel<A>.combineLatest(
+fun <A, B, C, R> combineLatest(
+    sourceA: ReceiveChannel<A>,
     sourceB: ReceiveChannel<B>,
     sourceC: ReceiveChannel<C>,
     context: CoroutineContext = Dispatchers.Unconfined,
     combine: suspend (A, B, C) -> R
-): ReceiveChannel<R> = GlobalScope.produce(context, onCompletion = {
-    cancel(it)
-    sourceB.cancel(it)
-    sourceC.cancel(it)
+): ReceiveChannel<R> = GlobalScope.produce(context, onCompletion = { err ->
+    sourceA.cancel(err)
+    sourceB.cancel(err)
+    sourceC.cancel(err)
 }, block = {
-    val sourceA = this@combineLatest
 
     var latestA: A? = null
     var latestB: B? = null
@@ -140,10 +145,9 @@ fun <A, B, C, R> ReceiveChannel<A>.combineLatest(
 
 
 fun <T> ReceiveChannel<T>.skip(
-    n: Int,
-    context: CoroutineContext = Dispatchers.Unconfined
+    n: Int
 ): ReceiveChannel<T> {
-    return GlobalScope.produce(context, 0, null, {
+    return GlobalScope.produce(Dispatchers.Unconfined) {
         consume {
             for (_rem in 0 until n) {
                 receive()
@@ -152,11 +156,11 @@ fun <T> ReceiveChannel<T>.skip(
                 send(e)
             }
         }
-    })
+    }
 }
 
 
-fun <T> ReceiveChannel<T>.interrupt(context: CoroutineContext = Dispatchers.Unconfined): ReceiveChannel<T> {
+fun <T> ReceiveChannel<T>.interruptable(context: CoroutineContext = Dispatchers.Unconfined): ReceiveChannel<T> {
     var job: Job? = null
     return GlobalScope.produce(context) {
         consumeEach { e ->
@@ -168,11 +172,11 @@ fun <T> ReceiveChannel<T>.interrupt(context: CoroutineContext = Dispatchers.Unco
 
 fun <T> ReceiveChannel<T>.distinctSeq(
     context: CoroutineContext = Dispatchers.Unconfined
-): ReceiveChannel<T> = distinctBySeq { a, b -> a == b }
+): ReceiveChannel<T> = distinctBySeq(context) { a, b -> a == b }
 
 fun <T> ReceiveChannel<T>.distinctInstanceSeq(
     context: CoroutineContext = Dispatchers.Unconfined
-): ReceiveChannel<T> = distinctBySeq { a, b -> a === b }
+): ReceiveChannel<T> = distinctBySeq(context) { a, b -> a === b }
 
 fun <T> ReceiveChannel<T>.distinctBySeq(
     context: CoroutineContext = Dispatchers.Unconfined,
@@ -203,14 +207,14 @@ fun <T> ReceiveChannel<T>.changes(
 
 val <T> ConflatedBroadcastChannel<T>.hasValue inline get() = (valueOrNull != null)
 
-inline fun <E> BroadcastChannel<E>.consumeEach(
-    ctx: CoroutineContext,
-    crossinline action: suspend (E) -> Unit
-): Job = GlobalScope.async(ctx) { consumeEach {
-    try { action(it) } catch (e: Throwable) {
-        e.printStackTrace()
-    }
-} }
+//inline fun <E> BroadcastChannel<E>.consumeEach(
+//    ctx: CoroutineContext,
+//    crossinline action: suspend (E) -> Unit
+//): Job = GlobalScope.async(ctx) { consumeEach {
+//    try { action(it) } catch (e: Exception) {
+//        e.printStackTrace()
+//    }
+//} }
 //
 //inline fun <E, R> BroadcastChannel<E>.consume(
 //    ctx: CoroutineContext,
@@ -224,15 +228,10 @@ inline fun <E> ReceiveChannel<E>.consumeEach(
 ): Job = GlobalScope.async(ctx) { consumeEach {
     try {
         action(it)
-    } catch (e: Throwable) {
+    } catch (e: Exception) {
         e.printStackTrace()
     }
 } }
-
-inline fun <E, R> ReceiveChannel<E>.consume(
-    ctx: CoroutineContext,
-    crossinline action: suspend ReceiveChannel<E>.() -> R
-): Job = GlobalScope.async(ctx) { consume { action(this) } }
 
 
 
@@ -249,7 +248,7 @@ fun <T> ReceiveChannel<T>.bind(view: View) = apply {
     }
 }
 
-inline operator fun <T> BroadcastChannel<T>.iterator(): ChannelIterator<T> = openSubscription().iterator()
+operator fun <T> BroadcastChannel<T>.iterator(): ChannelIterator<T> = openSubscription().iterator()
 
 
 

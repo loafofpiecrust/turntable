@@ -22,16 +22,16 @@ import kotlin.coroutines.CoroutineContext
 
 // TODO: Make interface for music data types that has their shared qualities: mainly an uuid. Then, maybe that'll allow some other generalization too.
 abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
-    val channel: ReceiveChannel<List<T>>
+    parentContext: CoroutineContext,
+    channel: ReceiveChannel<List<T>>
 ): RecyclerView.Adapter<VH>(), CoroutineScope {
-
-    protected val supervisor = SupervisorJob()
+    protected val supervisor = SupervisorJob(parentContext[Job])
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Default + supervisor
 
     protected var data: List<T> = emptyList()
     private val pendingUpdates = ArrayDeque<List<T>>()
-    private var dataUpdateJob = Job(supervisor)
+    private var dataUpdateJob: Job? = null
 
     init {
         subscribeData(channel)
@@ -56,12 +56,12 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
     }
 
     private fun subscribeData(obs: ReceiveChannel<List<T>>) {
-        dataUpdateJob.cancelChildren()
+        dataUpdateJob?.cancel()
         if (!obs.isEmpty && !obs.isClosedForReceive) {
             println("recycler restoring data? $this")
             data = runBlocking { obs.receive() }
         }
-        launch(dataUpdateJob) {
+        dataUpdateJob = launch {
             obs.consumeEach { newData ->
                 val diff = DiffUtil.calculateDiff(Differ(data, newData))
                 withContext(Dispatchers.Main) {
@@ -76,12 +76,15 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
         super.onDetachedFromRecyclerView(recyclerView)
         supervisor.cancel()
+        dataUpdateJob?.cancel()
+        dataUpdateJob = null
     }
 }
 
 abstract class RecyclerBroadcastAdapter<T, VH: RecyclerView.ViewHolder>(
+    parentContext: CoroutineContext,
     channel: ReceiveChannel<List<T>>
-) : RecyclerAdapter<T, VH>(channel) {
+) : RecyclerAdapter<T, VH>(parentContext, channel) {
     private val itemJobs = mutableMapOf<VH, Job>()
 
     open val moveEnabled: Boolean get() = false
@@ -100,6 +103,11 @@ abstract class RecyclerBroadcastAdapter<T, VH: RecyclerView.ViewHolder>(
         data.getOrNull(position)?.let { item ->
             holder.onBind(item, position, job)
         }
+    }
+
+    override fun onViewRecycled(holder: VH) {
+        super.onViewRecycled(holder)
+        itemJobs.remove(holder)?.cancel()
     }
 
     final override fun onBindViewHolder(holder: VH, position: Int, payloads: MutableList<Any>) {

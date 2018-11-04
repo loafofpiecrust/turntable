@@ -18,6 +18,8 @@ import com.github.daemontus.unwrapOrElse
 import com.github.salomonbrys.kotson.jsonNull
 import com.github.salomonbrys.kotson.registerTypeAdapter
 import com.google.gson.GsonBuilder
+import com.loafofpiecrust.turntable.util.Duration
+import com.loafofpiecrust.turntable.util.Milliseconds
 import com.loafofpiecrust.turntable.util.hasValue
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
@@ -51,7 +53,7 @@ class broadcastReceiver(val init: (Context, Intent) -> Unit): BroadcastReceiver(
 fun <T> List<T>.dedup(pred: (T, T) -> Boolean = { a, b -> a == b }): List<T> =
     dedupMerge(pred) { a, b -> a }
 
-inline fun <T> Collection<T>.dedupMerge(pred: (T, T) -> Boolean, merger: (T, T) -> T): List<T> {
+fun <T> Collection<T>.dedupMerge(pred: (T, T) -> Boolean, merger: (T, T) -> T): List<T> {
     val result = ArrayList<T>(this.size)
     this.forEach { curr ->
         val dupIdx = result.indexOfFirst { pred(curr, it) }
@@ -84,7 +86,7 @@ inline fun <T> Collection<T>.dedupMergeSorted(isDup: (T, T) -> Boolean, merger: 
     return result.apply { trimToSize() }
 }
 
-inline fun <T> Sequence<T>.dedupMergeSorted(crossinline isDup: (T, T) -> Boolean, crossinline merger: (T, T) -> T) = sequence {
+fun <T> Sequence<T>.dedupMergeSorted(isDup: (T, T) -> Boolean, merger: (T, T) -> T) = sequence {
     var prev: T? = null
     forEach { curr ->
         prev = if (prev != null) {
@@ -249,9 +251,8 @@ fun <T : android.view.View> T.collapsingToolbarlparams(
     return this
 }
 
-inline fun <T> T?.toOption() = if (this == null) Option.None<T>() else Option.Some(this)
-inline fun <T> Option<T>.toNullable(): T? = this.unwrapOrElse { null }
-inline fun <T> T?.toNullable() = this
+fun <T> T?.toOption() = if (this == null) Option.None<T>() else Option.Some(this)
+fun <T> Option<T>.toNullable(): T? = this.unwrapOrElse { null }
 
 fun Int.toHSV(): FloatArray = run {
     val hsv = FloatArray(3)
@@ -269,17 +270,6 @@ fun Int.lighten(ratio: Float): Int = run {
     val hsv = toHSV()
     hsv[2] = 1f - ratio * (1f - hsv[2])
     Color.HSVToColor(hsv)
-}
-
-inline fun View.postDelayedLoop(intervalMs: Long, crossinline cb: () -> Boolean) = run {
-    postDelayed(object: Runnable {
-        override fun run() {
-            val keepGoing = cb()
-            if (keepGoing) {
-                postDelayed(this, intervalMs)
-            }
-        }
-    }, intervalMs)
 }
 
 inline fun <T: Any, R> given(cond: T?, block: (T) -> R): R? = cond?.let(block)
@@ -387,7 +377,7 @@ inline fun onApi(version: Int, block: () -> Unit) {
 inline fun <T> tryOr(v: T, block: () -> T): T {
     return try {
         block()
-    } catch (e: Throwable) {
+    } catch (e: Exception) {
 //        e.printStackTrace()
         v
     }

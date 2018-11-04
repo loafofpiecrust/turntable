@@ -25,4 +25,8 @@
     <string name="playlist_delete">Delete</string>
     <string name="playlist_rename">Rename</string>
     <string name="playlist_generate_similar">Get Recommendations</string>
+
+    <!-- Empty state -->
+    <string name="playlist_empty">No tracks here yet</string>
+    <string name="playlist_empty_details">Add a song to this playlist and play it back here.</string>
 </resources>

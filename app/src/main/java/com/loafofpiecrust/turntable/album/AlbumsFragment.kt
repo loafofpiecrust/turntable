@@ -18,24 +18,27 @@ import com.loafofpiecrust.turntable.model.artist.LocalArtist
 import com.loafofpiecrust.turntable.model.artist.MergedArtist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.puts
+import com.loafofpiecrust.turntable.repository.Repositories
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.turntableStyle
 import com.loafofpiecrust.turntable.ui.*
+import com.loafofpiecrust.turntable.ui.universal.UIComponent
+import com.loafofpiecrust.turntable.ui.universal.createFragment
+import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import com.loafofpiecrust.turntable.util.*
 import com.loafofpiecrust.turntable.views.ItemOffsetDecoration
 import com.loafofpiecrust.turntable.views.RecyclerItem
+import com.loafofpiecrust.turntable.views.refreshableRecyclerView
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
 import kotlinx.coroutines.launch
-import org.jetbrains.anko.AnkoContext
 import org.jetbrains.anko.dimen
 import org.jetbrains.anko.padding
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-import org.jetbrains.anko.support.v4.swipeRefreshLayout
 
 
 sealed class AlbumsUI(
@@ -52,68 +55,68 @@ sealed class AlbumsUI(
         }.broadcast(CONFLATED)
     }
 
-    override fun CoroutineScope.render(ui: AnkoContext<Any>) = ui.swipeRefreshLayout {
-        isEnabled = false
+    override fun ViewContext.render() = refreshableRecyclerView {
+        channel = displayAlbums.openSubscription()
 
-        val grid = GridLayoutManager(context, 3)
+        contentView {
+            val grid = GridLayoutManager(context, 3)
 
-        val goToAlbum = { item: RecyclerItem, album: Album ->
-            item.itemView.context.replaceMainContent(
-                AlbumDetailsUI.Resolved(album).createFragment(),
-                true,
-                item.transitionViews
-            )
-        }
-        val adapter: RecyclerView.Adapter<*> =
-            if (splitByType) {
-                AlbumAdapterSectioned(displayAlbums.openSubscription(), goToAlbum).apply {
-                    layoutManager = grid
+            val goToAlbum = { item: RecyclerItem, album: Album ->
+                item.itemView.context.replaceMainContent(
+                    AlbumDetailsUI.Resolved(album).createFragment(),
+                    true,
+                    item.transitionViews
+                )
+            }
+            val adapter: RecyclerView.Adapter<*> =
+                if (splitByType) {
+                    AlbumAdapterSectioned(
+                        coroutineContext,
+                        displayAlbums.openSubscription(),
+                        goToAlbum
+                    ).apply {
+                        layoutManager = grid
+                    }
+                } else {
+                    AlbumsAdapter(
+                        coroutineContext,
+                        displayAlbums.openSubscription(),
+                        this@AlbumsUI is ByArtist,
+                        goToAlbum
+                    )
                 }
-            } else {
-                AlbumsAdapter(displayAlbums.openSubscription(), this@AlbumsUI is ByArtist, goToAlbum)
-            }
 
-        val recycler =
-//            if (this@AlbumsUI is All) {
-//                fastScrollRecycler {
-//                    turntableStyle()
-//                }
-//            } else
-            recyclerView {
-                turntableStyle()
-            }
-
-
-        recycler.apply {
-            layoutManager = grid
-            this.adapter = adapter
-
-            // if (listState != null) {
-            //     grid.onRestoreInstanceState(listState)
-            // }
-
-            padding = dimen(R.dimen.grid_gutter)
-
-            if (columnCount > 0) {
-                grid.spanCount = columnCount
-            } else {
-                launch {
-                    UserPrefs.albumGridColumns.openSubscription()
-                        .distinctSeq()
-                        .consumeEach { grid.spanCount = it }
+            val recycler =
+                if (this@AlbumsUI is All) {
+                    fastScrollRecycler {
+                        turntableStyle()
+                    }
+                } else recyclerView {
+                    turntableStyle()
                 }
-            }
 
-            addItemDecoration(ItemOffsetDecoration(dimen(R.dimen.grid_gutter)))
-        }
 
-        launch {
-            val chan = displayAlbums.openSubscription()
-            if (chan.isEmpty) {
-                isRefreshing = true
-            }
-            chan.consumeEach {
-                isRefreshing = false
+            recycler.apply {
+                layoutManager = grid
+                this.adapter = adapter
+
+                // if (listState != null) {
+                //     grid.onRestoreInstanceState(listState)
+                // }
+
+                padding = dimen(R.dimen.grid_gutter)
+
+                if (columnCount > 0) {
+                    grid.spanCount = columnCount
+                } else {
+                    launch(start = CoroutineStart.UNDISPATCHED) {
+                        UserPrefs.albumGridColumns.openSubscription()
+                            .distinctSeq()
+                            .consumeEach { grid.spanCount = it }
+                    }
+                }
+
+                addItemDecoration(ItemOffsetDecoration(dimen(R.dimen.grid_gutter)))
             }
         }
     }
@@ -134,7 +137,7 @@ sealed class AlbumsUI(
                     }
                 }
 
-                UserPrefs.albumGridColumns.consumeEach(Dispatchers.Main) { count ->
+                UserPrefs.albumGridColumns.consumeEachAsync(Dispatchers.Main) { count ->
                     items.forEach { it.isChecked = false }
                     items[count - 1].isChecked = true
                 }
@@ -166,7 +169,7 @@ sealed class AlbumsUI(
                         when (mode) {
                             ArtistDetailsUI.Mode.LIBRARY -> it
                             ArtistDetailsUI.Mode.LIBRARY_AND_REMOTE ->
-                                Repository.find(artist)?.let { remote -> MergedArtist(it, remote) } ?: it
+                                Repositories.find(artist)?.let { remote -> MergedArtist(it, remote) } ?: it
                             ArtistDetailsUI.Mode.REMOTE -> it // use case?
                         }
                     } else {

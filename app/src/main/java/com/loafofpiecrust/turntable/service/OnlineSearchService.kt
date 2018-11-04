@@ -28,12 +28,12 @@ import com.loafofpiecrust.turntable.model.album.LocalAlbum
 import com.loafofpiecrust.turntable.model.album.selfTitledAlbum
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
+import com.loafofpiecrust.turntable.model.song.dbKey
 import com.loafofpiecrust.turntable.ui.BaseService
 import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.addToMediaStore
 import com.mcxiaoke.koi.ext.intValue
 import com.mcxiaoke.koi.ext.stringValue
-import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.map
@@ -47,8 +47,6 @@ import org.jetbrains.anko.*
 import org.jsoup.Jsoup
 import java.io.File
 import java.util.*
-import java.util.concurrent.TimeUnit
-import java.util.regex.Pattern
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 
@@ -105,8 +103,8 @@ class OnlineSearchService : BaseService(), AnkoLogger {
         lateinit var instance: OnlineSearchService private set
         const val IDENTITY_POOL_ID = "us-east-2:4c4b30e2-1c0b-4802-83b2-32b232a7f4c4"
 //        private val DATE_FORMAT = SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.US)
-        val STALE_ENTRY_AGE = TimeUnit.HOURS.toMillis(6)
-        val STALE_UNAVAILABLE_AGE = TimeUnit.DAYS.toMillis(7)
+        val STALE_ENTRY_AGE = 6.hours
+        val STALE_UNAVAILABLE_AGE = 7.days
     }
 
     private var cookie: okhttp3.Cookie? = null
@@ -127,7 +125,7 @@ class OnlineSearchService : BaseService(), AnkoLogger {
         ): StreamStatus() {
             val isStale: Boolean get() {
                 val now = System.currentTimeMillis()
-                return Math.abs(now - timestamp) >= STALE_UNAVAILABLE_AGE
+                return (now - timestamp).milliseconds >= STALE_UNAVAILABLE_AGE
             }
         }
 
@@ -139,7 +137,7 @@ class OnlineSearchService : BaseService(), AnkoLogger {
         ): StreamStatus() {
             val isStale: Boolean get() {
                 val now = System.currentTimeMillis()
-                return Math.abs(now - timestamp) >= STALE_ENTRY_AGE
+                return (now - timestamp).milliseconds >= STALE_ENTRY_AGE
             }
         }
 
@@ -149,10 +147,10 @@ class OnlineSearchService : BaseService(), AnkoLogger {
                 entry.youtubeId == null -> StreamStatus.Unavailable()
                 else -> tryOr(StreamStatus.Unknown()) {
                     entry.stream128 = entry.stream128?.let {
-                        decompress(it)
+                        it.decompress()
                     }
                     entry.stream192 = entry.stream192?.let {
-                        decompress(it)
+                        it.decompress()
                     }
 
                     StreamStatus.Available(
@@ -233,8 +231,8 @@ class OnlineSearchService : BaseService(), AnkoLogger {
                 entry.id.toLowerCase(),
                 entry.youtubeId,
                 entry.timestamp,
-                given(entry.stream128) { compress(it) },
-                given(entry.stream192) { compress(it) }
+                entry.stream128?.compress(),
+                entry.stream192?.compress()
             ))
 //            database.putItem("MusicStreams", mapOf(
 //                "SongId" to AttributeValue(entry.uuid),
@@ -318,8 +316,8 @@ class OnlineSearchService : BaseService(), AnkoLogger {
                         }
                     }
                 } else null
-            } ?: given(YouTubeFullAlbum.search(album)) { ytAlbum ->
-                given(ytAlbum.tracks[song]) {
+            } ?: YouTubeFullAlbum.search(album)?.let { ytAlbum ->
+                ytAlbum.tracks[song]?.let {
                     SongStream(
                         createEntry(albumKey, ytAlbum.id),
                         it.start, it.end
@@ -385,7 +383,7 @@ class OnlineSearchService : BaseService(), AnkoLogger {
     suspend fun getAlbumStreams(album: Album): Pair<Album, StreamStatus> {
         val key = album.id.dbKey
 
-        return given(YouTubeFullAlbum.search(album)) { ytAlbum ->
+        return YouTubeFullAlbum.search(album)?.let { ytAlbum ->
             val resolvedAlbum = ytAlbum.resolveToAlbum()
             getExistingEntry(key).let {
                 resolvedAlbum to if (it is StreamStatus.Available && !it.isStale) {
@@ -618,10 +616,10 @@ class OnlineSearchService : BaseService(), AnkoLogger {
             val isFlac = torrentName!!.contains(Regex("(FLAC|ALAC|flac|lossless)"))
             val quality = if (!isFlac) {
                 val isMp3 = torrentName.contains("mp3", ignoreCase = true)
-                val m = Pattern.compile("(\\d{3})\\s*(kb(ps|/s|s)|mp3)").matcher(torrentName)
+                val m = Regex("(\\d{3})\\s*(kb(ps|/s|s)|mp3)").find(torrentName)
                 when {
-                    m.find() -> {
-                        val bitrate = m.group(1).toInt()
+                    m != null -> {
+                        val bitrate = m.groupValues[1].toInt()
                         when (bitrate) {
                             in 0..191 -> Quality.AWFUL
                             in 192..255 -> Quality.LOW
@@ -635,15 +633,13 @@ class OnlineSearchService : BaseService(), AnkoLogger {
             } else {
                 Quality.LOSSLESS
             }
-            val m = Pattern.compile("((19|20)\\d{2})").matcher(torrentName)
-            val year = if (m.find()) {
-                m.group(1).toInt()
-            } else {
-                null
-            }
+            val m = Regex("((19|20)\\d{2})").find(torrentName)
+            val year = if (m != null) {
+                m.groupValues[1].toInt()
+            } else null
 
             // Different years, must be different releases
-            if (year != null && album.year != null && year != album.year) {
+            if (year != null && album.year > 0 && year != album.year) {
                 return@map null
             }
 

@@ -2,25 +2,20 @@ package com.loafofpiecrust.turntable.playlist
 
 import android.support.v7.graphics.Palette
 import android.support.v7.widget.LinearLayoutManager
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.ViewGroup
-import android.view.ViewManager
+import android.view.*
 import android.widget.EditText
 import com.github.daemontus.unwrap
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.appends
 import com.loafofpiecrust.turntable.browse.RecentMixTapesFragment
-import com.loafofpiecrust.turntable.model.playlist.AbstractPlaylist
-import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
-import com.loafofpiecrust.turntable.model.playlist.MixTape
-import com.loafofpiecrust.turntable.model.playlist.Playlist
+import com.loafofpiecrust.turntable.model.playlist.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.ui.*
+import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.util.*
 import com.loafofpiecrust.turntable.views.RecyclerBroadcastAdapter
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +25,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.alert
+import kotlin.coroutines.CoroutineContext
 
 
 class PlaylistsFragment: BaseFragment() {
@@ -90,14 +86,10 @@ class PlaylistsFragment: BaseFragment() {
         } else produceSingle {
             AbstractPlaylist.allByUser(user)
         }
-        adapter = Adapter(playlists) { playlist ->
-            println("playlist: opening '${playlist.name}'")
+        adapter = Adapter(coroutineContext, playlists) { playlist ->
+            println("playlist: opening '${playlist.id.name}'")
             activity?.supportFragmentManager?.replaceMainContent(
-                when(playlist) {
-                    is MixTape -> MixtapeDetailsUI(playlist.id).createFragment()
-//                    is AlbumCollection -> AlbumsUI.Custom(playlist.albums.broadcast(CONFLATED)).createFragment()
-                    else -> PlaylistDetailsFragment.newInstance(playlist.uuid, playlist.name)
-                },
+                GeneralPlaylistDetails(playlist.id).createFragment(),
                 true
             )
         }
@@ -105,9 +97,10 @@ class PlaylistsFragment: BaseFragment() {
 
 
     class Adapter(
+        parentContext: CoroutineContext,
         channel: ReceiveChannel<List<Playlist>>,
         val listener: (Playlist) -> Unit
-    ): RecyclerBroadcastAdapter<Playlist, RecyclerListItemOptimized>(channel) {
+    ): RecyclerBroadcastAdapter<Playlist, RecyclerListItem>(parentContext, channel) {
         override val dismissEnabled: Boolean
             get() = false
 
@@ -119,14 +112,14 @@ class PlaylistsFragment: BaseFragment() {
             UserPrefs.playlists putsMapped { it.shifted(fromIdx, toIdx) }
         }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerListItemOptimized
-            = RecyclerListItemOptimized(parent, 3, useIcon = true)
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerListItem
+            = RecyclerListItem(parent, 3, useIcon = true)
 
-        override fun RecyclerListItemOptimized.onBind(item: Playlist, position: Int, job: Job) {
+        override fun RecyclerListItem.onBind(item: Playlist, position: Int, job: Job) {
             val item = data[position]
             val ctx = itemView.context
             val typeName = item.javaClass.localizedName(ctx)
-            mainLine.text = item.name
+            mainLine.text = item.id.displayName
             subLine.text = if (item.owner == Sync.selfUser) {
                 typeName
             } else {
@@ -143,6 +136,7 @@ class PlaylistsFragment: BaseFragment() {
             }
 
             statusIcon.imageResource = item.icon
+            menu.visibility = View.GONE
 
             card.setOnClickListener {
                 listener.invoke(item)
@@ -150,7 +144,7 @@ class PlaylistsFragment: BaseFragment() {
         }
 
         override fun itemsSame(a: Playlist, b: Playlist, aIdx: Int, bIdx: Int): Boolean {
-            return a.uuid == b.uuid
+            return a.id.uuid == b.id.uuid
         }
     }
 }

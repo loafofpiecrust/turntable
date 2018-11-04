@@ -31,28 +31,30 @@ import com.loafofpiecrust.turntable.collapsingToolbarlparams
 import com.loafofpiecrust.turntable.model.album.*
 import com.loafofpiecrust.turntable.model.imageTransition
 import com.loafofpiecrust.turntable.model.nameTransition
+import com.loafofpiecrust.turntable.msToTimeString
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.PlaylistPicker
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.repository.Repositories
+import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.library
-import com.loafofpiecrust.turntable.song.SongsFragment
-import com.loafofpiecrust.turntable.song.songsList
+import com.loafofpiecrust.turntable.song.SongsOnDiscAdapter
+import com.loafofpiecrust.turntable.song.SongsUI
 import com.loafofpiecrust.turntable.style.detailsStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.sync.Message
 import com.loafofpiecrust.turntable.sync.PlayerAction
-import com.loafofpiecrust.turntable.ui.AlbumEditorActivityStarter
-import com.loafofpiecrust.turntable.ui.UIComponent
-import com.loafofpiecrust.turntable.ui.showDialog
+import com.loafofpiecrust.turntable.ui.*
+import com.loafofpiecrust.turntable.ui.universal.UIComponent
+import com.loafofpiecrust.turntable.ui.universal.ViewContext
+import com.loafofpiecrust.turntable.ui.universal.createView
+import com.loafofpiecrust.turntable.ui.universal.showDialog
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
-import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
@@ -71,10 +73,10 @@ open class AlbumDetailsUI(
         override val album = ConflatedBroadcastChannel(album)
     }
 
-    open val album: BroadcastChannel<Album> by lazy {
-        async(Dispatchers.IO) {
-            Repository.find(albumId)!!
-        }.broadcast()
+    open val album: BroadcastChannel<Album> by lazy(LazyThreadSafetyMode.NONE) {
+        Library.instance.findAlbum(albumId).map {
+            it ?: Repositories.findOnline(albumId)!!
+        }.replayOne()
     }
 
     override fun Fragment.onCreate() {
@@ -90,7 +92,7 @@ open class AlbumDetailsUI(
     }
 
 
-    override fun CoroutineScope.render(ui: AnkoContext<Any>) = ui.coordinatorLayout {
+    override fun ViewContext.render() = coordinatorLayout {
         id = R.id.container
         backgroundColor = TRANSPARENT
 
@@ -185,14 +187,10 @@ open class AlbumDetailsUI(
                     }
                 }.lparams(height = matchParent)
 
-                launch {
-                    album.consumeEach {
-                        menu.clear()
-//                        it.optionsMenu(context, menu)
-                        menu.prepareOptions(context, it)
-                    }
+                album.consumeEachAsync {
+                    menu.clear()
+                    menu.prepareOptions(this@render, context, it)
                 }
-
             }.lparams {
                 minimumHeight = dimen(R.dimen.details_toolbar_height)
                 width = matchParent
@@ -202,88 +200,84 @@ open class AlbumDetailsUI(
 
 
         // Display tracks on this album.
-        songsList(
-            SongsFragment.Category.OnAlbum(albumId),
-            album.openSubscription()
-                .map(Dispatchers.IO) { it.tracks }
-                .broadcast(CONFLATED)
-        ) {
-            id = R.id.songs
-        }.lparams(width = matchParent) {
-            behavior = AppBarLayout.ScrollingViewBehavior()
-        }
-
-
+        AlbumTracksUI(album.openSubscription())
+            .createView(this)
+            .lparams {
+                behavior = AppBarLayout.ScrollingViewBehavior()
+            }
 
         // data binding
-        launch {
+        launch(start = CoroutineStart.UNDISPATCHED) {
             album.consumeEach { album ->
                 if (album.year > 0) {
                     year.text = album.year.toString()
                 } else {
-                    year.visibility = View.GONE
+                    year.visibility = View.INVISIBLE
                 }
             }
         }
-        launch {
-            album.openSubscription()
-                .switchMap(Dispatchers.IO) { album ->
-                    album.loadCover(Glide.with(image))
-                        .map { album to it }
-                }
-                .consumeEach { (album, req) ->
-                    req?.transition(DrawableTransitionOptions().crossFade(200))
-                        ?.addListener(album.loadPalette(appBar, mainLine, subLine, collapser))
-                        ?.addListener(object: RequestListener<Drawable> {
-                            override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>?, isFirstResource: Boolean): Boolean {
-                                appBar.backgroundColor = UserPrefs.primaryColor.value
-                                return false
-                            }
 
-                            override fun onResourceReady(resource: Drawable?, model: Any?, target: Target<Drawable>?, dataSource: DataSource?, isFirstResource: Boolean): Boolean {
-                                return false
-                            }
-                        })
-                        ?.into(image)
-                        ?: run {
-                            image.imageResource = R.drawable.ic_default_album
+        val req = Glide.with(image)
+        album.openSubscription()
+            .switchMap(Dispatchers.IO) { album ->
+                album.loadCover(req)
+                    .map { album to it }
+            }
+            .consumeEachAsync { (album, req) ->
+                req?.transition(DrawableTransitionOptions().crossFade(200))
+                    ?.addListener(album.loadPalette(appBar, mainLine, subLine, collapser))
+                    ?.addListener(object: RequestListener<Drawable> {
+                        override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>?, isFirstResource: Boolean): Boolean {
                             appBar.backgroundColor = UserPrefs.primaryColor.value
+                            return false
                         }
-                }
+
+                        override fun onResourceReady(resource: Drawable?, model: Any?, target: Target<Drawable>?, dataSource: DataSource?, isFirstResource: Boolean): Boolean {
+                            return false
+                        }
+                    })
+                    ?.into(image)
+                    ?: run {
+                        image.imageResource = R.drawable.ic_default_album
+                        appBar.backgroundColor = UserPrefs.primaryColor.value
+                    }
+            }
+    }
+
+}
+
+private fun Menu.prepareOptions(scope: CoroutineScope, context: Context, album: Album) {
+    menuItem(R.string.album_shuffle, R.drawable.ic_shuffle, showIcon =false).onClick(Dispatchers.Default) {
+        if (album.tracks.isNotEmpty()) {
+            MusicService.offer(PlayerAction.PlaySongs(album.tracks, mode = MusicPlayer.OrderMode.SHUFFLE))
         }
     }
 
-    private fun Menu.prepareOptions(context: Context, album: Album) {
-        menuItem(R.string.album_shuffle, R.drawable.ic_shuffle, showIcon =false).onClick(Dispatchers.Default) {
-            if (album.tracks.isNotEmpty()) {
-                MusicService.offer(PlayerAction.PlaySongs(album.tracks, mode = MusicPlayer.OrderMode.SHUFFLE))
-            }
-        }
+    menuItem(R.string.recommend).onClick {
+        FriendPickerDialog(
+            Message.Recommend(album.id),
+            context.getString(R.string.recommend)
+        ).show(context)
+    }
 
-        menuItem(R.string.recommend).onClick {
-            FriendPickerDialog(
-                Message.Recommend(album.id),
-                context.getString(R.string.recommend)
-            ).show(context)
-        }
+    menuItem(R.string.add_to_playlist).onClick {
+        PlaylistPicker(album.id).showDialog(context)
+    }
 
-        menuItem(R.string.add_to_playlist).onClick {
-            PlaylistPicker(album.id).showDialog(context)
-        }
-
-        if (album is RemoteAlbum) {
-            menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = false).onClick(Dispatchers.Default) {
-                if (App.instance.hasInternet) {
+    if (album is RemoteAlbum) {
+        menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = false).onClick(Dispatchers.Default) {
+            if (App.instance.hasInternet) {
 //                tracks.filter {
 //                    LocalApi.find(it.uuid) == null
 //                }.forEach { it.download() }
-                } else {
-                    context.toast(R.string.no_internet)
-                }
+            } else {
+                context.toast(R.string.no_internet)
             }
+        }
 
-            menuItem(R.string.add_to_library, R.drawable.ic_turned_in_not) {
-                context.library.findAlbum(album.id).consumeEach(Dispatchers.Main) { existing ->
+        menuItem(R.string.add_to_library, R.drawable.ic_turned_in_not) {
+            scope.launch {
+                context.library.findAlbum(album.id).consumeEach { existing ->
                     if (existing != null) {
                         setIcon(R.drawable.ic_turned_in)
                         onClick {
@@ -300,15 +294,40 @@ open class AlbumDetailsUI(
                     }
                 }
             }
-        } else if (album is LocalAlbum) {
-            // Downloaded status
-            menuItem(R.string.add_to_library, R.drawable.ic_turned_in).onClick {
-                context.toast(R.string.album_already_downloaded)
-            }
-
-            menuItem(R.string.album_edit_metadata).onClick {
-                AlbumEditorActivityStarter.start(context, album.id)
-            }
         }
+    } else if (album is LocalAlbum) {
+        // Downloaded status
+        menuItem(R.string.add_to_library, R.drawable.ic_turned_in).onClick {
+            context.toast(R.string.album_already_downloaded)
+        }
+
+        menuItem(R.string.album_edit_metadata).onClick {
+            AlbumEditorActivityStarter.start(context, album.id)
+        }
+    }
+}
+
+
+private class AlbumTracksUI(
+    album: ReceiveChannel<Album>
+): SongsUI() {
+    override val songs = album
+        .map(Dispatchers.IO) { it.tracks }
+        .broadcast(CONFLATED)
+
+    override fun makeAdapter() = SongsOnDiscAdapter(
+        coroutineContext,
+        songs.openSubscription().map { it.groupBy { it.disc.toString() } },
+        R.string.disc_number,
+        formatSubtitle = { song ->
+            if (song.duration > 0) {
+                msToTimeString(song.duration)
+            } else ""
+        },
+        formatTrack = { it.track.toString() }
+    ) { song ->
+        val songs = songs.openSubscription().first()
+        val idx = songs.indexOf(song)
+        MusicService.offer(PlayerAction.PlaySongs(songs, idx))
     }
 }

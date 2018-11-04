@@ -21,11 +21,13 @@ import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.turntableStyle
 import com.loafofpiecrust.turntable.ui.*
+import com.loafofpiecrust.turntable.ui.universal.UIComponent
+import com.loafofpiecrust.turntable.ui.universal.createFragment
+import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import com.loafofpiecrust.turntable.util.*
 import com.loafofpiecrust.turntable.views.*
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BroadcastChannel
@@ -35,10 +37,11 @@ import kotlinx.coroutines.channels.map
 import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
+import kotlin.coroutines.CoroutineContext
 
 sealed class ArtistsUI(
     private val detailsMode: ArtistDetailsUI.Mode = ArtistDetailsUI.Mode.LIBRARY_AND_REMOTE,
-    private val columnCount: Int = 0,
+    private val columnCount: Int = 3,
     private val startRefreshing: Boolean = true
 ) : UIComponent() {
     abstract val artists: BroadcastChannel<List<Artist>>
@@ -68,7 +71,7 @@ sealed class ArtistsUI(
         }
     }
 
-    override fun CoroutineScope.render(ui: AnkoContext<Any>) = ui.refreshableRecyclerView {
+    override fun ViewContext.render() = refreshableRecyclerView {
         if (startRefreshing) {
             isRefreshing = true
         }
@@ -85,7 +88,7 @@ sealed class ArtistsUI(
                     turntableStyle()
                 }
             }.apply {
-                adapter = ArtistsAdapter(artists.openSubscription()) { holder, artists, idx ->
+                adapter = ArtistsAdapter(coroutineContext, artists.openSubscription()) { holder, artists, idx ->
                     // smoothly transition the cover image!
                     holder.itemView.context.replaceMainContent(
                         ArtistDetailsUI.Resolved(artists[idx], detailsMode).createFragment(),
@@ -94,7 +97,7 @@ sealed class ArtistsUI(
                         holder.transitionViews
                     )
                 }
-                layoutManager = GridLayoutManager(context, 3)
+                layoutManager = GridLayoutManager(context, columnCount)
 
                 val gutter = dimen(R.dimen.grid_gutter)
                 padding = gutter
@@ -127,9 +130,10 @@ sealed class ArtistsUI(
 }
 
 class ArtistsAdapter(
+    parentContext: CoroutineContext,
     channel: ReceiveChannel<List<Artist>>,
     private val listener: (RecyclerItem, List<Artist>, Int) -> Unit
-): RecyclerAdapter<Artist, RecyclerItem>(channel), FastScrollRecyclerView.SectionedAdapter {
+): RecyclerAdapter<Artist, RecyclerItem>(parentContext, channel), FastScrollRecyclerView.SectionedAdapter {
     var gridSize: Int = 3
 
     override fun getSectionName(position: Int)
@@ -137,7 +141,7 @@ class ArtistsAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerItem =
         if (gridSize == 1) {
-            RecyclerListItemOptimized(parent, 3)
+            RecyclerListItem(parent, 3)
         } else RecyclerGridItem(parent, 3)
 
     private val imageJobs = mutableMapOf<RecyclerItem, Job>()

@@ -6,10 +6,10 @@ import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.style.standardStyle
-import com.loafofpiecrust.turntable.ui.UIComponent
+import com.loafofpiecrust.turntable.ui.universal.UIComponent
+import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import com.loafofpiecrust.turntable.util.broadcastSingle
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
@@ -25,7 +25,7 @@ class RelatedArtistsUI(
 
     private val artistsUI = ArtistsUI.Custom(artists, startRefreshing = true)
 
-    override fun CoroutineScope.render(ui: AnkoContext<Any>) = ui.verticalLayout {
+    override fun ViewContext.render() = verticalLayout {
         appBarLayout {
             topPadding = dimen(R.dimen.statusbar_height)
             UserPrefs.primaryColor.consumeEachAsync {
@@ -37,6 +37,6 @@ class RelatedArtistsUI(
             }
         }
 
-        artistsUI.createView(this)
+        renderChild(artistsUI)
     }
 }

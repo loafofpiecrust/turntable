@@ -87,9 +87,9 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.SettingsActivity" />
+        <activity android:name=".prefs.SettingsActivity" />
         <activity android:name=".ui.AlbumEditorActivity" />
-        <activity android:name=".ui.UniversalActivity" />
+        <activity android:name=".ui.universal.UniversalActivity" />
 
         <service
             android:name=".player.MusicService"
@@ -108,7 +108,7 @@
             </intent-filter>
         </service>
         <service
-            android:name=".sync.SyncSession"
+            android:name=".sync.MessageReceiverService"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -116,6 +116,7 @@
                 <action android:name="com.google.firebase.INSTANCE_ID_EVENT"/>
             </intent-filter>
         </service>
+        <service android:name=".sync.SyncSession" />
     </application>
 
 </manifest>

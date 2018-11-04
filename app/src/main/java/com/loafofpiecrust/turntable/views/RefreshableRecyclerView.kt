@@ -4,14 +4,18 @@ import android.content.Context
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.widget.RecyclerView
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.util.ViewScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 import org.jetbrains.anko.AnkoViewDslMarker
 import org.jetbrains.anko.custom.ankoView
 import org.jetbrains.anko.frameLayout
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 /**
  * A RecyclerView augmented to show
@@ -25,23 +29,26 @@ class RefreshableRecyclerView(
         isEnabled = false
     }
 
-    internal val container = frameLayout()
+    val container = frameLayout()
 
     private var emptyView: View? = null
     var channel: ReceiveChannel<List<*>>? = null
 
-    fun emptyView(block: @AnkoViewDslMarker ViewManager.() -> View) {
+    fun emptyView(block: @AnkoViewDslMarker ViewGroup.() -> View) {
         emptyView = container.block()
         emptyView!!.visibility = View.GONE
     }
 
-    fun contentView(block: @AnkoViewDslMarker ViewManager.() -> RecyclerView) {
+    inline fun contentView(block: @AnkoViewDslMarker ViewGroup.() -> RecyclerView) {
         container.block()
     }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        ViewScope(this).launch {
+        ViewScope(this).launch(start = CoroutineStart.UNDISPATCHED) {
+//            if (channel?.isEmpty == true) {
+//                isRefreshing = true
+//            }
             channel?.consumeEach {
                 // Every time we receive data, ensure we stop showing the load circle.
                 isRefreshing = false

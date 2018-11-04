@@ -1,198 +1,153 @@
 package com.loafofpiecrust.turntable.sync
 
 import android.content.Intent
-import android.net.Uri
 import android.support.v4.app.NotificationCompat
-import android.support.v4.app.NotificationCompat.PRIORITY_DEFAULT
-import com.google.firebase.messaging.FirebaseMessagingService
-import com.google.firebase.messaging.RemoteMessage
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.sync.User
-import com.loafofpiecrust.turntable.puts
-import com.loafofpiecrust.turntable.util.deserialize
-import com.mcxiaoke.koi.ext.startService
+import com.loafofpiecrust.turntable.tryOr
+import com.loafofpiecrust.turntable.ui.BaseService
+import com.loafofpiecrust.turntable.util.startWith
+import com.loafofpiecrust.turntable.util.switchMap
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.channels.actor
-import kotlinx.coroutines.channels.first
-import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.error
-import org.jetbrains.anko.info
+import kotlinx.coroutines.channels.*
+import org.jetbrains.anko.stopService
 import org.jetbrains.anko.toast
-import kotlin.coroutines.CoroutineContext
-
+import java.lang.ref.WeakReference
 
 /**
- * Manages receiving messages.
+ * When a sync session is initiated, this service is started.
+ * When a [Message] is received, this service sends a [SyncSession.Ping] response back.
+ * When a [Message] is sent, this service waits for any response
+ * from the other user(s) in the session.
+ * If a response isn't received within [SyncSession.TIMEOUT],
+ * the session is ended and a [SyncSession.EndSync] message is sent.
+ *
+ * It runs in the foreground throughout the session, and
+ * the instance may be reused for the next session if it's very soon after.
  */
-class SyncSession : FirebaseMessagingService(), CoroutineScope {
-    override val coroutineContext: CoroutineContext
-        get() = Dispatchers.Default + SupervisorJob()
+class SyncSession: BaseService() {
+    private var mode: Sync.Mode = Sync.Mode.None
 
-    val latency = ConflatedBroadcastChannel(0L)
-
-    /// when a message hasn't been received in TIMEOUT seconds, end sync session.
     private enum class MessageDirection { SENT, RECEIVED }
-    private val pings = actor<MessageDirection> {
+    /// when a message hasn't been received in TIMEOUT seconds, end sync session.
+    private val pings = actor<MessageDirection>(
+        capacity = Channel.UNLIMITED
+    ) {
         var timer: Job? = null
         var lastSent: Long = 0
+        var lastReceipt: Long = 0
         for (dir in channel) when (dir) {
             // receiving a ping keeps the session alive
             MessageDirection.RECEIVED -> if (timer?.cancel() == true) {
-                latency.offer(System.currentTimeMillis() - lastSent)
+                lastReceipt = System.currentTimeMillis()
+                latency.offer(lastReceipt - lastSent)
             }
             // Wait for a response until TIMEOUT seconds after the least-recent sent message.
             // after that timeout, end the sync session
             MessageDirection.SENT -> if (timer == null || timer.isCompleted) {
                 lastSent = System.currentTimeMillis()
-                timer = launch {
-                    delay(TIMEOUT)
+                // only wait for a ping if we haven't been pinged for a bit.
+                if (lastSent - lastReceipt > 1000) {
+                    timer = launch {
+                        delay(TIMEOUT)
 
-                    val prevMode = Sync.mode.value
-                    val name = when (prevMode) {
-                        is Sync.Mode.OneOnOne -> prevMode.other.name
-                        is Sync.Mode.InGroup -> prevMode.group.name
-                        else -> "nobody"
+                        val name = when (val mode = mode) {
+                            is Sync.Mode.OneOnOne -> mode.other.name
+                            is Sync.Mode.InGroup -> mode.group.name
+                            else -> "nobody"
+                        }
+                        App.launchWith { ctx ->
+                            ctx.toast("Connection to $name lost")
+                        }
+
+                        end()
                     }
-                    App.launchWith { ctx ->
-                        ctx.toast("Connection to $name lost")
-                    }
-                    endSession()
                 }
             }
         }
     }
 
+    /// The last interval in milliseconds between sending a message and receiving a response.
+    val latency = ConflatedBroadcastChannel(0L)
 
-    override fun onCreate() {
-        super.onCreate()
-        instance.offer(this)
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent != null) {
+            val prevMode = mode
+            if (prevMode != Sync.Mode.None) {
+                // Ensure that if we're switching modes we cut off the last connection.
+                launch { Sync.send(EndSync, prevMode) }
+                pings.offer(MessageDirection.RECEIVED)
+            }
+            // Either first starting a session or switching the session to a different mode.
+            mode = intent.getParcelableExtra("mode")
+            updateNotification()
+            instance.offer(WeakReference(this))
+        }
+        return super.onStartCommand(intent, flags, startId)
+    }
+
+    private fun end() {
+        val prevMode = mode
+        GlobalScope.launch {
+            Sync.send(EndSync, prevMode)
+        }
+        stopSelf()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        coroutineContext.cancel()
+        stopForeground(true)
+        mode = Sync.Mode.None
+        instance.offer(WeakReference(this))
     }
-
-    override fun onMessageReceived(msg: RemoteMessage) {
-        launch {
-            val mode = Sync.mode.value
-            val sender = deserialize(msg.data["sender"]!!) as User
-
-            if (!msg.data.containsKey("action") || sender.deviceId == Sync.selfUser.deviceId) {
-                // We sent this message ourselves, don't process it.
-                // This will happen when synced in a group.
-                return@launch
-            }
-
-            val message = try {
-                deserialize(msg.data["action"]!!) as Message
-            } catch (e: Throwable) {
-                error("Unable to parse message", e)
-                return@launch
-            }
-
-            info { "received $message from $sender" }
-
-            val inSessionWithSender = when (mode) {
-                is Sync.Mode.None -> false
-                is Sync.Mode.OneOnOne ->
-                    mode.other.deviceId == sender.deviceId ||
-                        mode.other.username == sender.username
-                else -> TODO("Define who can send a message to me")
-            }
-
-            // If we're in a consensual sync session with the sender, tell them we're still online.
-            if (inSessionWithSender && message !is EndSync && message !is Ping) {
-                // Only ping if the last message was not a ping
-                // This prevents an infinite ping circle, which is generally unnecessary.
-                Sync.sendToSession(Ping())
-            }
-
-            // If a random user sends a session-specific message,
-            // Don't process it, but send them a rejection response.
-            if (!inSessionWithSender && message.requiresSession) {
-                Sync.send(EndSync(), sender)
-                return@launch
-            }
-
-            val resolvedSender = if (sender.displayName == null) {
-                sender.refresh().await()
-            } else sender
-
-            message.onReceive(resolvedSender)
-        }
-    }
-
-    override fun onNewToken(token: String) {
-        Sync.deviceId = token
-        Sync.selfUser.upload()
-    }
-
-    fun shareSyncLink() = App.launch {
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            val uri = Uri.Builder().appendPath("turntable://sync-request")
-                .appendQueryParameter("from", Sync.deviceId)
-                .build()
-            putExtra(Intent.EXTRA_TEXT, uri)
-        }
-        startActivity(Intent.createChooser(intent, "Request sync via"))
-    }
-
-    private fun endSession() {
-        Sync.mode puts Sync.Mode.None()
-        // TODO: Confirm unnecessary
-//        stopForeground(true)
-    }
-
 
     private fun updateNotification() {
-        val mode = Sync.mode.value
-
         // TODO: Add to same notification group as MusicService
         startForeground(70, NotificationCompat.Builder(this, "turntable").apply {
-            priority = PRIORITY_DEFAULT
+            priority = NotificationCompat.PRIORITY_DEFAULT
             setSmallIcon(R.drawable.ic_sync)
             setOngoing(true)
             setAutoCancel(false)
-            setContentTitle(when (mode) {
-                is Sync.Mode.OneOnOne -> "Synced with ${mode.other.displayName}"
+            setShowWhen(false)
+            setContentTitle(when (val mode = mode) {
+                is Sync.Mode.OneOnOne -> "Synced with ${mode.other.name}"
                 is Sync.Mode.InGroup -> "Synced in group '${mode.group.name ?: mode.group.key}'"
                 is Sync.Mode.Topic -> "Synced to topic '${mode.topic}'"
                 is Sync.Mode.None -> {
-                    stopForeground(true)
+                    stopSelf()
                     return
                 }
             })
         }.build())
     }
 
-    fun shareFriendshipLink() = App.launch {
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            val uri = Uri.parse("turntable://lets-be-friends").buildUpon()
-                .appendQueryParameter("id", Sync.deviceId)
-                .appendQueryParameter("id", Sync.googleAccount?.displayName)
-                .build()
-            putExtra(Intent.EXTRA_TEXT, uri.toString())
-        }
-        App.instance.startActivity(Intent.createChooser(intent, "Request friendship via"))
-    }
+    private suspend fun onReceive(message: Message) {
+        pings.send(SyncSession.MessageDirection.RECEIVED)
 
-
-    private class Ping: Message {
-        override suspend fun onReceive(sender: User) {
-            inbox.offer { pings.offer(MessageDirection.RECEIVED) }
+        // If we're in a consensual sync session with the sender, tell them we're still online.
+        if (message != EndSync && message != Ping) {
+            // Only ping if the last message was not a ping
+            // This prevents an infinite ping circle, which is generally unnecessary.
+            Sync.send(Ping, mode)
         }
     }
 
-    private class EndSync: Message {
-        override suspend fun onReceive(sender: User) {
-            val mode = Sync.mode.value
-            when (mode) {
+
+    private object Ping: Message {
+        override val requiresSession: Boolean
+            get() = true
+
+        override suspend fun onReceive(sender: User) {}
+    }
+
+    private object EndSync: Message {
+        override val requiresSession: Boolean
+            get() = true
+
+        override suspend fun onReceive(sender: User) = inbox.send {
+            when (val mode = mode) {
                 is Sync.Mode.OneOnOne -> App.launchWith {
                     it.toast("Sync ended by ${mode.other.name}")
                 }
@@ -201,37 +156,98 @@ class SyncSession : FirebaseMessagingService(), CoroutineScope {
                     App.launchWith { it.toast("Left group '$name'?") }
                 }
             }
-            inbox.offer { endSession() }
+            stopSelf()
         }
     }
 
-    companion object: AnkoLogger by AnkoLogger<SyncSession>() {
+    companion object {
         /// Amount of time (milliseconds) to keep a session alive without hearing a response.
         const val TIMEOUT = 20_000L
 
-        private val instance = ConflatedBroadcastChannel<SyncSession>()
+        private val instance = ConflatedBroadcastChannel<WeakReference<SyncSession>>()
 
-        private val inbox = GlobalScope.actor<SyncSession.() -> Unit>(
+        private val isActive: Boolean get() =
+            instance.valueOrNull?.get()?.isActive == true
+
+        private val inbox = GlobalScope.actor<suspend SyncSession.() -> Unit>(
             capacity = Channel.UNLIMITED,
             start = CoroutineStart.LAZY
         ) {
             for (e in channel) {
-                val sync = instance.valueOrNull ?: run {
-                    App.instance.startService<SyncSession>()
-                    instance.openSubscription().first()
+                instance.valueOrNull?.get()?.let {
+                    if (it.isActive) {
+                        e.invoke(it)
+                    }
                 }
-                e.invoke(sync)
             }
         }
 
-        // @Deprecated
-        fun updateNotification() {
-            inbox.offer { updateNotification() }
+        val mode: ReceiveChannel<Sync.Mode> get() = instance.openSubscription().map {
+            val session = it.get()
+            session?.mode ?: Sync.Mode.None
+        }.startWith(Sync.Mode.None)
+
+        val latency get() = instance.openSubscription().switchMap {
+            it.get()?.latency?.openSubscription()
+        }.startWith(0)
+
+        fun sendToActive(message: Message) = inbox.offer {
+            val wasSent = Sync.send(message, mode)
+
+            // We expect a response from every message,
+            // ensuring we know whether our session is still alive.
+            if (wasSent) {
+                pings.offer(MessageDirection.SENT)
+            }
         }
 
-        fun waitForResponse() {
-            inbox.offer { pings.offer(MessageDirection.SENT) }
+        fun start(mode: Sync.Mode) {
+            val intent = Intent(App.instance, SyncSession::class.java)
+            intent.putExtra("mode", mode)
+            App.instance.startService(intent)
+        }
+
+        fun stop() {
+            inbox.offer { end() }
+        }
+
+        fun processMessages(channel: ReceiveChannel<Pair<Message, User>>) {
+            GlobalScope.launch {
+                channel.consumeEach { (msg, sender) ->
+                    processMessage(msg, sender)
+                }
+            }
+        }
+
+        private suspend fun processMessage(message: Message, sender: User) {
+            val sender = if (sender.displayName == null) {
+                withContext(Dispatchers.IO) {
+                    tryOr(null) { User.resolve(sender.username) }
+                } ?: sender
+            } else sender
+
+            if (isActive) inbox.send {
+                val inSessionWithSender = when (val mode = mode) {
+                    is Sync.Mode.None -> false
+                    is Sync.Mode.OneOnOne ->
+                        mode.other.deviceId == sender.deviceId ||
+                            mode.other.username == sender.username
+                    else -> TODO("Define who can send a message to me")
+                }
+
+                if (inSessionWithSender) {
+                    onReceive(message)
+                } else if (message.requiresSession) {
+                    // If a random user sends a session-specific message,
+                    // Don't process it, but send them a rejection response.
+                    Sync.send(SyncSession.EndSync, sender)
+                    return@send
+                }
+
+                message.onReceive(sender)
+            } else if (!message.requiresSession) {
+                message.onReceive(sender)
+            }
         }
     }
 }
-

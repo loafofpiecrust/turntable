@@ -10,6 +10,9 @@ import kotlinx.coroutines.*
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
 
+/**
+ *
+ */
 @Parcelize
 @DynamoDBTable(tableName="TurntableUsers")
 data class User(
@@ -47,7 +50,7 @@ data class User(
             val db = OnlineSearchService.instance.dbMapper
             try {
                 db.save(this@User)
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 error("Failed uploading user data", e)
             }
         }

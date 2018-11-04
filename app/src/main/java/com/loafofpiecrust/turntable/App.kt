@@ -15,6 +15,7 @@ import com.google.firebase.FirebaseApp
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.album.LocalAlbum
 import com.loafofpiecrust.turntable.model.artist.ArtistId
+import com.loafofpiecrust.turntable.model.queue.CombinedQueue
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.queue.StaticQueue
@@ -23,18 +24,19 @@ import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.model.sync.Friend
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.model.sync.User
+import com.loafofpiecrust.turntable.sync.MessageReceiverService
+import com.loafofpiecrust.turntable.sync.SyncSession
 import com.loafofpiecrust.turntable.util.CBCSerializer
+import com.loafofpiecrust.turntable.util.SingletonInstantiatorStrategy
 import com.loafofpiecrust.turntable.util.distinctSeq
 import com.loafofpiecrust.turntable.util.threadLocalLazy
 import com.squareup.leakcanary.LeakCanary
 import de.javakaffee.kryoserializers.ArraysAsListSerializer
 import de.javakaffee.kryoserializers.SubListSerializers
 import de.javakaffee.kryoserializers.UUIDSerializer
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.channels.consumeEach
 import org.jetbrains.anko.connectivityManager
 import org.jetbrains.anko.windowManager
 import org.objenesis.strategy.StdInstantiatorStrategy
@@ -65,7 +67,10 @@ class App: Application() {
 
         val kryo by threadLocalLazy {
             Kryo().apply {
-                instantiatorStrategy = Kryo.DefaultInstantiatorStrategy(StdInstantiatorStrategy())
+                instantiatorStrategy = SingletonInstantiatorStrategy(
+                    Kryo.DefaultInstantiatorStrategy(StdInstantiatorStrategy())
+                )
+
                 isRegistrationRequired = false
                 references = true
 
@@ -78,6 +83,9 @@ class App: Application() {
 //                ListSerializer.registerSerializers(this)
 //                SetSerializer.registerSerializers(this)
 
+                // Register types under unique IDs
+                // This method is resilient to moves and renames.
+                // Last ID: 113
                 register(SongId::class.java, 100)
                 register(AlbumId::class.java, 101)
                 register(ArtistId::class.java, 102)
@@ -85,13 +93,15 @@ class App: Application() {
                 register(Song::class.java, 103)
                 register(LocalAlbum::class.java, 104)
 
+                register(StaticQueue::class.java, 110)
+                register(CombinedQueue::class.java, 113)
+
                 register(emptyList<Nothing>().javaClass, 105)
                 register(UUID::class.java, UUIDSerializer(), 106)
                 register(ArrayList::class.java, 107)
                 register(Arrays.asList(0).javaClass, ArraysAsListSerializer(), 108)
 
                 register(User::class.java, 109)
-                register(StaticQueue::class.java, 110)
                 register(Friend::class.java, 111)
                 register(ConflatedBroadcastChannel::class.java, 112)
             }
@@ -116,12 +126,12 @@ class App: Application() {
         super.onCreate()
         instance = this
 
-        if (LeakCanary.isInAnalyzerProcess(this)) {
-            // This process is dedicated to LeakCanary for heap analysis.
-            // You should not init your app in this process.
-            return
-        }
-        LeakCanary.install(this)
+//        if (LeakCanary.isInAnalyzerProcess(this)) {
+//            // This process is dedicated to LeakCanary for heap analysis.
+//            // You should not init your app in this process.
+//            return
+//        }
+//        LeakCanary.install(this)
 
         FirebaseApp.initializeApp(this)
 
@@ -139,6 +149,10 @@ class App: Application() {
 
 //        startService(Intent(this, Library::class.java))
         Sync.initDeviceId()
+
+        SyncSession.processMessages(
+            MessageReceiverService.messages
+        )
 //        startService(Intent(this, OnlineSearchService::class.java))
 //        startService(Intent(this, FileSyncService::class.java))
 
@@ -186,11 +200,4 @@ class App: Application() {
             mgr.getNetworkCapabilities(it).hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
         }
     }
-}
-
-data class Size(val width: Int, val height: Int)
-val Context.screenSize get(): Size {
-    val metrics = DisplayMetrics()
-    windowManager.defaultDisplay.getMetrics(metrics)
-    return Size(metrics.widthPixels, metrics.heightPixels)
 }

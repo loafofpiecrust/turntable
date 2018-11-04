@@ -100,7 +100,7 @@ class AlbumEditorActivity : BaseActivity() {
                     withContext(Dispatchers.Default) {
                         saveTags(album, dialog)
                     }
-                } catch (e: Throwable) {
+                } catch (e: Exception) {
                     error("Failed to save tags", e)
                     toast("Failed to save tags")
                 }

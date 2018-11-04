@@ -20,10 +20,12 @@ import org.jetbrains.anko.*
 import org.jetbrains.anko.sdk27.coroutines.onClick
 
 class MiniPlayerFragment: BaseFragment() {
-
     override fun ViewManager.createView() = linearLayout {
         gravity = Gravity.CENTER_VERTICAL
-        backgroundColor = Color.TRANSPARENT
+
+        MusicService.currentSongColor.consumeEachAsync {
+            backgroundColor = it
+        }
 
         val cover = imageView {
             scaleType = ImageView.ScaleType.FIT_CENTER
@@ -56,7 +58,7 @@ class MiniPlayerFragment: BaseFragment() {
             }
 
             onClick {
-                MusicService.offer(PlayerAction.TogglePause())
+                MusicService.offer(PlayerAction.TogglePause)
             }
         }.lparams {
             gravity = Gravity.CENTER_VERTICAL
@@ -73,7 +75,7 @@ class MiniPlayerFragment: BaseFragment() {
                 song to it
             }
         }.consumeEachAsync { (song, req) ->
-            req?.addListener(loadPalette(song.id.album, arrayOf(mainLine, subLine, this)))
+            req?.addListener(loadPalette(song.id.album, arrayOf(mainLine, subLine)))
                 ?.into(cover)
         }
     }

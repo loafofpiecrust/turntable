@@ -15,7 +15,7 @@ import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.selector
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.views.RecyclerAdapter
-import com.loafofpiecrust.turntable.ui.RecyclerListItemOptimized
+import com.loafofpiecrust.turntable.ui.RecyclerListItem
 import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.util.then
@@ -64,7 +64,7 @@ class SyncTabFragment: BaseFragment() {
                         }.then(Dispatchers.Main) { user ->
                             // TODO: Use localized strings in xml
                             toast(if (user != null) {
-                                if (Sync.requestFriendship(user)) {
+                                if (Friend.request(user)) {
                                     getString(R.string.friend_request_sent, user.displayName)
                                 } else {
                                     getString(R.string.friend_request_already_added, user.displayName)
@@ -116,7 +116,7 @@ class SyncTabFragment: BaseFragment() {
                 val user = User.resolve(email)
                 withContext(Dispatchers.Main) {
                     toast(if (user != null) {
-                        if (Sync.requestFriendship(user)) {
+                        if (Friend.request(user)) {
                             getString(R.string.friend_request_sent, user.name)
                         } else {
                             getString(R.string.friend_request_already_added, user.name)
@@ -144,15 +144,12 @@ class SyncTabFragment: BaseFragment() {
         // list of friends
         recyclerView {
             layoutManager = LinearLayoutManager(context)
-            val friends = UserPrefs.friends.openSubscription().map {
-                it.map { (user, status) -> Friend(user, status) }.toList()
-                //.filter { it.status != Sync.Friend.Status.SENT_REQUEST }
-            }
-            adapter = object : RecyclerAdapter<Friend, RecyclerListItemOptimized>(friends) {
+            val friends = Friend.friendList
+            adapter = object : RecyclerAdapter<Friend, RecyclerListItem>(job, friends) {
                 override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-                    RecyclerListItemOptimized(parent, useIcon = true)
+                    RecyclerListItem(parent, useIcon = true)
 
-                override fun onBindViewHolder(holder: RecyclerListItemOptimized, position: Int) {
+                override fun onBindViewHolder(holder: RecyclerListItem, position: Int) {
                     val friend = data[position]
                     holder.apply {
                         menu.visibility = View.GONE
@@ -172,7 +169,7 @@ class SyncTabFragment: BaseFragment() {
                                     toast("Requested sync with ${friend.user.name}")
                                 },
                                 "Remove as Friend" to {
-                                    UserPrefs.friends putsMapped { it - friend.user }
+                                    Friend.remove(friend.user)
                                 }
                             )
                             Friend.Status.RECEIVED_REQUEST -> listOf(
@@ -185,10 +182,10 @@ class SyncTabFragment: BaseFragment() {
                             )
                             Friend.Status.SENT_REQUEST -> listOf(
                                 getString(R.string.friend_request_cancel) to {
-                                    UserPrefs.friends putsMapped { it - friend.user }
+                                    Friend.remove(friend.user)
                                 },
                                 "Resend Request" to {
-                                    Sync.requestFriendship(friend.user)
+                                    Friend.request(friend.user)
                                 }
                             )
                         }

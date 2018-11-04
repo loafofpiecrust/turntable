@@ -7,43 +7,36 @@ import android.view.View
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
-import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.launch
-import org.jetbrains.anko.cancelButton
-import org.jetbrains.anko.customView
+import org.jetbrains.anko.*
 import org.jetbrains.anko.support.v4.alert
-import org.jetbrains.anko.textView
-import org.jetbrains.anko.verticalLayout
 
 @MakeActivityStarter
 class SyncDetailsDialog: BaseDialogFragment() {
-    override fun ViewManager.createView(): View? = null
-    override fun onCreateDialog(savedInstanceState: Bundle?) = alert {
-        titleResource = R.string.sync_details
-        customView {
-            verticalLayout {
-                val modeLabel = textView()
-                val latencyLabel = textView()
+    override fun ViewManager.createView(): View? = verticalLayout {
+        padding = dimen(R.dimen.dialog_content_margin)
 
-                launch {
-                    Sync.mode.consumeEach { mode ->
-                        modeLabel.text = when (mode) {
-                            is Sync.Mode.OneOnOne -> ctx.getString(R.string.synced_with_user, mode.other.name)
-                            is Sync.Mode.InGroup -> ctx.getString(R.string.synced_with_group, mode.group.name)
-                            else -> ""
-                        }
-                    }
-                }
-//                launch {
-//                    Sync.latency.openSubscription()
-//                        .map { getString(R.string.sync_latency, it) }
-//                        .consumeEach { latencyLabel.text = it }
-//                }
+        val modeLabel = textView()
+        val latencyLabel = textView()
+
+        SyncSession.mode.consumeEachAsync { mode ->
+            modeLabel.text = when (mode) {
+                is Sync.Mode.OneOnOne -> getString(R.string.synced_with_user, mode.other.name)
+                is Sync.Mode.InGroup -> getString(R.string.synced_with_group, mode.group.name)
+                else -> ""
             }
         }
 
+        SyncSession.latency.consumeEachAsync {
+            latencyLabel.text = getString(R.string.sync_latency, it)
+        }
+    }
+
+    override fun onCreateDialog(savedInstanceState: Bundle?) = alert {
+        titleResource = R.string.sync_details
+        customView { createView() }
+
         positiveButton(R.string.sync_disconnect) {
-            Sync.disconnect()
+            SyncSession.stop()
         }
         cancelButton {}
     }.build() as Dialog

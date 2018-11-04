@@ -17,8 +17,8 @@ class PlaylistTest {
         val playlist = CollaborativePlaylist.fromSpotifyPlaylist("1260492579", "4A6xyxDQciDkVCXZ9MNCwv?si=rUDsLvErS4OryHE2r3_Yrg")
         when (playlist) {
             is Result.Ok -> playlist.ok.let { playlist ->
-                val tracks = playlist.tracks.first()
-                println("${tracks.size} tracks on ${playlist.name} by ${playlist.owner.displayName}")
+                val tracks = playlist.tracks
+                println("${tracks.size} tracks on ${playlist.id.name} by ${playlist.owner.displayName}")
                 println(tracks)
                 expect(tracks).isNotEmpty()
             }

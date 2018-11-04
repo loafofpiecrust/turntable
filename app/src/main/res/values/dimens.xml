@@ -7,6 +7,8 @@
     <dimen name="fab_margin">16dp</dimen>
     <dimen name="appbar_padding_top">8dp</dimen>
     <dimen name="text_content_margin">16dp</dimen>
+    <dimen name="empty_state_padding">64dp</dimen>
+    <dimen name="dialog_content_margin">32dp</dimen>
 
     <dimen name="statusbar_height">24dp</dimen>
     <dimen name="toolbar_height">56dp</dimen>

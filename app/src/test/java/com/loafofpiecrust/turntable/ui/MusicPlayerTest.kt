@@ -14,11 +14,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.Robolectric
-import org.robolectric.RobolectricTestRunner
 
 
-@RunWith(RobolectricTestRunner::class)
 class MusicPlayerTest {
     val songs = listOf(
         Song(
@@ -62,28 +59,28 @@ class MusicPlayerTest {
         )
     )
 
-    @Test fun `play fake song, then advance`() = test {
-        val service = Robolectric.setupService(MusicService::class.java)
-
-        MusicService.enactNow(PlayerAction.PlaySongs(songs), false)
-        delay(50)
-
-        val player = service.player
-        var q = runBlocking { player.queue.firstOrNull() }
-        expect(q).notToBeNull {
-            property(subject::list).toBe(songs)
-            property(subject::position).toBe(0)
-            property(subject::current).notToBeNullBut(songs[0])
-        }
-
-        // go to next song
-        MusicService.enactNow(PlayerAction.RelativePosition(1), false)
-        delay(100)
-        q = runBlocking { player.queue.firstOrNull() }
-        expect(q).notToBeNull {
-            property(subject::list).toBe(songs)
-            property(subject::position).toBe(1)
-            property(subject::current).notToBeNullBut(songs[1])
-        }
-    }
+//    @Test fun `play fake song, then advance`() = test {
+//        val service = Robolectric.setupService(MusicService::class.java)
+//
+//        MusicService.enactNow(PlayerAction.PlaySongs(songs), false)
+//        delay(50)
+//
+//        val player = service.player
+//        var q = runBlocking { player.queue.firstOrNull() }
+//        expect(q).notToBeNull {
+//            property(subject::list).toBe(songs)
+//            property(subject::position).toBe(0)
+//            property(subject::current).notToBeNullBut(songs[0])
+//        }
+//
+//        // go to next song
+//        MusicService.enactNow(PlayerAction.RelativePosition(1), false)
+//        delay(100)
+//        q = runBlocking { player.queue.firstOrNull() }
+//        expect(q).notToBeNull {
+//            property(subject::list).toBe(songs)
+//            property(subject::position).toBe(1)
+//            property(subject::current).notToBeNullBut(songs[1])
+//        }
+//    }
 }

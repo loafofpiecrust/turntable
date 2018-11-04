@@ -8,6 +8,7 @@ import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.album.*
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
+import com.loafofpiecrust.turntable.repository.Repositories
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 
@@ -32,7 +33,7 @@ class LocalAlbumTests {
 
         assert(album.id).toBe(album.id)
         assert(album.type).toBe(Album.Type.SINGLE)
-        assert(album.year).notToBeNullBut(2017)
+        assert(album.year).toBe(2017)
         assert(album.tracks.first().id.displayName).toBe("Night Night")
     }
 
@@ -94,12 +95,12 @@ class LocalAlbumTests {
 
         assert(finalAlbum.id.displayName).toBe("Jackson C. Frank")
         assert(finalAlbum.tracks.size).toBe(2)
-        assert(finalAlbum.year).notToBeNullBut(1965)
+        assert(finalAlbum.year).toBe(1965)
     }
 
     @Test fun `find online`() {
         val albumId = AlbumId("Wedding Bells", ArtistId("Cashmere Cat"))
-        val remote = runBlocking { Repository.find(albumId) }
+        val remote = runBlocking { Repositories.find(albumId) }
         expect(remote).notToBeNull {
             isA<RemoteAlbum> {
                 println(subject.remoteId)

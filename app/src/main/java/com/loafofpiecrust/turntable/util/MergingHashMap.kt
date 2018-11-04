@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable.model.album
+package com.loafofpiecrust.turntable.util
 
 
 class MergingHashMap<K, V>(

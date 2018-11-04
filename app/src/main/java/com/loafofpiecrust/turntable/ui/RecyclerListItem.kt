@@ -21,7 +21,7 @@ import org.jetbrains.anko.constraint.layout.matchConstraint
 import org.jetbrains.anko.sdk27.coroutines.textChangedListener
 
 
-open class RecyclerListItemOptimized(
+open class RecyclerListItem(
     parent: ViewGroup,
     maxTextLines: Int = 3,
     useIcon: Boolean = false

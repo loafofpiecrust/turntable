@@ -1,6 +1,8 @@
 package com.loafofpiecrust.turntable.prefs
 
 import com.chibatching.kotpref.KotprefModel
+import com.chibatching.kotpref.preference
+import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.Recommendation
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.playlist.Playlist
@@ -10,17 +12,20 @@ import com.loafofpiecrust.turntable.model.queue.StaticQueue
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.model.sync.Friend
 import com.loafofpiecrust.turntable.model.sync.User
+import com.loafofpiecrust.turntable.util.getColorCompat
 import org.jetbrains.anko.colorAttr
 
 object UserPrefs: KotprefModel() {
     // Theming
     val useDarkTheme by booleanPref(true)
-    val primaryColor by intPref(context.colorAttr(android.R.attr.colorPrimary))
-    val secondaryColor by intPref(context.colorAttr(android.R.attr.colorAccent))
-    val accentColor by intPref(context.colorAttr(android.R.attr.colorAccent))
+    val primaryColor by intPref(context.getColorCompat(R.color.md_purple_300))
+    val secondaryColor by intPref(context.getColorCompat(R.color.md_teal_200))
+    val accentColor by intPref(context.getColorCompat(R.color.md_teal_200))
 
     // Structure
-    val libraryTabs by pref(setOf("Albums", "Artists"))
+    val libraryTabs by preference(
+        setOf("Albums", "Artists", "Playlists", "Friends", "Recommendations")
+    )
     val albumGridColumns by intPref(3)
     val artistGridColumns by intPref(3)
     val playlistGridColumns by intPref(1)
@@ -47,21 +52,19 @@ object UserPrefs: KotprefModel() {
     // Last.FM
     val doScrobble by booleanPref(false)
 
-    val sdCardUri by pref("")
+    val sdCardUri by preference("")
 
     // Metadata (saves to files rather than SharedPreferences to reduce memory usage)
 
-    val remoteAlbums by pref(emptyList<Album>())
+    val remoteAlbums by preference(emptyList<Album>())
     // TODO: Save metadata as Map<MusicId, Metadata> instead of a list.
-    val albumMeta by pref(emptyList<Library.AlbumMetadata>())
-    val artistMeta by pref(emptyList<Library.ArtistMetadata>())
-    val history by pref(emptyList<HistoryEntry>())
-    val playlists by pref(emptyList<Playlist>())
-    val recommendations by pref(emptyList<Recommendation>())
+    val albumMeta by preference(emptyList<Library.AlbumMetadata>())
+    val artistMeta by preference(emptyList<Library.ArtistMetadata>())
+    val history by preference(emptyList<HistoryEntry>())
+    val playlists by preference(emptyList<Playlist>())
+    val recommendations by preference(emptyList<Recommendation>())
 
-    val friends by pref(emptyMap<User, Friend.Status>())
-
-    val queue by pref(
+    val queue by preference(
         CombinedQueue(StaticQueue(emptyList(), 0), emptyList())
     )
 

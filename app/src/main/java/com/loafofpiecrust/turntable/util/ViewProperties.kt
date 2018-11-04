@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.support.annotation.ColorInt
 import android.support.annotation.ColorRes
 import android.support.v4.content.ContextCompat
+import android.support.v4.graphics.ColorUtils
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -68,5 +69,14 @@ val Int.complementaryColor: Int
         hsv[0] = (hsv[0] + 180) % 360
         return Color.HSVToColor(hsv)
     }
+
+val Int.luminance: Double get() = ColorUtils.calculateLuminance(this)
+
+val Int.isDark: Boolean get() = luminance < 0.5
+
+val Int.contrastColor: Int
+    @ColorInt get() = if (luminance < 0.5) {
+        Color.WHITE
+    } else Color.BLACK
 
 fun Context.getColorCompat(@ColorRes res: Int) = ContextCompat.getColor(this, res)

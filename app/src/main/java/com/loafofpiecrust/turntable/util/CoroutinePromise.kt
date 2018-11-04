@@ -6,16 +6,6 @@ import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.selects.SelectClause1
 import kotlin.coroutines.*
 
-val BG_POOL: CoroutineDispatcher = if (Runtime.getRuntime().availableProcessors() <= 2) {
-    newFixedThreadPoolContext(2 * Runtime.getRuntime().availableProcessors(), "bg")
-} else Dispatchers.Default
-val ALT_BG_POOL = newSingleThreadContext("alt-bg")
-
-
-fun Job.cancelSafely() = try {
-    cancel()
-} catch (e: Throwable) {}
-
 fun <T> produceSingle(v: T): ReceiveChannel<T> {
     return CompletableDeferred(v).toChannel()
 }
@@ -102,14 +92,14 @@ fun <T> Deferred<T>.get() = runBlocking { await() }
 suspend inline fun <T> Deferred<T>.awaitOrElse(alternative: () -> T): T {
     return try {
         await()
-    } catch (e: Throwable) {
+    } catch (e: Exception) {
         alternative()
     }
 }
 suspend inline fun <T> Deferred<T>.awaitOr(alternative: T): T {
     return try {
         await()
-    } catch (e: Throwable) {
+    } catch (e: Exception) {
         alternative
     }
 }

@@ -51,4 +51,13 @@ class CBCSerializer<T: Any>: Serializer<ConflatedBroadcastChannel<T>>() {
             ConflatedBroadcastChannel()
         }
     }
+
+    override fun copy(kryo: Kryo, original: ConflatedBroadcastChannel<T>): ConflatedBroadcastChannel<T> {
+        val value = original.valueOrNull
+        return if (value != null) {
+            ConflatedBroadcastChannel(value)
+        } else {
+            ConflatedBroadcastChannel()
+        }
+    }
 }

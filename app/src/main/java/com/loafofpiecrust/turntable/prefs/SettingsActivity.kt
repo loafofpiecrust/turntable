@@ -1,10 +1,9 @@
-package com.loafofpiecrust.turntable.ui
+package com.loafofpiecrust.turntable.prefs
 
 import activitystarter.MakeActivityStarter
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.prefs.MainPrefsFragment
-import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.ui.BaseActivity
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.navigationIconResource
 import org.jetbrains.anko.appcompat.v7.toolbar

@@ -7,6 +7,7 @@ import android.support.v4.app.BundleCompat
 import android.support.v4.app.Fragment
 import android.support.v7.app.AppCompatActivity
 import kotlinx.coroutines.runBlocking
+import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
@@ -63,52 +64,3 @@ inline operator fun <reified T: Any> FragmentArgument<T>.getValue(thisRef: Fragm
 fun <T: Any> Fragment.arg() = FragmentArgument<T>(null)
 fun <T: Any> Fragment.arg(defaultValue: T) = FragmentArgument { defaultValue }
 fun <T: Any> Fragment.arg(defaultValue: () -> T) = FragmentArgument(defaultValue)
-
-
-
-class ActivityArgument<T: Any>(private val defaultValue: T?) : ReadWriteProperty<AppCompatActivity, T> {
-    private var value: T? = null
-
-    override operator fun getValue(thisRef: AppCompatActivity, property: KProperty<*>): T {
-        if (value == null) {
-            try {
-                val args = thisRef.intent.extras
-                    ?: throw IllegalStateException("Cannot read property ${property.name} if no arguments have been set")
-                val storedValue = args[property.name]
-
-                @Suppress("UNCHECKED_CAST")
-                value = (storedValue as? T) ?: runBlocking { deserialize(storedValue as ByteArray) as T }
-            } catch (e: Throwable) {
-                // If the argument wasn't provided, attempt to fallback on the default value.
-                value = defaultValue
-            }
-        }
-        return value ?: throw IllegalStateException("Property ${property.name} could not be read")
-    }
-
-    override operator fun setValue(thisRef: AppCompatActivity, property: KProperty<*>, value: T) {
-        if (thisRef.intent == null) thisRef.intent = Intent()
-        val args = thisRef.intent
-        val key = property.name
-
-        this.value = value
-
-        when (value) {
-            is String -> args?.putExtra(key, value)
-            is Int -> args?.putExtra(key, value)
-            is Short -> args?.putExtra(key, value)
-            is Long -> args?.putExtra(key, value)
-            is Byte -> args?.putExtra(key, value)
-            is ByteArray -> args?.putExtra(key, value)
-            is Char -> args?.putExtra(key, value)
-            is CharArray -> args?.putExtra(key, value)
-            is CharSequence -> args?.putExtra(key, value)
-            is Float -> args?.putExtra(key, value)
-            is Bundle -> args?.putExtra(key, value)
-//            is Binder -> BundleCompat.putBinder(args!!, key, value)
-            is android.os.Parcelable -> args?.putExtra(key, value)
-//            is java.io.Serializable -> args?.putSerializable(key, value)
-            else -> args?.putExtra(key, runBlocking { serialize(value) })
-        }
-    }
-}

@@ -11,9 +11,10 @@ import com.google.android.exoplayer2.trackselection.TrackSelection
 import com.google.android.exoplayer2.upstream.Allocator
 import com.google.android.exoplayer2.upstream.DataSource
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.util.milliseconds
+import com.loafofpiecrust.turntable.util.toMicroseconds
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import java.util.concurrent.TimeUnit
 
 class StreamMediaSource(
     private val song: Song,
@@ -50,7 +51,7 @@ class StreamMediaSource(
                 mediaPeriod.mediaPeriod
             } else mediaPeriod
             innerSource?.releasePeriod(period)
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
         }
     }
 
@@ -116,9 +117,9 @@ class StreamMediaPeriod(
                 return@launch
             }
 
-            val start = TimeUnit.MILLISECONDS.toMicros(media.start.toLong())
+            val start = media.start.milliseconds.toMicroseconds().toLong()
             val end = if (media.end > 0) {
-                TimeUnit.MILLISECONDS.toMicros(media.end.toLong())
+                media.end.milliseconds.toMicroseconds().toLong()
             } else C.TIME_END_OF_SOURCE
 
             println("youtube: media loaded, $start-$end")

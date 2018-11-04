@@ -4,12 +4,17 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.util.with
 import com.loafofpiecrust.turntable.util.without
+import kotlinx.android.parcel.Parcelize
 
+@Parcelize
 data class CombinedQueue(
     val primary: Queue,
     val nextUp: List<Song>,
     val isPlayingNext: Boolean = false
 ): Queue {
+    internal constructor(): this(StaticQueue(), emptyList())
+
+    @Transient
     override val list: List<Song> =
         if (nextUp.isNotEmpty()) {
             primary.list.with(nextUp, primary.position + 1)

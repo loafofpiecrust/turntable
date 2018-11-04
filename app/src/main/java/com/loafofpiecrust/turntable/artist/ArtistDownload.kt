@@ -361,11 +361,11 @@ class RuTrackerArtist private constructor(
                 val isFlac = torrentName!!.contains(Regex("(FLAC|ALAC|flac|lossless)"))
                 val quality = if (!isFlac) {
                     val isMp3 = torrentName.contains("mp3", ignoreCase = true)
-                    val m = Pattern.compile("(\\d{3})\\s*(kb(ps|/s|s)|mp3)").matcher(torrentName)
+                    val m = Regex("(\\d{3})\\s*(kb(ps|/s|s)|mp3)").find(torrentName)
                     // TODO: For unknown, estimate quality by total size / total duration
                     when {
-                        m.find() -> {
-                            val bitrate = m.group(1).toInt()
+                        m != null -> {
+                            val bitrate = m.groupValues[1].toInt()
                             when (bitrate) {
                                 in 0..191 -> OnlineSearchService.Quality.AWFUL
                                 in 192..255 -> OnlineSearchService.Quality.LOW
@@ -380,11 +380,10 @@ class RuTrackerArtist private constructor(
                     OnlineSearchService.Quality.LOSSLESS
                 }
                 // Year range
-                val m = Pattern.compile("(\\d{4})\\s*-\\s*(\\d{4})").matcher(torrentName)
-                val years = if (m.find()) {
-                    m.group(1).toInt()..m.group(2).toInt()
-                } else {
-                    null
+                val yearRangePat = Regex("(\\d{4})\\s*-\\s*(\\d{4})")
+                val years = yearRangePat.find(torrentName)?.let { m ->
+                    val groups = m.groupValues
+                    groups[1].toInt()..groups[2].toInt()
                 }
 
                 // No seeders, don't even try.

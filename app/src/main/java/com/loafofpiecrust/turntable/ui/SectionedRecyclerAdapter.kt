@@ -128,14 +128,17 @@ abstract class SectionedRecyclerAdapter<T, R: Comparable<R>, VH: SectionedViewHo
 
 
 
+@Suppress("UNCHECKED_CAST")
 abstract class SectionedAdapter<
     T,
     K: Comparable<K>,
     IV: RecyclerView.ViewHolder,
     HV: RecyclerView.ViewHolder
 >(
+    parentContext: CoroutineContext,
     sections: ReceiveChannel<Map<K, List<T>>>
 ): RecyclerBroadcastAdapter<SectionedAdapter.Entry, RecyclerView.ViewHolder>(
+    parentContext,
     sections.map {
         it.entries.sortedBy { it.key }
     }.map {

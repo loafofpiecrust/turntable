@@ -2,7 +2,8 @@ package com.loafofpiecrust.turntable.model
 
 import android.app.Application
 import android.os.Debug
-import android.support.test.runner.AndroidJUnit4
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.runner.AndroidJUnit4
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
@@ -25,8 +26,6 @@ import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.runBlocking
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.junit.runner.RunWith
-import org.robolectric.Robolectric
-import org.robolectric.RobolectricTestRunner
 import java.util.*
 import org.junit.Test
 import kotlin.collections.HashMap
@@ -41,7 +40,7 @@ fun Random.nextString(length: Int = 20): String {
 }
 
 //@MediumTest
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class LibraryTest {
     private val random = Random()
 //    private val library by lazy { Library() }

@@ -15,14 +15,13 @@ import com.loafofpiecrust.turntable.model.album.loadPalette
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.selector
-import com.loafofpiecrust.turntable.sync.FriendPickerDialog
-import com.loafofpiecrust.turntable.sync.PlayerAction
-import com.loafofpiecrust.turntable.sync.Sync
-import com.loafofpiecrust.turntable.sync.SyncDetailsDialog
+import com.loafofpiecrust.turntable.sync.*
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.channels.firstOrNull
 import kotlinx.coroutines.channels.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.*
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
 import org.jetbrains.anko.constraint.layout.applyConstraintSet
@@ -45,7 +44,6 @@ open class NowPlayingFragment : BaseFragment() {
         }.consumeEachAsync { (song, req) ->
             if (req != null) {
                 req.listener(loadPalette(song.id.album) { palette, swatch ->
-                    view.backgroundColor = swatch?.rgb ?: context!!.theme.color(android.R.attr.windowBackground)
                     val c =
                         (palette?.mutedSwatch
                             ?: palette?.darkMutedSwatch
@@ -61,6 +59,13 @@ open class NowPlayingFragment : BaseFragment() {
     }
 
     override fun ViewManager.createView() = constraintLayout {
+        backgroundColor = colorAttr(android.R.attr.windowBackground)
+        MusicService.currentSongColor.consumeEachAsync {
+            backgroundColor = it
+        }
+
+        topPadding = dimen(R.dimen.statusbar_height)
+
         // Main player view
         id = R.id.container
         clipToPadding = false
@@ -113,14 +118,17 @@ open class NowPlayingFragment : BaseFragment() {
 
         val syncBtn = iconButton(R.drawable.ic_cast) {
             tintResource = R.color.md_white_1000
-            Sync.mode.consumeEachAsync {
+            SyncSession.mode.consumeEachAsync {
                 imageResource = if (it is Sync.Mode.None) {
                     onClick { v ->
                         // Open sync options: contact choice
                         v!!.context.selector("Sync options", listOf(
                             "Sync with Friend" to {
+                                val song = runBlocking {
+                                    MusicService.player.firstOrNull()?.currentSong?.firstOrNull()
+                                }
                                 FriendPickerDialog(
-                                    Sync.Request(),
+                                    Sync.Request(song),
                                     "Request Sync"
                                 ).show(v.context)
                             }
@@ -155,12 +163,12 @@ open class NowPlayingFragment : BaseFragment() {
                 if (playing) {
                     imageResource = R.drawable.ic_pause
                     onClick {
-                        MusicService.offer(PlayerAction.Pause())
+                        MusicService.offer(PlayerAction.Pause)
                     }
                 } else {
                     imageResource = R.drawable.ic_play_arrow
                     onClick {
-                        MusicService.offer(PlayerAction.Play())
+                        MusicService.offer(PlayerAction.Play)
                     }
                 }
             }

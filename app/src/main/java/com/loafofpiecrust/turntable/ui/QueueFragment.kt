@@ -11,11 +11,11 @@ import android.view.ViewGroup
 import android.view.ViewManager
 import android.widget.LinearLayout
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.given
+import com.loafofpiecrust.turntable.model.queue.CombinedQueue
+import com.loafofpiecrust.turntable.model.queue.StaticQueue
 import com.loafofpiecrust.turntable.model.queue.indexWithinUpNext
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.model.queue.StaticQueue
 import com.loafofpiecrust.turntable.popupMenu
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.song.songOptions
@@ -28,6 +28,7 @@ import org.jetbrains.anko.*
 import org.jetbrains.anko.cardview.v7.cardView
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.sdk27.coroutines.onClick
+import kotlin.coroutines.CoroutineContext
 
 class QueueFragment : BaseFragment() {
     private var queueAdapter: QueueAdapter? = null
@@ -41,11 +42,11 @@ class QueueFragment : BaseFragment() {
             backgroundColor = context.theme.color(android.R.attr.windowBackground)
 
             // Currently playing song
-            val currentItem = RecyclerListItemOptimized(this, 3).also {
+            val currentItem = RecyclerListItem(this, 3).also {
                 addView(it.itemView)
             }
             currentItem.statusIcon.imageResource = R.drawable.ic_play_circle_outline
-            UserPrefs.accentColor.consumeEach(Dispatchers.Main) {
+            UserPrefs.accentColor.consumeEachAsync {
                 currentItem.mainLine.textColor = it
                 currentItem.subLine.textColor = it
                 currentItem.statusIcon.tint = it
@@ -53,15 +54,20 @@ class QueueFragment : BaseFragment() {
 
             textView(R.string.queue_up_next) {
                 textSizeDimen = R.dimen.small_text_size
+                MusicService.currentSongColor.consumeEachAsync {
+                    textColor = it
+                }
             }.lparams {
                 marginStart = dip(32)
                 bottomMargin = dip(4)
             }
 
+            val queue = MusicService.instance.switchMap { it?.player?.queue }.replayOne()
+
             val linear = LinearLayoutManager(context)
             songList = recyclerView {
                 layoutManager = linear
-                queueAdapter = QueueAdapter()
+                queueAdapter = QueueAdapter(coroutineContext, queue)
                 adapter = queueAdapter
 
                 addItemDecoration(DividerItemDecoration(context, linear.orientation).apply {
@@ -70,9 +76,8 @@ class QueueFragment : BaseFragment() {
             }.lparams(matchParent, matchParent)
 
             // Hook up our UI to the queue!
-            val queue = { MusicService.instance.switchMap { it?.player?.queue } }
-            queueAdapter?.subscribePos(queue().map { it.position })
-            queue().consumeEachAsync { q ->
+            queueAdapter?.subscribePos(queue.openSubscription().map { it.position })
+            queue.consumeEachAsync { q ->
                 val song = q.current
                 currentItem.mainLine.text = song?.id?.displayName ?: ""
                 currentItem.subLine.text = song?.id?.artist?.displayName ?: ""
@@ -106,15 +111,13 @@ class QueueFragment : BaseFragment() {
 }
 
 
-class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>(
-    MusicService.instance.switchMap {
-        it?.player?.queue
-    }.map { it.list }
+class QueueAdapter(
+    parentContext: CoroutineContext,
+    val queue: ConflatedBroadcastChannel<CombinedQueue>
+) : RecyclerBroadcastAdapter<Song, RecyclerListItem>(
+    parentContext,
+    queue.openSubscription().map { it.list }
 ) {
-    var queue = MusicService.instance.switchMap {
-        it?.player?.queue
-    }.replayOne()
-
     override val moveEnabled get() = true
     override val dismissEnabled get() = true
 
@@ -149,9 +152,9 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>(
         data.size + if (overscroll) OVERSCROLL_ITEMS else 0
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-        RecyclerListItemOptimized(parent, 3)
+        RecyclerListItem(parent, 3)
 
-    override fun RecyclerListItemOptimized.onBind(item: Song, index: Int, job: Job) {
+    override fun RecyclerListItem.onBind(item: Song, index: Int, job: Job) {
         coverImage?.visibility = View.GONE
 
         if (index >= data.size) {
@@ -198,7 +201,7 @@ class QueueAdapter : RecyclerBroadcastAdapter<Song, RecyclerListItemOptimized>(
             menu.onClick { v ->
                 v?.popupMenu {
                     // TODO: Abstract this out to a MusicService method that adds queue-specific options!
-                    given(runBlocking { MusicService.instance.filterNotNull().first() }) { music ->
+                    runBlocking { MusicService.instance.filterNotNull().first() }?.let { music ->
                         val q = runBlocking { music.player.queue.first() }
                         if (q.primary is StaticQueue) {
                             menuItem(R.string.queue_remove).onClick {

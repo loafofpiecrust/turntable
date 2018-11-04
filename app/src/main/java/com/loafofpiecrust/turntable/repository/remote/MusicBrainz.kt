@@ -23,7 +23,6 @@ import kotlinx.coroutines.*
 import org.jetbrains.anko.error
 import org.jetbrains.anko.info
 import org.jsoup.Jsoup
-import java.util.regex.Pattern
 
 object MusicBrainz: Repository {
     override val displayName: Int
@@ -41,7 +40,6 @@ object MusicBrainz: Repository {
             = tracksOnAlbum(id) ?: listOf()
     }
 
-    @Parcelize
     data class ArtistDetails(
         val id: String
     ): RemoteArtist.Details {
@@ -141,14 +139,14 @@ object MusicBrainz: Repository {
                     val disamb = it["disambiguation"].nullString
                     val name = it["title"].nullString
                     val isDeluxe = name?.contains(AlbumId.SIMPLE_EDITION_PAT) == true || disamb?.contains(AlbumId.SIMPLE_EDITION_PAT) == true
-                    val datePat = Pattern.compile("(\\d+)-?(\\d+)?-?(\\d+)?$")
-                    var score = given(it["date"].nullString) { s ->
-                        val mat = datePat.matcher(s)
-                        mat.find()
-                        val year = mat.group(1).toInt() * 10000
-                        if (mat.groupCount() > 1) {
-                            val month = mat.group(2).toInt() * 100
-                            val day = mat.group(3).toInt()
+                    val datePat = Regex("(\\d+)-?(\\d+)?-?(\\d+)?$")
+                    var score = it["date"].nullString?.let { s ->
+                        val mat = datePat.find(s)!!
+                        val groups = mat.groupValues
+                        val year = groups[1].toInt() * 10000
+                        if (groups.size > 2) {
+                            val month = groups[2].toInt() * 100
+                            val day = groups[3].toInt()
                             year + month + day
                         } else year + (12_00) + 32
                     } ?: 9999_99_99
@@ -242,7 +240,7 @@ object MusicBrainz: Repository {
             )).gson
             val thumbnail = try {
                 lfmRes["artist"]["image"][2]["#text"].string
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 null
             }
 
@@ -345,7 +343,7 @@ object MusicBrainz: Repository {
                         thumbnailUrl = images?.get(2)?.get("#text").nullString,
                         listeners = res["listeners"].string.toInt()
                     ) to images?.last()?.get("#text").nullString
-                } catch (e: Throwable) {
+                } catch (e: Exception) {
                     AlbumDetails(albumId, artistId) to null
                 }
 

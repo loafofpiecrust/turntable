@@ -29,8 +29,6 @@ import org.jsoup.nodes.Document
 import org.jsoup.safety.Whitelist
 import java.io.File
 import java.net.URLEncoder
-import java.util.concurrent.TimeUnit
-import java.util.regex.Pattern
 import kotlin.math.abs
 
 
@@ -436,19 +434,18 @@ class TPBAlbum(
                 val magnet = mainInfo.child(1).attr("href")
                 val details = mainInfo.child(4).text()
 
-                val m = Pattern.compile("Size ([\\d.]+) ([GMK])iB").matcher(details)
-                val size = if (m.find()) {
-                    val num = m.group(1).toDouble()
-                    val unit = when(m.group(2)) {
-                        "G" -> 1_000_000L
-                        "M" -> 1_000L
-                        "K" -> 1L
-                        else -> 1_000L
+                val m = Regex("Size ([\\d.]+) ([GMK])iB")
+                val size: Long = m.find(details)?.let { m ->
+                    val groups = m.groupValues
+                    val num = groups[1].toDouble()
+                    val unit = when(groups[2]) {
+                        "G" -> 1_000_000
+                        "M" -> 1_000
+                        "K" -> 1
+                        else -> 1_000
                     }
                     (num * unit).toLong()
-                } else {
-                    0L
-                }
+                } ?: 0
                 val seeders = it.child(2).text().toInt()
 
                 // TODO: Maybe check for quality, but on TPB there tend to be no quality markers
@@ -532,8 +529,8 @@ data class YouTubeFullAlbum(
     }
 
     companion object: AnkoLogger by AnkoLogger<YouTubeFullAlbum>() {
-        private val HMS_PAT by lazy { Pattern.compile("\\b\\(?(\\d{1,2}):(\\d{2}):(\\d{2})\\)?\\b") }
-        private val MS_PAT by lazy { Pattern.compile("\\b\\(?(\\d{1,2}):(\\d{2})\\)?\\b") }
+        private val HMS_PAT by lazy { Regex("\\b\\(?(\\d{1,2}):(\\d{2}):(\\d{2})\\)?\\b") }
+        private val MS_PAT by lazy { Regex("\\b\\(?(\\d{1,2}):(\\d{2})\\)?\\b") }
 
         suspend fun search(album: Album): YouTubeFullAlbum? {
             val res = Http.get("https://www.googleapis.com/youtube/v3/search", params = mapOf(
@@ -695,7 +692,7 @@ data class YouTubeFullAlbum(
                     if (ratio > 80) {
                         info { "youtube: mapping song '${song.id.displayName}' to section ${vidTrack.start}-${vidTrack.end} called '${vidTrack.title}'" }
                         val videoSongDuration = vidTrack.end - vidTrack.start
-                        val newDurationCorrect = abs(song.duration - videoSongDuration) < TimeUnit.MINUTES.toMillis(1)
+                        val newDurationCorrect = abs(song.duration - videoSongDuration).milliseconds < 1.minutes
                         val end = if (newDurationCorrect) {
                             vidTrack.end
                         } else {
@@ -727,23 +724,18 @@ data class YouTubeFullAlbum(
             val trackLines = lines.map { it.trim() }
                 .filter { it.isNotEmpty() }
                 .mapNotNull { line ->
-                    val hms = HMS_PAT.matcher(line)
-                    val ms = MS_PAT.matcher(line)
-                    when {
-                        hms.find() -> {
-                            val sec = hms.group(3).toInt()
-                            val min = hms.group(2).toInt()
-                            val hr = hms.group(1).toInt()
-                            val start = (((hr * 60 + min) * 60) + sec) * 1_000
-                            start to hms.replaceFirst("").trim().replace(Regex("^\\d+\\s*[.-]\\s*"), "")
-                        }
-                        ms.find() -> {
-                            val min = ms.group(1).toInt()
-                            val sec = ms.group(2).toInt()
-                            val start = ((min * 60) + sec) * 1_000
-                            start to ms.replaceFirst("").trim().replace(Regex("^\\d+\\s*[.-]\\s*"), "")
-                        }
-                        else -> null
+                    HMS_PAT.find(line)?.let { hms ->
+                        val groups = hms.groupValues
+                        val sec = groups[3].toInt()
+                        val min = groups[2].toInt()
+                        val hr = groups[1].toInt()
+                        val start = (((hr * 60 + min) * 60) + sec) * 1_000
+                        start to line.removeRange(hms.range).trim().replace(Regex("^\\d+\\s*[.-]\\s*"), "")
+                    } ?: MS_PAT.find(line)?.let { ms ->
+                        val min = ms.groupValues[1].toInt()
+                        val sec = ms.groupValues[2].toInt()
+                        val start = ((min * 60) + sec) * 1_000
+                        start to line.removeRange(ms.range).trim().replace(Regex("^\\d+\\s*[.-]\\s*"), "")
                     }
                 }.filterIndexed { idx, time ->
                     if (prevIdx != -1 && idx > prevIdx + 2) {

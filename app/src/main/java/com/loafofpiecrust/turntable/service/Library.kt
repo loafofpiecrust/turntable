@@ -11,6 +11,7 @@ import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
+import com.chibatching.kotpref.KotprefModel
 import com.github.salomonbrys.kotson.get
 import com.github.salomonbrys.kotson.nullString
 import com.github.salomonbrys.kotson.obj
@@ -42,7 +43,6 @@ import org.jetbrains.anko.info
 import java.io.File
 import java.io.Serializable
 import java.util.*
-import java.util.concurrent.TimeUnit
 import kotlin.collections.HashMap
 
 /// Manages all our music and album covers, including loading from MediaStore
@@ -411,6 +411,7 @@ class Library : BaseService() {
         // Ensure the tracks are loaded before saving.
             if (!album.tracks.isEmpty()) {
                 UserPrefs.remoteAlbums appends album
+                KotprefModel.saveFiles()
             }
 //        }
     }
@@ -420,14 +421,14 @@ class Library : BaseService() {
         val idx = all.indexOfFirst { it.id == album.id }
         if (idx != -1) {
             UserPrefs.remoteAlbums puts all.without(idx)
-//            UserPrefs.remoteAlbumsFile.save()
+            KotprefModel.saveFiles()
         }
     }
 
     fun findPlaylist(id: UUID): ReceiveChannel<Playlist?>
         = UserPrefs.playlists.openSubscription().switchMap {
-            val r = it.find { it.uuid == id }
-                ?: UserPrefs.recommendations.value.mapNotNull { it as? Playlist }.find { it.uuid == id }
+            val r = it.find { it.id.uuid == id }
+                ?: UserPrefs.recommendations.value.mapNotNull { it as? Playlist }.find { it.id.uuid == id }
 
             if (r != null) {
                 produceSingle(r)
@@ -436,7 +437,7 @@ class Library : BaseService() {
 
     fun findCachedPlaylist(id: UUID): ReceiveChannel<Playlist?>
         = cachedPlaylists.openSubscription().map {
-            it.find { it.uuid == id }
+            it.find { it.id.uuid == id }
         }
 
     fun addPlaylist(pl: Playlist) {
@@ -473,7 +474,7 @@ class Library : BaseService() {
                         // Update the song library, but to accomodate rapid changes, wait 2 seconds
                         // before re-querying the MediaStore.
                         updateTask?.let {
-                            if (it.isActive) it.cancelSafely()
+                            if (it.isActive) it.cancel()
                         }
                         updateTask = async {
                             delay(1500)
@@ -549,9 +550,10 @@ class Library : BaseService() {
             val songs = ArrayList<Song>(cur.count)
             do {
                 try {
-                    val duration = cur.intValue(MediaStore.Audio.Media.DURATION)
+                    val durationMillis = cur.intValue(MediaStore.Audio.Media.DURATION)
+                    val duration = durationMillis.milliseconds
 
-                    if (duration == 0 || (Song.MIN_DURATION <= duration && duration <= Song.MAX_DURATION)) {
+                    if (durationMillis == 0 || (Song.MIN_DURATION <= duration && duration <= Song.MAX_DURATION)) {
                         var artist = cur.stringValue(MediaStore.Audio.Media.ARTIST)
                         val albumArtist = tryOr(artist) {
                             cur.getString(cur.getColumnIndex("album_artist")) ?: artist
@@ -584,7 +586,7 @@ class Library : BaseService() {
                                 songId,
                                 track,
                                 disc,
-                                duration,
+                                durationMillis,
                                 year,
                                 platformId = LocalSongId(id, albumId, artistId)
                             )/*,
@@ -592,7 +594,7 @@ class Library : BaseService() {
                         )*/)
                         localSongSources[songId] = data
                     }
-                } catch (e: Throwable) {
+                } catch (e: Exception) {
                     error("Failed to compile song", e)
                     break
                 }
@@ -608,7 +610,7 @@ class Library : BaseService() {
         info { "compiling songs on sd card" }
         val external = try {
             compileSongsFrom(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             error(e.message, e)
             emptyList<Song>()
         }
@@ -730,7 +732,7 @@ class Library : BaseService() {
         const val REMOTE_ALBUM_CACHE_LIMIT = 100
         const val REMOTE_ARTIST_CACHE_LIMIT = 20
 
-        val METADATA_UPDATE_FREQ = TimeUnit.DAYS.toMillis(14)
+        val METADATA_UPDATE_FREQ = 14.days.toMillis().toLong()
     }
 }
 

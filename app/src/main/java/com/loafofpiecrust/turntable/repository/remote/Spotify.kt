@@ -14,9 +14,10 @@ import com.loafofpiecrust.turntable.model.artist.RemoteArtist
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
-import com.loafofpiecrust.turntable.playlist.PlaylistDetailsFragment
+import com.loafofpiecrust.turntable.playlist.PlaylistDetailsUI
 import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.service.library
+import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
@@ -73,7 +74,6 @@ object Spotify: Repository {
         }
     }
 
-    @Parcelize
     data class ArtistDetails(
         val id: String,
         val thumbnailUrl: String? = null,
@@ -157,7 +157,7 @@ object Spotify: Repository {
             debug { "recs: token = $accessToken" }
             tokenTimestamp = System.currentTimeMillis()
             tokenLifespan = res["expires_in"].long * 1000
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             error("Spotify failed to login", e)
         }
     }
@@ -192,7 +192,7 @@ object Spotify: Repository {
     }
 
     override suspend fun find(artist: ArtistId): Artist? {
-        return given(searchFor(artist).firstOrNull()) {
+        return searchFor(artist).firstOrNull()?.let {
             RemoteArtist(artist, ArtistDetails(it))
         }
     }
@@ -229,9 +229,7 @@ object Spotify: Repository {
     }
 
     override suspend fun find(album: AlbumId): Album? {
-        return given(searchFor(album).firstOrNull()) {
-            it
-        }
+        return searchFor(album).firstOrNull()
     }
 
     override suspend fun searchAlbums(query: String): List<Album> {
@@ -371,7 +369,7 @@ object Spotify: Repository {
 
         App.launch {
             ctx.replaceMainContent(
-                PlaylistDetailsFragment.newInstance(newPl.uuid, newPl.name),
+                PlaylistDetailsUI(newPl.id).createFragment(),
                 true
             )
         }

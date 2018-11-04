@@ -43,7 +43,6 @@ object Discogs: Repository {
             tracksOnAlbum(id)
     }
 
-    @Parcelize
     data class ArtistDetails(
         val id: Int,
         override val biography: String = "",
@@ -82,7 +81,7 @@ object Discogs: Repository {
                     "User-Agent" to "com.loafofpiecrust.turntable/0.1alpha"
                 ))
                 if (res.code() == 429) {
-                    res.closeQuietly()
+                    res.close()
                     delay(4000)
                 }
             } while (res.code() > 400 && reqCount > 0)
@@ -233,7 +232,7 @@ object Discogs: Repository {
                 else -> "releases/${it["id"].int}" to "release"
             }
 
-            val artistName = given(it["artist"].nullString) {
+            val artistName = it["artist"].nullString?.let {
                 cleanArtistName(it)
             }
 
@@ -318,7 +317,7 @@ object Discogs: Repository {
     }
 
     suspend fun discography(id: ArtistId): List<RemoteAlbum> =
-        given(searchFor(id).firstOrNull()) {
+        searchFor(id).firstOrNull()?.let {
             discography(it)
         } ?: listOf()
 
@@ -409,7 +408,7 @@ object Discogs: Repository {
     }
 
     suspend fun discographyHtml(id: ArtistId) =
-        given(searchFor(id).firstOrNull()) {
+        searchFor(id).firstOrNull()?.let {
             discographyHtml(it)
         } ?: listOf()
 

@@ -16,4 +16,4 @@ class WeakRefDelegate<T: Any>: ReadWriteProperty<Any, T> {
     }
 }
 
-inline fun <T: Any> weak() = WeakRefDelegate<T>()
+fun <T: Any> weak() = WeakRefDelegate<T>()

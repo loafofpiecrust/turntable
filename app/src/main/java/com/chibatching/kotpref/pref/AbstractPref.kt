@@ -13,9 +13,7 @@ import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
 
-abstract class AbstractPref<T: Any?>(
-    default: T? = null
-): ReadOnlyProperty<Any, ConflatedBroadcastChannel<T>>, AnkoLogger {
+abstract class AbstractPref<T: Any?>: ReadOnlyProperty<Any, ConflatedBroadcastChannel<T>>, AnkoLogger {
     protected var subject = ConflatedBroadcastChannel<T>()
 
     override operator fun getValue(thisRef: Any, property: KProperty<*>): ConflatedBroadcastChannel<T> {

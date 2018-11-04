@@ -4,6 +4,7 @@ import android.os.Parcelable
 import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
+import com.loafofpiecrust.turntable.util.toFileName
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import me.xdrop.fuzzywuzzy.FuzzySearch
@@ -18,6 +19,7 @@ data class SongId(
     var features: List<ArtistId> = emptyList()
 ): MusicId, Parcelable, Comparable<SongId> {
     internal constructor(): this("", AlbumId())
+
     constructor(title: String, album: String, artist: String, songArtist: String = artist):
         this(title, AlbumId(album, ArtistId(artist)), ArtistId(songArtist))
 
@@ -41,9 +43,6 @@ data class SongId(
     )
 
     override fun compareTo(other: SongId): Int = COMPARATOR.compare(this, other)
-
-    val dbKey: String get() = "$displayName~${album.dbKey}".toLowerCase()
-    val filePath: String get() = "${album.artist.name.toFileName()}/${album.displayName.toFileName()}/${name.toFileName()}"
 
     @IgnoredOnParcel
     override val displayName = run {
@@ -72,3 +71,8 @@ data class SongId(
         )
     }
 }
+
+val SongId.dbKey: String get() = "$displayName~${album.dbKey}".toLowerCase()
+
+val SongId.filePath: String get() =
+    "${album.artist.name.toFileName()}/${album.displayName.toFileName()}/${name.toFileName()}"

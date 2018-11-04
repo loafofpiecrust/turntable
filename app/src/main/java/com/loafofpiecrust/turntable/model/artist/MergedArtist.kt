@@ -8,6 +8,14 @@ import kotlin.math.max
 import kotlin.math.min
 
 
+/*
+Merged Usage:
+   val local = Library.findArtist(id)
+We have the local albums for this artist,
+Now we want the remote albums too, for changing remoteInfo display mode
+   val remote = Repositories.find(local.id)
+   val merged = MergedArtist(local, remote)
+ */
 class MergedArtist(val a: Artist, val b: Artist): Artist {
     override val id get() = a.id
     override val startYear: Int?
@@ -24,14 +32,3 @@ class MergedArtist(val a: Artist, val b: Artist): Artist {
     }
     override val biography get() = a.biography ?: b.biography
 }
-
-/*
-Merged Usage:
-   val local = Library.findArtist(uuid)
-We have the local albums for this artist,
-Now we want the remote albums too, for changing remoteInfo display mode
-   val remote = Repository.find(local.uuid)
-   val merged = MergedArtist(local, remote)
-
-TODO: Repository.find(...) should cache the results, so that it has RemoteArtist objects with potentially resolved children.
- */

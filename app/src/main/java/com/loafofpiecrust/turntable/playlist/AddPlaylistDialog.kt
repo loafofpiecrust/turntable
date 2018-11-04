@@ -16,10 +16,7 @@ import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.Recommendation
 import com.loafofpiecrust.turntable.model.album.AlbumId
-import com.loafofpiecrust.turntable.model.playlist.AlbumCollection
-import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
-import com.loafofpiecrust.turntable.model.playlist.MixTape
-import com.loafofpiecrust.turntable.model.playlist.MutableMixtape
+import com.loafofpiecrust.turntable.model.playlist.*
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.library
@@ -76,32 +73,30 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
     }
 
     private fun createAndFinish() {
+        val color = playlistColor.valueOrNull
         val pl = when (playlistType) {
             // TODO: Use the actual user uuid string.
             MixTape::class -> MutableMixtape(
+                PlaylistId(playlistName),
                 Sync.selfUser,
                 mixTapeType,
-                playlistName,
-                playlistColor.value,
-                UUID.randomUUID()
+                color
             ).apply {
                 addAll(0, startingTracks.tracks.mapNotNull { it as? Song })
             }
             CollaborativePlaylist::class -> CollaborativePlaylist(
+                PlaylistId(playlistName),
                 Sync.selfUser,
-                playlistName,
-                playlistColor.value,
-                UUID.randomUUID()
+                color
             ).apply {
                 startingTracks.tracks.forEach {
                     (it as? Song)?.let { add(it) }
                 }
             }
             AlbumCollection::class -> AlbumCollection(
+                PlaylistId(playlistName),
                 Sync.selfUser,
-                playlistName,
-                playlistColor.value,
-                UUID.randomUUID()
+                color
             ).apply {
                 startingTracks.tracks.forEach {
                     (it as? AlbumId)?.let { add(it) }
@@ -184,7 +179,7 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
                     override fun onItemSelected(parent: AdapterView<*>, view: View, position: Int, id: Long) {
                         val choice = choices[position]
                         playlistType = choice
-                        mixTapeSpinner.visibility = if (choice === MixTape::class) {
+                        mixTapeSpinner.visibility = if (choice == MixTape::class) {
                             // Show different mixtape types.
                             View.VISIBLE
                         } else View.GONE

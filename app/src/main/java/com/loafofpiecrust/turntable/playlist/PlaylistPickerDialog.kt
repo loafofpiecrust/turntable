@@ -9,12 +9,10 @@ import com.loafofpiecrust.turntable.model.playlist.*
 import com.loafofpiecrust.turntable.model.song.HasTracks
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.ui.Closable
-import com.loafofpiecrust.turntable.ui.UIComponent
-import com.loafofpiecrust.turntable.util.exhaustive
-import com.mcxiaoke.koi.ext.toast
+import com.loafofpiecrust.turntable.ui.universal.Closable
+import com.loafofpiecrust.turntable.ui.universal.UIComponent
+import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
@@ -104,7 +102,7 @@ class PlaylistPicker(
         }
         negativeButton("Cancel") {}
     }
-    override fun CoroutineScope.render(ui: AnkoContext<Any>) = ui.recyclerView {
+    override fun ViewContext.render() = recyclerView {
         topPadding = dip(8)
 
         val applicablePlaylists = UserPrefs.playlists.openSubscription().map {
@@ -119,29 +117,29 @@ class PlaylistPicker(
         }
 
         layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
-        adapter = PlaylistsFragment.Adapter(applicablePlaylists) { selected ->
+        adapter = PlaylistsFragment.Adapter(coroutineContext, applicablePlaylists) { selected ->
             val item = item
             when (item) {
                 is Song -> when (selected) {
                     is MutableMixtape -> selected.add(context, item)
                     is CollaborativePlaylist -> selected.add(context, item)
-                    else -> toast("Cannot add a song to ${selected.name}")
+                    else -> toast("Cannot add a song to ${selected.id.name}")
                 }
                 is AlbumId -> {
                     when (selected) {
 //                        is CollaborativePlaylist -> selected.addAll(context, item.resolve().tracks)
                         is AlbumCollection -> if (selected.add(item)) {
-                            toast(context.getString(R.string.playlist_added_track, selected.name))
+                            toast(context.getString(R.string.playlist_added_track, selected.id.name))
                         } else {
                             toast("Duplicate ignored")
                         }
-                        else -> toast("Cannot add an album to ${selected.name}")
+                        else -> toast("Cannot add an album to ${selected.id.name}")
                     }
                 }
                 else -> toast("Unrecognized music type")
-            }.exhaustive
+            }
 
-            (ui.owner as? Closable)?.close()
+            (owner as? Closable)?.close()
         }
     }
 }

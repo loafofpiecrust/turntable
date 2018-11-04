@@ -3,11 +3,15 @@ package com.loafofpiecrust.turntable.model.queue
 import com.loafofpiecrust.turntable.clamp
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.shifted
+import kotlinx.android.parcel.Parcelize
 
+@Parcelize
 data class StaticQueue(
     override val list: List<Song>,
     override val position: Int
 ): Queue {
+    internal constructor(): this(emptyList(), 0)
+
     override val current: Song? get() = list.getOrNull(position)
 
     override fun toNext() = when {
