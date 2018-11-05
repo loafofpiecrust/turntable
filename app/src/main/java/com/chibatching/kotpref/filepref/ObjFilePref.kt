@@ -67,19 +67,16 @@ abstract class BaseObjFilePref<T: Any>(
             getFromPreference(property, UserPrefs.kotprefPreference).also {
                 subject.offer(it)
             }
-            GlobalScope.launch {
-                subject.openSubscription().skip(1).consumeEach {
-                    save()
-                }
-            }
         }
         return subject
     }
 
     override fun setToPreference(property: KProperty<*>, value: T, preference: SharedPreferences) {
+        save()
     }
 
     override fun setToEditor(property: KProperty<*>, value: T, editor: SharedPreferences.Editor) {
+        save()
     }
 }
 

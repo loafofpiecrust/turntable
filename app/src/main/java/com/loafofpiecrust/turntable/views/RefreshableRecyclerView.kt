@@ -32,15 +32,44 @@ class RefreshableRecyclerView(
     val container = frameLayout()
 
     private var emptyView: View? = null
-    var channel: ReceiveChannel<List<*>>? = null
+    private var nullView: View? = null
+    var channel: ReceiveChannel<*>? = null
 
-    fun emptyView(block: @AnkoViewDslMarker ViewGroup.() -> View) {
+    fun emptyState(block: @AnkoViewDslMarker ViewGroup.() -> View) {
         emptyView = container.block()
-        emptyView!!.visibility = View.GONE
+        emptyView!!.visibility = View.INVISIBLE
     }
 
-    inline fun contentView(block: @AnkoViewDslMarker ViewGroup.() -> RecyclerView) {
+    fun nullState(block: @AnkoViewDslMarker ViewGroup.() -> View) {
+        nullView = container.block()
+        nullView!!.visibility = View.INVISIBLE
+    }
+
+    inline fun contents(block: @AnkoViewDslMarker ViewGroup.() -> View) {
         container.block()
+    }
+
+    private fun showIsEmpty() {
+        if (emptyView != null) {
+            emptyView!!.visibility = View.VISIBLE
+            nullView?.visibility = View.INVISIBLE
+        } else if (nullView != null) {
+            showIsNull()
+        }
+    }
+
+    private fun showIsNull() {
+        if (nullView != null) {
+            nullView!!.visibility = View.VISIBLE
+            emptyView?.visibility = View.INVISIBLE
+        } else if (emptyView != null) {
+            showIsEmpty()
+        }
+    }
+
+    private fun showContents() {
+        nullView?.visibility = View.INVISIBLE
+        emptyView?.visibility = View.INVISIBLE
     }
 
     override fun onAttachedToWindow() {
@@ -53,10 +82,12 @@ class RefreshableRecyclerView(
                 // Every time we receive data, ensure we stop showing the load circle.
                 isRefreshing = false
                 // Show the "empty view" if there's no data
-                emptyView?.visibility = if (it.isEmpty()) {
-                    View.VISIBLE
+                if (it == null) {
+                    showIsNull()
+                } else if (it is Collection<*> && it.isEmpty()) {
+                    showIsEmpty()
                 } else {
-                    View.GONE
+                    showContents()
                 }
             }
         }

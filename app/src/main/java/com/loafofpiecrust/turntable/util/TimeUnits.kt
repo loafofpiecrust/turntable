@@ -1,8 +1,12 @@
 package com.loafofpiecrust.turntable.util
 
+import kotlin.math.roundToInt
+import kotlin.math.roundToLong
+
 interface Duration: Comparable<Duration> {
     val value: Double
-    val longValue: Long get() = value.toLong()
+    val longValue: Long get() = value.roundToLong()
+    val intValue: Int get() = value.roundToInt()
     fun toMillis(): Double
 
     override fun compareTo(other: Duration): Int =

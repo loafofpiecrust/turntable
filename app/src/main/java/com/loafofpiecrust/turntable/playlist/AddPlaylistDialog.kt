@@ -14,7 +14,7 @@ import android.widget.Spinner
 import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.model.Recommendation
+import com.loafofpiecrust.turntable.model.Recommendable
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.playlist.*
 import com.loafofpiecrust.turntable.model.song.Song
@@ -33,25 +33,24 @@ import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.design.textInputLayout
 import org.jetbrains.anko.sdk27.coroutines.onClick
+import org.jetbrains.anko.sdk27.coroutines.onItemClick
 import org.jetbrains.anko.sdk27.coroutines.onItemSelectedListener
-import java.util.*
 import kotlin.reflect.KClass
 
 class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
     companion object {
-        fun withItems(items: List<Recommendation>) = AddPlaylistDialog().apply {
+        fun withItems(items: List<Recommendable>) = AddPlaylistDialog().apply {
             startingTracks = TrackList(items)
         }
     }
 
     @Parcelize
-    private data class TrackList(val tracks: List<Recommendation> = listOf()): Parcelable
+    private data class TrackList(val tracks: List<Recommendable> = listOf()): Parcelable
     private var startingTracks by arg { TrackList() }
 
     private var playlistName: String = ""
     private var playlistType: KClass<*> = CollaborativePlaylist::class
     private val playlistColor = ConflatedBroadcastChannel<Int>()
-    private var mixTapeType = MixTape.Type.C60
 
     override fun onStart() {
         super.onStart()
@@ -74,32 +73,16 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
 
     private fun createAndFinish() {
         val color = playlistColor.valueOrNull
+        val id = PlaylistId(playlistName, Sync.selfUser)
         val pl = when (playlistType) {
-            // TODO: Use the actual user uuid string.
-            MixTape::class -> MutableMixtape(
-                PlaylistId(playlistName),
-                Sync.selfUser,
-                mixTapeType,
-                color
-            ).apply {
-                addAll(0, startingTracks.tracks.mapNotNull { it as? Song })
-            }
-            CollaborativePlaylist::class -> CollaborativePlaylist(
-                PlaylistId(playlistName),
-                Sync.selfUser,
-                color
-            ).apply {
-                startingTracks.tracks.forEach {
-                    (it as? Song)?.let { add(it) }
-                }
-            }
-            AlbumCollection::class -> AlbumCollection(
-                PlaylistId(playlistName),
-                Sync.selfUser,
-                color
-            ).apply {
+            AlbumCollection::class -> AlbumCollection(id, color).apply {
                 startingTracks.tracks.forEach {
                     (it as? AlbumId)?.let { add(it) }
+                }
+            }
+            GeneralPlaylist::class -> GeneralPlaylist(id).apply {
+                startingTracks.tracks.forEach {
+                    (it as? Song)?.let { add(it) }
                 }
             }
             else -> kotlin.error("Unreachable")
@@ -162,39 +145,19 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
                 }
             }
 
-            lateinit var mixTapeSpinner: Spinner
+
             spinner {
                 val choices = listOf(
-                    CollaborativePlaylist::class,
-                    MixTape::class,
-                    AlbumCollection::class
+                    AlbumCollection::class,
+                    GeneralPlaylist::class
                 )
                 val names = choices.map { it.localizedName(context) }
                 adapter = choiceAdapter(context, names)
 
-                onItemSelectedListener = object: AdapterView.OnItemSelectedListener {
-                    override fun onNothingSelected(parent: AdapterView<*>) {
-                    }
-
-                    override fun onItemSelected(parent: AdapterView<*>, view: View, position: Int, id: Long) {
+                onItemSelectedListener {
+                    onItemSelected { _, _, position, id ->
                         val choice = choices[position]
                         playlistType = choice
-                        mixTapeSpinner.visibility = if (choice == MixTape::class) {
-                            // Show different mixtape types.
-                            View.VISIBLE
-                        } else View.GONE
-                    }
-                }
-            }
-
-            // Mixtape types
-            mixTapeSpinner = spinner {
-                visibility = View.GONE
-                val choices = MixTape.Type.values().toList()
-                adapter = choiceAdapter(context, choices)
-                onItemSelectedListener {
-                    onItemSelected { adapter, view, pos, id ->
-                        mixTapeType = choices[pos]
                     }
                 }
             }

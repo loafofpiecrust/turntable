@@ -116,14 +116,13 @@ class PlaylistsFragment: BaseFragment() {
             = RecyclerListItem(parent, 3, useIcon = true)
 
         override fun RecyclerListItem.onBind(item: Playlist, position: Int, job: Job) {
-            val item = data[position]
             val ctx = itemView.context
             val typeName = item.javaClass.localizedName(ctx)
             mainLine.text = item.id.displayName
-            subLine.text = if (item.owner == Sync.selfUser) {
+            subLine.text = if (item.id.owner == Sync.selfUser) {
                 typeName
             } else {
-                ctx.getString(R.string.playlist_author, item.owner.name, typeName)
+                ctx.getString(R.string.playlist_author, item.id.owner.name, typeName)
             }
 //            header.transitionName = "playlistHeader${item.name}"
 

@@ -27,7 +27,6 @@ import kotlin.coroutines.resume
  */
 open class MixTape(
     override val id: PlaylistId,
-    override val owner: User,
     var type: Type,
     override var color: Int?
 ) : AbstractPlaylist() {
@@ -56,9 +55,9 @@ open class MixTape(
             MixTape(
                 PlaylistId(
                     doc.getString("name")!!,
+                    doc.getBlob("owner")!!.toObject(),
                     UUID.fromString(doc.id)
                 ),
-                doc.getBlob("owner")!!.toObject(),
                 Type.valueOf(doc.getString("type")!!),
                 doc.getLong("color")?.toInt()
             ).apply {
@@ -180,10 +179,9 @@ fun MutableMixtape.add(ctx: Context, song: Song) = ctx.run {
 
 class MutableMixtape(
     id: PlaylistId,
-    owner: User,
     type: MixTape.Type,
     color: Int?
-): MixTape(id, owner, type, color), MutablePlaylist {
+): MixTape(id, type, color), MutablePlaylist {
     enum class AddResult {
         SIDE_FULL,
         DUPLICATE_SONG,
@@ -257,7 +255,7 @@ class MutableMixtape(
                     "lastModified" to lastModified,
                     "createdTime" to createdTime,
                     "tracks" to Blob.fromBytes(serialize(sides.value)),
-                    "owner" to Blob.fromBytes(serialize(owner))
+                    "owner" to Blob.fromBytes(serialize(id.owner))
                 ))
         }
         isPublished = true

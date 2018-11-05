@@ -43,6 +43,7 @@ object MusicBrainz: Repository {
     data class ArtistDetails(
         val id: String
     ): RemoteArtist.Details {
+        override val thumbnailUrl: String? get() = null
         override val albums: List<Album> by lazy {
             runBlocking { resolveAlbums(id) } // TODO: implement
         }

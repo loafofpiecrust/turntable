@@ -4,17 +4,18 @@ import android.content.Context
 import android.support.annotation.StringRes
 import kotlin.reflect.KClass
 
-val Class<*>.scopedName: String get() {
-    val name = canonicalName
-    requireNotNull(name) { "Cannot get resource name for local or anonymous class $this" }
-    return name.splitToSequence('.', '$')
+private val Class<*>.scopedNameParts: Sequence<String> get() =
+    name.splitToSequence('.', '$')
         .dropWhile { it[0].isLowerCase() }
-        .joinToString(".")
+
+val Class<*>.scopedName: String get() {
+    requireNotNull(name) { "Cannot get resource name for local or anonymous class $this" }
+    return scopedNameParts.joinToString(".")
 }
 
 @StringRes
 private fun Class<*>.nameResource(context: Context): Int {
-    val localName = scopedName.replace('.', '_')
+    val localName = scopedNameParts.joinToString("_")
     val pkg = context.packageName
     return context.resources.getIdentifier(localName, "string", pkg)
 }

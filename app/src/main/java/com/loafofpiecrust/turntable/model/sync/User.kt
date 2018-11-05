@@ -57,6 +57,11 @@ data class User(
     }
 
     fun refresh(): Deferred<User> = GlobalScope.async(Dispatchers.IO) {
-        resolve(username)!!
+        val newer = resolve(username)
+        if (newer != null) {
+            deviceId = newer.deviceId
+            displayName = newer.displayName
+        }
+        newer ?: this@User
     }
 }

@@ -9,13 +9,13 @@ interface Music {
 /**
  * Can be sent to another user as a recommendation.
  */
-interface Recommendation: Parcelable
+interface Recommendable: Parcelable
 
 /**
  * Identifies a piece of [Music] content that can be displayed in the UI.
  * Any [MusicId] can be sent as a recommendation.
  */
-interface MusicId: Recommendation {
+interface MusicId: Recommendable {
     val name: String
     val displayName: String
 }

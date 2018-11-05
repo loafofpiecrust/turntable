@@ -8,13 +8,14 @@ import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumDetailsUI
 import com.loafofpiecrust.turntable.artist.ArtistDetailsUI
-import com.loafofpiecrust.turntable.model.Recommendation
+import com.loafofpiecrust.turntable.model.Recommendable
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.playlist.AbstractPlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.model.playlist.PlaylistId
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.MixtapeDetailsUI
 import com.loafofpiecrust.turntable.prefs.UserPrefs
@@ -105,8 +106,8 @@ class BrowseFragment: BaseFragment() {
 
 class MusicAdapter(
     parentContext: CoroutineContext,
-    channel: ReceiveChannel<List<Recommendation>>
-): RecyclerAdapter<Recommendation, RecyclerListItem>(parentContext, channel) {
+    channel: ReceiveChannel<List<Recommendable>>
+): RecyclerAdapter<Recommendable, RecyclerListItem>(parentContext, channel) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
         RecyclerListItem(parent, 3, false)
@@ -117,19 +118,26 @@ class MusicAdapter(
 //        holder.mainLine.text = item.id.displayName
 
         // TODO: Add the recommending user!
-        val ctx = holder.itemView.context
-        when (item) {
-            is Song -> {
-                holder.mainLine.text = item.id.displayName
-                holder.subLine.text = item.id.artist.displayName
-                holder.coverImage?.image = null
-                holder.card.onClick {
-                    MusicService.offer(PlayerAction.PlaySongs(listOf(item)))
-                }
+        holder.bindMusic(item)
+    }
+}
+
+fun RecyclerListItem.bindMusic(
+   item: Recommendable
+) {
+    val ctx = itemView.context
+    when (item) {
+        is Song -> {
+            mainLine.text = item.id.displayName
+            subLine.text = item.id.artist.displayName
+            coverImage?.image = null
+            card.onClick {
+                MusicService.offer(PlayerAction.PlaySongs(listOf(item)))
             }
-            is AlbumId -> {
-                holder.mainLine.text = item.displayName
-                holder.subLine.text = item.artist.displayName
+        }
+        is AlbumId -> {
+            mainLine.text = item.displayName
+            subLine.text = item.artist.displayName
 //                (holder.coverImage)?.let { cover ->
 //                    launch {
 //                        item.loadCover(Glide.with(cover)).first()
@@ -139,35 +147,31 @@ class MusicAdapter(
 //                            }
 //                    }
 //                }
-                holder.card.onClick {
-                    ctx.replaceMainContent(
-                        AlbumDetailsUI(item).createFragment()
-                    )
-                }
+            card.onClick {
+                ctx.replaceMainContent(
+                    AlbumDetailsUI(item).createFragment()
+                )
             }
-            is ArtistId -> {
-                holder.mainLine.text = item.displayName
-                holder.subLine.text = ""
-                holder.coverImage?.image = null
-                holder.card.onClick {
-                    ctx.replaceMainContent(
-                        ArtistDetailsUI(item, ArtistDetailsUI.Mode.LIBRARY_AND_REMOTE).createFragment()
-                    )
-                }
+        }
+        is ArtistId -> {
+            mainLine.text = item.displayName
+            subLine.text = ""
+            coverImage?.image = null
+            card.onClick {
+                ctx.replaceMainContent(
+                    ArtistDetailsUI(item, ArtistDetailsUI.Mode.LIBRARY_AND_REMOTE).createFragment()
+                )
             }
-            is PlaylistId -> {
-                holder.mainLine.text = item.displayName
-                holder.subLine.text = ctx.getString(R.string.playlist_author, item.name, "Playlist")
-                holder.card.onClick {
-                    val playlist = withContext(Dispatchers.IO) {
-                        AbstractPlaylist.findChannel(item.uuid).map {
-                            it as? MixTape
-                        }
-                    }
-                    ctx.replaceMainContent(MixtapeDetailsUI.Resolved(item, playlist).createFragment())
-                }
+        }
+        is PlaylistId -> {
+            mainLine.text = item.displayName
+            subLine.text = ctx.getString(R.string.playlist_author, item.owner.displayName, "Playlist")
+            card.onClick {
+//                val playlist = withContext(Dispatchers.IO) {
+//                    AbstractPlaylist.findChannel(item.uuid)
+//                }
+//                ctx.replaceMainContent(MixtapeDetailsUI.Resolved(item, playlist).createFragment())
             }
         }
     }
-
 }

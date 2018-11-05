@@ -10,7 +10,6 @@ import android.view.Menu
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.artist.ArtistDetailsUI
 import com.loafofpiecrust.turntable.repository.local.LocalApi
-import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
@@ -58,7 +57,7 @@ sealed class AlbumsUI(
     override fun ViewContext.render() = refreshableRecyclerView {
         channel = displayAlbums.openSubscription()
 
-        contentView {
+        contents {
             val grid = GridLayoutManager(context, 3)
 
             val goToAlbum = { item: RecyclerItem, album: Album ->

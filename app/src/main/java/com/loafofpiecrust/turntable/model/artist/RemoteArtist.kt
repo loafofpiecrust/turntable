@@ -1,7 +1,12 @@
 package com.loafofpiecrust.turntable.model.artist
 
+import android.graphics.drawable.Drawable
 import android.os.Parcelable
+import com.bumptech.glide.RequestBuilder
+import com.bumptech.glide.RequestManager
 import com.loafofpiecrust.turntable.model.album.Album
+import com.loafofpiecrust.turntable.util.produceSingle
+import kotlinx.coroutines.channels.ReceiveChannel
 
 
 class RemoteArtist(
@@ -13,6 +18,11 @@ class RemoteArtist(
     override val albums get() = details.albums
     override val biography get() = details.biography
 
+    override fun loadThumbnail(req: RequestManager) =
+        details.thumbnailUrl?.let { url ->
+            produceSingle(req.load(url))
+        } ?: super.loadThumbnail(req)
+
     // Properties only obtained with remoteInfo:
     // - albums
     // - members
@@ -22,6 +32,7 @@ class RemoteArtist(
     interface Details {
         val albums: List<Album>
         val biography: String
+        val thumbnailUrl: String?
 //        val members: List<Artist.Member>
     }
 }

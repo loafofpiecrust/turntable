@@ -21,6 +21,11 @@ interface Closable {
 class UniversalFragment: Fragment(), Closable {
     var component: UIComponent by arg()
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         return component.run {
             createView(requireContext(), this@UniversalFragment)
@@ -41,7 +46,9 @@ class UniversalFragment: Fragment(), Closable {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
         super.onCreateOptionsMenu(menu, inflater)
         component.apply {
-            menu.prepareOptions(requireContext())
+            if (context != null) {
+                menu.prepareOptions(context!!)
+            }
         }
     }
 

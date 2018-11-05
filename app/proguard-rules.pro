@@ -11,6 +11,9 @@
 
 #-verbose
 
+# Firebase firestore in release
+-keepclassmembers class io.grpc.internal.CensusTracingModule$ServerTracer { *; }
+
 -keep class com.loafofpiecrust.turntable.** { *; }
 
 # Serialization

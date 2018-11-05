@@ -28,6 +28,7 @@ import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
+import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumDetailsUI
 import com.loafofpiecrust.turntable.artist.ArtistDetailsUI
@@ -49,11 +50,9 @@ import com.loafofpiecrust.turntable.util.group
 import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.util.switchMap
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.channels.map
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.*
 import org.jetbrains.anko.design.navigationView
 import org.jetbrains.anko.support.v4.drawerLayout
@@ -115,6 +114,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
     }
 
     override fun ViewManager.createView() = MultiSheetView(this@MainActivity) {
+        backgroundColor = colorAttr(android.R.attr.windowBackground)
         mainContent {
             drawers = drawerLayout {
                 // main content
@@ -205,6 +205,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
             .withListener(this)
             .check()
     }
+
 
     lateinit var gclient: GoogleApiClient
 

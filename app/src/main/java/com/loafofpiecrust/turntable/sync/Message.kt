@@ -2,7 +2,7 @@ package com.loafofpiecrust.turntable.sync
 
 import android.os.Parcelable
 import com.loafofpiecrust.turntable.appends
-import com.loafofpiecrust.turntable.model.Recommendation
+import com.loafofpiecrust.turntable.model.Recommendable
 import com.loafofpiecrust.turntable.model.playlist.AbstractPlaylist
 import com.loafofpiecrust.turntable.model.queue.CombinedQueue
 import com.loafofpiecrust.turntable.model.song.Song
@@ -15,7 +15,6 @@ import com.loafofpiecrust.turntable.util.days
 import com.loafofpiecrust.turntable.util.minutes
 import kotlinx.android.parcel.Parcelize
 import org.jetbrains.anko.info
-import java.io.Serializable
 import java.util.*
 
 interface Message {
@@ -29,7 +28,7 @@ interface Message {
 
     // Recommendations
     data class Recommend(
-        val content: Recommendation
+        val content: Recommendable
     ): Message {
         override val timeout get() = 28.days
         override suspend fun onReceive(sender: User) {

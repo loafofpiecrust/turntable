@@ -6,11 +6,11 @@ import android.support.v7.graphics.Palette
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
 import com.loafofpiecrust.turntable.App
-import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.model.Music
-import com.loafofpiecrust.turntable.model.Recommendation
+import com.loafofpiecrust.turntable.model.Recommendable
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repository.Repositories
+import com.loafofpiecrust.turntable.repository.StreamProviders
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.util.*
@@ -66,7 +66,7 @@ data class Song(
     /// Platform-specific identifier
     @Transient
     val platformId: PlatformId? = null
-): Music, Parcelable, HasTracks, Recommendation {
+): Music, Parcelable, HasTracks, Recommendable {
     override val tracks: List<Song> get() = listOf(this)
 
     /**
@@ -99,13 +99,14 @@ data class Song(
         // This is a remote song, find the stream uuid
         // Well, we might have a song that's pretty much the same. Check first.
         // (Last line of defense against minor typos/discrepancies/album versions)
-        val res = OnlineSearchService.instance.getSongStreams(this)
-        return if (res.status is OnlineSearchService.StreamStatus.Available) {
-            val url = if (hqStreaming) {
-                res.status.hqStream ?: res.status.stream
-            } else res.status.stream
-            Media(url, res.start, res.end)
-        } else null
+//        val res = OnlineSearchService.instance.getSongStreams(this)
+//        return if (res.status is OnlineSearchService.StreamStatus.Available) {
+//            val url = if (hqStreaming) {
+//                res.status.hqStream ?: res.status.stream
+//            } else res.status.stream
+//            Media(url, res.start, res.end)
+//        } else null
+        return StreamProviders.sourceForSong(this)
     }
 
     fun loadCover(req: RequestManager, cb: (Palette?, Palette.Swatch?) -> Unit = { a, b -> }): ReceiveChannel<RequestBuilder<Drawable>?> =

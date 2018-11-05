@@ -6,12 +6,13 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ServerTimestamp
 import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.MusicId
-import com.loafofpiecrust.turntable.model.Recommendation
+import com.loafofpiecrust.turntable.model.Recommendable
 import com.loafofpiecrust.turntable.model.song.HasTracks
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repeat
 import com.loafofpiecrust.turntable.model.sync.User
+import com.loafofpiecrust.turntable.sync.Sync
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -31,15 +32,21 @@ import kotlin.coroutines.resumeWithException
 @Parcelize
 data class PlaylistId(
     override val name: String,
+    val owner: User = Sync.selfUser,
     val uuid: UUID = UUID.randomUUID()
-): MusicId, Recommendation {
+): MusicId, Recommendable {
+    private constructor(): this("")
+
     override val displayName get() = name
+
+    override fun hashCode(): Int = Objects.hash(owner, uuid)
+    override fun equals(other: Any?) =
+        other is PlaylistId && owner == other.owner && uuid == other.uuid
 }
 
 interface Playlist: Music, HasTracks {
     override val id: PlaylistId
 
-    val owner: User
     var color: Int?
 
     @get:DrawableRes
@@ -51,7 +58,7 @@ interface MutablePlaylist: Playlist {
 
     /// The first time, publishes this playlist to the database.
     /// After that, this pushes updates to the database entry.
-    abstract fun publish()
+    fun publish()
 
     /// Removes this playlist from the database
     fun unpublish() {

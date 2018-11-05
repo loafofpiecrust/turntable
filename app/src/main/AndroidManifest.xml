@@ -29,15 +29,15 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:largeHeap="true"
-        android:theme="@style/AppTheme.Dark">
+        android:theme="@style/AppTheme.Light"
+        android:largeHeap="true">
         <meta-data android:name="com.google.android.apps.drive.APP_ID" android:value="id=turntable-3961c" />
 
 
         <activity
             android:name=".ui.MainActivity"
             android:label="@string/app_name"
-            android:theme="@style/AppTheme.Dark"
+            android:theme="@style/AppTheme.Light"
             android:exported="true"
             android:launchMode="singleTask">
             <intent-filter>

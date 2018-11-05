@@ -173,13 +173,13 @@ class PlaylistDetailsUI(
 
         refreshableRecyclerView {
             channel = playlist.tracksChannel
-            contentView {
+            contents {
                 recyclerView {
                     layoutManager = LinearLayoutManager(context)
                     adapter = PlaylistTracksAdapter(coroutineContext, playlist)
                 }
             }
-            emptyView {
+            emptyState {
                 verticalLayout {
                     gravity = Gravity.CENTER
                     padding = dimen(R.dimen.empty_state_padding)

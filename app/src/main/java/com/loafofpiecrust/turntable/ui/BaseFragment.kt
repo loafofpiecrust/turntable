@@ -11,6 +11,8 @@ import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentActivity
 import android.support.v7.app.AppCompatActivity
 import android.view.*
+import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.prefs.UserPrefs
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -157,9 +159,28 @@ abstract class BaseActivity: AppCompatActivity(), AnkoLogger, ViewComponentScope
     private var isFirstInit = true
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        launch(start = CoroutineStart.UNDISPATCHED) {
+            val useDark = UserPrefs.useDarkTheme.openSubscription()
+            toggleTheme(useDark.receive())
+            useDark.consumeEach {
+                recreate()
+            }
+        }
+
         isFirstInit = savedInstanceState == null
         ActivityStarter.fill(this, savedInstanceState)
         setContentView(AnkoContext.create(this, this).createView())
+    }
+
+    private fun toggleTheme(isDark: Boolean) {
+        val theme = if (isDark) {
+            R.style.AppTheme_Dark
+        } else {
+            R.style.AppTheme_Light
+        }
+//        application.setTheme(theme)
+        setTheme(theme)
     }
 
     abstract fun ViewManager.createView(): View

@@ -71,7 +71,7 @@ android {
     }
     buildTypes {
         release {
-            testCoverageEnabled true
+//            testCoverageEnabled true
             minifyEnabled true
 //            shrinkResources true
             useProguard false

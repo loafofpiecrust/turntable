@@ -23,6 +23,7 @@ import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.lazy
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.debug
@@ -76,7 +77,7 @@ object Spotify: Repository {
 
     data class ArtistDetails(
         val id: String,
-        val thumbnailUrl: String? = null,
+        override val thumbnailUrl: String? = null,
         val artworkUrl: String? = null
     ): RemoteArtist.Details {
         /// TODO: Pagination
@@ -198,9 +199,7 @@ object Spotify: Repository {
     }
 
     private suspend fun searchFor(song: SongId): List<String> {
-        val res = Http.get("search", headers = mapOf(
-            "Authorization" to "Bearer $accessToken"
-        ), params = mapOf(
+        val res = apiRequest("search", mapOf(
             "q" to "track:\"${song.name}\" artist:\"${song.artist}\" album:\"${song.album.name}\"",
             "type" to "track",
             "limit" to "3"
@@ -210,9 +209,7 @@ object Spotify: Repository {
     }
 
     private suspend fun searchFor(album: AlbumId): List<RemoteAlbum> {
-        val res = Http.get("search", headers = mapOf(
-            "Authorization" to "Bearer $accessToken"
-        ), params = mapOf(
+        val res = apiRequest("search", mapOf(
             "q" to "album:\"${album.name}\" artist:\"${album.artist.name}\"",
             "type" to "album",
             "limit" to "3"
@@ -366,6 +363,7 @@ object Spotify: Repository {
         )
         recs.forEach { newPl.add(it) }
         ctx.library.cachePlaylist(newPl)
+        delay(10)
 
         App.launch {
             ctx.replaceMainContent(

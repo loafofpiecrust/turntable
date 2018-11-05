@@ -43,8 +43,7 @@ fun <T: Preference, R: Any> PreferenceGroup.basicPref(inst: T, pref: ConflatedBr
     }
     inst.setOnPreferenceChangeListener { _, valueObj ->
         @Suppress("UNCHECKED_CAST") // I know what I'm doing
-        val value = valueObj as R
-        pref.offer(valueObj)
+        pref.offer(valueObj as R)
         true
     }
     addPreference(inst)

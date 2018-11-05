@@ -27,11 +27,10 @@ import java.util.*
 
 class AlbumCollection(
     override val id: PlaylistId,
-    override val owner: User,
     override var color: Int?
 ) : AbstractPlaylist(), MutablePlaylist {
     /// For serialization
-    private constructor(): this(PlaylistId(""), Sync.selfUser, null)
+    private constructor(): this(PlaylistId(""), null)
 
     private val _albums = ConflatedBroadcastChannel(listOf<AlbumId>())
 
@@ -54,8 +53,11 @@ class AlbumCollection(
     companion object {
         fun fromDocument(doc: DocumentSnapshot): AlbumCollection = runBlocking {
             AlbumCollection(
-                PlaylistId(doc.getString("name")!!, UUID.fromString(doc.id)),
-                doc.getBlob("owner")!!.toObject(),
+                PlaylistId(
+                    doc.getString("name")!!,
+                    doc.getBlob("owner")!!.toObject(),
+                    UUID.fromString(doc.id)
+                ),
                 doc.getLong("color")?.toInt()
             ).apply {
                 isPublished = true
@@ -105,7 +107,7 @@ class AlbumCollection(
                 .document(id.uuid.toString())
                 .set(mapOf(
                     "format" to "albums",
-                    "owner" to Blob.fromBytes(serialize(owner)),
+                    "owner" to Blob.fromBytes(serialize(id.owner)),
                     "name" to id.name,
                     "color" to color,
                     "lastModified" to lastModified,

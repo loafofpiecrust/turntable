@@ -1,20 +1,27 @@
 package com.loafofpiecrust.turntable.model.playlist
 
+import android.content.Context
 import android.support.annotation.VisibleForTesting
 import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.Blob
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.util.*
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.first
+import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.jetbrains.anko.selector
+import org.jetbrains.anko.toast
 import java.util.*
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -33,10 +40,12 @@ import kotlin.coroutines.suspendCoroutine
  * - Represented as a list of Operations that compose into the actual track list
  */
 class GeneralPlaylist(
-    override val id: PlaylistId,
-    override val owner: User = Sync.selfUser,
+    id: PlaylistId,
     initialSideCount: Int = 1
 ): Playlist {
+    override var id = id
+        private set
+
     override val icon: Int
         get() = R.drawable.ic_queue
 
@@ -44,6 +53,7 @@ class GeneralPlaylist(
 
     @VisibleForTesting
     internal var lastSyncTime: Long = 0
+
     var lastModifiedTime: Long = 0
         private set
 
@@ -54,37 +64,68 @@ class GeneralPlaylist(
         private set
 
     val sides = ConflatedBroadcastChannel(
-        (0..initialSideCount).map { emptyList<Track>() }
+        (1..initialSideCount).map { emptyList<Track>() }
     )
 
+    val tracksChannel: ReceiveChannel<List<Song>>
+        get() = sides.openSubscription().map {
+            it.lazy.flatten()
+                .map { it.song }
+                .toList()
+        }
+
     override val tracks: List<Song> get() = runBlocking {
-        sides.openSubscription().first()
-            .lazy.flatten()
-            .map { it.song }
-            .toList()
+        tracksChannel.first()
     }
 
     val sideCount: Int get() = sides.value.size
 
     fun durationOfSide(side: Int): Int =
-        sides.value.getOrNull(side)?.size ?: 0
+        sides.value.getOrNull(side)?.sumBy {
+            it.song.duration.takeIf { it > 0 }
+                ?: DEFAULT_TRACK_DURATION.intValue
+        } ?: 0
+
+    fun sideIsFull(sideIdx: Int): Boolean =
+        maxSideDuration != SIDE_UNLIMITED && durationOfSide(sideIdx) >= maxSideDuration
+
+    fun sideName(sideIdx: Int): String =
+        ('A' + sideIdx).toString()
 
     val totalDuration: Int get() =
         (0 until sideCount).sumBy { durationOfSide(it) }
 
 
-    fun add(song: Song, side: Int = 0) {
-        modify()
-        val track = Track(song)
-        if (sideCount <= side) {
-            sides appends listOf(track)
-        } else {
-            sides putsMapped { it.withReplaced(side, it[side] + track) }
+    enum class AddResult {
+        SIDE_FULL,
+        DUPLICATE_SONG,
+        ADDED
+    }
+    fun add(song: Song, sideIdx: Int = 0): AddResult {
+        val side = sides.value[sideIdx]
+        return when {
+            sideIsFull(sideIdx) -> AddResult.SIDE_FULL
+            side.any { it.song.id == song.id } -> AddResult.DUPLICATE_SONG
+            else -> {
+                modify()
+                val track = Track(song)
+                if (sideCount <= sideIdx) {
+                    sides appends listOf(track)
+                } else {
+                    sides putsMapped { it.withReplaced(sideIdx, it[sideIdx] + track) }
+                }
+                AddResult.ADDED
+            }
         }
     }
 
     fun addSide(startingTrack: Song? = null) {
         sides appends (startingTrack?.let { listOf(Track(it)) } ?: emptyList())
+    }
+
+    fun rename(newName: String) {
+        modify()
+        id = id.copy(name = newName)
     }
 
     fun remove(songId: SongId) {
@@ -116,15 +157,14 @@ class GeneralPlaylist(
             }.first { it.second != -1 }
 
             val src = srcSide.removeAt(srcIdx)
-            src.lastMovedTime = System.currentTimeMillis()
-            destSide.add(destIdx, src)
+            destSide.add(destIdx, src.copy(lastMovedTime = lastModifiedTime))
 
             result
         }
     }
 
     private fun canModify(user: User): Boolean =
-        user == owner
+        user == id.owner
 
     private fun modify() {
         if (!canModify(Sync.selfUser)) {
@@ -140,9 +180,8 @@ class GeneralPlaylist(
     internal fun mergeWith(remote: GeneralPlaylist): Boolean {
         // If we've synced since the remote was last modified,
         // we don't need to do anything
-        if (lastSyncTime >= remote.lastModifiedTime) {
-            return false
-        }
+//            return false
+//        }
         // For simplicity, let's assume the same # of sides first
         sides putsMapped {
             it.lazy.zip(remote.sides.value.lazy).map { (localSide, remoteSide) ->
@@ -150,16 +189,18 @@ class GeneralPlaylist(
                 val compiled = remoteSide.toMutableList()
                 compiled.retainAll(localSide)
 
+                println("shared = $compiled")
+
                 val missingRemotes = remoteSide.lazy
                     .mapIndexed { index, track -> index to track }
                     .filter { (_, track) ->
-                        track.addedTime >= lastSyncTime && !localSide.contains(track)
+                        track.addedTime > lastSyncTime && !localSide.contains(track)
                     }
 
                 val missingLocals = localSide.lazy
                     .mapIndexed { index, track -> index to track }
                     .filter { (_, track) ->
-                        track.addedTime >= lastSyncTime && !remoteSide.contains(track)
+                        track.addedTime > lastSyncTime && !remoteSide.contains(track)
                     }
 
                 for ((index, missingTrack) in missingRemotes + missingLocals) {
@@ -168,6 +209,8 @@ class GeneralPlaylist(
                     compiled.add(index, missingTrack)
                 }
 
+                println("before moves = $compiled")
+
                 // all that's left are moved tracks
                 val movedRemotes = remoteSide.lazy
                     .mapIndexed { index, track -> index to track }
@@ -175,16 +218,29 @@ class GeneralPlaylist(
                         track.addedTime < lastSyncTime && track.lastMovedTime >= lastSyncTime
                     }
 
+                println("moved remotes = ${movedRemotes.toList()}")
+
                 val movedLocals = localSide.lazy
                     .mapIndexed { index, track -> index to track }
                     .filter { (_, track) ->
                         track.addedTime < lastSyncTime && track.lastMovedTime >= lastSyncTime
                     }
 
+                println("moved locals = ${movedLocals.toList()}")
+
                 val movedTracks = (movedRemotes + movedLocals).toListSortedBy {
                     // descending
                     -it.second.lastMovedTime
-                }.dedup { (_, a), (_, b) -> a.song.id == b.song.id }
+                }.dedupMerge(
+                    { (_, a), (_, b) -> a.song.id == b.song.id },
+                    { a, b ->
+                        if (a.second.lastMovedTime >= b.second.lastMovedTime) {
+                            a
+                        } else b
+                    }
+                )
+
+                println("moved tracks = $movedTracks")
 
                 for ((index, track) in movedTracks) {
                     compiled.remove(track)
@@ -198,15 +254,19 @@ class GeneralPlaylist(
     }
 
     private suspend fun syncWithRemote() {
-        val remote = try {
+        val remote = fromDocument(try {
             download().await()
         } catch (e: Exception) {
             // failed to find it in the database.
             e.printStackTrace()
             return
-        }
+        })
 
-        val mergeNeeded = mergeWith(fromDocument(remote))
+        val mergeNeeded = lastSyncTime >= remote.lastModifiedTime
+        if (mergeNeeded) {
+            mergeWith(remote)
+            delay(5)
+        }
         if (mergeNeeded || lastModifiedTime > lastSyncTime) {
             lastSyncTime = System.currentTimeMillis()
             upload()
@@ -218,79 +278,56 @@ class GeneralPlaylist(
         db.playlists()
             .document(id.uuid.toString())
             .set(toDocument())
+            .addOnCompleteListener {
+                if (!it.isSuccessful) {
+                    it.exception?.printStackTrace()
+                } else {
+                    isPublic = true
+                }
+            }
     }
 
-    private fun download(): Task<DocumentSnapshot> = run {
-        val db = FirebaseFirestore.getInstance()
-        db.playlists()
+    private fun download(): Task<DocumentSnapshot> =
+        FirebaseFirestore.getInstance()
+            .playlists()
             .document(id.uuid.toString())
             .get()
-    }
-
-
-    data class Track(
-        val song: Song
-    ) {
-        val addedTime: Long = System.currentTimeMillis()
-        var lastMovedTime: Long = System.currentTimeMillis()
-
-        override fun hashCode() = song.id.hashCode()
-        override fun equals(other: Any?) =
-            other is Track && song.id == other.song.id
-    }
-
-    private sealed class Operation {
-        val timestamp: Long = System.currentTimeMillis()
-
-        abstract fun apply(sides: MutableList<MutableList<Song>>)
-
-        data class Add(
-            val song: Song,
-            val side: Int
-        ): Operation() {
-            override fun apply(sides: MutableList<MutableList<Song>>) {
-                while (sides.size <= side) {
-                    sides.add(mutableListOf())
-                }
-                sides[side].add(song)
-            }
-        }
-
-        data class Remove(
-            val id: SongId
-        ): Operation() {
-            override fun apply(sides: MutableList<MutableList<Song>>) {
-                sides.forEach { it.removeAll { it.id == this.id } }
-            }
-        }
-
-        data class Move(
-            val id: SongId,
-            val replacing: SongId
-        ): Operation() {
-            override fun apply(sides: MutableList<MutableList<Song>>) {
-                // find the list and index of the destination.
-                val (destSide, destIdx) = sides.lazy.map {
-                    it to it.indexOfFirst { replacing == it.id }
-                }.first { it.second != -1 }
-                val (srcSide, srcIdx) = sides.lazy.map {
-                    it to it.indexOfFirst { id == it.id }
-                }.first { it.second != -1 }
-
-                val src = srcSide.removeAt(srcIdx)
-                destSide.add(destIdx, src)
-            }
-        }
-    }
 
     private fun toDocument(): Map<String, Any> = runBlocking {
         mapOf(
             "name" to id.name,
-            "owner" to Blob.fromBytes(serialize(owner)),
+            "owner" to id.owner.username,
             "lastModifiedTime" to lastModifiedTime,
             "maxSideDuration" to maxSideDuration,
             "sides" to Blob.fromBytes(serialize(sides.value))
         )
+    }
+
+    fun publish() {
+        if (!isPublic) {
+            upload()
+        } else {
+            GlobalScope.launch { syncWithRemote() }
+        }
+    }
+
+    fun unpublish() {
+        isPublic = false
+        val db = FirebaseFirestore.getInstance()
+        db.playlists()
+            .document(id.uuid.toString())
+            .delete()
+    }
+
+
+    data class Track(
+        val song: Song,
+        val addedTime: Long = System.currentTimeMillis(),
+        val lastMovedTime: Long = System.currentTimeMillis()
+    ) {
+        override fun hashCode() = song.id.hashCode()
+        override fun equals(other: Any?) = other === this ||
+            (other is Track && song.id == other.song.id)
     }
 
     companion object {
@@ -299,8 +336,11 @@ class GeneralPlaylist(
 
         private fun fromDocument(doc: DocumentSnapshot) = runBlocking {
             GeneralPlaylist(
-                PlaylistId(doc.getString("name")!!, UUID.fromString(doc.id)),
-                doc.getBlob("owner")!!.toObject()
+                PlaylistId(
+                    doc.getString("name")!!,
+                    User.resolve(doc.getString("owner")!!)!!,
+                    UUID.fromString(doc.id)
+                )
             ).apply {
                 lastSyncTime = System.currentTimeMillis()
                 lastModifiedTime = doc.getLong("lastModifiedTime")!!
@@ -322,5 +362,26 @@ suspend fun <T> Task<T>.await(): T = suspendCoroutine { cont ->
                 cont.resumeWithException(e)
             }
         }
+    }
+}
+
+
+fun GeneralPlaylist.add(ctx: Context, song: Song) = ctx.run {
+    val sideNames = (0 until sideCount).map {
+        getString(R.string.mixtape_side, 'A' + it)
+    }
+    selector(getString(R.string.mixtape_pick_side), sideNames) { dialog, idx ->
+        val result = add(song, idx)
+        toast(when (result) {
+            GeneralPlaylist.AddResult.ADDED ->
+                getString(R.string.playlist_added_track, id.name)
+            GeneralPlaylist.AddResult.SIDE_FULL ->
+                getString(
+                    R.string.playlist_is_full,
+                    getString(R.string.mixtape_side_named, 'A' + idx, id.name)
+                )
+            GeneralPlaylist.AddResult.DUPLICATE_SONG ->
+                getString(R.string.playlist_duplicate, id.name)
+        })
     }
 }

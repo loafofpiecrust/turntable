@@ -1,10 +1,15 @@
 package com.loafofpiecrust.turntable.ui
 
 import activitystarter.MakeActivityStarter
+import android.graphics.PorterDuff
+import android.os.Bundle
 import android.support.design.widget.TabLayout
 import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentPagerAdapter
+import android.support.v4.app.FragmentStatePagerAdapter
+import android.support.v7.widget.Toolbar
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewManager
 import android.widget.LinearLayout
 import com.loafofpiecrust.turntable.R
@@ -17,6 +22,7 @@ import com.loafofpiecrust.turntable.song.SongsUI
 import com.loafofpiecrust.turntable.sync.SyncTabFragment
 import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.util.combineLatest
+import com.loafofpiecrust.turntable.util.memoize
 import com.loafofpiecrust.turntable.util.replayOne
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.map
@@ -41,23 +47,37 @@ class LibraryFragment: BaseFragment() {
         .map { it.toList() }.replayOne()
 //    private val tabs = ConflatedBroadcastChannel(listOf("Artists", "Albums"))
 
-    private val currentTabIdx = ConflatedBroadcastChannel<Int>()
-
-    val currentTab get() = combineLatest(currentTabIdx.openSubscription(), tabs.openSubscription()) { idx, tabs -> tabs[idx] }
-
-    val fragments = mutableMapOf<String, Reference<Fragment>>()
-
 //    private val currentTabFragment get() = currentTabIdx.openSubscription()
 //        .combineLatest(tabFragments.openSubscription()) { idx, tabs -> tabs[idx] }
 
+    private val fragments = mutableMapOf<String, Fragment>()
+    private val createFragment = { key: String ->
+        fragments.getOrPut(key) {
+            when (key) {
+                "Albums" -> AlbumsUI.All().createFragment()
+                "Songs" -> SongsUI.All().createFragment() // all songs yo
+                "Artists" -> ArtistsUI.All().createFragment() // artists
+                "Playlists" -> PlaylistsFragment() // playlists!
+                "Friends" -> SyncTabFragment()
+                "Recommendations" -> BrowseFragment()
+                else -> throw Error("Unrecognized Library tab \'$key\'")
+            }
+        }
+    }
+
     inner class TabsPager(
-        private val tabs: List<String>,
-        private val fragments: (String) -> Fragment
-    ) : FragmentPagerAdapter(childFragmentManager) {
+        var tabs: List<String>
+    ) : FragmentStatePagerAdapter(childFragmentManager) {
         override fun getCount() = tabs.size
 
         // TODO: Map the index to the correct tab. For now, hardcode.
-        override fun getItem(position: Int) = fragments.invoke(tabs[position])
+        override fun getItem(position: Int) = createFragment(tabs[position])
+
+        override fun instantiateItem(container: ViewGroup, position: Int): Any {
+            val frag = super.instantiateItem(container, position)
+            fragments[tabs[position]] = frag as Fragment
+            return frag
+        }
 
         override fun getPageTitle(position: Int) = tabs.getOrNull(position) ?: ""
     }
@@ -66,17 +86,8 @@ class LibraryFragment: BaseFragment() {
     override fun ViewManager.createView(): View = linearLayout {
         orientation = LinearLayout.VERTICAL
 
-        val tabFragments = { key: String -> when (key) {
-            "Albums" -> AlbumsUI.All().createFragment()
-            "Songs" -> SongsUI.All().createFragment() // all songs yo
-            "Artists" -> ArtistsUI.All().createFragment() // artists
-            "Playlists" -> PlaylistsFragment() // playlists!
-            "Friends" -> SyncTabFragment()
-            "Recommendations" -> BrowseFragment()
-            else -> throw Error("Unrecognized Library tab \'$key\'")
-        }.also { fragments[key] = WeakReference(it) } }
-
         var tabs: TabLayout? = null
+        lateinit var toolbar: Toolbar
 
         appBarLayout {
             topPadding = dimen(R.dimen.statusbar_height)
@@ -85,41 +96,45 @@ class LibraryFragment: BaseFragment() {
                 backgroundColor = it
             }
 
-            toolbar {
+            toolbar = toolbar {
                 title = getString(R.string.app_name)
                 popupTheme = R.style.AppTheme_PopupOverlay
                 navigationIconResource = R.drawable.ic_menu
                 setNavigationOnClickListener {
                     (activity as? MainActivity)?.toggleDrawer()
                 }
-                currentTab.consumeEachAsync {
-                    menu.clear()
-                    fragments[it]?.get()?.onCreateOptionsMenu(menu, null)
-                }
             }
 
             tabs = tabLayout {
                 tabMode = TabLayout.MODE_SCROLLABLE
+                UserPrefs.accentColor.consumeEachAsync {
+                    setSelectedTabIndicatorColor(it)
+                }
             }
         }
 
 
         val pager = viewPager {
             id = R.id.container
+            val tabsAdapter = TabsPager(this@LibraryFragment.tabs.value)
+            adapter = tabsAdapter
 
             this@LibraryFragment.tabs.consumeEachAsync { tabs ->
-                adapter = TabsPager(tabs, tabFragments)
-                invalidate()
-                requestLayout()
-                currentTabIdx.offer(currentItem)
+                tabsAdapter.tabs = tabs
+//                tabsAdapter.notifyDataSetChanged()
             }
+
+            tabsAdapter.getItem(currentItem)
+                .onCreateOptionsMenu(toolbar.menu, null)
 
             onPageChangeListener {
                 onPageSelected {
-                    currentTabIdx.offer(it)
+                    toolbar.menu.clear()
+                    tabsAdapter.getItem(it)
+                        .onCreateOptionsMenu(toolbar.menu, null)
                 }
             }
-            offscreenPageLimit = 3
+            offscreenPageLimit = 2
         }.lparams {
             width = matchParent
             height = matchParent

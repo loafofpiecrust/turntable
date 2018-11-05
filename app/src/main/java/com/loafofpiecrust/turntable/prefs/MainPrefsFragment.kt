@@ -35,7 +35,7 @@ class MainPrefsFragment : PreferenceFragment() {
             category("Theme") {
                 switch(UserPrefs.useDarkTheme, "Dark Base Theme")
                 color(UserPrefs.primaryColor, "Primary Color")
-                color(UserPrefs.secondaryColor, "Secondary Color")
+                color(UserPrefs.accentColor, "Accent Color")
 
                 multiSelectList(UserPrefs.libraryTabs, "Library Tabs") {
                     entries = arrayOf("Songs", "Albums", "Artists", "Playlists", "Friends", "Recommendations")

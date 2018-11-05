@@ -38,9 +38,8 @@ class RemoteAlbum(
     }
 
     override fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> {
-        return remoteId.thumbnailUrl?.let {
-            produceSingle(req.load(it))
-        }?.map { it.apply(RequestOptions().signature(ObjectKey(id))) }
-            ?: Library.instance.loadAlbumCover(req, id)
+        return (remoteId.thumbnailUrl ?: remoteId.artworkUrl)?.let {
+            produceSingle(req.load(it).apply(RequestOptions().signature(ObjectKey(id))))
+        } ?: super.loadThumbnail(req)
     }
 }

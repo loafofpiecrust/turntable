@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewAnimationUtils
 import android.view.ViewManager
 import com.evernote.android.state.State
+import com.evernote.android.state.StateSaver
 import com.lapism.searchview.Search
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumsAdapter
@@ -32,18 +33,13 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.support.v4.toast
 import kotlin.math.max
 
 
 class SearchFragment : BaseFragment() {
-//    enum class Category {
-//        ARTISTS,
-//        ALBUMS,
-//        SONGS,
-//    }
-
     sealed class Category<T>: Parcelable {
         @Transient
         @IgnoredOnParcel
@@ -68,8 +64,9 @@ class SearchFragment : BaseFragment() {
     private var results: SwipeRefreshLayout? = null
 
 
-    override fun onCreate() {
-        super.onCreate()
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
 //        enterTransition = Slide().apply {
 //            slideEdge = Gravity.BOTTOM
 //        }
@@ -81,11 +78,11 @@ class SearchFragment : BaseFragment() {
         }
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        val finalRadius = max(view.width, view.height).toFloat()
-        val anim = ViewAnimationUtils.createCircularReveal(view, 0, 0, 0f, finalRadius)
-        anim.start()
-    }
+//    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+//        val finalRadius = max(view.width, view.height).toFloat()
+//        val anim = ViewAnimationUtils.createCircularReveal(view, 0, 0, 0f, finalRadius)
+//        anim.start()
+//    }
 
     override fun onDestroy() {
         super.onDestroy()
@@ -137,7 +134,7 @@ class SearchFragment : BaseFragment() {
             setMenuIcon(context.getDrawable(R.drawable.ic_cake))
             setOnMenuClickListener {
                 popupMenu(Gravity.END) {
-                    (sequenceOf(LocalApi) + Repositories.ALL.asSequence())
+                    (sequenceOf(Repositories, LocalApi) + Repositories.ALL.asSequence())
                         .filter { it.displayName != -1 }
                         .forEach { api ->
                             val name = getString(api.displayName)
@@ -152,14 +149,12 @@ class SearchFragment : BaseFragment() {
     }
 
 
-    private suspend fun doSearch(query: String, cat: Category<*>): ReceiveChannel<*> {
-        lateinit var result: ReceiveChannel<*>
+    private suspend fun doSearch(query: String, cat: Category<*>) {
         when (cat) {
             is Category.Albums -> cat.results.send(repository.searchAlbums(query))
             is Category.Artists -> cat.results.send(repository.searchArtists(query))
             is Category.Songs -> cat.results.send(repository.searchSongs(query))
         }
-        return result
     }
 
     fun onSearchAction(query: String, force: Boolean = false) {
@@ -169,6 +164,11 @@ class SearchFragment : BaseFragment() {
             results?.isRefreshing = true
             searchJob = async(Dispatchers.IO) {
                 doSearch(query, category)
+            }
+            searchJob?.invokeOnCompletion { err ->
+                if (err != null) launch(Dispatchers.Main) {
+                    toast("Search failed.")
+                }
             }
         }
     }

@@ -28,7 +28,7 @@ class SettingsActivity: BaseActivity() {
         frameLayout {
             id = R.id.mainContent
             fragmentManager.beginTransaction()
-                .add(id, MainPrefsFragment())
+                .replace(id, MainPrefsFragment())
                 .commit()
         }
     }

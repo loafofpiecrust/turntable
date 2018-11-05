@@ -8,12 +8,13 @@ import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.repository.Repository
+import com.loafofpiecrust.turntable.repository.StreamProvider
 import com.loafofpiecrust.turntable.service.Library
 import kotlinx.coroutines.channels.first
 import me.xdrop.fuzzywuzzy.FuzzySearch
 
 
-object LocalApi: Repository {
+object LocalApi: Repository, StreamProvider {
     override val displayName: Int
         get() = R.string.search_local
 
@@ -49,5 +50,11 @@ object LocalApi: Repository {
 
     override suspend fun fullArtwork(artist: Artist, search: Boolean): String? {
         return null
+    }
+
+    override suspend fun sourceForSong(song: Song): Song.Media? {
+        return library.sourceForSong(song.id)?.let { path ->
+            Song.Media(path)
+        }
     }
 }

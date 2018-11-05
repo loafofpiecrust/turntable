@@ -33,7 +33,6 @@ import kotlin.coroutines.resume
  */
 class CollaborativePlaylist (
     override val id: PlaylistId,
-    override val owner: User,
     override var color: Int?
 ) : AbstractPlaylist(), MutablePlaylist {
     override val icon: Int
@@ -88,7 +87,7 @@ class CollaborativePlaylist (
             songs
         }
 
-    constructor(): this(PlaylistId(""), User(), null)
+    constructor(): this(PlaylistId("", User()), null)
 
     override fun updateLastModified() {
         super.updateLastModified()
@@ -183,7 +182,7 @@ class CollaborativePlaylist (
                 "lastModified" to lastModified,
                 "createdTime" to createdTime,
                 "operations" to Blob.fromBytes(serialize(operations.value)),
-                "owner" to Blob.fromBytes(serialize(owner))
+                "owner" to Blob.fromBytes(serialize(id.owner))
             ))
         }
 //        val ops = doc.collection("operations")
@@ -226,8 +225,11 @@ class CollaborativePlaylist (
     companion object {
         fun fromDocument(doc: DocumentSnapshot): CollaborativePlaylist = runBlocking {
             CollaborativePlaylist(
-                PlaylistId(doc.getString("name")!!, UUID.fromString(doc.id)),
-                doc.getBlob("owner")!!.toObject(),
+                PlaylistId(
+                    doc.getString("name")!!,
+                    doc.getBlob("owner")!!.toObject(),
+                    UUID.fromString(doc.id)
+                ),
                 doc.getLong("color")?.toInt()
             ).apply {
                 operations puts doc.getBlob("operations")!!.toObject()
@@ -269,9 +271,9 @@ class CollaborativePlaylist (
             return Result.Ok(CollaborativePlaylist(
                 PlaylistId(
                     playlist.name,
+                    User("", "", playlist.ownerName),
                     UUID.nameUUIDFromBytes(id.toByteArray())
                 ),
-                User("", "", playlist.ownerName),
                 null
             ).apply {
                 operations puts playlist.items.map {

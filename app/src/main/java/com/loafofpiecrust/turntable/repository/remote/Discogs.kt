@@ -49,6 +49,9 @@ object Discogs: Repository {
         val artworkUrl: String? = null//,
 //        val members:
     ): RemoteArtist.Details {
+        override val thumbnailUrl: String?
+            get() = artworkUrl
+
         override val albums: List<Album> by lazy {
             info { "discography for $id" }
             runBlocking { discographyHtml(id) }

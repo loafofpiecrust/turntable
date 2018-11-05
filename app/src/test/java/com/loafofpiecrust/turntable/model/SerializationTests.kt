@@ -51,7 +51,7 @@ class SerializationTests {
         assert(deserialized).toBe(song)
     }
 
-    @Test fun `channel of songs`() = runBlocking {
+    @Test fun `channel of songs`() = runBlocking<Unit> {
         val chan = ConflatedBroadcastChannel<List<Song>>()
         chan.offer(listOf(song))
         val serialized = serialize(chan)
@@ -61,9 +61,9 @@ class SerializationTests {
             .openSubscription().firstOrNull()
         val orig = chan.openSubscription().firstOrNull()
 
-        assert(orig).notToBeNull {
-            assert(deserialized).notToBeNullBut(subject)
-        }
+        assertNotNull(orig)
+        assertNotNull(deserialized)
+        assert(deserialized).toBe(orig)
     }
 
     @Test fun `empty songs channel`() = runBlocking {

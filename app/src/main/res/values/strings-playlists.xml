@@ -5,6 +5,7 @@
     <string name="MixTape">Mixtape</string>
     <string name="MutableMixtape">Mixtape</string>
     <string name="AlbumCollection">Album Collection</string>
+    <string name="GeneralPlaylist">Playlist</string>
 
     <!-- Playlists -->
     <string name="playlist_sender">from %1$s</string>

@@ -78,7 +78,7 @@ sealed class ArtistsUI(
 
         channel = artists.openSubscription()
 
-        contentView {
+        contents {
             if (this@ArtistsUI is All) {
                 fastScrollRecycler {
                     turntableStyle()
@@ -105,7 +105,7 @@ sealed class ArtistsUI(
             }
         }
 
-        emptyView {
+        emptyState {
             verticalLayout {
                 gravity = Gravity.CENTER
                 textView("Sorry no artists :(")

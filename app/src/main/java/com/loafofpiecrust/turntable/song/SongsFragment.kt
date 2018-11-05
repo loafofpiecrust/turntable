@@ -51,7 +51,7 @@ abstract class SongsUI: UIComponent() {
     final override fun ViewContext.render() = refreshableRecyclerView {
         channel = songs.openSubscription()
 
-        contentView {
+        contents {
             renderRecycler().apply {
                 adapter = makeAdapter()
                 clipToPadding = false

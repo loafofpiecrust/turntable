@@ -3,23 +3,20 @@ package com.loafofpiecrust.turntable.prefs
 import com.chibatching.kotpref.KotprefModel
 import com.chibatching.kotpref.preference
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.model.Recommendation
+import com.loafofpiecrust.turntable.model.Recommendable
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.model.queue.CombinedQueue
 import com.loafofpiecrust.turntable.model.song.HistoryEntry
 import com.loafofpiecrust.turntable.model.queue.StaticQueue
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.model.sync.Friend
-import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.util.getColorCompat
-import org.jetbrains.anko.colorAttr
 
 object UserPrefs: KotprefModel() {
     // Theming
     val useDarkTheme by booleanPref(true)
     val primaryColor by intPref(context.getColorCompat(R.color.md_purple_300))
-    val secondaryColor by intPref(context.getColorCompat(R.color.md_teal_200))
+//    val secondaryColor by intPref(context.getColorCompat(R.color.md_teal_200))
     val accentColor by intPref(context.getColorCompat(R.color.md_teal_200))
 
     // Structure
@@ -62,7 +59,7 @@ object UserPrefs: KotprefModel() {
     val artistMeta by preference(emptyList<Library.ArtistMetadata>())
     val history by preference(emptyList<HistoryEntry>())
     val playlists by preference(emptyList<Playlist>())
-    val recommendations by preference(emptyList<Recommendation>())
+    val recommendations by preference(emptyList<Recommendable>())
 
     val queue by preference(
         CombinedQueue(StaticQueue(emptyList(), 0), emptyList())

@@ -3,7 +3,7 @@ package com.loafofpiecrust.turntable.playlist
 import android.os.Parcelable
 import android.support.v7.widget.LinearLayoutManager
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.model.Recommendation
+import com.loafofpiecrust.turntable.model.Recommendable
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.playlist.*
 import com.loafofpiecrust.turntable.model.song.HasTracks
@@ -92,7 +92,7 @@ import org.jetbrains.anko.recyclerview.v7.recyclerView
 
 @Parcelize
 class PlaylistPicker(
-    val item: Recommendation
+    val item: Recommendable
 ) : UIComponent(), Parcelable {
     override fun AlertBuilder<*>.prepare() {
         title = "Add to Playlist"
@@ -108,7 +108,7 @@ class PlaylistPicker(
         val applicablePlaylists = UserPrefs.playlists.openSubscription().map {
             it.filter {
                 when (item) {
-                    is Song -> it is MixTape || it is CollaborativePlaylist
+                    is Song -> it is MixTape || it is CollaborativePlaylist || it is GeneralPlaylist
                     is AlbumId -> it is AlbumCollection || it is CollaborativePlaylist
                     is HasTracks -> it is CollaborativePlaylist
                     else -> throw Error("Can't add Artist to playlist")
@@ -123,6 +123,7 @@ class PlaylistPicker(
                 is Song -> when (selected) {
                     is MutableMixtape -> selected.add(context, item)
                     is CollaborativePlaylist -> selected.add(context, item)
+                    is GeneralPlaylist -> selected.add(context, item)
                     else -> toast("Cannot add a song to ${selected.id.name}")
                 }
                 is AlbumId -> {

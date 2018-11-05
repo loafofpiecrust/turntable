@@ -13,7 +13,7 @@ import org.jetbrains.anko.colorAttr
 fun FastScrollRecyclerView.turntableStyle() {
     (RecyclerView::turntableStyle)(this)
 
-    UserPrefs.secondaryColor.bind(this@turntableStyle).consumeEach(Dispatchers.Main) {
+    UserPrefs.accentColor.bind(this@turntableStyle).consumeEach(Dispatchers.Main) {
         setThumbColor(it)
         setPopupBgColor(it)
     }
