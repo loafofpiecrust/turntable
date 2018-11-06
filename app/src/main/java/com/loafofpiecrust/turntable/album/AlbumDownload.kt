@@ -35,7 +35,7 @@ import kotlin.math.abs
 /// TODO: Use soundcloud as a backend for super indie shit. I mean, it'd be more legal and easier than youtube, FFS. It'd also have remixes and random stuff, but that won't be organized by album, unfortunately. Possibly treat playlists as a subtype of albums.
 
 sealed class AlbumDownload(
-    val quality: OnlineSearchService.Quality
+    val quality: Song.Media.Quality
 ): MusicDownload {
     companion object: AnkoLogger {
         fun search(album: Album) : AlbumDownload? {
@@ -108,7 +108,7 @@ sealed class AlbumDownload(
 
 sealed class TorrentAlbum(
     private val goal: Album,
-    quality: OnlineSearchService.Quality
+    quality: Song.Media.Quality
 ) : AlbumDownload(quality) {
     private var torrent: OnlineSearchService.Torrent? = null
     private val songFiles = HashMap<Song, Int>()
@@ -408,7 +408,7 @@ class TPBAlbum(
     val title: String,
     private val seeders: Int,
     val size: Long,
-    quality: OnlineSearchService.Quality,
+    quality: Song.Media.Quality,
     private val magnet: String
 ) : TorrentAlbum(goal, quality) {
 
@@ -449,7 +449,7 @@ class TPBAlbum(
                 val seeders = it.child(2).text().toInt()
 
                 // TODO: Maybe check for quality, but on TPB there tend to be no quality markers
-                TPBAlbum(album, title, seeders, size, OnlineSearchService.Quality.HIGH, magnet)
+                TPBAlbum(album, title, seeders, size, Song.Media.Quality.HIGH, magnet)
             }
 
             return results.firstOrNull()
@@ -481,7 +481,7 @@ class TPBAlbum(
 class YouTubeAlbum(
     private val goal: Album,
     val songs: List<YouTubeSong>
-) : AlbumDownload(OnlineSearchService.Quality.MEDIUM) {
+) : AlbumDownload(Song.Media.Quality.MEDIUM) {
     /// Youtube download is like 10 seeders
     /// But for every song missing, value quickly degrades
     /// So, a YT full album = RuTracker 256kbps w/ 10 seeders

@@ -148,7 +148,7 @@ sealed class AlbumsUI(
     @Parcelize
     class All : AlbumsUI(), Parcelable {
         override val albums get() =
-            Library.instance.albumsMap.openSubscription().map {
+            Library.albumsMap.openSubscription().map {
                 it.values.sortedBy { it.id }
             }
     }
@@ -162,7 +162,7 @@ sealed class AlbumsUI(
         var artistChannel: ReceiveChannel<Artist>? = null
 
         override val albums get() =
-            (artistChannel ?: Library.instance.findArtist(artist)
+            (artistChannel ?: Library.findArtist(artist)
                 .map(Dispatchers.IO) {
                     if (it is LocalArtist) {
                         when (mode) {

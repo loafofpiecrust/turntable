@@ -296,7 +296,7 @@ object Discogs: Repository {
         val url = (imgs?.firstOrNull { it["type"].nullString == "primary" } ?: imgs?.first())?.get("uri")?.string
 
 //        if (url != null) {
-//            Library.instance.addArtistExtras(
+//            Library.addArtistExtras(
 //                Library.ArtistMetadata(artist.uuid, url)
 //            )
 //        }

@@ -26,7 +26,6 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.collapsingToolbarlparams
 import com.loafofpiecrust.turntable.model.album.*
 import com.loafofpiecrust.turntable.model.imageTransition
@@ -38,7 +37,6 @@ import com.loafofpiecrust.turntable.playlist.PlaylistPicker
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repository.Repositories
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.song.SongsOnDiscAdapter
 import com.loafofpiecrust.turntable.song.SongsUI
 import com.loafofpiecrust.turntable.style.detailsStyle
@@ -74,7 +72,7 @@ open class AlbumDetailsUI(
     }
 
     open val album: BroadcastChannel<Album> by lazy(LazyThreadSafetyMode.NONE) {
-        Library.instance.findAlbum(albumId).map {
+        Library.findAlbum(albumId).map {
             it ?: Repositories.findOnline(albumId)!!
         }.replayOne()
     }
@@ -277,18 +275,18 @@ private fun Menu.prepareOptions(scope: CoroutineScope, context: Context, album: 
 
         menuItem(R.string.add_to_library, R.drawable.ic_turned_in_not) {
             scope.launch {
-                context.library.findAlbum(album.id).consumeEach { existing ->
+                Library.findAlbum(album.id).consumeEach { existing ->
                     if (existing != null) {
                         setIcon(R.drawable.ic_turned_in)
                         onClick {
                             // Remove remote album from library
-                            context.library.removeRemoteAlbum(existing)
+                            Library.removeRemoteAlbum(existing)
                             context.toast(R.string.album_removed_library)
                         }
                     } else {
                         setIcon(R.drawable.ic_turned_in_not)
                         onClick {
-                            context.library.addRemoteAlbum(album)
+                            Library.addRemoteAlbum(album)
                             context.toast(R.string.album_added_library)
                         }
                     }

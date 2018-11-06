@@ -11,6 +11,7 @@ import com.loafofpiecrust.turntable.model.song.HistoryEntry
 import com.loafofpiecrust.turntable.model.queue.StaticQueue
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.util.getColorCompat
+import java.util.*
 
 object UserPrefs: KotprefModel() {
     // Theming
@@ -31,7 +32,7 @@ object UserPrefs: KotprefModel() {
     enum class HQStreamingMode {
         ALWAYS, ONLY_UNMETERED, NEVER
     }
-    val hqStreamingMode by stringPref(HQStreamingMode.ONLY_UNMETERED.name)
+    val hqStreamingMode by preference(HQStreamingMode.ONLY_UNMETERED)
 
     // Artwork
     val downloadArtworkWifiOnly by booleanPref(true)
@@ -64,6 +65,9 @@ object UserPrefs: KotprefModel() {
     val queue by preference(
         CombinedQueue(StaticQueue(emptyList(), 0), emptyList())
     )
+
+    val lastOpenTime by longPref(System.currentTimeMillis())
+    val currentOpenTime by longPref(System.currentTimeMillis())
 
 //    val bufferState by pref(MusicPlayer.BufferState(0, 0, 0))
 }

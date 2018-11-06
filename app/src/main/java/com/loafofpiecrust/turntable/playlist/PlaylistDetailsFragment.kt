@@ -14,7 +14,6 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.service.library
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.sync.Message
@@ -38,7 +37,7 @@ class PlaylistDetailsUI(
     val playlistId: PlaylistId
 ): UIComponent(), Parcelable {
     val playlist = runBlocking {
-        Library.instance.findPlaylist(playlistId.uuid)
+        Library.findPlaylist(playlistId.uuid)
             .first() as CollaborativePlaylist
     }
 
@@ -158,7 +157,7 @@ class PlaylistDetailsUI(
 
                 // TODO: Only show if playlist isn't already saved.
                 menuItem(R.string.playlist_subscribe, showIcon = false).onClick {
-                    context.library.addPlaylist(playlist)
+                    Library.addPlaylist(playlist)
                 }
 
 //                    menuItem("Make Completable", showIcon = false).onClick {

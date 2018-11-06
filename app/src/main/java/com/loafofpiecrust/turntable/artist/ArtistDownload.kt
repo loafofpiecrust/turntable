@@ -23,7 +23,6 @@ import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
 import org.jsoup.Jsoup
 import java.io.File
-import java.util.regex.Pattern
 
 interface MusicDownload {
     /// Download the remote album to the default music folder
@@ -31,7 +30,7 @@ interface MusicDownload {
     suspend fun download()
 }
 
-sealed class ArtistDownload(val quality: OnlineSearchService.Quality): MusicDownload {
+sealed class ArtistDownload(val quality: Song.Media.Quality): MusicDownload {
     companion object {
         fun search(artist: Artist) : ArtistDownload? {
 //            val tpb = async(CommonPool) { TPBAlbum.search(album) }
@@ -54,7 +53,7 @@ sealed class ArtistDownload(val quality: OnlineSearchService.Quality): MusicDown
 
 sealed class TorrentArtist(
     private val goal: Artist,
-    quality: OnlineSearchService.Quality
+    quality: Song.Media.Quality
 ) : ArtistDownload(quality), AnkoLogger {
     data class AlbumResult(val fileIdx: Int, val file: File, val matchRatio: Int)
     data class SongResult(val fileIdx: Int, val matchRatio: Int)
@@ -283,7 +282,7 @@ class RuTrackerArtist private constructor(
     val seeders: Int,
     val size: Long,
     val years: IntRange?,
-    quality: OnlineSearchService.Quality
+    quality: Song.Media.Quality
 ) : TorrentArtist(goal, quality) {
     override val value: Int
         get() = quality.ordinal * 3 + seeders
@@ -367,17 +366,17 @@ class RuTrackerArtist private constructor(
                         m != null -> {
                             val bitrate = m.groupValues[1].toInt()
                             when (bitrate) {
-                                in 0..191 -> OnlineSearchService.Quality.AWFUL
-                                in 192..255 -> OnlineSearchService.Quality.LOW
-                                in 256..319 -> OnlineSearchService.Quality.MEDIUM
-                                else -> OnlineSearchService.Quality.HIGH
+                                in 0..191 -> Song.Media.Quality.AWFUL
+                                in 192..255 -> Song.Media.Quality.LOW
+                                in 256..319 -> Song.Media.Quality.MEDIUM
+                                else -> Song.Media.Quality.HIGH
                             }
                         }
-                        isMp3 -> OnlineSearchService.Quality.HIGH // Generally, assume 320kbps
-                        else -> OnlineSearchService.Quality.UNKNOWN
+                        isMp3 -> Song.Media.Quality.HIGH // Generally, assume 320kbps
+                        else -> Song.Media.Quality.UNKNOWN
                     }
                 } else {
-                    OnlineSearchService.Quality.LOSSLESS
+                    Song.Media.Quality.LOSSLESS
                 }
                 // Year range
                 val yearRangePat = Regex("(\\d{4})\\s*-\\s*(\\d{4})")

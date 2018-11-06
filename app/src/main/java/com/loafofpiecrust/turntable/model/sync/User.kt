@@ -4,6 +4,7 @@ import android.os.Parcelable
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBIgnore
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable
+import com.loafofpiecrust.turntable.repository.remote.StreamCache
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.*
@@ -47,7 +48,7 @@ data class User(
 
         println("sync: saving user info under $username")
         GlobalScope.launch {
-            val db = OnlineSearchService.instance.dbMapper
+            val db = StreamCache.mapper
             try {
                 db.save(this@User)
             } catch (e: Exception) {

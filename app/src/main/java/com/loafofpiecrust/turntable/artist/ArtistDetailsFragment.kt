@@ -61,7 +61,7 @@ open class ArtistDetailsUI(
     private val currentMode = ConflatedBroadcastChannel(initialMode)
 
     protected open val artist by lazy(LazyThreadSafetyMode.NONE) {
-        Library.instance.findArtist(artistId).map {
+        Library.findArtist(artistId).map {
             it ?: Repositories.findOnline(artistId)!!
         }.replayOne()
     }
@@ -71,9 +71,9 @@ open class ArtistDetailsUI(
             .switchMap { mode ->
                 when (mode) {
                     // TODO: Do some caching of remotes here. Do this inside Repository :)
-                    Mode.LIBRARY -> Library.instance.findArtist(artistId)
+                    Mode.LIBRARY -> Library.findArtist(artistId)
                     Mode.REMOTE -> produceSingle { Repositories.findOnline(artistId) }
-                    Mode.LIBRARY_AND_REMOTE -> Library.instance.findArtist(artistId).map { local ->
+                    Mode.LIBRARY_AND_REMOTE -> Library.findArtist(artistId).map { local ->
                         val remote = Repositories.findOnline(artistId)
                         if (local != null && remote != null) {
                             MergedArtist(local, remote)

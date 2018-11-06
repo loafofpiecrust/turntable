@@ -88,7 +88,7 @@ class PlaylistsFragment: BaseFragment() {
         }
         adapter = Adapter(coroutineContext, playlists) { playlist ->
             println("playlist: opening '${playlist.id.name}'")
-            activity?.supportFragmentManager?.replaceMainContent(
+            activity?.replaceMainContent(
                 GeneralPlaylistDetails(playlist.id).createFragment(),
                 true
             )

@@ -255,7 +255,7 @@ package com.loafofpiecrust.turntable.service
 ////        // Sync them all
 ////        val remotes = downloadAllPlaylists()
 ////        // now, diff remotes and locals
-//////        val locals = Library.instance.playlists.blockingFirst().toMutableList()
+//////        val locals = Library.playlists.blockingFirst().toMutableList()
 ////        val locals = playlists.toMutableList()
 ////
 ////        val merged = ArrayList<Playlist>()

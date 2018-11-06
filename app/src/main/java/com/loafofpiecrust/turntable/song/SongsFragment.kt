@@ -69,7 +69,7 @@ abstract class SongsUI: UIComponent() {
     @Parcelize
     class All: SongsUI(), Parcelable {
         override val songs: BroadcastChannel<List<Song>> =
-            Library.instance.songsMap.openSubscription().map {
+            Library.songsMap.openSubscription().map {
                 it.values.sortedBy { it.id }
             }.broadcast(CONFLATED)
 

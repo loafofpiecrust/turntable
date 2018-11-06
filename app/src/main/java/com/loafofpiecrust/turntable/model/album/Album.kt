@@ -75,14 +75,14 @@ interface Album: Music, HasTracks {
 
     fun loadCover(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
         GlobalScope.produce {
-            val localArt = Library.instance.loadAlbumCover(req, this@Album.id)
+            val localArt = Library.loadAlbumCover(req, this@Album.id)
             send(localArt.receive() ?: req.load(Repositories.fullArtwork(this@Album, true)))
 
             sendFrom(localArt.filterNotNull())
         }
 
     fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
-        Library.instance.loadAlbumCover(req, this.id).map {
+        Library.loadAlbumCover(req, this.id).map {
             it?.apply(RequestOptions().signature(ObjectKey("${this.id}thumbnail")))
         }
 

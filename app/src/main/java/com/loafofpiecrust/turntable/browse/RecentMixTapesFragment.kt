@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.playlist.PlaylistDetailsUI
-import com.loafofpiecrust.turntable.service.library
+import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.util.days
@@ -37,7 +37,7 @@ class RecentMixTapesFragment: BaseFragment() {
                         mt.color?.let { holder.card.backgroundColor = it }
 
                         holder.card.setOnClickListener { v ->
-                            v.context.library.cachePlaylist(mt)
+                            Library.cachePlaylist(mt)
                             v.context.replaceMainContent(
                                 PlaylistDetailsUI(mt.id).createFragment()
                             )

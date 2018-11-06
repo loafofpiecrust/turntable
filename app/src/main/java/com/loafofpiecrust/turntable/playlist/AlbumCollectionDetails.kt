@@ -25,7 +25,7 @@ class AlbumCollectionDetails(
     private val playlistId: PlaylistId
 ): UIComponent(), ParcelableComponent {
     private val playlist = runBlocking {
-        Library.instance.findPlaylist(playlistId.uuid)
+        Library.findPlaylist(playlistId.uuid)
             .first() as AlbumCollection
     }
 

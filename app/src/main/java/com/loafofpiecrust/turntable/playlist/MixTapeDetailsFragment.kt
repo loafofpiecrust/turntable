@@ -41,7 +41,7 @@ open class MixtapeDetailsUI(
     private val playlistId: PlaylistId
 ): UIComponent(), Parcelable {
     protected open val playlist by lazy {
-        Library.instance.findPlaylist(playlistId.uuid).switchMap {
+        Library.findPlaylist(playlistId.uuid).switchMap {
             if (it == null) {
                 AbstractPlaylist.findChannel(playlistId.uuid)
             } else produceSingle(it)

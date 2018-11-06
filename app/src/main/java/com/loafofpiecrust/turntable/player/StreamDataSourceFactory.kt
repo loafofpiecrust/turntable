@@ -10,7 +10,10 @@ import com.google.android.exoplayer2.source.*
 import com.google.android.exoplayer2.trackselection.TrackSelection
 import com.google.android.exoplayer2.upstream.Allocator
 import com.google.android.exoplayer2.upstream.DataSource
+import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.repository.StreamProviders
 import com.loafofpiecrust.turntable.util.milliseconds
 import com.loafofpiecrust.turntable.util.toMicroseconds
 import kotlinx.coroutines.GlobalScope
@@ -74,6 +77,7 @@ class StreamMediaSource(
     }
 }
 
+
 class StreamMediaPeriod(
     private val song: Song,
     private val sourceFactory: DataSource.Factory,
@@ -112,7 +116,7 @@ class StreamMediaPeriod(
         this.callback = callback
         GlobalScope.launch {
             // TODO: Skip somewhere if a song can't be loaded
-            val media = song.loadMedia() ?: run {
+            val media = StreamProviders.sourceForSong(song) ?: run {
                 callback.onContinueLoadingRequested(this@StreamMediaPeriod)
                 return@launch
             }
@@ -124,8 +128,13 @@ class StreamMediaPeriod(
 
             println("youtube: media loaded, $start-$end")
 
+            val srcUrl = media.bestSourceFor(
+                App.currentInternetStatus.value,
+                UserPrefs.hqStreamingMode.value
+            )!!.url
+
             source = ClippingMediaSource(ExtractorMediaSource(
-                Uri.parse(media.url),
+                Uri.parse(srcUrl),
                 sourceFactory,
                 extractorsFactory,
                 null, null

@@ -4,6 +4,7 @@ import activitystarter.MakeActivityStarter
 import android.os.Bundle
 import android.preference.PreferenceFragment
 import com.chibatching.kotpref.KotprefModel
+import com.loafofpiecrust.turntable.R
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
@@ -33,7 +34,7 @@ class MainPrefsFragment : PreferenceFragment() {
         //
         preferences {
             category("Theme") {
-                switch(UserPrefs.useDarkTheme, "Dark Base Theme")
+                switch(UserPrefs.useDarkTheme, R.string.pref_dark_theme)
                 color(UserPrefs.primaryColor, "Primary Color")
                 color(UserPrefs.accentColor, "Accent Color")
 
@@ -54,7 +55,11 @@ class MainPrefsFragment : PreferenceFragment() {
                 switch(UserPrefs.reduceVolumeOnFocusLoss, "Reduce volume on focus loss")
             }
 
-            list(UserPrefs.hqStreamingMode, "High Quality Streaming") {
+            list(
+                UserPrefs.hqStreamingMode,
+                "High Quality Streaming",
+                transform = { UserPrefs.HQStreamingMode.valueOf(it) }
+            ) {
                 entries = UserPrefs.HQStreamingMode.values().map { it.name }.toTypedArray()
                 entryValues = entries
             }

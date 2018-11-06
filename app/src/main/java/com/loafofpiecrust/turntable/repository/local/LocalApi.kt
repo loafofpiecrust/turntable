@@ -18,7 +18,7 @@ object LocalApi: Repository, StreamProvider {
     override val displayName: Int
         get() = R.string.search_local
 
-    private val library: Library get() = Library.instance
+    private val library: Library get() = Library
 
     override suspend fun searchArtists(query: String) = library.artistsMap.value.values.filter {
         FuzzySearch.partialRatio(it.id.displayName, query) > 80

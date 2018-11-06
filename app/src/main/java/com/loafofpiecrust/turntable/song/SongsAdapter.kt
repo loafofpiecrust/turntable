@@ -120,7 +120,7 @@ fun RecyclerListItem.bindSong(
     CoroutineScope(job).launch(Dispatchers.Main) {
         MusicService.instance.switchMap {
             it?.let { music ->
-                combineLatest(music.player.queue, App.instance.internetStatus)
+                combineLatest(music.player.queue, App.internetStatus)
             }
         }.consumeEach { (q, internet) ->
             if (item.id == q.current?.id) {
@@ -143,7 +143,7 @@ fun RecyclerListItem.bindSong(
 //                    holder.statusIcon.visibility = View.GONE
 //                }
 
-                val isLocal = Library.instance.sourceForSong(item.id) != null
+                val isLocal = Library.sourceForSong(item.id) != null
                 val c = if (internet == App.InternetStatus.OFFLINE && !isLocal) {
                     context.getColorCompat(R.color.text_unavailable)
                 } else context.colorAttr(android.R.attr.textColor)

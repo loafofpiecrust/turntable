@@ -46,11 +46,7 @@ import java.util.*
 import kotlin.collections.HashMap
 
 /// Manages all our music and album covers, including loading from MediaStore
-class Library : BaseService() {
-    init {
-        instance = this
-    }
-
+object Library: AnkoLogger, CoroutineScope by GlobalScope {
     data class AlbumMetadata(
         val id: AlbumId,
 //        val name: String,
@@ -360,7 +356,7 @@ class Library : BaseService() {
         }
     }
 
-    private fun fillArtistArtwork() = launch {
+    private fun fillArtistArtwork(context: Context) = launch {
         val cache = artistMeta.openSubscription().first()
         artistsMap.openSubscription().first().values.forEach { artist ->
             val key = ArtistMetadata(artist.id, null)
@@ -392,7 +388,7 @@ class Library : BaseService() {
             res["artist"]?.get("image")?.get(3)?.get("#text")?.string?.let { uri ->
                 UserPrefs.artistMeta appends key.copy(artworkUri = uri)
                 launch(Dispatchers.Main) {
-                    Glide.with(App.instance)
+                    Glide.with(context.applicationContext)
                         .load(uri)
 //                      .apply(Library.ARTWORK_OPTIONS.signature(ObjectKey(key)))
                         .preload()
@@ -435,7 +431,7 @@ class Library : BaseService() {
             } else findCachedPlaylist(id)
         }
 
-    fun findCachedPlaylist(id: UUID): ReceiveChannel<Playlist?>
+    private fun findCachedPlaylist(id: UUID): ReceiveChannel<Playlist?>
         = cachedPlaylists.openSubscription().map {
             it.find { it.id.uuid == id }
         }
@@ -449,7 +445,7 @@ class Library : BaseService() {
 
 //    fun loadArtistImage(req: RequestManager, uuid: Long) =
 
-    fun initData() {
+    fun initData(context: Context) {
         info { "maybe loading local data" }
         if (!initialized) {
             initialized = true
@@ -458,40 +454,39 @@ class Library : BaseService() {
 
             // Load all the songs from the MediaStore
             launch {
-                updateSongs()
+                updateSongs(context)
                 updateLocalArtwork()
                 fillMissingArtwork()
-                fillArtistArtwork()
+                fillArtistArtwork(context)
             }
 
 
             // Change events for mediaStore
             // On change, empty _all and refill with songs
-            App.instance.contentResolver.registerContentObserver(android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, true,
+            context.contentResolver.registerContentObserver(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, true,
                 object : ContentObserver(Handler()) {
-                    override fun onChange(selfChange: Boolean) {
-                        println("songs: External Media has been added")
+                    override fun onChange(selfChange: Boolean, uri: Uri?) {
+                        println("songs: External Media has been added at $uri")
                         // Update the song library, but to accomodate rapid changes, wait 2 seconds
                         // before re-querying the MediaStore.
-                        updateTask?.let {
-                            if (it.isActive) it.cancel()
-                        }
+                        val prevTask = updateTask
                         updateTask = async {
+                            prevTask?.cancel()
                             delay(1500)
-                            updateSongs()
+                            prevTask?.join()
+                            updateSongs(context)
                         }
-                        super.onChange(selfChange)
                     }
                 }
             )
-            App.instance.contentResolver.registerContentObserver(android.provider.MediaStore.Audio.Media.INTERNAL_CONTENT_URI, true,
-                object : ContentObserver(Handler()) {
-                    override fun onChange(selfChange: Boolean) {
-                        println("songs: Internal Media has been added")
-                        super.onChange(selfChange)
-                    }
-                }
-            )
+//            context.contentResolver.registerContentObserver(MediaStore.Audio.Media.INTERNAL_CONTENT_URI, true,
+//                object : ContentObserver(Handler()) {
+//                    override fun onChange(selfChange: Boolean) {
+//                        println("songs: Internal Media has been added")
+//                        super.onChange(selfChange)
+//                    }
+//                }
+//            )
         }
 
     }
@@ -519,8 +514,8 @@ class Library : BaseService() {
 //        }
 //    }
 
-    private fun compileSongsFrom(uri: Uri): List<Song> {
-        val cur = App.instance.contentResolver.query(
+    private fun compileSongsFrom(context: Context, uri: Uri): List<Song> {
+        val cur = context.contentResolver.query(
             uri,
             arrayOf(
                 MediaStore.Audio.Media._ID,
@@ -603,13 +598,13 @@ class Library : BaseService() {
         }
     }
 
-    private fun updateSongs() {
+    private fun updateSongs(context: Context) {
         // TODO: Add preference for including internal content (default = false)
         // Load the song library here
 //        val internal = async(BG_POOL) { compileSongsFrom(MediaStore.Audio.Media.INTERNAL_CONTENT_URI) }
         info { "compiling songs on sd card" }
         val external = try {
-            compileSongsFrom(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
+            compileSongsFrom(context, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
         } catch (e: Exception) {
             error(e.message, e)
             emptyList<Song>()
@@ -700,40 +695,33 @@ class Library : BaseService() {
     }
 
 
-    companion object: AnkoLogger by AnkoLogger<Library>() {
-        lateinit var instance: Library
-            private set
-
-        val ARTWORK_OPTIONS by lazy {
-            RequestOptions()
-                .fallback(R.drawable.ic_default_album)
-                .error(R.drawable.ic_default_album)
-                .diskCacheStrategy(DiskCacheStrategy.DATA)
-                .fitCenter()
-        }
+    val ARTWORK_OPTIONS by lazy {
+        RequestOptions()
+            .fallback(R.drawable.ic_default_album)
+            .error(R.drawable.ic_default_album)
+            .diskCacheStrategy(DiskCacheStrategy.DATA)
+            .fitCenter()
+    }
 
 
-        val ARTIST_META_COMPARATOR = compareBy<ArtistMetadata> { it.id }
+    val ARTIST_META_COMPARATOR = compareBy<ArtistMetadata> { it.id }
 
-        /**
-         * Sorting and searching comparator for albums.
-         * TODO: Maybe re-order to allow finding albums by an artist by binary searching within albums, then going backwards and forwards
-         */
+    /**
+     * Sorting and searching comparator for albums.
+     * TODO: Maybe re-order to allow finding albums by an artist by binary searching within albums, then going backwards and forwards
+     */
 //        val ALBUM_ARTIST_COMPARATOR = compareBy<Album>({ it.artist })
 
-        /**
-         * Sorting and searching comparator for album metadata.
-         */
-        val ALBUM_META_COMPARATOR = compareBy<AlbumMetadata> { it.id }
+    /**
+     * Sorting and searching comparator for album metadata.
+     */
+    val ALBUM_META_COMPARATOR = compareBy<AlbumMetadata> { it.id }
 //        val SONG_ALBUM_COMPARATOR = compareBy<Song>({ it.artist }, { it.album })
 //        val SONG_ARTIST_COMPARATOR = compareBy<Song>({ it.artist })
 
 
-        const val REMOTE_ALBUM_CACHE_LIMIT = 100
-        const val REMOTE_ARTIST_CACHE_LIMIT = 20
+    const val REMOTE_ALBUM_CACHE_LIMIT = 100
+    const val REMOTE_ARTIST_CACHE_LIMIT = 20
 
-        val METADATA_UPDATE_FREQ = 14.days.toMillis().toLong()
-    }
+    val METADATA_UPDATE_FREQ = 14.days.toMillis().toLong()
 }
-
-val Context.library get() = Library.instance

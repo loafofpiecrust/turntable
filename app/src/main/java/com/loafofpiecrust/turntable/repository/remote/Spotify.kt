@@ -16,7 +16,7 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.playlist.PlaylistDetailsUI
 import com.loafofpiecrust.turntable.repository.Repository
-import com.loafofpiecrust.turntable.service.library
+import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.Http
@@ -362,7 +362,7 @@ object Spotify: Repository {
             artists, albums, songs
         )
         recs.forEach { newPl.add(it) }
-        ctx.library.cachePlaylist(newPl)
+        Library.cachePlaylist(newPl)
         delay(10)
 
         App.launch {

@@ -117,7 +117,7 @@ sealed class ArtistsUI(
     class All: ArtistsUI(
         ArtistDetailsUI.Mode.LIBRARY
     ), Parcelable {
-        override val artists = Library.instance.artistsMap
+        override val artists = Library.artistsMap
             .openSubscription()
             .map { it.values.sortedBy { it.id } }
             .replayOne()

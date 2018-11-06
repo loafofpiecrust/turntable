@@ -2,21 +2,19 @@ package com.loafofpiecrust.turntable.playlist
 
 import android.content.Context
 import android.support.v7.widget.Toolbar
-import android.view.Menu
 import android.widget.EditText
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.playlist.GeneralPlaylist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.repository.remote.Spotify
-import com.loafofpiecrust.turntable.service.library
+import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.sync.Message
 import com.loafofpiecrust.turntable.ui.popMainContent
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.channels.first
@@ -119,6 +117,6 @@ fun Toolbar.playlistOptions(
 
     // TODO: Only show if playlist isn't already saved.
     menuItem(R.string.playlist_subscribe, showIcon = false).onClick {
-        context.library.addPlaylist(playlist)
+        Library.addPlaylist(playlist)
     }
 }

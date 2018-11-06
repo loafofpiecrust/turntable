@@ -22,6 +22,7 @@ import com.chibatching.kotpref.KotprefModel
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.IdpResponse
 import com.google.android.gms.common.api.GoogleApiClient
+import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.auth.FirebaseAuth
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.MultiplePermissionsReport
@@ -45,9 +46,11 @@ import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.sync.Sync
+import com.loafofpiecrust.turntable.ui.universal.UniversalFragment
 import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.util.group
 import com.loafofpiecrust.turntable.util.onClick
+import com.loafofpiecrust.turntable.util.scopedName
 import com.loafofpiecrust.turntable.util.switchMap
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.*
@@ -72,7 +75,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
     }
 
     override fun onPermissionsChecked(report: MultiplePermissionsReport) {
-        Library.instance.initData()
+        Library.initData(applicationContext)
         requestLogin()
     }
 
@@ -369,7 +372,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
     }
 }
 
-fun FragmentManager.replaceMainContent(fragment: Fragment, allowBackNav: Boolean, sharedElems: List<View>? = null) {
+private fun FragmentManager.replaceMainContent(fragment: Fragment, allowBackNav: Boolean, sharedElems: List<View>? = null) {
     beginTransaction().apply {
 //        currentFragment?.exitTransition = Fade()
         setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
@@ -393,6 +396,13 @@ fun Context.replaceMainContent(fragment: Fragment, allowBackNav: Boolean = true,
             fragment, allowBackNav, sharedElems
         )
         (this as? MainActivity)?.collapseDrawers()
+
+        val screenName = if (fragment is UniversalFragment) {
+            fragment.component.javaClass.scopedName
+        } else {
+            fragment.javaClass.scopedName
+        }
+        FirebaseAnalytics.getInstance(this).setCurrentScreen(this, screenName, null)
     }
 }
 fun Context.popMainContent() {

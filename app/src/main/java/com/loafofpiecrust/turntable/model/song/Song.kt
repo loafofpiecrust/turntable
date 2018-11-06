@@ -10,15 +10,12 @@ import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.Recommendable
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repository.Repositories
-import com.loafofpiecrust.turntable.repository.StreamProviders
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.filterNotNull
-import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.channels.produce
 
 
@@ -77,41 +74,9 @@ data class Song(
      */
     val discTrack: Int get() = disc * 1000 + track
 
-
-    suspend fun loadMedia(): Media? {
-        val existing = Library.instance.sourceForSong(this.id)
-        if (existing != null) {
-            return Media(existing)
-        }
-
-        val internetStatus = App.instance.internetStatus.first()
-        if (internetStatus == App.InternetStatus.OFFLINE) {
-            return null
-        }
-
-        val mode = UserPrefs.HQStreamingMode.valueOf(UserPrefs.hqStreamingMode.value)
-        val hqStreaming = when (mode) {
-            UserPrefs.HQStreamingMode.ONLY_UNMETERED -> internetStatus == App.InternetStatus.UNLIMITED
-            UserPrefs.HQStreamingMode.ALWAYS -> true
-            UserPrefs.HQStreamingMode.NEVER -> false
-        }
-
-        // This is a remote song, find the stream uuid
-        // Well, we might have a song that's pretty much the same. Check first.
-        // (Last line of defense against minor typos/discrepancies/album versions)
-//        val res = OnlineSearchService.instance.getSongStreams(this)
-//        return if (res.status is OnlineSearchService.StreamStatus.Available) {
-//            val url = if (hqStreaming) {
-//                res.status.hqStream ?: res.status.stream
-//            } else res.status.stream
-//            Media(url, res.start, res.end)
-//        } else null
-        return StreamProviders.sourceForSong(this)
-    }
-
     fun loadCover(req: RequestManager, cb: (Palette?, Palette.Swatch?) -> Unit = { a, b -> }): ReceiveChannel<RequestBuilder<Drawable>?> =
         GlobalScope.produce {
-            val localArt = Library.instance.loadAlbumCover(req, id.album)
+            val localArt = Library.loadAlbumCover(req, id.album)
             val first = localArt.receive()
             send(if (first != null) {
                 first
@@ -127,7 +92,64 @@ data class Song(
             sendFrom(localArt.filterNotNull())
         }
 
-    data class Media(val url: String, val start: Int = 0, val end: Int = 0)
+    data class Media(
+        val sources: List<Source>,
+        val start: Int = 0,
+        val end: Int = 0
+    ) {
+        constructor(url: String): this(listOf(Source(url)))
+
+        private fun bestSource() = sources.maxBy { it.quality }
+        private fun mediocreSource() =
+            sources.lazy.filter { it.quality < Quality.MEDIUM }.maxBy { it.quality }
+                ?: sources.minBy { it.quality }
+
+        fun bestSourceFor(
+            internetStatus: App.InternetStatus,
+            streamingMode: UserPrefs.HQStreamingMode
+        ): Source? {
+            return if (sources.size == 1) {
+                sources[0]
+            } else when (streamingMode) {
+                UserPrefs.HQStreamingMode.ALWAYS -> bestSource()
+                UserPrefs.HQStreamingMode.NEVER -> mediocreSource()
+                UserPrefs.HQStreamingMode.ONLY_UNMETERED -> {
+                    if (internetStatus == App.InternetStatus.UNLIMITED) {
+                        bestSource()
+                    } else {
+                        mediocreSource()
+                    }
+                }
+            }
+        }
+
+
+        enum class Quality(val bitrate: Int = -1) {
+            AWFUL(128),  // ~128kbps
+            UNKNOWN, // Unlisted quality is probably comparable to 192kbps
+            LOW(192),    // ~192kpbs
+            MEDIUM(256), // ~256kbps
+            LOSSLESS, // Prioritize 320kbps mp3 over flac for download times & practicality
+            HIGH(320);   // ~320kbps
+        }
+
+        data class Source(
+            val url: String,
+            val quality: Quality = Quality.UNKNOWN
+        )
+
+        companion object {
+            fun fromYouTube(lqUrl: String, hqUrl: String?): Media {
+                val sources = mutableListOf(
+                    Source(lqUrl, Quality.LOW)
+                )
+                if (hqUrl != null) {
+                    sources.add(Source(hqUrl, Quality.MEDIUM))
+                }
+                return Media(sources)
+            }
+        }
+    }
 
     /**
      * Source-specific ID providing info to locate related content from the same source.
@@ -138,5 +160,6 @@ data class Song(
     companion object {
         val MIN_DURATION = 5.seconds
         val MAX_DURATION = 1.hours
+        val DEFAULT_DURATION = 4.minutes
     }
 }

@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.prefs
 
 import android.preference.*
+import android.support.annotation.StringRes
 import com.jaredrummler.android.colorpicker.ColorPreference
 import com.loafofpiecrust.turntable.util.hasValue
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
@@ -108,6 +109,12 @@ fun PreferenceGroup.switch(
     title: String,
     cb: SwitchPreference.() -> Unit = {}
 ) = basicPref(SwitchPreference(context), pref, title, cb)
+
+fun PreferenceGroup.switch(
+    pref: ConflatedBroadcastChannel<Boolean>,
+    @StringRes title: Int,
+    cb: SwitchPreference.() -> Unit = {}
+) = switch(pref, context.getString(title), cb)
 
 fun PreferenceGroup.color(
     pref: ConflatedBroadcastChannel<Int>,

@@ -6,7 +6,6 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
-import android.util.DisplayMetrics
 import com.chibatching.kotpref.Kotpref
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.serializers.CompatibleFieldSerializer
@@ -19,26 +18,24 @@ import com.loafofpiecrust.turntable.model.queue.CombinedQueue
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.queue.StaticQueue
-import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.model.sync.Friend
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.model.sync.User
+import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.sync.MessageReceiverService
 import com.loafofpiecrust.turntable.sync.SyncSession
 import com.loafofpiecrust.turntable.util.CBCSerializer
 import com.loafofpiecrust.turntable.util.SingletonInstantiatorStrategy
 import com.loafofpiecrust.turntable.util.distinctSeq
 import com.loafofpiecrust.turntable.util.threadLocalLazy
-import com.squareup.leakcanary.LeakCanary
 import de.javakaffee.kryoserializers.ArraysAsListSerializer
 import de.javakaffee.kryoserializers.SubListSerializers
 import de.javakaffee.kryoserializers.UUIDSerializer
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.channels.ReceiveChannel
 import org.jetbrains.anko.connectivityManager
-import org.jetbrains.anko.windowManager
 import org.objenesis.strategy.StdInstantiatorStrategy
 import java.util.*
 import kotlin.coroutines.CoroutineContext
@@ -111,15 +108,15 @@ class App: Application() {
 //            kryo.references = true
 //            return block(kryo).also { kryo.references = false }
 //        }
+
+        val currentInternetStatus = ConflatedBroadcastChannel(InternetStatus.OFFLINE)
+        val internetStatus: ReceiveChannel<InternetStatus>
+            get() = currentInternetStatus.openSubscription().distinctSeq()
     }
 
-    /// Initialize directly rather than a service, so it lives as long as the app does :D
-    lateinit var library: Library
 //    val fileSync = FileSyncService()
     lateinit var search: OnlineSearchService
 
-    private val _internetStatus = ConflatedBroadcastChannel(InternetStatus.OFFLINE)
-    val internetStatus get() = _internetStatus.openSubscription().distinctSeq()
 
 
     override fun onCreate() {
@@ -138,23 +135,18 @@ class App: Application() {
         StateSaver.setEnabledForAllActivitiesAndSupportFragments(this, true)
 
         Kotpref.init(this)
-        library = Library().apply {
-            onCreate()
-        }
         search = OnlineSearchService()
 
-        search.onCreate()
-//        library.onCreate()
+//        search.onCreate()
 //        fileSync.onCreate()
 
-//        startService(Intent(this, Library::class.java))
         Sync.initDeviceId()
 
         SyncSession.processMessages(
             MessageReceiverService.messages
         )
-//        startService(Intent(this, OnlineSearchService::class.java))
-//        startService(Intent(this, FileSyncService::class.java))
+
+        UserPrefs.lastOpenTime puts UserPrefs.currentOpenTime.value
 
 //        val currNet = connectivityManager.getNetworkCapabilities(connectivityManager.isActiveNetworkMetered)
 
@@ -166,7 +158,7 @@ class App: Application() {
             val onlineConns = cm.allNetworks.map { cm.getNetworkCapabilities(it) }.filter {
                 it.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             }
-            _internetStatus puts when {
+            currentInternetStatus puts when {
                 onlineConns.any { it.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED) } -> InternetStatus.UNLIMITED
                 onlineConns.isNotEmpty() -> InternetStatus.LIMITED
                 else -> InternetStatus.OFFLINE
@@ -179,12 +171,12 @@ class App: Application() {
                 override fun onLost(network: Network) {
                     super.onLost(network)
                     if (!hasInternet) {
-                        _internetStatus puts InternetStatus.OFFLINE
+                        currentInternetStatus puts InternetStatus.OFFLINE
                     }
                 }
 
                 override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
-                    _internetStatus puts when {
+                    currentInternetStatus puts when {
                         capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED) -> InternetStatus.UNLIMITED
                         capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) -> InternetStatus.LIMITED
                         else -> InternetStatus.OFFLINE

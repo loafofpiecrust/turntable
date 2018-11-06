@@ -165,7 +165,7 @@ class AlbumEditorActivity : BaseActivity() {
         }
 
         album.tracks.parMap { song ->
-            Library.instance.sourceForSong(song.id)?.let { path ->
+            Library.sourceForSong(song.id)?.let { path ->
                 tryOr(null) {
                     val internal = File(path)
                     val f = if (internal.canWrite()) {

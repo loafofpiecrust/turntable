@@ -95,18 +95,14 @@
             android:name=".player.MusicService"
             android:enabled="true"
             android:exported="false" />
-        <service
-            android:name=".service.Library"
-            android:enabled="true"
-            android:exported="false" />
-        <service
-            android:name=".service.OnlineSearchService"
-            android:enabled="true"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.DOWNLOAD_COMPLETE"/>
-            </intent-filter>
-        </service>
+        <!--<service-->
+            <!--android:name=".service.OnlineSearchService"-->
+            <!--android:enabled="true"-->
+            <!--android:exported="false">-->
+            <!--<intent-filter>-->
+                <!--<action android:name="android.intent.action.DOWNLOAD_COMPLETE"/>-->
+            <!--</intent-filter>-->
+        <!--</service>-->
         <service
             android:name=".sync.MessageReceiverService"
             android:enabled="true"

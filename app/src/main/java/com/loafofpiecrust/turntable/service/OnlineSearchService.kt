@@ -29,16 +29,14 @@ import com.loafofpiecrust.turntable.model.album.selfTitledAlbum
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.song.dbKey
-import com.loafofpiecrust.turntable.ui.BaseService
 import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.addToMediaStore
 import com.mcxiaoke.koi.ext.intValue
 import com.mcxiaoke.koi.ext.stringValue
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.map
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import okhttp3.Cookie
 import okhttp3.HttpUrl
 import org.jaudiotagger.audio.AudioFileIO
@@ -49,9 +47,10 @@ import java.io.File
 import java.util.*
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 
-class OnlineSearchService : BaseService(), AnkoLogger {
+class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
     enum class OrderBy(val code: Int) {
         DATE(1),
         NAME(2),
@@ -71,16 +70,11 @@ class OnlineSearchService : BaseService(), AnkoLogger {
         DESC(2)
     }
 
-    enum class Quality {
-        AWFUL,  // ~128kbps
-        UNKNOWN, // Unlisted quality is probably comparable to 192kbps
-        LOW,    // ~192kpbs
-        MEDIUM, // ~256kbps
-        LOSSLESS, // Prioritize 320kbps mp3 over flac for download times & practicality
-        HIGH,   // ~320kbps
+    init {
+        instance = this
     }
 
-    data class Result(val id: String, val title: String, val year: Int?, val seeders: Int, val size: Long, val quality: Quality) {
+    data class Result(val id: String, val title: String, val year: Int?, val seeders: Int, val size: Long, val quality: Song.Media.Quality) {
         suspend fun retrieveMagnet(): String {
             val cookie = instance.login()
             val res = Jsoup.connect("http://rutracker.org/forum/viewtopic.php")
@@ -146,12 +140,8 @@ class OnlineSearchService : BaseService(), AnkoLogger {
                 entry == null -> StreamStatus.Unknown()
                 entry.youtubeId == null -> StreamStatus.Unavailable()
                 else -> tryOr(StreamStatus.Unknown()) {
-                    entry.stream128 = entry.stream128?.let {
-                        it.decompress()
-                    }
-                    entry.stream192 = entry.stream192?.let {
-                        it.decompress()
-                    }
+                    entry.stream128 = entry.stream128?.decompress()
+                    entry.stream192 = entry.stream192?.decompress()
 
                     StreamStatus.Available(
                         entry.youtubeId!!,
@@ -192,7 +182,7 @@ class OnlineSearchService : BaseService(), AnkoLogger {
         var stream128: String? = null,
         var stream192: String? = null
     ) {
-        constructor(): this("")
+        private constructor(): this("")
 
         /// Map of videoIds reported by users as not correct, to # of reports
         @DynamoDBAttribute
@@ -211,7 +201,7 @@ class OnlineSearchService : BaseService(), AnkoLogger {
     )
 
 
-    private val database: AmazonDynamoDBClient by lazy {
+    val database: AmazonDynamoDBClient by lazy {
         val credentials = CognitoCachingCredentialsProvider(
             App.instance,
             IDENTITY_POOL_ID,
@@ -279,10 +269,12 @@ class OnlineSearchService : BaseService(), AnkoLogger {
     }
 
     private suspend fun createEntry(key: String, videoId: String): StreamStatus {
-        return suspendAsync<StreamStatus> { cont ->
-            YTExtractor(key, videoId, cont)
-                .extract("https://youtube.com/watch?v=$videoId", true, true)
-        }.await()
+        return withContext(Dispatchers.IO) {
+            suspendCoroutine<StreamStatus> { cont ->
+                YTExtractor(key, videoId, cont)
+                    .extract("https://youtube.com/watch?v=$videoId", true, true)
+            }
+        }
     }
 
     data class SongStream(
@@ -301,7 +293,7 @@ class OnlineSearchService : BaseService(), AnkoLogger {
             SongStream(existing)
         } else {
             val albumKey = song.id.album.dbKey
-            val album = /*Library.instance.findAlbumOfSong(song).first()
+            val album = /*Library.findAlbumOfSong(song).first()
                 ?:*/ LocalAlbum(song.id.album, listOf(song))
 
             getExistingEntry(albumKey).let { entry ->
@@ -527,10 +519,10 @@ class OnlineSearchService : BaseService(), AnkoLogger {
 //        }
 //    }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        println("torrent service destroyed")
-    }
+//    override fun onDestroy() {
+//        super.onDestroy()
+//        println("torrent service destroyed")
+//    }
 
     suspend fun login(): Cookie? {
         // TODO: Get the expiration time of the login cookie
@@ -621,17 +613,17 @@ class OnlineSearchService : BaseService(), AnkoLogger {
                     m != null -> {
                         val bitrate = m.groupValues[1].toInt()
                         when (bitrate) {
-                            in 0..191 -> Quality.AWFUL
-                            in 192..255 -> Quality.LOW
-                            in 256..319 -> Quality.MEDIUM
-                            else -> Quality.HIGH
+                            in 0..191 -> Song.Media.Quality.AWFUL
+                            in 192..255 -> Song.Media.Quality.LOW
+                            in 256..319 -> Song.Media.Quality.MEDIUM
+                            else -> Song.Media.Quality.HIGH
                         }
                     }
-                    isMp3 -> Quality.MEDIUM
-                    else -> Quality.UNKNOWN
+                    isMp3 -> Song.Media.Quality.MEDIUM
+                    else -> Song.Media.Quality.UNKNOWN
                 }
             } else {
-                Quality.LOSSLESS
+                Song.Media.Quality.LOSSLESS
             }
             val m = Regex("((19|20)\\d{2})").find(torrentName)
             val year = if (m != null) {
@@ -704,12 +696,12 @@ class OnlineSearchService : BaseService(), AnkoLogger {
 //        }
 //    }
 
-    override fun onCreate() {
-        super.onCreate()
-        instance = this
-
-//        App.instance.registerReceiver(DownloadReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
-    }
+//    override fun onCreate() {
+//        super.onCreate()
+//        instance = this
+//
+////        App.instance.registerReceiver(DownloadReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+//    }
 
     private fun updateDownloads() {
         launch {
@@ -751,7 +743,7 @@ class OnlineSearchService : BaseService(), AnkoLogger {
                                         tags.setField(FieldKey.YEAR, it.toString())
                                     }
                                 }
-                                AudioFileIO.write(this@OnlineSearchService, f)
+                                AudioFileIO.write(App.instance, f)
                                 App.instance.addToMediaStore(path)
                             } catch (e: Exception) {
                                 e.printStackTrace()
@@ -805,8 +797,8 @@ class YTExtractor(
         val stream96video = streams[18]
         val low = stream128 ?: stream128webm ?: stream128video ?: stream96video
         val high = stream256 ?: stream160webm
-        val entry = OnlineSearchService.SongDBEntry(key, videoId, System.currentTimeMillis(), low?.url, high?.url)
-        OnlineSearchService.instance.saveYouTubeStreamUrl(entry)
+//        val entry = OnlineSearchService.SongDBEntry(key, videoId, System.currentTimeMillis(), low?.url, high?.url)
+//        OnlineSearchService.instance.saveYouTubeStreamUrl(entry)
         if (low?.url != null || high?.url != null) {
             cont.resume(OnlineSearchService.StreamStatus.Available(
                     videoId,

@@ -53,14 +53,14 @@ interface Artist: Music {
 
 
     fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
-        Library.instance.loadArtistImage(req, this.id).map {
+        Library.loadArtistImage(req, this.id).map {
             (it ?: SearchCache.fullArtwork(this)?.let { req.load(it) })
                 ?.apply(RequestOptions().signature(ObjectKey("${this.id}thumbnail")))
         }
 
     fun loadArtwork(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
         GlobalScope.produce {
-            val localArt = Library.instance.loadArtistImage(req, this@Artist.id)
+            val localArt = Library.loadArtistImage(req, this@Artist.id)
             send(localArt.receive() ?: req.load(Repositories.fullArtwork(this@Artist, true)))
 
             sendFrom(localArt.filterNotNull())

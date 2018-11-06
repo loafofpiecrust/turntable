@@ -99,7 +99,7 @@ object MusicBrainz: Repository {
             val details = task.awaitOr(null)
             RemoteAlbum(
                 AlbumId(name, ArtistId(artistName)).also { id ->
-                    Library.instance.addAlbumExtras(
+                    Library.addAlbumExtras(
                         Library.AlbumMetadata(id, details?.second)
                     )
                 },
@@ -298,7 +298,7 @@ object MusicBrainz: Repository {
         val sections = discography.children()
 //        val remoteAlbums = mutableListOf<Album>()
 
-//        Library.instance.cacheRemoteArtist(
+//        Library.cacheRemoteArtist(
 //            RemoteArtist(
 //                ArtistId(artistName),
 //                ArtistDetails(artistId),
@@ -359,7 +359,7 @@ object MusicBrainz: Repository {
 
                 val album = RemoteAlbum(
                     AlbumId(title, ArtistId(artistName)).also { id ->
-                        Library.instance.addAlbumExtras(
+                        Library.addAlbumExtras(
                             Library.AlbumMetadata(id, cover)
                         )
                     },
