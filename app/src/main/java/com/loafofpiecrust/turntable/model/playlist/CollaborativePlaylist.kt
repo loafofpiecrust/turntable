@@ -11,6 +11,7 @@ import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.sync.User
+import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.util.replayOne
 import com.loafofpiecrust.turntable.util.serialize
 import com.loafofpiecrust.turntable.util.toObject
@@ -261,29 +262,23 @@ class CollaborativePlaylist (
 //        }
 
 
-        suspend fun fromSpotifyPlaylist(userId: String, id: String): Result<CollaborativePlaylist, Exception> {
-            val playlist = try {
-                Spotify.getPlaylist(userId, id)
+        suspend fun fromSpotifyPlaylist(userId: String, id: String): Result<SongPlaylist, Exception> {
+            try {
+                val playlist = Spotify.getPlaylist(userId, id)
+                return Result.Ok(SongPlaylist(
+                    PlaylistId(
+                        playlist.name,
+                        Sync.selfUser,
+                        UUID.nameUUIDFromBytes(id.toByteArray())
+                    )
+                ).apply {
+                    for (item in playlist.items) {
+                        add(item.track, 0)
+                    }
+                })
             } catch (e: Exception) {
                 return Result.Error(e)
             }
-
-            return Result.Ok(CollaborativePlaylist(
-                PlaylistId(
-                    playlist.name,
-                    User("", "", playlist.ownerName),
-                    UUID.nameUUIDFromBytes(id.toByteArray())
-                ),
-                null
-            ).apply {
-                operations puts playlist.items.map {
-                    val track = it.track
-                    Operation.Add(
-                        track,
-                        it.addedAt.time
-                    )
-                }
-            })
         }
     }
 }

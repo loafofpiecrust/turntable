@@ -4,27 +4,27 @@ import android.support.v7.graphics.Palette
 import android.support.v7.widget.LinearLayoutManager
 import android.view.*
 import android.widget.EditText
+import com.github.daemontus.Result
+import com.github.daemontus.isOk
 import com.github.daemontus.unwrap
-import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.appends
+import com.github.daemontus.unwrapError
+import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.browse.RecentMixTapesFragment
 import com.loafofpiecrust.turntable.model.playlist.*
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.putsMapped
-import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.util.*
 import com.loafofpiecrust.turntable.views.RecyclerBroadcastAdapter
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.alert
+import org.jetbrains.anko.support.v4.toast
+import java.lang.Exception
 import kotlin.coroutines.CoroutineContext
 
 
@@ -51,30 +51,47 @@ class PlaylistsFragment: BaseFragment() {
             AddPlaylistDialog().show(requireContext(), fullscreen = true)
         }
 
-        menu.menuItem("From Spotify").onClick {
+        menu.menuItem("Import from Spotify").onClick {
             alert {
-                title = "Playlist From Spotify"
+                title = "Import from Spotify"
 
-                lateinit var userEdit: EditText
-                lateinit var idEdit: EditText
+                lateinit var urlEdit: EditText
                 customView {
-                    verticalLayout {
-                        userEdit = editText {
-                            hint = "User ID"
-                        }
-                        idEdit = editText {
-                            hint = "Playlist ID"
+                    frameLayout {
+                        horizontalPadding = dimen(R.dimen.text_content_margin)
+                        urlEdit = editText {
+                            hint = "Spotify Playlist URL"
                         }
                     }
                 }
 
                 positiveButton("Load") {
-                    launch(Dispatchers.IO) {
-                        UserPrefs.playlists appends CollaborativePlaylist.fromSpotifyPlaylist(userEdit.text.toString(), idEdit.text.toString()).unwrap()
-                    }
+                    loadSpotifyPlaylist(urlEdit.text)
                 }
                 cancelButton {}
             }.show()
+        }
+    }
+
+    private fun loadSpotifyPlaylist(urlText: CharSequence) {
+        val pattern = Regex("^https://open.spotify.com/user/(\\d+)/playlist/([^?]+)")
+        val url = pattern.find(urlText)
+        if (url != null) {
+            val userId = url.groupValues[1]
+            val playlistId = url.groupValues[2]
+            info { "Loading spotify playlist $playlistId by $userId" }
+            launch(Dispatchers.IO) {
+                val pl = CollaborativePlaylist.fromSpotifyPlaylist(userId, playlistId)
+                if (pl is Result.Ok) {
+                    info { "Loaded playlist ${pl.ok.tracks}" }
+                    UserPrefs.playlists appends pl.ok
+                } else launch(Dispatchers.Main) {
+                    error("Failed to load Spotify playlist", pl.unwrapError())
+                    toast("Failed to load Spotify playlist")
+                }
+            }
+        } else {
+            toast("Invalid Spotify playlist url")
         }
     }
 

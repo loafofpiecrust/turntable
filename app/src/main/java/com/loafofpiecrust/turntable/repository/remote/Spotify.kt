@@ -424,14 +424,14 @@ object Spotify: Repository {
                 )
             )
         }
-        val finalTracks = if (items.size == 100) {
-            items + getPlaylist(userId, playlistId, page + 1).items
-        } else items
+//        val finalTracks = if (items.size >= 100) {
+//            items + getPlaylist(userId, playlistId, page + 1).items
+//        } else items
 
         return Playlist(
             name = res["name"].string,
             ownerName = res["owner"]["display_name"].string,
-            items = finalTracks
+            items = items
         )
     }
 
