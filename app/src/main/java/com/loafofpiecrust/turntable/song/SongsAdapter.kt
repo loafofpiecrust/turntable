@@ -28,7 +28,7 @@ import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.textColor
 import kotlin.coroutines.CoroutineContext
 
-class SongsOnDiscAdapter(
+open class SongsOnDiscAdapter(
     parentContext: CoroutineContext,
     originalChannel: ReceiveChannel<Map<String, List<Song>>>,
     @StringRes private val headerRes: Int,

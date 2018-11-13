@@ -147,9 +147,9 @@ abstract class RecyclerBroadcastAdapter<T, VH: RecyclerView.ViewHolder>(
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
             val position = viewHolder.adapterPosition
             if (canMoveItem(position)) {
+                onItemDismiss(position)
                 data = data.without(position)
                 notifyItemRemoved(position)
-                onItemDismiss(viewHolder.adapterPosition)
             }
         }
 

@@ -176,7 +176,12 @@ abstract class SectionedAdapter<
         is Entry.Header<*> -> 1
     }
 
-    private fun sectionForPosition(position: Int): Int {
+    override fun canMoveItem(index: Int): Boolean {
+        return data[index] !is Entry.Header<*>
+    }
+
+
+    protected fun sectionForPosition(position: Int): Int {
         var total = 0
         for (idx in 0..position) {
             if (data[idx] is Entry.Header<*>) {
@@ -186,7 +191,7 @@ abstract class SectionedAdapter<
         return total
     }
 
-    private fun indexInSection(position: Int): Int {
+    protected fun indexInSection(position: Int): Int {
         for (index in position downTo 0) {
             if (data[index] is Entry.Header<*>) {
                 return position - index - 1

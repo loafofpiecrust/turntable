@@ -28,6 +28,7 @@ import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.recyclerview.v7.recyclerView
+import kotlin.coroutines.CoroutineContext
 
 @Parcelize
 class GeneralPlaylistDetails(
@@ -70,24 +71,10 @@ class NewPlaylistDetails(
             contents {
                 recyclerView {
                     layoutManager = LinearLayoutManager(context)
-                    adapter = SongsOnDiscAdapter(
+                    adapter = PlaylistSidesAdapter(
                         coroutineContext,
-                        playlist.sides.openSubscription().map {
-                            var index = -1
-                            it.map { it.map { it.song } }.associateBy {
-                                index += 1
-                                playlist.sideName(index)
-                            }
-                        },
-                        R.string.mixtape_side,
-                        formatSubtitle = { it.id.artist.displayName }
-                    ) { song ->
-                        val songs = playlist.tracks
-                        val idx = songs.indexOf(song)
-                        MusicService.offer(
-                            PlayerAction.PlaySongs(songs, idx)
-                        )
-                    }
+                        playlist
+                    )
                 }
             }
             emptyState {
@@ -106,5 +93,48 @@ class NewPlaylistDetails(
                 }
             }
         }
+    }
+}
+
+class PlaylistSidesAdapter(
+    coroutineContext: CoroutineContext,
+    private val playlist: GeneralPlaylist
+): SongsOnDiscAdapter(
+    coroutineContext,
+    playlist.sides.openSubscription().map {
+        var index = -1
+        it.map { it.map { it.song } }.associateBy {
+            index += 1
+            playlist.sideName(index)
+        }
+    },
+    R.string.mixtape_side,
+    formatSubtitle = { it.id.artist.displayName },
+    onClickItem = { song ->
+        val songs = playlist.tracks
+        val idx = songs.indexOf(song)
+        MusicService.offer(
+            PlayerAction.PlaySongs(songs, idx)
+        )
+    }
+) {
+    override val dismissEnabled: Boolean
+        get() = true
+
+    override val moveEnabled: Boolean
+        get() = true
+
+    override fun onItemDismiss(idx: Int) {
+        val sectionsToConsider = sectionForPosition(idx)
+        // should be just idx - 1 when there's one side
+        val actualIdx = idx - sectionsToConsider
+        playlist.remove(playlist.tracks[actualIdx].id)
+    }
+
+    override fun onItemMove(fromIdx: Int, toIdx: Int) {
+        val actualFrom = fromIdx - sectionForPosition(fromIdx)
+        val actualTo = toIdx - sectionForPosition(toIdx)
+        val tracks = playlist.tracks
+        playlist.move(tracks[actualFrom].id, tracks[actualTo].id)
     }
 }
