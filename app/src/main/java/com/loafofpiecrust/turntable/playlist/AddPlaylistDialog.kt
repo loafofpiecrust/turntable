@@ -46,7 +46,7 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
     private var startingTracks by arg { TrackList() }
 
     private var playlistName: String = ""
-    private var playlistType: KClass<*> = CollaborativePlaylist::class
+    private var playlistType: KClass<*> = SongPlaylist::class
     private val playlistColor = ConflatedBroadcastChannel<Int>()
 
     override fun onStart() {
