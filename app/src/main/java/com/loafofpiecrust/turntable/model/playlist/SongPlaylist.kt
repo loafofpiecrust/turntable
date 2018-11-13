@@ -15,7 +15,6 @@ import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.channels.map
 import org.jetbrains.anko.alert
 import org.jetbrains.anko.cancelButton
@@ -38,7 +37,7 @@ import kotlin.coroutines.suspendCoroutine
  * - It is the duty of the UI to enforce permissions.
  * - Represented as a list of Operations that compose into the actual track list
  */
-class GeneralPlaylist(
+class SongPlaylist(
     id: PlaylistId,
     initialSideCount: Int = 1
 ): Playlist {
@@ -247,7 +246,7 @@ class GeneralPlaylist(
     /**
      * @return true if merging was necessary
      */
-    internal fun mergeWith(remote: GeneralPlaylist): Boolean {
+    internal fun mergeWith(remote: SongPlaylist): Boolean {
         // If we've synced since the remote was last modified,
         // we don't need to do anything
 //            return false
@@ -339,7 +338,7 @@ class GeneralPlaylist(
         private val DEFAULT_TRACK_DURATION = 4.minutes
 
         private fun fromDocument(doc: DocumentSnapshot) = runBlocking {
-            GeneralPlaylist(
+            SongPlaylist(
                 PlaylistId(
                     doc.getString("name")!!,
                     User.resolve(doc.getString("owner")!!)!!,
@@ -368,7 +367,7 @@ suspend fun <T> Task<T>.await(): T = suspendCoroutine { cont ->
     }
 }
 
-fun GeneralPlaylist.add(ctx: Context, song: Song) {
+fun SongPlaylist.add(ctx: Context, song: Song) {
     if (sideCount <= 1) {
         addToSide(ctx, 0, song)
     } else {
@@ -376,7 +375,7 @@ fun GeneralPlaylist.add(ctx: Context, song: Song) {
     }
 }
 
-private fun GeneralPlaylist.pickSideForAdd(
+private fun SongPlaylist.pickSideForAdd(
     context: Context, song: Song
 ) = with(context) {
     val sideNames = (0 until sideCount).map { i ->
@@ -390,21 +389,21 @@ private fun GeneralPlaylist.pickSideForAdd(
     }
 }
 
-private fun GeneralPlaylist.addToSide(
+private fun SongPlaylist.addToSide(
     context: Context, idx: Int, song: Song
 ): Unit = with(context) {
     val result = add(song, idx)
     when (result) {
-        GeneralPlaylist.AddResult.ADDED ->
+        SongPlaylist.AddResult.ADDED ->
             toast(getString(R.string.playlist_added_track, id.name))
-        GeneralPlaylist.AddResult.DUPLICATE_SONG ->
+        SongPlaylist.AddResult.DUPLICATE_SONG ->
             toast(getString(R.string.playlist_duplicate, id.name))
-        GeneralPlaylist.AddResult.SIDE_FULL ->
+        SongPlaylist.AddResult.SIDE_FULL ->
             maybeNewSide(context, idx, song)
     }
 }
 
-private fun GeneralPlaylist.maybeNewSide(
+private fun SongPlaylist.maybeNewSide(
     context: Context, idx: Int, song: Song
 ) = with(context) {
     alert {

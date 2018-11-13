@@ -16,7 +16,6 @@ import com.loafofpiecrust.turntable.util.serialize
 import kotlinx.coroutines.channels.firstOrNull
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import java.util.*
 import kotlin.test.Test
 
 class PlaylistTests {
@@ -63,7 +62,7 @@ class PlaylistTests {
         redHouse
     )
 
-    suspend fun GeneralPlaylist.updateSync() {
+    suspend fun SongPlaylist.updateSync() {
         delay(2)
         lastSyncTime = System.currentTimeMillis()
         delay(2)
@@ -115,7 +114,7 @@ class PlaylistTests {
     }
 
     @Test fun `general parallel add`() = runBlocking<Unit> {
-        val original = GeneralPlaylist(id)
+        val original = SongPlaylist(id)
         original.add(redHouse)
         original.updateSync()
 
@@ -133,7 +132,7 @@ class PlaylistTests {
     }
 
     @Test fun `add, remote remove`() = runBlocking<Unit> {
-        val original = GeneralPlaylist(id)
+        val original = SongPlaylist(id)
         original.add(redHouse)
         original.updateSync()
 
@@ -149,7 +148,7 @@ class PlaylistTests {
 
     @Test fun general() = runBlocking<Unit> {
         // Original user creates playlist.
-        val original = GeneralPlaylist(id)
+        val original = SongPlaylist(id)
         original.add(cloverSaloon)
         // upload it to the database
         original.updateSync()
@@ -175,7 +174,7 @@ class PlaylistTests {
 
     @Test fun `general with moves`() = runBlocking<Unit> {
         val id = PlaylistId("for you!")
-        val original = GeneralPlaylist(id)
+        val original = SongPlaylist(id)
 
         original.add(cloverSaloon)
         original.add(meOnTheBeach)

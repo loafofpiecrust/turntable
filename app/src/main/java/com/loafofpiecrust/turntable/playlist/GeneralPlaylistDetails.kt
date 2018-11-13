@@ -6,13 +6,12 @@ import android.view.View
 import android.widget.TextView
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
-import com.loafofpiecrust.turntable.model.playlist.GeneralPlaylist
+import com.loafofpiecrust.turntable.model.playlist.SongPlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.model.playlist.PlaylistId
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.song.SongsAdapter
 import com.loafofpiecrust.turntable.song.SongsOnDiscAdapter
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.sync.PlayerAction
@@ -42,7 +41,7 @@ class GeneralPlaylistDetails(
     private val playlistUI: UIComponent = when (playlist) {
         is MixTape -> MixtapeDetailsUI(playlistId)
         is CollaborativePlaylist -> PlaylistDetailsUI(playlistId)
-        is GeneralPlaylist -> NewPlaylistDetails(playlist)
+        is SongPlaylist -> NewPlaylistDetails(playlist)
         else -> AlbumCollectionDetails(playlistId)
     }
 
@@ -51,7 +50,7 @@ class GeneralPlaylistDetails(
 }
 
 class NewPlaylistDetails(
-    val playlist: GeneralPlaylist
+    val playlist: SongPlaylist
 ): UIComponent() {
     override fun ViewContext.render() = verticalLayout {
         appBarLayout {
@@ -98,7 +97,7 @@ class NewPlaylistDetails(
 
 class PlaylistSidesAdapter(
     coroutineContext: CoroutineContext,
-    private val playlist: GeneralPlaylist
+    private val playlist: SongPlaylist
 ): SongsOnDiscAdapter(
     coroutineContext,
     playlist.sides.openSubscription().map {

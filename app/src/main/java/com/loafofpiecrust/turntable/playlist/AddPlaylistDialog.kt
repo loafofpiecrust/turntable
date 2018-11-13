@@ -10,6 +10,7 @@ import android.view.ViewManager
 import android.widget.ArrayAdapter
 import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
+import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.Recommendable
 import com.loafofpiecrust.turntable.model.album.AlbumId
@@ -76,7 +77,7 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
                     (it as? AlbumId)?.let { add(it) }
                 }
             }
-            GeneralPlaylist::class -> GeneralPlaylist(id).also { pl ->
+            SongPlaylist::class -> SongPlaylist(id).also { pl ->
                 pl.color = color
                 startingTracks.tracks.forEach {
                     (it as? Song)?.let { pl.add(it) }
@@ -143,17 +144,19 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
             }
 
 
-            spinner {
-                val choices = listOf(
-                    GeneralPlaylist::class
-                )
-                val names = choices.map { it.localizedName(context) }
-                adapter = choiceAdapter(context, names)
+            if (BuildConfig.DEBUG) {
+                spinner {
+                    val choices = listOf(
+                        SongPlaylist::class
+                    )
+                    val names = choices.map { it.localizedName(context) }
+                    adapter = choiceAdapter(context, names)
 
-                onItemSelectedListener {
-                    onItemSelected { _, _, position, id ->
-                        val choice = choices[position]
-                        playlistType = choice
+                    onItemSelectedListener {
+                        onItemSelected { _, _, position, id ->
+                            val choice = choices[position]
+                            playlistType = choice
+                        }
                     }
                 }
             }

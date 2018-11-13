@@ -14,6 +14,7 @@ import com.google.firebase.FirebaseApp
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.album.LocalAlbum
 import com.loafofpiecrust.turntable.model.artist.ArtistId
+import com.loafofpiecrust.turntable.model.playlist.SongPlaylist
 import com.loafofpiecrust.turntable.model.queue.CombinedQueue
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
@@ -82,7 +83,7 @@ class App: Application() {
 
                 // Register types under unique IDs
                 // This method is resilient to moves and renames.
-                // Last ID: 113
+                // Last ID: 115
                 register(SongId::class.java, 100)
                 register(AlbumId::class.java, 101)
                 register(ArtistId::class.java, 102)
@@ -101,6 +102,10 @@ class App: Application() {
                 register(User::class.java, 109)
                 register(Friend::class.java, 111)
                 register(ConflatedBroadcastChannel::class.java, 112)
+
+                // playlists
+                register(SongPlaylist::class.java, 114)
+                register(SongPlaylist.Track::class.java, 115)
             }
         }
 

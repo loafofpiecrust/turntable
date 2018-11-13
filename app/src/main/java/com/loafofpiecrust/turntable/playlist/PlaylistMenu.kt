@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.playlist
 
-import android.app.Activity
 import android.content.Context
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
@@ -9,14 +8,13 @@ import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.model.playlist.GeneralPlaylist
+import com.loafofpiecrust.turntable.model.playlist.SongPlaylist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.sync.Message
-import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.ui.popMainContent
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +28,7 @@ import kotlin.random.Random
 
 fun Toolbar.playlistOptions(
     context: Context,
-    playlist: GeneralPlaylist
+    playlist: SongPlaylist
 ) {
     val scope = ViewScope(this)
 

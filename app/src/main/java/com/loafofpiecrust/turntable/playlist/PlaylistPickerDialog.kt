@@ -108,9 +108,9 @@ class PlaylistPicker(
         val applicablePlaylists = UserPrefs.playlists.openSubscription().map {
             it.filter {
                 when (item) {
-                    is Song -> it is GeneralPlaylist
-                    is AlbumId -> it is AlbumCollection || it is GeneralPlaylist
-                    is HasTracks -> it is GeneralPlaylist
+                    is Song -> it is SongPlaylist
+                    is AlbumId -> it is AlbumCollection || it is SongPlaylist
+                    is HasTracks -> it is SongPlaylist
                     else -> throw Error("Can't add Artist to playlist")
                 }
             }
@@ -121,7 +121,7 @@ class PlaylistPicker(
             val item = item
             when (item) {
                 is Song -> when (selected) {
-                    is GeneralPlaylist -> selected.add(context, item)
+                    is SongPlaylist -> selected.add(context, item)
                     else -> toast("Cannot add a song to ${selected.id.name}")
                 }
                 is AlbumId -> {
