@@ -28,7 +28,7 @@ class MiniPlayerFragment: BaseFragment() {
         }
 
         val cover = imageView {
-            scaleType = ImageView.ScaleType.FIT_CENTER
+            scaleType = ImageView.ScaleType.CENTER_CROP
         }.lparams(height = matchParent, width = dimen(R.dimen.mini_player_height))
 
         // Song info

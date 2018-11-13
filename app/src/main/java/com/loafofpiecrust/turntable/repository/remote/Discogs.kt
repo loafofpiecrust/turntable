@@ -154,7 +154,7 @@ object Discogs: Repository {
                     cleanArtistName(titleParts[0])
                 ),
                 AlbumDetails(
-                    it["id"].int.toString(),
+                    "masters/${it["id"].int}",
                     thumbnailUrl = it["thumb"].nullString
                 ),
                 year = it["year"].nullString?.toIntOrNull() ?: 0

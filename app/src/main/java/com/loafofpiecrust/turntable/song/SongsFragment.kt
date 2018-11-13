@@ -8,6 +8,7 @@ import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.Menu
 import android.view.ViewManager
+import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.player.MusicService
@@ -30,10 +31,12 @@ abstract class SongsUI: UIComponent() {
     abstract val songs: BroadcastChannel<List<Song>>
 
     override fun Menu.prepareOptions(context: Context) {
-        menuItem(R.string.show_history).onClick {
-            context.replaceMainContent(
-                SongsUI.History().createFragment()
-            )
+        if (BuildConfig.DEBUG) {
+            menuItem(R.string.show_history).onClick {
+                context.replaceMainContent(
+                    SongsUI.History().createFragment()
+                )
+            }
         }
     }
 
@@ -48,7 +51,7 @@ abstract class SongsUI: UIComponent() {
             turntableStyle()
         }
 
-    final override fun ViewContext.render() = refreshableRecyclerView {
+    override fun ViewContext.render() = refreshableRecyclerView {
         channel = songs.openSubscription()
 
         contents {

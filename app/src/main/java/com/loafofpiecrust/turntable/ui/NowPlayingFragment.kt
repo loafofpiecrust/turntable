@@ -10,6 +10,7 @@ import android.support.design.widget.FloatingActionButton
 import android.view.View
 import android.view.ViewManager
 import com.bumptech.glide.Glide
+import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.loadPalette
 import com.loafofpiecrust.turntable.player.MusicService
@@ -183,6 +184,9 @@ open class NowPlayingFragment : BaseFragment() {
 
         val shuffleBtn = iconButton(R.drawable.ic_shuffle) {
             tintResource = R.color.md_grey_700
+            if (!BuildConfig.DEBUG) {
+                visibility = View.INVISIBLE
+            }
 
 //            MusicService.instance.combineLatest(
 //                MusicService.instance.switchMap { it.player.queue }

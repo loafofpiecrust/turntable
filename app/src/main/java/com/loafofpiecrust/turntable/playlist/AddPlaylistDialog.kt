@@ -76,9 +76,10 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
                     (it as? AlbumId)?.let { add(it) }
                 }
             }
-            GeneralPlaylist::class -> GeneralPlaylist(id).apply {
+            GeneralPlaylist::class -> GeneralPlaylist(id).also { pl ->
+                pl.color = color
                 startingTracks.tracks.forEach {
-                    (it as? Song)?.let { add(it) }
+                    (it as? Song)?.let { pl.add(it) }
                 }
             }
             else -> kotlin.error("Unreachable")
@@ -144,7 +145,6 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
 
             spinner {
                 val choices = listOf(
-                    AlbumCollection::class,
                     GeneralPlaylist::class
                 )
                 val names = choices.map { it.localizedName(context) }

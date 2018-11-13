@@ -6,4 +6,5 @@
     <string name="search_discogs">Discogs</string>
     <string name="search_musicbrainz">MusicBrainz</string>
     <string name="search_local">Local Library</string>
+    <string name="search_all">Search All</string>
 </resources>

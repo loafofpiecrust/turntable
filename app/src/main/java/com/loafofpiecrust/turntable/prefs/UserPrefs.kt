@@ -5,6 +5,8 @@ import com.chibatching.kotpref.preference
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.Recommendable
 import com.loafofpiecrust.turntable.model.album.Album
+import com.loafofpiecrust.turntable.model.album.AlbumId
+import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.model.queue.CombinedQueue
 import com.loafofpiecrust.turntable.model.song.HistoryEntry
@@ -36,6 +38,7 @@ object UserPrefs: KotprefModel() {
 
     // Artwork
     val downloadArtworkWifiOnly by booleanPref(true)
+    val downloadArtworkAuto by booleanPref(true)
     val artworkOnLockscreen by booleanPref(true)
     val reduceVolumeOnFocusLoss by booleanPref(true)
 
@@ -56,8 +59,8 @@ object UserPrefs: KotprefModel() {
 
     val remoteAlbums by preference(emptyList<Album>())
     // TODO: Save metadata as Map<MusicId, Metadata> instead of a list.
-    val albumMeta by preference(emptyList<Library.AlbumMetadata>())
-    val artistMeta by preference(emptyList<Library.ArtistMetadata>())
+    val albumMeta by preference(emptyMap<AlbumId, Library.AlbumMetadata>())
+    val artistMeta by preference(emptyMap<ArtistId, Library.ArtistMetadata>())
     val history by preference(emptyList<HistoryEntry>())
     val playlists by preference(emptyList<Playlist>())
     val recommendations by preference(emptyList<Recommendable>())

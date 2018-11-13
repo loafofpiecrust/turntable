@@ -129,7 +129,10 @@ fun RecyclerListItem.bindMusic(
     when (item) {
         is Song -> {
             mainLine.text = item.id.displayName
-            subLine.text = item.id.artist.displayName
+            subLine.text = ctx.getString(
+                R.string.song_by_artist,
+                item.id.artist.displayName
+            )
             coverImage?.image = null
             card.onClick {
                 MusicService.offer(PlayerAction.PlaySongs(listOf(item)))
@@ -137,7 +140,10 @@ fun RecyclerListItem.bindMusic(
         }
         is AlbumId -> {
             mainLine.text = item.displayName
-            subLine.text = item.artist.displayName
+            subLine.text = ctx.getString(
+                R.string.album_by_artist,
+                item.artist.displayName
+            )
 //                (holder.coverImage)?.let { cover ->
 //                    launch {
 //                        item.loadCover(Glide.with(cover)).first()
@@ -155,7 +161,7 @@ fun RecyclerListItem.bindMusic(
         }
         is ArtistId -> {
             mainLine.text = item.displayName
-            subLine.text = ""
+            subLine.text = ctx.getString(R.string.Artist)
             coverImage?.image = null
             card.onClick {
                 ctx.replaceMainContent(

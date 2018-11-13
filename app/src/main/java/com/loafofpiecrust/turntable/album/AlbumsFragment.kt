@@ -7,6 +7,7 @@ import android.os.Parcelable
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.Menu
+import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.artist.ArtistDetailsUI
 import com.loafofpiecrust.turntable.repository.local.LocalApi
@@ -55,6 +56,7 @@ sealed class AlbumsUI(
     }
 
     override fun ViewContext.render() = refreshableRecyclerView {
+        isRefreshing = true
         channel = displayAlbums.openSubscription()
 
         contents {
@@ -128,17 +130,19 @@ sealed class AlbumsUI(
             )
         }
 
-        subMenu(R.string.set_grid_size) {
-            group(0, true, true) {
-                val items = (1..4).map { idx ->
-                    menuItem(idx.toString()).apply {
-                        onClick(Dispatchers.Main) { UserPrefs.albumGridColumns puts idx }
+        if (BuildConfig.DEBUG) {
+            subMenu(R.string.set_grid_size) {
+                group(0, true, true) {
+                    val items = (1..4).map { idx ->
+                        menuItem(idx.toString()).apply {
+                            onClick(Dispatchers.Main) { UserPrefs.albumGridColumns puts idx }
+                        }
                     }
-                }
 
-                UserPrefs.albumGridColumns.consumeEachAsync(Dispatchers.Main) { count ->
-                    items.forEach { it.isChecked = false }
-                    items[count - 1].isChecked = true
+                    UserPrefs.albumGridColumns.consumeEachAsync(Dispatchers.Main) { count ->
+                        items.forEach { it.isChecked = false }
+                        items[count - 1].isChecked = true
+                    }
                 }
             }
         }
@@ -175,7 +179,7 @@ sealed class AlbumsUI(
                         when (mode) {
                             ArtistDetailsUI.Mode.LIBRARY -> it
                             ArtistDetailsUI.Mode.LIBRARY_AND_REMOTE ->
-                                LocalApi.find(artist)?.let { local -> MergedArtist(it!!, local) } ?: it
+                                LocalApi.find(artist)?.let { local -> MergedArtist(local, it!!) } ?: it
                             ArtistDetailsUI.Mode.REMOTE -> it // use case?
                         }
                     }

@@ -13,7 +13,7 @@ import org.jetbrains.anko.support.v4.alert
 @MakeActivityStarter
 class SyncDetailsDialog: BaseDialogFragment() {
     override fun ViewManager.createView(): View? = verticalLayout {
-        padding = dimen(R.dimen.dialog_content_margin)
+        horizontalPadding = dimen(R.dimen.dialog_content_margin)
 
         val modeLabel = textView()
         val latencyLabel = textView()
@@ -38,6 +38,5 @@ class SyncDetailsDialog: BaseDialogFragment() {
         positiveButton(R.string.sync_disconnect) {
             SyncSession.stop()
         }
-        cancelButton {}
     }.build() as Dialog
 }

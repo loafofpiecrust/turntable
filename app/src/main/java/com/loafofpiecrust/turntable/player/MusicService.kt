@@ -41,7 +41,9 @@ import kotlin.coroutines.suspendCoroutine
 class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
     companion object {
         private val _instance = ConflatedBroadcastChannel<WeakReference<MusicService>>()
-        val instance get() = _instance.openSubscription().map { it.get() }
+        val instance get() = _instance.openSubscription()
+            .map { it.get() }.distinctInstanceSeq()
+
         val player get() = instance.map { it?.player }.startWith(null)
 
         val currentSongColor: BroadcastChannel<Int> =
@@ -86,7 +88,6 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
                     is Action.Synced ->
                         service.doAction(action.message, action.shouldSync)
                 }
-
             }
         }
 
@@ -247,6 +248,7 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null) {
+            _instance.offer(WeakReference(this))
             ActivityStarter.fill(this, intent)
             command?.let { msg ->
                 doAction(msg, shouldSync)

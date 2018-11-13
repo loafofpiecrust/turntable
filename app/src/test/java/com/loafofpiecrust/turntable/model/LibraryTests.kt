@@ -72,16 +72,14 @@ class LibraryTest {
     fun longRuntimes() = runBlocking<Unit> {
 //        Robolectric.setupActivity(MainActivity::class.java)
 
-        val library = Library()
-
         // Spotify's library limit is 10,000 saved songs.
         // My personal library (not that large) is ~12,000 songs
         // If I saved all I wanted to, my library would have >=20,000 songs
-        library.localSongs.offer(generateSongs(15000))
+        Library.localSongs.offer(generateSongs(15000))
 
-        val songs = library.songsMap.openSubscription().first { it.isNotEmpty() }
-        val albums = library.albumsMap.openSubscription().first { it.isNotEmpty() }
-        val artists = library.artistsMap.openSubscription().first { it.isNotEmpty() }
+        val songs = Library.songsMap.openSubscription().first { it.isNotEmpty() }
+        val albums = Library.albumsMap.openSubscription().first { it.isNotEmpty() }
+        val artists = Library.artistsMap.openSubscription().first { it.isNotEmpty() }
 
         println("song count: ${songs.size}")
         println("album count: ${albums.size}")

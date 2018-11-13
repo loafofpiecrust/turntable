@@ -418,7 +418,7 @@ suspend fun <T: Any> Collection<Deferred<T>>.awaitAllNotNull(): List<T> = run {
 //    onNext(value)
 //}
 
-inline infix fun <T> SendChannel<T>.puts(value: T) {
+infix fun <T> SendChannel<T>.puts(value: T) {
     offer(value)
 }
 

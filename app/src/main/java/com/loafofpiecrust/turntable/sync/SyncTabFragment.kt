@@ -59,19 +59,20 @@ class SyncTabFragment: BaseFragment() {
                     }
                     positiveButton(R.string.user_befriend) {
                         val key = textBox.text.toString()
-                        async(Dispatchers.IO) {
-                            User.resolve(key)
-                        }.then(Dispatchers.Main) { user ->
-                            // TODO: Use localized strings in xml
-                            toast(if (user != null) {
-                                if (Friend.request(user)) {
-                                    getString(R.string.friend_request_sent, user.displayName)
+                        launch(Dispatchers.IO) {
+                            val user = User.resolve(key)
+                            launch(Dispatchers.Main) {
+                                // TODO: Use localized strings in xml
+                                toast(if (user != null) {
+                                    if (Friend.request(user)) {
+                                        getString(R.string.friend_request_sent, user.displayName)
+                                    } else {
+                                        getString(R.string.friend_request_already_added, user.displayName)
+                                    }
                                 } else {
-                                    getString(R.string.friend_request_already_added, user.displayName)
-                                }
-                            } else {
-                                getString(R.string.user_nonexistent, key)
-                            })
+                                    getString(R.string.user_nonexistent, key)
+                                })
+                            }
                         }
                     }
                     cancelButton {}
@@ -112,9 +113,9 @@ class SyncTabFragment: BaseFragment() {
             val email = cursor.stringValue(ContactsContract.CommonDataKinds.Email.ADDRESS)
             println("friends: adding $id:$name at $email")
 
-            launch(Dispatchers.Default) {
+            launch(Dispatchers.IO) {
                 val user = User.resolve(email)
-                withContext(Dispatchers.Main) {
+                launch(Dispatchers.Main) {
                     toast(if (user != null) {
                         if (Friend.request(user)) {
                             getString(R.string.friend_request_sent, user.name)
@@ -122,7 +123,7 @@ class SyncTabFragment: BaseFragment() {
                             getString(R.string.friend_request_already_added, user.name)
                         }
                     } else {
-                        "$name isn't on Turntable yet"
+                        getString(R.string.user_nonexistent, name)
                     })
                 }
             }
@@ -155,18 +156,20 @@ class SyncTabFragment: BaseFragment() {
                         menu.visibility = View.GONE
                         mainLine.text = friend.user.name
                         subLine.text = when (friend.status) {
-                            Friend.Status.CONFIRMED -> friend.user.deviceId
+                            Friend.Status.CONFIRMED -> friend.user.username
                             Friend.Status.RECEIVED_REQUEST -> getString(R.string.friend_request_received)
                             Friend.Status.SENT_REQUEST -> getString(R.string.friend_request_sent_line)
                         }
                         val choices = when (friend.status) {
                             Friend.Status.CONFIRMED -> listOf(
                                 getString(R.string.friend_request_sync) to {
-                                    val user = friend.user.refresh()
                                     launch {
-                                        Sync.requestSync(user.await())
+                                        val user = friend.user.refresh().await()
+                                        Sync.requestSync(user)
+                                        launch(Dispatchers.Main) {
+                                            toast("Requested sync with ${user.name}")
+                                        }
                                     }
-                                    toast("Requested sync with ${friend.user.name}")
                                 },
                                 "Remove as Friend" to {
                                     Friend.remove(friend.user)

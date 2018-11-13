@@ -1,5 +1,6 @@
 package com.loafofpiecrust.turntable.repository.remote
 
+import com.github.salomonbrys.kotson.long
 import com.github.salomonbrys.kotson.nullObj
 import com.github.salomonbrys.kotson.obj
 import com.github.salomonbrys.kotson.string
@@ -41,6 +42,11 @@ object YouTubeSongProvider: StreamProvider {
     }
 }
 
+/**
+ * The stream urls returned from here have some restrictions:
+ * - Only usable for a limited duration. A stream url generally lasts for 6 hours.
+ * - We seem to be able to use them from multiple devices despite the url containing an original IP.
+ */
 object FirebaseStreamFunction: StreamProvider {
     override suspend fun sourceForSong(song: Song): Song.Media? {
         val res = Http.get("https://us-central1-turntable-3961c.cloudfunctions.net/parseStreamsFromYouTube", params = mapOf(
@@ -51,6 +57,7 @@ object FirebaseStreamFunction: StreamProvider {
             "duration" to song.duration.toString()
         )).gson.obj
 
+
         val lq = res["lowQuality"].nullObj?.get("url")?.string
 
         return if (lq == null) {
@@ -58,6 +65,7 @@ object FirebaseStreamFunction: StreamProvider {
             null
         } else {
             val hq = res["highQuality"].nullObj?.get("url")?.string
+            val expiryDate = res["expiryDate"].long
 //            val id = res["id"].string
             Song.Media.fromYouTube(lq, hq)
         }

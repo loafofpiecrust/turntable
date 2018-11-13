@@ -13,4 +13,5 @@
     <string name="similar_to_artist">Similar To %1$s</string>
     <string name="artist_biography">Biography</string>
     <string name="artist_features">(ft. %1$s)</string>
+    <string name="Artist">Artist</string>
 </resources>

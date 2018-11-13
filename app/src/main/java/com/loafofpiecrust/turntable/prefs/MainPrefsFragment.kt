@@ -4,6 +4,7 @@ import activitystarter.MakeActivityStarter
 import android.os.Bundle
 import android.preference.PreferenceFragment
 import com.chibatching.kotpref.KotprefModel
+import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -50,9 +51,11 @@ class MainPrefsFragment : PreferenceFragment() {
             }
 
             category("Album/Artist Artwork") {
-                switch(UserPrefs.downloadArtworkWifiOnly, "Download on WiFi only")
-                switch(UserPrefs.artworkOnLockscreen, "Show on lockscreen")
+                switch(UserPrefs.downloadArtworkAuto, "Download missing artwork")
                 switch(UserPrefs.reduceVolumeOnFocusLoss, "Reduce volume on focus loss")
+                if (BuildConfig.DEBUG) {
+                    switch(UserPrefs.artworkOnLockscreen, "Show on lockscreen")
+                }
             }
 
             list(

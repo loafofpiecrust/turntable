@@ -16,6 +16,7 @@ import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumsUI
 import com.loafofpiecrust.turntable.artist.ArtistsUI
 import com.loafofpiecrust.turntable.browse.BrowseFragment
+import com.loafofpiecrust.turntable.browse.RecommendationsFragment
 import com.loafofpiecrust.turntable.playlist.PlaylistsFragment
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.song.SongsUI
@@ -59,7 +60,7 @@ class LibraryFragment: BaseFragment() {
                 "Artists" -> ArtistsUI.All().createFragment() // artists
                 "Playlists" -> PlaylistsFragment() // playlists!
                 "Friends" -> SyncTabFragment()
-                "Recommendations" -> BrowseFragment()
+                "Recommendations" -> RecommendationsFragment()
                 else -> throw Error("Unrecognized Library tab \'$key\'")
             }
         }
@@ -121,7 +122,7 @@ class LibraryFragment: BaseFragment() {
 
             this@LibraryFragment.tabs.consumeEachAsync { tabs ->
                 tabsAdapter.tabs = tabs
-//                tabsAdapter.notifyDataSetChanged()
+                tabsAdapter.notifyDataSetChanged()
             }
 
             tabsAdapter.getItem(currentItem)

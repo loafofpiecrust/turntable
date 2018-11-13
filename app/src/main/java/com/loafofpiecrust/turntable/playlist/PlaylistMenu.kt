@@ -1,8 +1,13 @@
 package com.loafofpiecrust.turntable.playlist
 
+import android.app.Activity
 import android.content.Context
+import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
 import android.widget.EditText
+import com.jaredrummler.android.colorpicker.ColorPickerDialog
+import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
+import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.playlist.GeneralPlaylist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
@@ -11,6 +16,7 @@ import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.sync.Message
+import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.ui.popMainContent
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.Dispatchers
@@ -47,20 +53,20 @@ fun Toolbar.playlistOptions(
         }.show()
     }
 
-//                    menuItem("Change Color", showIcon = false).onClick {
-//                        ColorPickerDialog().apply {
-//                            setColorPickerDialogListener(object: ColorPickerDialogListener {
-//                                override fun onDialogDismissed(dialogId: Int) {
-//
-//                                }
-//
-//                                override fun onColorSelected(dialogId: Int, color: Int) {
-//                                    playlist.color = color
-//                                    this@appBarLayout.backgroundColor = color
-//                                }
-//                            })
-//                        }.show(activity!!.supportFragmentManager, "colors")
-//                    }
+    menuItem(R.string.playlist_change_color, showIcon = false).onClick {
+        ColorPickerDialog.newBuilder().create().apply {
+            setColorPickerDialogListener(object: ColorPickerDialogListener {
+                override fun onDialogDismissed(dialogId: Int) {
+
+                }
+
+                override fun onColorSelected(dialogId: Int, color: Int) {
+                    playlist.color = color
+                    backgroundColor = color
+                }
+            })
+        }.show((context as AppCompatActivity).fragmentManager, "colors")
+    }
 
     menuItem(R.string.playlist_delete, showIcon = false).onClick {
         context.alert("Delete playlist '${playlist.id.name}'") {
@@ -76,26 +82,40 @@ fun Toolbar.playlistOptions(
         }.show()
     }
 
-    val isPublic = ConflatedBroadcastChannel(playlist.isPublic)
-    menuItem(R.string.playlist_unpublish, showIcon = false) {
-        scope.launch {
-            isPublic.consumeEach {
-                if (it) {
-                    title = context.getString(R.string.playlist_unpublish)
-                    onClick {
-                        playlist.unpublish()
-                        context.toast("Playlist unpublished")
-                        isPublic.offer(false)
-                    }
-                } else {
-                    title = context.getString(R.string.playlist_publish)
-                    onClick {
-                        playlist.publish()
-                        context.toast("Playlist published")
-                        isPublic.offer(true)
+    if (BuildConfig.DEBUG) {
+        val isPublic = ConflatedBroadcastChannel(playlist.isPublic)
+        menuItem(R.string.playlist_unpublish, showIcon = false) {
+            scope.launch {
+                isPublic.consumeEach {
+                    if (it) {
+                        title = context.getString(R.string.playlist_unpublish)
+                        onClick {
+                            playlist.unpublish()
+                            context.toast("Playlist unpublished")
+                            isPublic.offer(false)
+                        }
+                    } else {
+                        title = context.getString(R.string.playlist_publish)
+                        onClick {
+                            playlist.publish()
+                            context.toast("Playlist published")
+                            isPublic.offer(true)
+                        }
                     }
                 }
             }
+        }
+
+        menuItem(R.string.share, showIcon = false).onClick {
+            FriendPickerDialog(
+                Message.Recommend(playlist.id),
+                "Share"
+            ).show(context)
+        }
+
+        // TODO: Only show if playlist isn't already saved.
+        menuItem(R.string.playlist_subscribe, showIcon = false).onClick {
+            Library.addPlaylist(playlist)
         }
     }
 
@@ -106,17 +126,5 @@ fun Toolbar.playlistOptions(
             .mapNotNull { tracks.getOrNull(it)?.id }
             .toList()
         Spotify.openRecommendationsPlaylist(context, songs = tracksToUse)
-    }
-
-    menuItem(R.string.share, showIcon = false).onClick {
-        FriendPickerDialog(
-            Message.Recommend(playlist.id),
-            "Share"
-        ).show(context)
-    }
-
-    // TODO: Only show if playlist isn't already saved.
-    menuItem(R.string.playlist_subscribe, showIcon = false).onClick {
-        Library.addPlaylist(playlist)
     }
 }

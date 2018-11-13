@@ -25,7 +25,8 @@
     <string name="playlist_unpublish">Unpublish</string>
     <string name="playlist_delete">Delete</string>
     <string name="playlist_rename">Rename</string>
-    <string name="playlist_generate_similar">Get Recommendations</string>
+    <string name="playlist_generate_similar">Generate Similar</string>
+    <string name="playlist_change_color">Change Color</string>
 
     <!-- Empty state -->
     <string name="playlist_empty">No tracks here yet</string>

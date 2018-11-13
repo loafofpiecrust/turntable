@@ -72,7 +72,8 @@ abstract class UIComponent: IUIComponent {
     open fun onPause() {}
     open fun onResume() {}
 
-    fun onDestroy() {
+    @CallSuper
+    open fun onDestroy() {
         supervisor.cancel()
     }
 

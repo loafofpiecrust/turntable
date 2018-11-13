@@ -12,14 +12,13 @@ import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.channels.map
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import org.jetbrains.anko.alert
+import org.jetbrains.anko.cancelButton
 import org.jetbrains.anko.selector
 import org.jetbrains.anko.toast
 import java.util.*
@@ -74,9 +73,8 @@ class GeneralPlaylist(
                 .toList()
         }
 
-    override val tracks: List<Song> get() = runBlocking {
-        tracksChannel.first()
-    }
+    override val tracks: List<Song> get() =
+        sides.value.lazy.flatten().map { it.song }.toList()
 
     val sideCount: Int get() = sides.value.size
 
@@ -128,6 +126,11 @@ class GeneralPlaylist(
         id = id.copy(name = newName)
     }
 
+    fun recolor(newColor: Int) {
+        modify()
+        color = newColor
+    }
+
     fun remove(songId: SongId) {
         modify()
         sides.putsMapped { sides ->
@@ -173,6 +176,73 @@ class GeneralPlaylist(
 
         lastModifiedTime = System.currentTimeMillis()
     }
+
+    fun publish() {
+        if (!isPublic) {
+            upload()
+        } else {
+            GlobalScope.launch { syncWithRemote() }
+        }
+    }
+
+    fun unpublish() {
+        isPublic = false
+        val db = FirebaseFirestore.getInstance()
+        db.playlists()
+            .document(id.uuid.toString())
+            .delete()
+    }
+
+    private suspend fun syncWithRemote() {
+        val remote = fromDocument(try {
+            download()
+        } catch (e: Exception) {
+            // failed to find it in the database.
+            e.printStackTrace()
+            return
+        })
+
+        val mergeNeeded = lastSyncTime >= remote.lastModifiedTime
+        if (mergeNeeded) {
+            mergeWith(remote)
+            delay(5)
+        }
+        if (mergeNeeded || lastModifiedTime > lastSyncTime) {
+            lastSyncTime = System.currentTimeMillis()
+            upload()
+        }
+    }
+
+    private fun upload() {
+        val db = FirebaseFirestore.getInstance()
+        db.playlists()
+            .document(id.uuid.toString())
+            .set(toDocument())
+            .addOnCompleteListener {
+                if (!it.isSuccessful) {
+                    it.exception?.printStackTrace()
+                } else {
+                    isPublic = true
+                }
+            }
+    }
+
+    private suspend fun download(): DocumentSnapshot =
+        FirebaseFirestore.getInstance()
+            .playlists()
+            .document(id.uuid.toString())
+            .get().await()
+
+    private fun toDocument(): Map<String, Any> = runBlocking {
+        mapOf(
+            "name" to id.name,
+            "owner" to id.owner.username,
+            "lastModifiedTime" to lastModifiedTime,
+            "maxSideDuration" to maxSideDuration,
+            "sides" to Blob.fromBytes(serialize(sides.value))
+        )
+    }
+
 
     /**
      * @return true if merging was necessary
@@ -253,72 +323,6 @@ class GeneralPlaylist(
         return true
     }
 
-    private suspend fun syncWithRemote() {
-        val remote = fromDocument(try {
-            download().await()
-        } catch (e: Exception) {
-            // failed to find it in the database.
-            e.printStackTrace()
-            return
-        })
-
-        val mergeNeeded = lastSyncTime >= remote.lastModifiedTime
-        if (mergeNeeded) {
-            mergeWith(remote)
-            delay(5)
-        }
-        if (mergeNeeded || lastModifiedTime > lastSyncTime) {
-            lastSyncTime = System.currentTimeMillis()
-            upload()
-        }
-    }
-
-    private fun upload() {
-        val db = FirebaseFirestore.getInstance()
-        db.playlists()
-            .document(id.uuid.toString())
-            .set(toDocument())
-            .addOnCompleteListener {
-                if (!it.isSuccessful) {
-                    it.exception?.printStackTrace()
-                } else {
-                    isPublic = true
-                }
-            }
-    }
-
-    private fun download(): Task<DocumentSnapshot> =
-        FirebaseFirestore.getInstance()
-            .playlists()
-            .document(id.uuid.toString())
-            .get()
-
-    private fun toDocument(): Map<String, Any> = runBlocking {
-        mapOf(
-            "name" to id.name,
-            "owner" to id.owner.username,
-            "lastModifiedTime" to lastModifiedTime,
-            "maxSideDuration" to maxSideDuration,
-            "sides" to Blob.fromBytes(serialize(sides.value))
-        )
-    }
-
-    fun publish() {
-        if (!isPublic) {
-            upload()
-        } else {
-            GlobalScope.launch { syncWithRemote() }
-        }
-    }
-
-    fun unpublish() {
-        isPublic = false
-        val db = FirebaseFirestore.getInstance()
-        db.playlists()
-            .document(id.uuid.toString())
-            .delete()
-    }
-
 
     data class Track(
         val song: Song,
@@ -358,30 +362,64 @@ suspend fun <T> Task<T>.await(): T = suspendCoroutine { cont ->
         if (task.isSuccessful) {
             cont.resume(task.result)
         } else {
-            task.exception?.let { e ->
-                cont.resumeWithException(e)
-            }
+            val e = task.exception ?: Exception()
+            cont.resumeWithException(e)
         }
     }
 }
 
+fun GeneralPlaylist.add(ctx: Context, song: Song) {
+    if (sideCount <= 1) {
+        addToSide(ctx, 0, song)
+    } else {
+        pickSideForAdd(ctx, song)
+    }
+}
 
-fun GeneralPlaylist.add(ctx: Context, song: Song) = ctx.run {
-    val sideNames = (0 until sideCount).map {
-        getString(R.string.mixtape_side, 'A' + it)
+private fun GeneralPlaylist.pickSideForAdd(
+    context: Context, song: Song
+) = with(context) {
+    val sideNames = (0 until sideCount).map { i ->
+        getString(R.string.mixtape_side, sideName(i))
     }
-    selector(getString(R.string.mixtape_pick_side), sideNames) { dialog, idx ->
-        val result = add(song, idx)
-        toast(when (result) {
-            GeneralPlaylist.AddResult.ADDED ->
-                getString(R.string.playlist_added_track, id.name)
-            GeneralPlaylist.AddResult.SIDE_FULL ->
-                getString(
-                    R.string.playlist_is_full,
-                    getString(R.string.mixtape_side_named, 'A' + idx, id.name)
-                )
-            GeneralPlaylist.AddResult.DUPLICATE_SONG ->
-                getString(R.string.playlist_duplicate, id.name)
-        })
+    selector(
+        getString(R.string.mixtape_pick_side),
+        sideNames
+    ) { dialog, idx ->
+        addToSide(context, idx, song)
     }
+}
+
+private fun GeneralPlaylist.addToSide(
+    context: Context, idx: Int, song: Song
+): Unit = with(context) {
+    val result = add(song, idx)
+    when (result) {
+        GeneralPlaylist.AddResult.ADDED ->
+            toast(getString(R.string.playlist_added_track, id.name))
+        GeneralPlaylist.AddResult.DUPLICATE_SONG ->
+            toast(getString(R.string.playlist_duplicate, id.name))
+        GeneralPlaylist.AddResult.SIDE_FULL ->
+            maybeNewSide(context, idx, song)
+    }
+}
+
+private fun GeneralPlaylist.maybeNewSide(
+    context: Context, idx: Int, song: Song
+) = with(context) {
+    alert {
+        title = getString(
+            R.string.playlist_is_full,
+            getString(R.string.mixtape_side_named, sideName(idx), id.name)
+        )
+
+        positiveButton("New Side") {
+            addSide(song)
+            toast(getString(R.string.playlist_added_track, id.name))
+        }
+        neutralPressed("Other Side") {
+            pickSideForAdd(context, song)
+        }
+        cancelButton {}
+    }.show()
 }

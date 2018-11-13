@@ -1,7 +1,13 @@
 package com.loafofpiecrust.turntable.model.album
 
+import android.graphics.drawable.Drawable
+import com.bumptech.glide.RequestBuilder
+import com.bumptech.glide.RequestManager
 import com.loafofpiecrust.turntable.dedupMergeSorted
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.util.produceSingle
+import com.loafofpiecrust.turntable.util.switchMap
+import kotlinx.coroutines.channels.ReceiveChannel
 
 
 class MergedAlbum(
@@ -9,7 +15,7 @@ class MergedAlbum(
     private val b: Album
 ): Album {
     init {
-//        assert(a.uuid == b.uuid) { "Can only merge similarly named albums" }
+//        assert(a.id == b.id) { "Can only merge similarly named albums" }
     }
 
     override val id get() = a.id
@@ -34,6 +40,14 @@ class MergedAlbum(
                 // TODO: Use MergedSong here?
                 { a, b -> a }
             )
+    }
+
+    override fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> {
+        return a.loadThumbnail(req).switchMap {
+            if (it != null) {
+                produceSingle(it)
+            } else b.loadThumbnail(req)
+        }
     }
 }
 

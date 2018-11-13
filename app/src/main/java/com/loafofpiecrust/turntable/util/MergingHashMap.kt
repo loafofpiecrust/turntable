@@ -6,7 +6,7 @@ class MergingHashMap<K, V>(
 ) : HashMap<K, V>() {
     override fun put(key: K, value: V): V? {
         val previous = this[key]
-        return super.put(key, if (previous != null) {
+        return super.put(key, if (previous != null && previous !== value) {
             merge(previous, value)
         } else {
             value

@@ -26,6 +26,7 @@ import com.loafofpiecrust.turntable.model.song.LocalSongId
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.repository.Repositories
 import com.loafofpiecrust.turntable.ui.BaseService
 import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.intValue
@@ -79,22 +80,9 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
     val localSongs = ConflatedBroadcastChannel<List<Song>>()
 //    private val _albums = ConflatedBroadcastChannel<List<Album>>(listOf())
 
-    private val albumCovers by lazy {
-        UserPrefs.albumMeta.openSubscription().map {
-            it.sortedWith(ALBUM_META_COMPARATOR).dedupMergeSorted({ a, b ->
-                ALBUM_META_COMPARATOR.compare(a, b) == 0
-            }, { a, b -> b })
-        }.replayOne()
-    }
+    private val albumCovers get() = UserPrefs.albumMeta
 
-    private val artistMeta by lazy {
-        UserPrefs.artistMeta.openSubscription().map {
-            it.sortedWith(ARTIST_META_COMPARATOR).dedupMergeSorted(
-                { a, b -> ARTIST_META_COMPARATOR.compare(a, b) == 0 },
-                { a, b -> b }
-            )
-        }.replayOne()
-    }
+    private val artistMeta get() = UserPrefs.artistMeta
 
     val remoteAlbums get() = UserPrefs.remoteAlbums
 
@@ -237,15 +225,11 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
 //        it.find { FuzzySearch.ratio(it.uuid.name, name) >= 88 }
 //    }
 
-    fun findAlbumExtras(id: AlbumId) = albumCovers.openSubscription().map {
-        val key = AlbumMetadata(id, "")
-        it.binarySearchElem(key, ALBUM_META_COMPARATOR)
-    }
+    fun findAlbumExtras(id: AlbumId) =
+        albumCovers.openSubscription().map { it[id] }
 
-    private fun findArtistExtras(id: ArtistId) = artistMeta.openSubscription().map {
-        val key = ArtistMetadata(id, "")
-        it.binarySearchElem(key, ARTIST_META_COMPARATOR)
-    }
+    private fun findArtistExtras(id: ArtistId) =
+        artistMeta.openSubscription().map { it[id] }
 
     fun loadAlbumCover(req: RequestManager, id: AlbumId): ReceiveChannel<RequestBuilder<Drawable>?> =
         findAlbumExtras(id).map {
@@ -264,11 +248,11 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
 
 
     fun addAlbumExtras(meta: AlbumMetadata) {
-        UserPrefs.albumMeta appends meta
+        UserPrefs.albumMeta putsMapped { it + (meta.id to meta) }
     }
 
     fun addArtistExtras(meta: ArtistMetadata) {
-        UserPrefs.artistMeta appends meta
+        UserPrefs.artistMeta putsMapped { it + (meta.id to meta) }
     }
 
 
@@ -276,20 +260,16 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
         val albums = albumsMap.openSubscription().first().values
         val cache = albumCovers.openSubscription().first()
 //        val addedCache = listOf<AlbumMetadata>()
-        albums/*.filter {
-            val cover = it.artworkUrl
-            cover == null || cover.isEmpty() || cover == "null"
-        }*/.forEach { album ->
+        for (album in albums) {
             val key = AlbumMetadata(album.id, null)
-            val cachedIdx = cache.binarySearch(key, ALBUM_META_COMPARATOR)
-            val cached = cache.getOrNull(cachedIdx)
+            val cached = cache[album.id]
 
             val now = System.currentTimeMillis()
             // Don't check online for an album cover if all of these conditions pass:
             // 1. There is already an entry for this album in the metadata cache
-            // 2. That entry has an artwork url OR it's been recently updated (and couldn't find an image on Last.FM)
+            // 2. That entry has an artwork url OR it's been recently updated (and couldn't find an image online)
             if (cached != null && (cached.artworkUri != null || (now - cached.lastUpdated) <= METADATA_UPDATE_FREQ)) {
-                return@forEach
+                continue
             }
 
             // This album definitely has no cover in cache
@@ -308,45 +288,46 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
 //                UserPrefs.albumMeta appends key
 //            }
             val updateKey = {
-                UserPrefs.albumMeta putsMapped {
-                    if (cachedIdx < 0) {
-                        it + key
-                    } else {
-                        it.withReplaced(cachedIdx, key)
-                    }
-                }
+                UserPrefs.albumMeta putsMapped { it + (key.id to key) }
             }
+//
+//            val res = try {
+//                Http.get("https://ws.audioscrobbler.com/2.0/", params = mapOf(
+//                    "api_key" to BuildConfig.LASTFM_API_KEY, "format" to "json",
+//                    "method" to "album.getinfo",
+//                    "artist" to album.id.artist.displayName,
+//                    "album" to album.id.displayName
+//                )).gson.obj
+//            } catch (e: Exception) {
+//                return@forEach
+//            }
+//
+//            if (res.has("album")) {
+//                val albumObj = res["album"].obj
+//                if (albumObj.has("image")) {
+//                    val uri = albumObj["image"][3]["#text"].nullString
+//                    if (uri != null && uri.isNotEmpty()) {
+////                        task {
+////                        synchronized(UserPrefs.albumMeta) {
+//                        // Add this artwork url to the cache
+//                        addAlbumExtras(AlbumMetadata(album.id, uri))
+////                        }
+////                        }.success(UI) {
+////                            Glide.with(App.instance)
+////                                .load(uri)
+//////                                .apply(Library.ARTWORK_OPTIONS.signature(ObjectKey(key)))
+////                                .preload()
+////                        }
+//                    } else updateKey()
+//                } else updateKey()
+//            } else updateKey()
 
-            val res = try {
-                Http.get("https://ws.audioscrobbler.com/2.0/", params = mapOf(
-                    "api_key" to BuildConfig.LASTFM_API_KEY, "format" to "json",
-                    "method" to "album.getinfo",
-                    "artist" to album.id.artist.displayName,
-                    "album" to album.id.displayName
-                )).gson.obj
-            } catch (e: Exception) {
-                return@forEach
+            val artwork = Repositories.fullArtwork(album, true)
+            if (artwork != null) {
+                addAlbumExtras((AlbumMetadata(album.id, artwork)))
+            } else {
+                updateKey()
             }
-
-            if (res.has("album")) {
-                val albumObj = res["album"].obj
-                if (albumObj.has("image")) {
-                    val uri = albumObj["image"][3]["#text"].nullString
-                    if (uri != null && uri.isNotEmpty()) {
-//                        task {
-//                        synchronized(UserPrefs.albumMeta) {
-                        // Add this artwork url to the cache
-                        addAlbumExtras(AlbumMetadata(album.id, uri))
-//                        }
-//                        }.success(UI) {
-//                            Glide.with(App.instance)
-//                                .load(uri)
-////                                .apply(Library.ARTWORK_OPTIONS.signature(ObjectKey(key)))
-//                                .preload()
-//                        }
-                    } else updateKey()
-                } else updateKey()
-            } else updateKey()
 
             // Last.FM has an API limit of 1 request per second
             // But the response itself takes a few hundred ms, so let's just wait a few hundred more.
@@ -360,7 +341,7 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
         val cache = artistMeta.openSubscription().first()
         artistsMap.openSubscription().first().values.forEach { artist ->
             val key = ArtistMetadata(artist.id, null)
-            val cached = cache.binarySearchElem(key, ARTIST_META_COMPARATOR)
+            val cached = cache[artist.id]
 
             val now = System.currentTimeMillis()
             // Don't check online for an album cover if all of these conditions pass:
@@ -386,7 +367,9 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
             val res = json.obj
 
             res["artist"]?.get("image")?.get(3)?.get("#text")?.string?.let { uri ->
-                UserPrefs.artistMeta appends key.copy(artworkUri = uri)
+                UserPrefs.artistMeta putsMapped {
+                    it + (artist.id to key.copy(artworkUri = uri))
+                }
                 launch(Dispatchers.Main) {
                     Glide.with(context.applicationContext)
                         .load(uri)
@@ -394,7 +377,7 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
                         .preload()
                 }
             } ?: run {
-                UserPrefs.artistMeta appends key
+                UserPrefs.artistMeta putsMapped { it + (artist.id to key) }
             }
 
             delay(50)
@@ -456,8 +439,10 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
             launch {
                 updateSongs(context)
                 updateLocalArtwork()
-                fillMissingArtwork()
-                fillArtistArtwork(context)
+                if (UserPrefs.downloadArtworkAuto.value) {
+                    fillMissingArtwork()
+                    fillArtistArtwork(context)
+                }
             }
 
 
@@ -657,19 +642,18 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
 
         val imageExts = arrayOf("jpg", "jpeg", "gif", "png")
         val frontReg = Regex("\\b(front|cover|folder|album|booklet)\\b", RegexOption.IGNORE_CASE)
-        val existingCovers = albumCovers.valueOrNull ?: listOf()
-        albums.parMap {
-            if (it !is LocalAlbum && it !is MergedAlbum) return@parMap
+        val existingCovers = albumCovers.valueOrNull ?: emptyMap()
+        for (it in albums) launch(Dispatchers.IO) {
+            if (it !is LocalAlbum && it !is MergedAlbum) return@launch
 
             if (existingCovers.isNotEmpty()) {
-                val existingKey = AlbumMetadata(it.id, null)
-                val existing = existingCovers.binarySearchElem(existingKey, ALBUM_META_COMPARATOR)
+                val existing = existingCovers[it.id]
                 if (existing != null) {
-                    return@parMap
+                    return@launch
                 }
             }
 
-            val firstTrack = it.tracks.firstOrNull() ?: return@parMap
+            val firstTrack = it.tracks.firstOrNull() ?: return@launch
             val local = sourceForSong(firstTrack.id)
             val folder = File(local).parentFile
             val imagePaths = folder.listFiles { path ->
@@ -689,7 +673,7 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
             if (artPath != null) {
                 addAlbumExtras(AlbumMetadata(it.id, artPath))
             }
-        }.awaitAll()
+        }
 
 //        UserPrefs.albumMeta puts metaList
     }

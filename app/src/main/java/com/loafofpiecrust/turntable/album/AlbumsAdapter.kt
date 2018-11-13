@@ -77,7 +77,7 @@ class AlbumsAdapter(
         = RecyclerGridItem(parent, 3)
 
     private val imageJobs = HashMap<RecyclerGridItem, Job>()
-    override fun onBindViewHolder(holder: RecyclerGridItem, position: Int) = holder.run {
+    override fun onBindViewHolder(holder: RecyclerGridItem, position: Int) = with(holder) {
         // Runs as you re-scroll
         // So, could grab directly from a stream of the albums rather than a fixed list passed in
         val album = data[position]
@@ -86,7 +86,10 @@ class AlbumsAdapter(
         val opts = RequestOptions()
             .placeholder(R.drawable.ic_default_album)
 
-        val job = launch {
+        val job = Job(supervisor)
+        imageJobs.put(holder, job)?.cancel()
+
+        launch(job) {
             album.loadThumbnail(Glide.with(coverImage)).consumeEach {
                 val req = it?.apply(opts)
                     ?.transition(DrawableTransitionOptions().crossFade(200))
@@ -100,7 +103,6 @@ class AlbumsAdapter(
             }
         }
 
-        imageJobs.put(holder, job)?.cancel()
 
         card.setOnClickListener {
             listener?.invoke(holder, album)

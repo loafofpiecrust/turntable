@@ -99,8 +99,8 @@ data class Song(
     ) {
         constructor(url: String): this(listOf(Source(url)))
 
-        private fun bestSource() = sources.maxBy { it.quality }
-        private fun mediocreSource() =
+        fun bestSource() = sources.maxBy { it.quality }
+        fun mediocreSource() =
             sources.lazy.filter { it.quality < Quality.MEDIUM }.maxBy { it.quality }
                 ?: sources.minBy { it.quality }
 

@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions
+import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.loadPalette
@@ -53,18 +54,20 @@ sealed class ArtistsUI(
             )
         }
 
-        subMenu(R.string.set_grid_size) {
-            group(0, true, true) {
-                val items = (1..4).map { idx ->
-                    menuItem(idx.toString()).apply {
-                        onClick { UserPrefs.artistGridColumns puts idx }
+        if (BuildConfig.DEBUG) {
+            subMenu(R.string.set_grid_size) {
+                group(0, true, true) {
+                    val items = (1..4).map { idx ->
+                        menuItem(idx.toString()).apply {
+                            onClick { UserPrefs.artistGridColumns puts idx }
+                        }
                     }
-                }
 
-                launch {
-                    UserPrefs.artistGridColumns.consumeEach { cols ->
-                        items.forEach { it.isChecked = false }
-                        items[cols - 1].isChecked = true
+                    launch {
+                        UserPrefs.artistGridColumns.consumeEach { cols ->
+                            items.forEach { it.isChecked = false }
+                            items[cols - 1].isChecked = true
+                        }
                     }
                 }
             }

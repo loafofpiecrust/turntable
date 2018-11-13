@@ -11,6 +11,7 @@ import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory
+import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.appends
 import com.loafofpiecrust.turntable.model.queue.*
 import com.loafofpiecrust.turntable.model.song.HistoryEntry
@@ -29,6 +30,7 @@ import kotlinx.coroutines.channels.produce
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
 import org.jetbrains.anko.error
+import org.jetbrains.anko.toast
 import kotlin.coroutines.CoroutineContext
 
 class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScope {
@@ -173,6 +175,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
         // clear streams and try again
         // if that fails the 2nd time, skip to the next track in the MediaSource.
         if (error.type == ExoPlaybackException.TYPE_SOURCE) {
+            App.instance.toast("Song not available to stream")
             player.stop(true)
             // to retry, we have to rebuild the MediaSource
             playNext()
@@ -312,12 +315,11 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
         player.stop(true)
         mediaSource = ConcatenatingMediaSource().apply {
             addMediaSources(q.list.mapIndexed { index, song ->
-                val cb: ((Boolean) -> Unit)? = if (index == q.position) {
+                val cb: ((Boolean) -> Unit)? =
                     { loaded ->
                         isPrepared = loaded
                         if (loaded) play()
                     }
-                } else null
                 StreamMediaSource(song, sourceFactory, extractorsFactory, cb)
             })
         }

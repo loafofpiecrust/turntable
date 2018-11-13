@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.repository
 
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.album.RemoteAlbum
@@ -14,7 +15,10 @@ import com.loafofpiecrust.turntable.repository.remote.Discogs
 import com.loafofpiecrust.turntable.repository.remote.MusicBrainz
 import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.tryOr
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
+import org.jetbrains.anko.info
 import kotlin.coroutines.coroutineContext
 
 /**
@@ -23,7 +27,7 @@ import kotlin.coroutines.coroutineContext
  */
 object Repositories: Repository {
     override val displayName: Int
-        get() = R.string.search
+        get() = R.string.search_all
 
     /// All Music APIs in descending order of priority
     val ALL: Array<Repository> = arrayOf(
@@ -39,6 +43,7 @@ object Repositories: Repository {
 
             val res = tryOr(null) { block(a) }
             if (res != null) {
+                info { "Search succeeded on ${a.javaClass.simpleName}" }
                 return res
             }
         }
@@ -75,6 +80,13 @@ object Repositories: Repository {
         overSources {
             searchSongs(query).takeIf { it.isNotEmpty() }
         } ?: emptyList()
+
+    suspend fun searchAll(query: String): List<Music> = coroutineScope {
+        val songs = async { searchSongs(query) }
+        val albums = async { searchAlbums(query) }
+        val artists = async { searchArtists(query) }
+        artists.await() + albums.await() + songs.await()
+    }
 
     override suspend fun fullArtwork(album: Album, search: Boolean): String? =
         SearchCache.fullArtwork(album) ?: tryOr(null) {

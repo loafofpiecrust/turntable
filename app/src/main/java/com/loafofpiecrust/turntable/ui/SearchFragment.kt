@@ -52,11 +52,6 @@ class SearchFragment : BaseFragment() {
 
     private var category: Category<*> by arg()
 
-    // TODO: Save the stream of results instead!
-    private var albumsGrid : AlbumsAdapter? = null
-    private var artistsGrid : ArtistsAdapter? = null
-    private var songsList : SongsAdapter? = null
-
     @State var prevQuery = ""
     private var searchJob: Job? = null
 
@@ -83,13 +78,6 @@ class SearchFragment : BaseFragment() {
 //        val anim = ViewAnimationUtils.createCircularReveal(view, 0, 0, 0f, finalRadius)
 //        anim.start()
 //    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        albumsGrid = null
-        artistsGrid = null
-        songsList = null
-    }
 
     override fun ViewManager.createView() = frameLayout {
         id = R.id.container

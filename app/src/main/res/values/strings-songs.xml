@@ -14,4 +14,6 @@
     <string name="shuffle_all">Shuffle All</string>
 
     <string name="disc_number">Disc %1$s</string>
+
+    <string name="song_by_artist">Song by %1$s</string>
 </resources>

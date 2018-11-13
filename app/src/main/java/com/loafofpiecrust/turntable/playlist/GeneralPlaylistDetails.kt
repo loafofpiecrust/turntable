@@ -9,10 +9,13 @@ import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.GeneralPlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.model.playlist.PlaylistId
+import com.loafofpiecrust.turntable.player.MusicService
+import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.SongsAdapter
 import com.loafofpiecrust.turntable.song.SongsOnDiscAdapter
 import com.loafofpiecrust.turntable.style.standardStyle
+import com.loafofpiecrust.turntable.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.universal.ParcelableComponent
 import com.loafofpiecrust.turntable.ui.universal.UIComponent
 import com.loafofpiecrust.turntable.ui.universal.ViewContext
@@ -55,6 +58,9 @@ class NewPlaylistDetails(
             toolbar {
                 standardStyle()
                 title = playlist.id.displayName
+                backgroundColor = playlist.color
+                    ?: UserPrefs.primaryColor.value
+
                 playlistOptions(context, playlist)
             }
         }
@@ -76,7 +82,11 @@ class NewPlaylistDetails(
                         R.string.mixtape_side,
                         formatSubtitle = { it.id.artist.displayName }
                     ) { song ->
-
+                        val songs = playlist.tracks
+                        val idx = songs.indexOf(song)
+                        MusicService.offer(
+                            PlayerAction.PlaySongs(songs, idx)
+                        )
                     }
                 }
             }

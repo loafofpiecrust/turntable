@@ -27,7 +27,7 @@ class MergedArtist(val a: Artist, val b: Artist): Artist {
     override val albums: List<Album> by lazy {
         (a.albums + b.albums).dedupMerge(
             { a, b -> a.id == b.id && a.type == b.type },
-            { a, b -> MergedAlbum(a, b) }
+            { a, b -> a }
         )
     }
     override val biography get() = a.biography ?: b.biography

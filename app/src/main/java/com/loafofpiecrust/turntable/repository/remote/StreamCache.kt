@@ -47,8 +47,8 @@ object StreamCache: StreamProvider, AnkoLogger {
             mapper.save(OnlineSearchService.SongDBEntry(
                 song.id.dbKey,
                 null,
-                stream128 = media.sources.first { it.quality <= Song.Media.Quality.LOW }.url.compress(),
-                stream192 = media.sources.find { it.quality > Song.Media.Quality.LOW }?.url?.compress()
+                stream128 = media.mediocreSource()!!.url.compress(),
+                stream192 = media.bestSource()?.url?.compress()
             ))
         } catch (e: Exception) {
             error("Failed to save song to database", e)

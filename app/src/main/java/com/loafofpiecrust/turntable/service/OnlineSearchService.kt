@@ -95,10 +95,10 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
     companion object {
         const val SEEDERS_OVER_QUALITY = 3
         lateinit var instance: OnlineSearchService private set
-        const val IDENTITY_POOL_ID = "us-east-2:4c4b30e2-1c0b-4802-83b2-32b232a7f4c4"
+        const val IDENTITY_POOL_ID = BuildConfig.DYNAMODB_POOL_ID
 //        private val DATE_FORMAT = SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.US)
         val STALE_ENTRY_AGE = 6.hours
-        val STALE_UNAVAILABLE_AGE = 7.days
+        val STALE_UNAVAILABLE_AGE = 3.days
     }
 
     private var cookie: okhttp3.Cookie? = null
@@ -112,34 +112,31 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
     }
 
     sealed class StreamStatus {
-        class Unknown: StreamStatus()
+        object Unknown : StreamStatus()
 
-        data class Unavailable(
-            val timestamp: Long = System.currentTimeMillis()
+        class Unavailable(
+            timeToLive: Long = STALE_UNAVAILABLE_AGE.toMillis().toLong()
         ): StreamStatus() {
-            val isStale: Boolean get() {
-                val now = System.currentTimeMillis()
-                return (now - timestamp).milliseconds >= STALE_UNAVAILABLE_AGE
-            }
+            private val expiryDate: Long = System.currentTimeMillis() + timeToLive
+            val isStale: Boolean get() =
+                System.currentTimeMillis() > expiryDate
         }
 
         data class Available(
             val youtubeId: String,
             val stream: String,
             val hqStream: String? = null,
-            val timestamp: Long = System.currentTimeMillis()
+            val expiryDate: Long = System.currentTimeMillis() + STALE_ENTRY_AGE.toMillis().toLong()
         ): StreamStatus() {
-            val isStale: Boolean get() {
-                val now = System.currentTimeMillis()
-                return (now - timestamp).milliseconds >= STALE_ENTRY_AGE
-            }
+            val isStale: Boolean get() =
+                System.currentTimeMillis() > expiryDate
         }
 
         companion object {
             fun from(entry: SongDBEntry?): StreamStatus = when {
-                entry == null -> StreamStatus.Unknown()
+                entry == null -> StreamStatus.Unknown
                 entry.youtubeId == null -> StreamStatus.Unavailable()
-                else -> tryOr(StreamStatus.Unknown()) {
+                else -> tryOr(StreamStatus.Unknown) {
                     entry.stream128 = entry.stream128?.decompress()
                     entry.stream192 = entry.stream192?.decompress()
 
@@ -148,7 +145,7 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
                         entry.stream128!!,
                         entry.stream192,
                         if (entry.stream128 != null || entry.stream192 != null) {
-                            entry.timestamp
+                            entry.expiryDate
                         } else {
                             0 // force entries without stream urls, but *with* a videoId to be stale.
                         }
@@ -178,15 +175,13 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
         @DynamoDBHashKey(attributeName="SongId")
         var id: String,
         var youtubeId: String? = null,
-        var timestamp: Long = System.currentTimeMillis(),
+        // TODO: Store expiryDate rather than timestamp
+//        var timestamp: Long = System.currentTimeMillis(),
+        var expiryDate: Long = System.currentTimeMillis() + 5*60*60*1000,
         var stream128: String? = null,
         var stream192: String? = null
     ) {
         private constructor(): this("")
-
-        /// Map of videoIds reported by users as not correct, to # of reports
-        @DynamoDBAttribute
-        var blacklist: Map<String, Int> = mapOf()
     }
 
     @DynamoDBTable(tableName="TurntableAlbums")
@@ -205,7 +200,8 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
         val credentials = CognitoCachingCredentialsProvider(
             App.instance,
             IDENTITY_POOL_ID,
-            Regions.US_EAST_2)
+            Regions.US_EAST_2
+        )
 
         AmazonDynamoDBClient(credentials).apply {
             setRegion(Region.getRegion(Regions.US_EAST_2))
@@ -220,7 +216,7 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
             dbMapper.save(SongDBEntry(
                 entry.id.toLowerCase(),
                 entry.youtubeId,
-                entry.timestamp,
+                entry.expiryDate,
                 entry.stream128?.compress(),
                 entry.stream192?.compress()
             ))
@@ -315,7 +311,7 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
                         it.start, it.end
                     )
                 }
-            } ?: tryOr(SongStream(StreamStatus.Unknown())) {
+            } ?: tryOr(SongStream(StreamStatus.Unknown)) {
                 val res = Http.get("https://us-central1-turntable-3961c.cloudfunctions.net/parseStreamsFromYouTube", params = mapOf(
                     "title" to song.id.displayName.toLowerCase(),
                     "album" to song.id.album.displayName.toLowerCase(),
@@ -327,19 +323,21 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
 
                 if (lq == null) {
                     // not available on youtube!
-                    saveYouTubeStreamUrl(SongDBEntry(
+                    val entry = SongDBEntry(
                         key, null, System.currentTimeMillis()
-                    ))
-                    SongStream(StreamStatus.Unavailable())
+                    )
+                    saveYouTubeStreamUrl(entry)
+                    SongStream(StreamStatus.Unavailable(entry.expiryDate))
                 } else {
                     val hq = res["highQuality"].nullObj?.get("url")?.string
                     val id = res["id"].string
-                    saveYouTubeStreamUrl(SongDBEntry(
+                    val entry = SongDBEntry(
                         key, id,
                         stream128 = lq,
                         stream192 = hq
-                    ))
-                    SongStream(StreamStatus.Available(id, lq, hq))
+                    )
+                    saveYouTubeStreamUrl(entry)
+                    SongStream(StreamStatus.Available(id, lq, hq, entry.expiryDate))
                 }
             }
         }
@@ -801,9 +799,9 @@ class YTExtractor(
 //        OnlineSearchService.instance.saveYouTubeStreamUrl(entry)
         if (low?.url != null || high?.url != null) {
             cont.resume(OnlineSearchService.StreamStatus.Available(
-                    videoId,
-                    (low?.url ?: high?.url)!!,
-                    high?.url
+                videoId,
+                (low?.url ?: high?.url)!!,
+                high?.url
             ))
         } else {
             cont.resume(OnlineSearchService.StreamStatus.Unavailable())

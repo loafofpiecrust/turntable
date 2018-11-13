@@ -116,7 +116,7 @@ data class Friend(
         }
 
         fun respondToRequest(user: User, accept: Boolean) {
-            if (friends.value[user] == Status.RECEIVED_REQUEST) {
+//            if (friends.value[user] == Status.RECEIVED_REQUEST) {
                 Sync.send(Response(accept), user)
 
                 friends putsMapped { friends ->
@@ -126,7 +126,7 @@ data class Friend(
                         friends - user
                     }
                 }
-            }
+//            }
         }
 
         fun remove(user: User) {
