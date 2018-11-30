@@ -360,7 +360,7 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
                     "api_key" to BuildConfig.LASTFM_API_KEY, "format" to "json",
                     "method" to "artist.getinfo",
                     "artist" to artist.id.displayName
-                )).gson
+                )).gson()
             } catch (e: Exception) {
                 return@forEach
             }
@@ -407,7 +407,9 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
     fun findPlaylist(id: UUID): ReceiveChannel<Playlist?>
         = UserPrefs.playlists.openSubscription().switchMap {
             val r = it.find { it.id.uuid == id }
-                ?: UserPrefs.recommendations.value.mapNotNull { it as? Playlist }.find { it.id.uuid == id }
+                ?: UserPrefs.recommendations.value.lazy
+                    .mapNotNull { it as? Playlist }
+                    .find { it.id.uuid == id }
 
             if (r != null) {
                 produceSingle(r)
@@ -422,11 +424,11 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
     fun addPlaylist(pl: Playlist) {
         launch { UserPrefs.playlists appends pl }
     }
+
     fun cachePlaylist(pl: Playlist) {
         launch { cachedPlaylists appends pl }
     }
 
-//    fun loadArtistImage(req: RequestManager, uuid: Long) =
 
     fun initData(context: Context) {
         info { "maybe loading local data" }
@@ -681,9 +683,9 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
 
     val ARTWORK_OPTIONS by lazy {
         RequestOptions()
-            .fallback(R.drawable.ic_default_album)
+//            .fallback(R.drawable.ic_default_album)
             .error(R.drawable.ic_default_album)
-            .diskCacheStrategy(DiskCacheStrategy.DATA)
+            .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
             .fitCenter()
     }
 

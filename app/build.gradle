@@ -6,16 +6,15 @@ apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlinx-serialization'
 
 //apply plugin: 'org.jmailen.kotlinter'
-//apply plugin: 'com.getkeepsafe.dexcount'
+apply plugin: 'com.getkeepsafe.dexcount'
 //apply plugin: "com.vanniktech.dependency.graph.generator"
+//apply plugin: 'pl.droidsonroids.pitest'
 
 task copyTestClasses(type: Copy) {
     from "build/tmp/kotlin-classes/debug"
     from "build/tmp/kotlin-classes/debugUnitTest"
     into "build/intermediates/classes/debug"
 }
-
-
 
 android {
     testOptions {
@@ -115,7 +114,7 @@ androidExtensions {
 configurations {
     runtime.exclude group: "org.apache.http.legacy", module: "boot"
     implementation.exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jre7"
-    implementation.exclude group: "org.jetbrains.kotlin", module: "kotlin-reflect"
+//    implementation.exclude group: "org.jetbrains.kotlin", module: "kotlin-reflect"
 
 }
 
@@ -131,19 +130,16 @@ dependencies {
     debugImplementation 'com.squareup.leakcanary:leakcanary-support-fragment:1.6.1'
 
 
-    implementation 'com.google.firebase:firebase-auth:16.0.3'
+    // authentication
+    implementation "com.google.android.gms:play-services-auth:16.0.1"
+    implementation 'com.google.firebase:firebase-auth:16.0.5'
     implementation 'com.firebaseui:firebase-ui-auth:4.0.0'
 
-    // For google login
-    implementation "com.google.android.gms:play-services-auth:16.0.0"
-
-    implementation 'com.google.firebase:firebase-messaging:17.3.2'
-    implementation 'com.google.firebase:firebase-firestore:17.1.0'
-    implementation 'com.google.firebase:firebase-core:16.0.3'
-
-    androidTestImplementation('androidx.test.espresso:espresso-core:3.1.0-alpha4', {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
+    // firebase
+    implementation 'com.google.firebase:firebase-messaging:17.3.4'
+    implementation 'com.google.firebase:firebase-firestore:17.1.3'
+    implementation 'com.google.firebase:firebase-dynamic-links:16.1.3'
+    implementation 'com.google.firebase:firebase-core:16.0.5'
 
 
     // Search!
@@ -151,17 +147,20 @@ dependencies {
     implementation 'jp.wasabeef:recyclerview-animators:2.2.7'
 
     // http!
-    implementation 'com.squareup.okhttp3:okhttp:3.10.0'
-//    implementation "io.ktor:ktor-client:0.9.5"
+//    implementation 'com.squareup.okhttp3:okhttp:3.10.0'
+    implementation "io.ktor:ktor-client:1.0.0"
+    implementation "io.ktor:ktor-client-android:1.0.0"
 //    implementation "io.ktor:ktor-client-android:0.9.5"
-//    implementation "io.ktor:ktor-client-gson:0.9.5"
+    implementation "io.ktor:ktor-client-gson:1.0.0"
 
     // General
 
     // TODO: Evaluate method count here...
     implementation 'com.karumi:dexter:4.1.0'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:0.30.2-eap13'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:0.30.2-eap13'
+    implementation 'com.github.florent37:runtime-permission-kotlin:1.0.1'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.0.1'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.0.1'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.0.1'
 
     implementation 'com.simplecityapps:recyclerview-fastscroll:1.0.16'
     implementation 'com.evernote:android-state:1.3.1'
@@ -207,9 +206,8 @@ dependencies {
     implementation 'de.javakaffee:kryo-serializers:0.42'
     implementation 'com.afollestad:sectioned-recyclerview:0.5.0'
 
-    //    implementation "androidx.core:core-ktx:1.0.0-beta01"
 
-    // Amazon DynamoDB, has way more space and shit than Firebase
+    // Amazon DynamoDB, has way more space for general storage than Firebase
     implementation("com.amazonaws:aws-android-sdk-core:$aws_ver") {
         exclude group: 'org.apache.httpcomponents'
     }
@@ -219,21 +217,7 @@ dependencies {
     implementation "com.amazonaws:aws-android-sdk-ddb-mapper:$aws_ver"
     kapt "com.amazonaws:aws-android-sdk-ddb-mapper:$aws_ver"
 
-//    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
-
-    // Android core
-
-    //    implementation "androidx.appcompat:appcompat:1.0.0-beta01"
-
-    //    implementation "androidx.fragment:fragment:1.0.0-beta01"
-
-    //    implementation "androidx.palette:palette:1.0.0-beta01"
-
-    //    implementation "com.google.android.material:material:1.0.0-beta01"
-
-    //    implementation "androidx.constraintlayout:constraintlayout:1.1.2"
-
-    //    implementation "androidx.cardview:cardview:1.0.0-beta01"
+    // anko
 
     // Appcompat-v7 (Anko Layouts)
     implementation "org.jetbrains.anko:anko-sdk27:$anko_version"
@@ -255,6 +239,8 @@ dependencies {
 
     implementation 'com.github.javiersantos:AppUpdater:2.7'
 
+    // waiting on AndroidX support from Anko before switching
+//    implementation "androidx.core:core-ktx:1.0.0"
     implementation "com.android.support:appcompat-v7:$android_ver"
     implementation "com.android.support:support-core-ui:$android_ver"
     implementation "com.android.support:support-fragment:$android_ver"
@@ -270,8 +256,6 @@ dependencies {
 
     implementation 'com.github.andrewoma.dexx:kollection:0.7'
 
-
-    // Better Recycler Adapter!
 
     //    implementation "eu.davidea:flexible-adapter:5.0.5"
 
@@ -294,9 +278,14 @@ dependencies {
     testImplementation "org.robolectric:robolectric:4.0.1"
     testImplementation 'androidx.test:core:1.0.0'
 
-//    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    androidTestImplementation('androidx.test.espresso:espresso-core:3.1.0-alpha4', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+
+
+    // override all stdlib dependencies
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-//    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:$serialization_version"
 }
 apply plugin: 'com.google.gms.google-services'

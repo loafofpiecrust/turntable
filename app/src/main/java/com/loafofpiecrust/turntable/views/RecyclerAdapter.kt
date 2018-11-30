@@ -75,7 +75,7 @@ abstract class RecyclerAdapter<T, VH: RecyclerView.ViewHolder>(
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
         super.onDetachedFromRecyclerView(recyclerView)
-        supervisor.cancel()
+        supervisor.cancelChildren()
         dataUpdateJob?.cancel()
         dataUpdateJob = null
     }

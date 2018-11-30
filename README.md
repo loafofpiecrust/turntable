@@ -22,11 +22,3 @@ Music player allowing a user to
 * Bandcamp: something to look into
     * Extensive libraries for obscure artists that host and sell on Bandcamp
     * HTML scraping could give us a streaming provider here.
-
-
-
-
-# Technical Decisions
-### Coroutines & Lifecycles
-Problem: We want to use coroutines and channels to retrieve data and operate on our views.
-For example: when we search for an artist with a text query, we dispatch the search request to our HTTP client and await a response asynchronously (using a coroutine)

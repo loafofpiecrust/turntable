@@ -33,7 +33,7 @@ class GridItemView(
         layoutParams = ViewGroup.LayoutParams(matchParent, matchParent)
     }
 
-    val thumbnail = constrain.imageView(R.drawable.ic_default_album) {
+    val thumbnail = constrain.imageView {
         id = R.id.image
         scaleType = ImageView.ScaleType.CENTER_CROP
         adjustViewBounds = false

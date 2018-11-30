@@ -1,9 +1,7 @@
 package com.loafofpiecrust.turntable.model.playlist
 
 import android.support.annotation.DrawableRes
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.firestore.ServerTimestamp
+import com.google.firebase.firestore.*
 import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.model.Recommendable
@@ -13,13 +11,12 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repeat
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.sync.Sync
+import com.loafofpiecrust.turntable.util.sendFrom
+import com.loafofpiecrust.turntable.util.startWith
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.channels.firstOrNull
-import kotlinx.coroutines.channels.produce
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.*
+import kotlinx.coroutines.tasks.await
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
 import org.jetbrains.anko.warn
@@ -110,82 +107,76 @@ abstract class AbstractPlaylist: Playlist {
     companion object: AnkoLogger by AnkoLogger<Playlist>() {
         suspend fun find(id: UUID): Playlist? {
             val db = FirebaseFirestore.getInstance()
-            return suspendCoroutine { cont ->
-                db.collection("playlists").document(id.toString()).get().addOnCompleteListener { task ->
-                    val doc = task.result
-                    val err = task.exception
-                    if (err != null) {
-                        error { err.stackTrace }
-                    }
-                    if (task.isSuccessful && doc.exists()) {
-                        val format = doc.getString("format")!!
-                        cont.resume(when (format) {
-                            "mixtape" -> MixTape.fromDocument(doc)
-                            else -> CollaborativePlaylist.fromDocument(doc)
-                        })
-                    } else {
-                        cont.resume(null)
-                    }
+            val doc = db.playlists().document(id.toString()).get().await()
+            return if (doc.exists()) {
+                val format = doc.getString("format")!!
+                when (format) {
+                    "mixtape" -> MixTape.fromDocument(doc)
+                    else -> CollaborativePlaylist.fromDocument(doc)
                 }
-            }
+            } else null
         }
 
-        fun findChannel(id: UUID): ReceiveChannel<Playlist?> {
+        suspend fun findChannel(id: UUID): ReceiveChannel<Playlist?> {
             val db = FirebaseFirestore.getInstance()
-            var listener: ListenerRegistration? = null
-            return GlobalScope.produce(onCompletion = { listener?.remove() }) {
-                val first = find(id)
-                send(first)
-                if (first != null) suspendCancellableCoroutine<Unit> { cont ->
-                    listener = db.playlists().document(id.toString()).addSnapshotListener { snapshot, err ->
-                        if (err != null) {
-                            cont.resumeWithException(err)
-                        }
-                        if (snapshot?.exists() == true) {
-                            val localChange = snapshot.metadata.hasPendingWrites()
-                            if (!localChange) {
-                                val format = snapshot.getString("format")!!
-                                offer(when (format) {
-                                    "mixtape" -> MixTape.fromDocument(snapshot)
-                                    else -> CollaborativePlaylist.fromDocument(snapshot)
-                                })
-                            }
-                        }
+            val updates = db.playlists().document(id.toString()).snapshots()
+            return updates.mapNotNull { snapshot ->
+                val localChange = snapshot.metadata.hasPendingWrites()
+                if (!localChange) {
+                    val format = snapshot.getString("format")!!
+                    when (format) {
+                        "mixtape" -> MixTape.fromDocument(snapshot)
+                        else -> CollaborativePlaylist.fromDocument(snapshot)
                     }
-                }
+                } else null
             }
         }
 
         suspend fun allByUser(owner: User): List<Playlist> {
             val db = FirebaseFirestore.getInstance()
-            return suspendCoroutine { cont ->
-                db.collection("playlists")
+
+            return try {
+                val result = db.collection("playlists")
                     .whereEqualTo("owner", owner.username)
-                    .get()
-                    .addOnCompleteListener {
-                        if (it.isSuccessful) {
-                            cont.resume(it.result.mapNotNull {
-                                val format = it.getString("format")
-                                when (format) {
-                                    "mixtape" -> MixTape.fromDocument(it)
-                                    "playlist" -> CollaborativePlaylist.fromDocument(it)
-                                    "albums" -> AlbumCollection.fromDocument(it)
-                                    else -> {
-                                        warn { "Unrecognized playlist format $format" }
-                                        null
-                                    }
-                                }.apply {
-//                                    createdTime = it.getDate("createdTime") ?: createdTime
-                                }
-                            })
-                        } else {
-                            error("Playlist query failed", it.exception)
-                            cont.resume(listOf())
+                    .get().await()
+
+                result.mapNotNull {
+                    val format = it.getString("format")
+                    when (format) {
+                        "mixtape" -> MixTape.fromDocument(it)
+                        "playlist" -> CollaborativePlaylist.fromDocument(it)
+                        "albums" -> AlbumCollection.fromDocument(it)
+                        else -> {
+                            warn { "Unrecognized playlist format $format" }
+                            null
                         }
+                    }.apply {
+//                        createdTime = it.getDate("createdTime") ?: createdTime
                     }
+                }
+            } catch (err: Exception) {
+                error("Playlist query failed", err)
+                listOf()
             }
         }
     }
 }
 
 fun FirebaseFirestore.playlists() = collection("playlists")
+
+suspend fun DocumentReference.snapshots(): ReceiveChannel<DocumentSnapshot> = coroutineScope {
+    produce<DocumentSnapshot> {
+        suspendCancellableCoroutine { cont ->
+            val listener = addSnapshotListener { snapshot, err ->
+                if (err != null) {
+                    cont.resumeWithException(err)
+                } else if (snapshot?.exists() == true) {
+                    offer(snapshot)
+                }
+            }
+            cont.invokeOnCancellation {
+                listener.remove()
+            }
+        }
+    }.startWith(get().await())
+}

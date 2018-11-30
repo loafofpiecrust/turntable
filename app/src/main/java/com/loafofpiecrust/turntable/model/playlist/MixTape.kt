@@ -15,11 +15,13 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.tasks.await
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.selector
 import org.jetbrains.anko.toast
 import java.util.*
 import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * Playlist with a time limit and (possibly) multiple sides (eg. A Side, B Side, C Side)
@@ -68,39 +70,22 @@ open class MixTape(
         }
 
         suspend fun queryMostRecent(daysOld: Duration, limit: Int = 100): List<MixTape> {
-            return GlobalScope.suspendAsync<List<MixTape>> { cont ->
-                val db = FirebaseFirestore.getInstance()
-                val now = currentTime()
-                db.collection("playlists")
-                    .whereEqualTo("format", "mixtape")
-                    .whereGreaterThan("lastModified", (now - daysOld).toMillis().toLong())
-                    .get()
-                    .addOnCompleteListener {
-                        if (it.isSuccessful) {
-                            cont.resume(it.result.map(Companion::fromDocument))
-                        } else {
-                            cont.resume(listOf())
-                        }
-                    }
-            }.await()
+            val db = FirebaseFirestore.getInstance()
+            val now = currentTime()
+            val result = db.collection("playlists")
+                .whereEqualTo("format", "mixtape")
+                .whereGreaterThan("lastModified", (now - daysOld).toMillis().toLong())
+                .get().await()
+            return result.map(Companion::fromDocument)
         }
 
         suspend fun allFromUser(owner: User): List<MixTape> {
-            return GlobalScope.suspendAsync<List<MixTape>> { cont ->
-                val db = FirebaseFirestore.getInstance()
-                val now = System.currentTimeMillis()
-                db.collection("playlists")
-                    .whereEqualTo("owner", owner.username)
-                    .whereEqualTo("format", "mixtape")
-                    .get()
-                    .addOnCompleteListener {
-                        if (it.isSuccessful) {
-                           cont.resume(it.result.map(Companion::fromDocument))
-                        } else {
-                            cont.resume(listOf())
-                        }
-                    }
-            }.await()
+            val db = FirebaseFirestore.getInstance()
+            val result = db.collection("playlists")
+                .whereEqualTo("owner", owner.username)
+                .whereEqualTo("format", "mixtape")
+                .get().await()
+            return result.map(Companion::fromDocument)
         }
     }
 
@@ -149,20 +134,20 @@ open class MixTape(
     fun sideIsFull(sideIdx: Int) =
         durationOfSide(sideIdx) >= type.sideLength
 
-    fun updates(): ReceiveChannel<MixTape> {
-        val db = FirebaseFirestore.getInstance()
-        var listener: ListenerRegistration? = null
-        return GlobalScope.produce(onCompletion = { listener?.remove() }) {
-            listener = db.playlists().document(id.uuid.toString()).addSnapshotListener { snapshot, err ->
-                if (snapshot?.exists() == true) {
-                    val localChange = snapshot.metadata.hasPendingWrites()
-                    if (!localChange) {
-                        offer(fromDocument(snapshot))
-                    }
-                }
-            }
-        }
-    }
+//    fun updates(): ReceiveChannel<MixTape> {
+//        val db = FirebaseFirestore.getInstance()
+//        var listener: ListenerRegistration? = null
+//        return GlobalScope.produce {
+//            listener = db.playlists().document(id.uuid.toString()).addSnapshotListener { snapshot, err ->
+//                if (snapshot?.exists() == true) {
+//                    val localChange = snapshot.metadata.hasPendingWrites()
+//                    if (!localChange) {
+//                        offer(fromDocument(snapshot))
+//                    }
+//                }
+//            }
+//        }
+//    }
 }
 
 // Extensions!!

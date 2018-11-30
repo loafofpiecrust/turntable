@@ -1,5 +1,6 @@
 package com.loafofpiecrust.turntable.sync
 
+import android.Manifest
 import android.app.Activity.RESULT_OK
 import android.content.Intent
 import android.net.Uri
@@ -7,6 +8,9 @@ import android.provider.ContactsContract
 import android.support.v7.widget.LinearLayoutManager
 import android.view.*
 import android.widget.EditText
+import com.github.florent37.runtimepermission.RuntimePermission
+import com.github.florent37.runtimepermission.kotlin.askPermission
+import com.github.florent37.runtimepermission.kotlin.coroutines.experimental.askPermission
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.sync.Friend
 import com.loafofpiecrust.turntable.model.sync.User
@@ -20,11 +24,9 @@ import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.util.then
 import com.mcxiaoke.koi.ext.stringValue
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.channels.map
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.sdk27.coroutines.onClick
@@ -85,6 +87,28 @@ class SyncTabFragment: BaseFragment() {
                 selector(getString(R.string.friend_add), choices).invoke()
             }
         }
+
+        menu.menuItem("Create Group").onClick {
+            alert {
+                title = "Create Sync Group"
+
+                lateinit var nameEditor: EditText
+                customView {
+                    frameLayout {
+                        padding = dimen(R.dimen.dialog_content_margin)
+                        nameEditor = editText {
+                            hint = "Group Name"
+                        }
+                    }
+                }
+
+                positiveButton("Create") {
+                    GlobalScope.launch {
+                        Sync.createGroup(nameEditor.text.toString())
+                    }
+                }
+            }.show()
+        }
     }
 
     override fun onResume() {
@@ -93,8 +117,19 @@ class SyncTabFragment: BaseFragment() {
     }
 
     private fun requestPickContact() {
-        val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Email.CONTENT_URI)
-        startActivityForResult(intent, REQUEST_PICK_CONTACT)
+        askPermission(Manifest.permission.READ_CONTACTS) {
+            val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Email.CONTENT_URI)
+            startActivityForResult(intent, REQUEST_PICK_CONTACT)
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
+        super.onActivityResult(requestCode, resultCode, intent)
+        if (requestCode == REQUEST_PICK_CONTACT && resultCode == RESULT_OK) {
+            val uri = intent?.data
+            // TODO: Use a contract here.
+            pickContactFrom(uri!!)
+        }
     }
 
     private fun pickContactFrom(uri: Uri) {
@@ -130,14 +165,6 @@ class SyncTabFragment: BaseFragment() {
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
-        super.onActivityResult(requestCode, resultCode, intent)
-        if (requestCode == REQUEST_PICK_CONTACT && resultCode == RESULT_OK) {
-            val uri = intent?.data
-            // TODO: Use a contract here.
-            pickContactFrom(uri!!)
-        }
-    }
 
     override fun ViewManager.createView() = with(this) {
         // 'New Friend!' button
@@ -168,6 +195,20 @@ class SyncTabFragment: BaseFragment() {
                                         Sync.requestSync(user)
                                         launch(Dispatchers.Main) {
                                             toast("Requested sync with ${user.name}")
+                                        }
+                                    }
+                                },
+                                "Invite to Sync Group" to {
+                                    launch {
+                                        val currMode = SyncSession.mode.first()
+                                        if (currMode is Sync.Mode.InGroup) {
+                                            val user = friend.user.refresh().await()
+                                            Sync.requestSync(currMode, user)
+                                            launch(Dispatchers.Main) {
+                                                toast("Invited ${user.name} to group")
+                                            }
+                                        } else launch(Dispatchers.Main) {
+                                            toast("Not in a group")
                                         }
                                     }
                                 },

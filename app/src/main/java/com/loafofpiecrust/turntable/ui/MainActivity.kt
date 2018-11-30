@@ -21,9 +21,14 @@ import android.view.ViewManager
 import com.chibatching.kotpref.KotprefModel
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.IdpResponse
+import com.github.florent37.runtimepermission.kotlin.askPermission
+import com.github.florent37.runtimepermission.kotlin.coroutines.experimental.askPermission
+import com.github.javiersantos.appupdater.AppUpdater
+import com.github.javiersantos.appupdater.enums.UpdateFrom
 import com.google.android.gms.common.api.GoogleApiClient
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.dynamiclinks.FirebaseDynamicLinks
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
@@ -56,52 +61,21 @@ import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.tasks.await
 import org.jetbrains.anko.*
 import org.jetbrains.anko.design.navigationView
 import org.jetbrains.anko.support.v4.drawerLayout
 
 @MakeActivityStarter
-class MainActivity : BaseActivity(), MultiplePermissionsListener {
+class MainActivity : BaseActivity() {
     sealed class Action: Parcelable {
         @Parcelize class OpenNowPlaying: Action()
-        @Parcelize data class SyncRequest(val sender: User): Action()
+        @Parcelize data class SyncRequest(val request: Sync.SentMessage<Sync.Request>): Action()
         @Parcelize data class FriendRequest(val sender: User): Action()
     }
 
     @Arg(optional=true) var action: Action? = null
 
-    override fun onPermissionRationaleShouldBeShown(permissions: MutableList<PermissionRequest>, token: PermissionToken) {
-        token.continuePermissionRequest()
-    }
-
-    override fun onPermissionsChecked(report: MultiplePermissionsReport) {
-        Library.initData(applicationContext)
-        requestLogin()
-    }
-
-    private fun requestLogin() {
-        try {
-            val lastAcc = FirebaseAuth.getInstance().currentUser
-            if (lastAcc != null) {
-                Sync.login(lastAcc)
-            } else {
-                val providers = listOf(
-                    AuthUI.IdpConfig.GoogleBuilder().build()
-                )
-
-                // Create and launch sign-in intent
-                startActivityForResult(
-                    AuthUI.getInstance()
-                        .createSignInIntentBuilder()
-                        .setAvailableProviders(providers)
-                        .build(),
-                    69
-                )
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
 
     private lateinit var sheets: MultiSheetView
     private var drawers: DrawerLayout? = null
@@ -200,17 +174,18 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
 
         window.statusBarColor = Color.TRANSPARENT
 
-        Dexter.withActivity(this)
-            .withPermissions(
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_CONTACTS
-            )
-            .withListener(this)
-            .check()
+        askPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) { res ->
+            if (res.isAccepted) {
+                Library.initData(applicationContext)
+                Sync.requestLogin(this)
+            } else {
+                toast("Unable to load local music")
+            }
+        }
     }
 
 
-    lateinit var gclient: GoogleApiClient
+//    lateinit var gclient: GoogleApiClient
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -232,17 +207,17 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                 }.show()
             }
             is Action.SyncRequest -> {
-                val sender = action.sender
-                alert("Sync request from ${sender.name}") {
+                val req = action.request
+                alert("Sync request from ${req.sender}") {
                     positiveButton(R.string.user_sync_accept) {
                         // set sync mode to One on One, enable sync
                         // change some UI element to indicate sync mode (in Now Playing?)
                         // TODO: Send display uuid or have that somewhere.
-                        Sync.confirmSync(sender)
-                        toast("Now synced with ${sender.name}")
+                        Sync.confirmSync(req)
+                        toast("Now synced with ${req.message.mode}")
                     }
                     negativeButton(R.string.request_decline) {
-                        Sync.declineSync(sender)
+                        Sync.declineSync(req)
                     }
                 }.show()
             }
@@ -270,8 +245,16 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                         }
                     }
 //                }
-            } else if (intent.data != null) {
-                handleLink(intent.data)
+            } else if (intent.action == Intent.ACTION_VIEW && intent.data != null) {
+                val rawUri = intent.data!!
+                info { rawUri }
+                launch {
+                    val uri = FirebaseDynamicLinks.getInstance()
+                        .getDynamicLink(intent)
+                        .await()?.link
+
+                    handleLink(uri ?: rawUri)
+                }
             }
         }
         this.action = null
@@ -293,7 +276,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
                 result?.error?.printStackTrace()
             }
         } else if (requestCode == 42) {
-            val uri = data!!.data
+            val uri = data!!.data!!
 
             val permissions = Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION
             grantUriPermission(packageName, uri, permissions)
@@ -320,39 +303,40 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
         }
     }
 
-    private fun handleLink(url: Uri) = launch(Dispatchers.Default) {
+    private suspend fun handleLink(url: Uri) {
         // Possible urls (recommendations, sync)
         // turntable://album?name=*&artist=*
         // turntable://artist?uuid=*
         // turntable://sync-request?from=[USERID]
-//        val segs = url.pathSegments
-//        val params = url.queryParameterNames
-        when (url.host) {
-            "album" -> {
+        val parts = url.pathSegments
+        // parts[0] == 'turntable'
+        when (parts[1]) {
+            "album" -> withContext(Dispatchers.Main) {
                 val title = url.getQueryParameter("name")!!
                 val artist = url.getQueryParameter("artist")!!
+
                 replaceMainContent(
                     AlbumDetailsUI(
                         AlbumId(title, ArtistId(artist))
                     ).createFragment()
                 )
             }
-            "artist" -> {
+            "artist" -> withContext(Dispatchers.Main) {
                 val name = url.getQueryParameter("id")!!
+
                 replaceMainContent(
                     ArtistDetailsUI(ArtistId(name)).createFragment()
                 )
             }
-            "sync-request" -> {
+            "sync-request" -> withContext(Dispatchers.Default) {
                 val id = url.getQueryParameter("from")!!
 //                val displayName = url.getQueryParameter("id")
                 User.resolve(id)?.let {
                     Sync.requestSync(it)
                 }
             }
-            "lets-be-friends" -> {
-                val id = url.getQueryParameter("id")
-//                val uuid = url.getQueryParameter("id")
+            "lets-be-friends" -> withContext(Dispatchers.Default) {
+                val id = url.getQueryParameter("id")!!
 
                 val other = User.resolve(id)?.let {
                     Friend(it, Friend.Status.CONFIRMED)
@@ -368,7 +352,7 @@ class MainActivity : BaseActivity(), MultiplePermissionsListener {
     override fun onPause() {
         super.onPause()
         // Save preference files here!
-        runBlocking(Dispatchers.IO) { KotprefModel.saveFiles() }
+        runBlocking { KotprefModel.saveFiles() }
     }
 }
 

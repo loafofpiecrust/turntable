@@ -31,7 +31,7 @@ class BrowseTagsFragment: BaseFragment() {
         val res = Http.get(LASTFM_API_URL, params=mapOf(
             "api_key" to BuildConfig.LASTFM_API_KEY, "format" to "json",
             "method" to "chart.getTopTags"
-        )).gson["toptags"]
+        )).gson()["toptags"]
         val tagResults = res["tag"].array
         tagResults.map { it.obj }.map {
             Tag(

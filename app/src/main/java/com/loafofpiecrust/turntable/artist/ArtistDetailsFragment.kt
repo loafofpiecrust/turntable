@@ -30,9 +30,11 @@ import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import com.loafofpiecrust.turntable.ui.universal.createView
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
@@ -102,11 +104,12 @@ open class ArtistDetailsUI(
         sharedElementEnterTransition = trans
 //        sharedElementReturnTransition = trans
 
-        enterTransition = Fade()
-        exitTransition = Fade()
+//        enterTransition = Fade()
+//        exitTransition = Fade()
     }
 
     override fun ViewContext.render() = coordinatorLayout {
+        backgroundColor = colorAttr(android.R.attr.windowBackground)
         id = R.id.container
 
         appBarLayout {
@@ -217,12 +220,15 @@ open class ArtistDetailsUI(
                 gravity = Gravity.TOP
             }
 
+
             artist.openSubscription().switchMap { artist ->
                 artist.loadArtwork(Glide.with(image)).map {
                     it?.addListener(artist.loadPalette(toolbar, collapser, this@appBarLayout))
                 }
             }.consumeEachAsync {
-                it?.into(image) ?: run {
+                if (it != null) {
+                    it.into(image)
+                } else {
                     image.imageResource = R.drawable.ic_default_album
                 }
             }

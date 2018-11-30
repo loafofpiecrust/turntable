@@ -419,7 +419,7 @@ class TPBAlbum(
             val res = Jsoup.parse(Http.get(
                 "https://thepiratebay.org/search/$query/0/7/100"//,
 //                timeout = 10.0
-            ).use { it.text })
+            ).use { it.text() })
 
             // TODO: Add check for no results
             val table = res.getElementById("searchResult").child(1)
@@ -540,7 +540,7 @@ data class YouTubeFullAlbum(
                 "q" to "${album.id.artist} ${album.id.displayName} full album",
                 "maxResults" to "4",
                 "videoSyndicated" to "true"
-            )).gson
+            )).gson()
 
             info { "youtube: searching query '${album.id.artist} ${album.id.displayName} full album'" }
 
@@ -589,7 +589,7 @@ data class YouTubeFullAlbum(
                 "maxResults" to "4",
                 "order" to "relevance",
                 "textFormat" to "plainText"
-            )).gson.obj
+            )).gson().obj
 
             res["items"].array.lazy.map { it.obj }.mapNotFailed {
                 val info = it["snippet"]["topLevelComment"]["snippet"].obj
@@ -622,7 +622,7 @@ data class YouTubeFullAlbum(
 
         private suspend fun grabFromVideo(album: Album, videoId: String): YouTubeFullAlbum? = run {
             // Unfortunately, to grab the description we have to parse the video page :(
-            val pageRes = Http.get("https://youtube.com/watch?v=$videoId", cacheLevel = Http.CacheLevel.PAGE).text
+            val pageRes = Http.get("https://youtube.com/watch?v=$videoId", cacheLevel = Http.CacheLevel.PAGE).use { it.text() }
             val descStart = "<p uuid=\"eow-description\" class=\"\" >"
             val descStartIdx = pageRes.indexOf(descStart) + descStart.length
             val descEndIdx = pageRes.indexOf("</p>", startIndex=descStartIdx)

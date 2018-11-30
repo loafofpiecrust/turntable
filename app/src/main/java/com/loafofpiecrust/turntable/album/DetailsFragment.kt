@@ -1,9 +1,11 @@
 package com.loafofpiecrust.turntable.album
 
+import android.content.ClipData
 import android.content.Context
 import android.graphics.Color.TRANSPARENT
 import android.graphics.Typeface.BOLD
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.os.Parcelable
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.AppBarLayout
@@ -24,6 +26,7 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
+import com.google.firebase.dynamiclinks.FirebaseDynamicLinks
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.collapsingToolbarlparams
@@ -92,7 +95,7 @@ open class AlbumDetailsUI(
 
     override fun ViewContext.render() = coordinatorLayout {
         id = R.id.container
-        backgroundColor = TRANSPARENT
+        backgroundColor = colorAttr(android.R.attr.windowBackground)
 
         val coloredText = mutableListOf<TextView>()
         lateinit var status: TextView
@@ -256,6 +259,18 @@ private fun Menu.prepareOptions(scope: CoroutineScope, context: Context, album: 
             Message.Recommend(album.id),
             context.getString(R.string.recommend)
         ).show(context)
+    }
+
+    menuItem("Share Link").onClick {
+        val link = FirebaseDynamicLinks.getInstance()
+            .createDynamicLink()
+            .setDomainUriPrefix("https://turntable.page.link")
+            .setLink(Uri.parse("https://loafofpiecrust.com/turntable/album?name=${album.id.displayName}&artist=${album.id.artist.displayName}"))
+            .buildDynamicLink()
+
+        val clip = ClipData.newRawUri("Check out ${album.id.displayName}", link.uri)
+        context.clipboardManager.primaryClip = clip
+        context.toast("Uri copied to clipboard")
     }
 
     menuItem(R.string.add_to_playlist).onClick {

@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.debug
 import org.jetbrains.anko.error
+import org.jetbrains.anko.info
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -47,7 +48,7 @@ object Spotify: Repository {
             return apiRequest(
                 "albums/$id/tracks",
                 mapOf("limit" to "50")
-            ).gson["items"].array.map {
+            ).gson()["items"].array.map {
 //                RemoteSong(
                 Song(
                     SongId(
@@ -69,7 +70,7 @@ object Spotify: Repository {
 
             val res = Http.get("https://api.spotify.com/v1/albums/$id", headers = mapOf(
                 "Authorization" to "Bearer $accessToken"
-            )).gson
+            )).gson()
 
             return res["images"][0]["url"].nullString
         }
@@ -85,7 +86,7 @@ object Spotify: Repository {
             apiRequest(
                 "artists/$id/albums",
                 mapOf("limit" to "50")
-            ).gson["items"].array.lazy.map { it.obj }.map {
+            ).gson()["items"].array.lazy.map { it.obj }.map {
                 val imgs = it["images"].array
                 val artists = it["artists"].array
                 RemoteAlbum(
@@ -115,7 +116,7 @@ object Spotify: Repository {
 
             val res = Http.get("https://api.spotify.com/v1/artists/$id", headers = mapOf(
                 "Authorization" to "Bearer $accessToken"
-            )).gson.obj
+            )).gson().obj
 
             return res["images"]?.get(0)?.get("url")?.string
         }
@@ -151,7 +152,8 @@ object Spotify: Repository {
             val res = Http.post("https://accounts.spotify.com/api/token",
                 body = mapOf("grant_type" to "client_credentials"),
                 headers = mapOf("Authorization" to "Basic $authKey")
-            ).gson
+            ).gson()
+            info { res }
 //            task(UI) { println("recs: res = ${t.text}") }
 //            val res = JsonParser().parse(t.text)
             accessToken = res["access_token"].nullString
@@ -168,7 +170,7 @@ object Spotify: Repository {
             "q" to "artist:\"${artist.displayName}\"",
             "type" to "artist",
             "limit" to "3"
-        )).gson
+        )).gson()
 
         return res["artists"]["items"].nullArray?.map { it["id"].string } ?: listOf()
     }
@@ -177,7 +179,7 @@ object Spotify: Repository {
         val res = apiRequest("search", mapOf(
             "q" to query,
             "type" to "artist"
-        )).gson
+        )).gson()
 
         return res["artists"]["items"].array.map {
             val imgs = it["images"].array
@@ -203,7 +205,7 @@ object Spotify: Repository {
             "q" to "track:\"${song.name}\" artist:\"${song.artist}\" album:\"${song.album.name}\"",
             "type" to "track",
             "limit" to "3"
-        )).gson
+        )).gson()
 
         return res["tracks"]["items"].array.map { it["id"].string }
     }
@@ -213,7 +215,7 @@ object Spotify: Repository {
             "q" to "album:\"${album.name}\" artist:\"${album.artist.name}\"",
             "type" to "album",
             "limit" to "3"
-        )).gson
+        )).gson()
 
         return res["albums"]["items"].nullArray?.map {
             val artists = it["artists"].array
@@ -234,7 +236,7 @@ object Spotify: Repository {
             "q" to query,
             "type" to "album",
             "limit" to "3"
-        )).gson
+        )).gson()
 
         return res["albums"]["items"].array.map {
             val imgs = it["images"].array
@@ -264,7 +266,7 @@ object Spotify: Repository {
                 "q" to query,
                 "type" to "track"
             )
-        ).gson["tracks"]["items"].array.map {
+        ).gson()["tracks"]["items"].array.map {
 //            RemoteSong(
             Song(
                 SongId(
@@ -285,7 +287,7 @@ object Spotify: Repository {
     private suspend fun recommendationsFor(params: Map<String, String>): List<Song> {
 
 //        task(UI) { println("recs: artists = $artists") }
-        val res = apiRequest("recommendations", params).gson
+        val res = apiRequest("recommendations", params).gson()
 //        task(UI) { println("recs: $res") }
 
         val tracks = res["tracks"].array
@@ -375,7 +377,7 @@ object Spotify: Repository {
 
     suspend fun similarTo(artist: ArtistId): List<Artist> {
         val a = searchFor(artist).firstOrNull() ?: return listOf()
-        val res = apiRequest("artists/$a/related-artists").gson
+        val res = apiRequest("artists/$a/related-artists").gson()
 
         return res["artists"].array.map {
             val obj = it.obj
@@ -405,7 +407,7 @@ object Spotify: Repository {
                 "offset" to (page * 100).toString(),
                 "fields" to "name,owner.display_name,tracks.items(added_at,track(track_number,disc_number,duration_ms,name,album(name,type,release_date),artists(name)))"
             )
-        ).gson
+        ).gson()
 
         val items = res["tracks"]["items"].array.map {
             val track = it["track"].obj
@@ -448,7 +450,7 @@ object Spotify: Repository {
                 "limit" to "50",
                 "offset" to (page * 50).toString()
             )
-        ).gson
+        ).gson()
 
         return res["items"].array.map {
             val obj = it.obj
@@ -476,7 +478,7 @@ object Spotify: Repository {
             "q" to "album:\"${album.id.name}\" artist:\"${album.id.artist.name}\"",
             "type" to "album",
             "limit" to "3"
-        )).gson
+        )).gson()
 
         return res["albums"]["items"].nullArray?.lazy?.map { it["images"][0]["url"].nullString }?.first()
     }

@@ -21,7 +21,6 @@ import org.jetbrains.anko.notificationManager
 
 class PlayingNotification(private val service: MusicService) {
     private var lastSongColor: Int? = null
-    private var inForeground = false
 
     init {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -38,20 +37,12 @@ class PlayingNotification(private val service: MusicService) {
                 lastSongColor = MusicService.currentSongColor.openSubscription().first()
                 build(song, playing, lastSongColor)
             }
-//            song.loadCover(Glide.with(service)) { palette, swatch ->
-//                if (swatch != null) {
-//                    lastSongColor = swatch.rgb
-//                    build(song, playing, swatch.rgb)
-//                }
-//            }.consume(UI) {
-//                first()?.preload()
-//            }
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createChannel() = service.notificationManager.createNotificationChannel(
-        NotificationChannel("turntable", "Music Playback", NotificationManager.IMPORTANCE_HIGH).apply {
+        NotificationChannel(CHANNEL_ID, "Music Playback", NotificationManager.IMPORTANCE_HIGH).apply {
             description = "Playback controls and info"
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             setShowBadge(true)
@@ -65,8 +56,7 @@ class PlayingNotification(private val service: MusicService) {
             return
         }
 
-//        val chan = NotificationChannel(100, "Playback", NotificationManager.IMPORTANCE_HIGH)
-        val n = NotificationCompat.Builder(service, "turntable").apply {
+        val n = NotificationCompat.Builder(service, CHANNEL_ID).apply {
             setStyle(android.support.v4.media.app.NotificationCompat.MediaStyle().run {
                 setMediaSession(service.mediaSession.sessionToken)
                 setShowCancelButton(true)
@@ -83,13 +73,10 @@ class PlayingNotification(private val service: MusicService) {
             setSmallIcon(R.drawable.ic_album)
             setContentTitle(song.id.displayName)
             setContentText(song.id.artist.displayName)
-//            setTicker(song.id.album.displayName)
             setAutoCancel(false)
-//            setOngoing(playing)
             setColorized(true)
             setShowWhen(false)
             paletteColor?.let { color = it }
-//            setBadgeIconType(R.drawable.ic_cake)
             // Colors the name only
 
             // Previous
@@ -137,7 +124,6 @@ class PlayingNotification(private val service: MusicService) {
                 .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, song.id.album.displayName)
                 .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, song.id.artist.displayName)
                 .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST, song.id.album.artist.displayName)
-//                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, song.artworkUrl)
                 .putLong(MediaMetadataCompat.METADATA_KEY_YEAR, song.year.toLong())
                 .putLong(MediaMetadataCompat.METADATA_KEY_DISC_NUMBER, song.disc.toLong())
                 .build()
@@ -156,5 +142,9 @@ class PlayingNotification(private val service: MusicService) {
             .build())
 
         service.mediaSession.isActive = playing
+    }
+
+    companion object {
+        private const val CHANNEL_ID = "turntable"
     }
 }

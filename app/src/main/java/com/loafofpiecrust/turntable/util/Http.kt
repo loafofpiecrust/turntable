@@ -2,37 +2,45 @@ package com.loafofpiecrust.turntable.util
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.io.IOException
-import okhttp3.*
-import java.util.concurrent.TimeUnit
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.android.Android
+import io.ktor.client.request.*
+import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.response.HttpResponse
+import io.ktor.client.response.readText
+import io.ktor.content.TextContent
+import io.ktor.http.ContentType
+import io.ktor.http.Parameters
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 object Http {
     val client by lazy {
 //        HttpClient()
-        OkHttpClient.Builder().apply {
-            interceptors().clear()
-        }.build()!!
+        HttpClient(Android)
+//        OkHttpClient.Builder().apply {
+//            interceptors().clear()
+//        }.build()!!
     }
 
-    enum class CacheLevel(val controller: CacheControl) {
+    enum class CacheLevel() {
         // 0 = no cache (?), 1 = few minutes (artists), 2 = hours (albums)
-        MINIMAL(CacheControl.Builder()
-            .maxAge(10, TimeUnit.SECONDS)
-            .build()
+        MINIMAL(
+//            CacheControl.Builder()
+//            .maxAge(10, TimeUnit.SECONDS)
+//            .build()
         ),
-        PAGE(CacheControl.Builder()
-            .maxAge(10, TimeUnit.MINUTES) // when we have internet
-            .maxStale(6, TimeUnit.HOURS) // if we can't get online
-            .build()
+        PAGE(
+//            CacheControl.Builder()
+//            .maxAge(10, TimeUnit.MINUTES) // when we have internet
+//            .maxStale(6, TimeUnit.HOURS) // if we can't get online
+//            .build()
         ),
-        SESSION(CacheControl.Builder()
-            .maxAge(1, TimeUnit.HOURS)
-            .maxStale(1, TimeUnit.DAYS)
-            .build()
+        SESSION(
+//            CacheControl.Builder()
+//            .maxAge(1, TimeUnit.HOURS)
+//            .maxStale(1, TimeUnit.DAYS)
+//            .build()
         )
     }
     
@@ -41,20 +49,16 @@ object Http {
         params: Map<String, String> = mapOf(),
         headers: Map<String, String> = mapOf(),
         cacheLevel: CacheLevel = CacheLevel.MINIMAL
-    ): Response {
-        val url = HttpUrl.parse(url)!!.newBuilder().apply {
+    ): HttpResponse = withContext(Dispatchers.IO) {
+        client.get<HttpResponse> {
+            url(url)
             params.forEach { k, v ->
-                addQueryParameter(k, v)
+                parameter(k, v)
             }
-        }.build()
-
-        val req = Request.Builder()
-            .url(url)
-            .get()
-            .headers(Headers.of(headers))
-            .cacheControl(cacheLevel.controller).build()
-
-        return client.newCall(req).executeSuspended()
+            headers.forEach { k, v ->
+                header(k, v)
+            }
+        }
     }
 
     suspend fun post(
@@ -62,57 +66,65 @@ object Http {
         body: Any,
         params: Map<String, String> = mapOf(),
         headers: Map<String, String> = mapOf()
-    ): Response {
-        val url = HttpUrl.parse(url)!!.newBuilder().apply {
+    ): HttpResponse = withContext(Dispatchers.IO) {
+        client.post<HttpResponse> {
+            url(url)
+            headers.forEach { k, v ->
+                header(k, v)
+            }
             params.forEach { k, v ->
-                addQueryParameter(k, v)
+                parameter(k, v)
             }
-        }.build()
-
-        val req = Request.Builder()
-            .url(url)
-            .post(when (body) {
-                is Map<*, *> -> FormBody.Builder().apply {
-                    body.forEach { k, v -> add(k.toString(), v.toString()) }
-                }.build()
-                is JsonElement -> RequestBody.create(MediaType.parse("application/json"), body.toString())
-                is RequestBody -> body
-                else -> RequestBody.create(MediaType.parse("text/plain"), body.toString())
-            })
-            .headers(Headers.of(headers))
-            .build()
-
-        return client.newCall(req).executeSuspended()
+            when (body) {
+                is Map<*, *> -> this.body = FormDataContent(Parameters.build {
+                    body.forEach { k, v -> parameter(k.toString(), v) }
+                })
+                is JsonElement -> this.body = TextContent(
+                    body.toString(),
+                    ContentType.parse("application/json")
+                )
+                else -> this.body = TextContent(
+                    body.toString(),
+                    ContentType.parse("text/plain")
+                )
+            }
+        }
     }
 }
 
-suspend fun Call.executeSuspended(): Response = suspendCancellableCoroutine { cont ->
-    var completed = false
-    cont.invokeOnCancellation {
-        if (!isCanceled && !completed) {
-            cancel()
-        }
-    }
+//suspend fun Call.executeSuspended(): Response = suspendCancellableCoroutine { cont ->
+//    var completed = false
+//    cont.invokeOnCancellation {
+//        if (!isCanceled && !completed) {
+//            cancel()
+//        }
+//    }
+//
+//    enqueue(object: Callback {
+//        override fun onFailure(call: Call, e: IOException) {
+//            completed = true
+//            if (call.isCanceled) {
+//                cont.cancel()
+//            } else {
+//                cont.resumeWithException(e)
+//            }
+//        }
+//        override fun onResponse(call: Call, response: Response) {
+//            completed = true
+//            try {
+//                cont.resume(response)
+//            } catch (e: CancellationException) {
+//                response.close()
+//            }
+//        }
+//    })
+//}
 
-    enqueue(object: Callback {
-        override fun onFailure(call: Call, e: IOException) {
-            completed = true
-            if (call.isCanceled) {
-                cont.cancel()
-            } else {
-                cont.resumeWithException(e)
-            }
-        }
-        override fun onResponse(call: Call, response: Response) {
-            completed = true
-            try {
-                cont.resume(response)
-            } catch (e: CancellationException) {
-                response.close()
-            }
-        }
-    })
+//val Response.text: String get() = body()!!.string()!!
+//val Response.gson: JsonElement get() = use { JsonParser().parse(body()!!.charStream()!!) }
+
+suspend fun HttpResponse.text(): String = readText(Charsets.UTF_8)
+
+suspend fun HttpResponse.gson(): JsonElement = use {
+    JsonParser().parse(readText(Charsets.UTF_8))
 }
-
-val Response.text: String get() = body()!!.string()!!
-val Response.gson: JsonElement get() = use { JsonParser().parse(body()!!.charStream()!!) }

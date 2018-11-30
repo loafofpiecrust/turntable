@@ -17,10 +17,10 @@ import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.mapNotFailed
 import com.loafofpiecrust.turntable.util.text
 import com.mcxiaoke.koi.ext.closeQuietly
+import io.ktor.client.response.HttpResponse
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import okhttp3.Response
 import org.jetbrains.anko.debug
 import org.jetbrains.anko.error
 import org.jetbrains.anko.info
@@ -74,7 +74,7 @@ object Discogs: Repository {
     private suspend fun apiRequest(url: String, params: Map<String, String> = mapOf()): JsonObject =
         try {
             var reqCount = 3
-            var res: Response
+            var res: HttpResponse
             do {
                 reqCount--
                 res = Http.get(url, params = params + mapOf(
@@ -83,18 +83,18 @@ object Discogs: Repository {
                 ), headers = mapOf(
                     "User-Agent" to "com.loafofpiecrust.turntable/0.1alpha"
                 ))
-                if (res.code() == 429) {
+                if (res.status.value == 429) {
                     res.close()
                     delay(4000)
                 }
-            } while (res.code() > 400 && reqCount > 0)
-            val rem = res.header("X-Discogs-Ratelimit-Remaining")!!.toInt()
+            } while (res.status.value > 400 && reqCount > 0)
+            val rem = res.headers["X-Discogs-Ratelimit-Remaining"]!!.toInt()
             info { "$rem remaining" }
             if (rem <= 5) {
                 delay(500)
             }
 
-            res.gson.obj
+            res.gson().obj
         } catch (e: Exception) {
             error(e.message, e)
             throw e
@@ -419,7 +419,7 @@ object Discogs: Repository {
         var start = System.nanoTime()
         val txt = Http.get("https://www.discogs.com/artist/$id", mapOf(
             "limit" to "100"
-        )).use { it.text }
+        )).use { it.text() }
         info { "discography request took ${System.nanoTime() - start}ns" }
         start = System.nanoTime()
         val res = Jsoup.parse(txt).body()

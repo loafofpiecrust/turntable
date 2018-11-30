@@ -293,7 +293,7 @@ class RuTrackerArtist private constructor(
             .data(mapOf(
                 "t" to id
             ))
-            .cookie(cookie?.name(), cookie?.value())
+            .cookie(cookie?.name, cookie?.value)
             .get()
             .body()
 

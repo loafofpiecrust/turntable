@@ -14,29 +14,33 @@ fun <T, R> ReceiveChannel<T>.switchMap(
     transform: suspend (T) -> ReceiveChannel<R>?
 ): ReceiveChannel<R> {
     var currentJob: Job? = null
-    return GlobalScope.produce(context, onCompletion = { err ->
-        currentJob?.cancel(err)
-        cancel(err)
-    }) {
-        consumeEach {
-            currentJob?.cancelAndJoin()
-            transform(it)?.let { newChan ->
-                currentJob = launch {
-                    sendFrom(newChan)
+    return GlobalScope.produce(context) {
+        try {
+            consumeEach {
+                currentJob?.cancelAndJoin()
+                transform(it)?.let { newChan ->
+                    currentJob = launch {
+                        sendFrom(newChan)
+                    }
                 }
             }
+        } finally {
+            currentJob?.cancel()
+            cancel()
         }
     }
 }
 
 fun <T> ReceiveChannel<T>.startWith(
     element: T
-) = GlobalScope.produce(Dispatchers.Unconfined, onCompletion = consumes()) {
-    if (isEmpty) {
-        send(element)
-    }
-    consumeEach {
-        send(it)
+) = GlobalScope.produce(Dispatchers.Unconfined) {
+    consume {
+        if (isEmpty) {
+            send(element)
+        }
+        for (e in this) {
+            send(e)
+        }
     }
 }
 
@@ -69,32 +73,34 @@ fun <A, B, R> combineLatest(
     sourceB: ReceiveChannel<B>,
     context: CoroutineContext = Dispatchers.Unconfined,
     combine: suspend (A, B) -> R
-): ReceiveChannel<R> = GlobalScope.produce(context, onCompletion = {
-    sourceA.cancel(it)
-    sourceB.cancel(it)
-}, block = {
+): ReceiveChannel<R> = GlobalScope.produce(context) {
     var latestA: A? = null
     var latestB: B? = null
 
-    whileSelect {
-        sourceA.onReceiveOrNull { a ->
-            latestA = a
-            val b = latestB
-            if (a != null && b != null) {
-                send(combine(a, b))
+    try {
+        whileSelect {
+            sourceA.onReceiveOrNull { a ->
+                latestA = a
+                val b = latestB
+                if (a != null && b != null) {
+                    send(combine(a, b))
+                }
+                a != null
             }
-            a != null
-        }
-        sourceB.onReceiveOrNull { b ->
-            latestB = b
-            val a = latestA
-            if (b != null && a != null) {
-                send(combine(a, b))
+            sourceB.onReceiveOrNull { b ->
+                latestB = b
+                val a = latestA
+                if (b != null && a != null) {
+                    send(combine(a, b))
+                }
+                b != null
             }
-            b != null
         }
+    } finally {
+        sourceA.cancel()
+        sourceB.cancel()
     }
-})
+}
 
 fun <A, B, C, R> combineLatest(
     sourceA: ReceiveChannel<A>,
@@ -102,46 +108,47 @@ fun <A, B, C, R> combineLatest(
     sourceC: ReceiveChannel<C>,
     context: CoroutineContext = Dispatchers.Unconfined,
     combine: suspend (A, B, C) -> R
-): ReceiveChannel<R> = GlobalScope.produce(context, onCompletion = { err ->
-    sourceA.cancel(err)
-    sourceB.cancel(err)
-    sourceC.cancel(err)
-}, block = {
-
+): ReceiveChannel<R> = GlobalScope.produce(context) {
     var latestA: A? = null
     var latestB: B? = null
     var latestC: C? = null
 
-    whileSelect {
-        sourceA.onReceiveOrNull { a ->
-            latestA = a
-            val b = latestB
-            val c = latestC
-            if (a != null && b != null && c != null) {
-                send(combine(a, b, c))
+    try {
+        whileSelect {
+            sourceA.onReceiveOrNull { a ->
+                latestA = a
+                val b = latestB
+                val c = latestC
+                if (a != null && b != null && c != null) {
+                    send(combine(a, b, c))
+                }
+                a != null
             }
-            a != null
-        }
-        sourceB.onReceiveOrNull { b ->
-            latestB = b
-            val a = latestA
-            val c = latestC
-            if (a != null && b != null && c != null) {
-                send(combine(a, b, c))
+            sourceB.onReceiveOrNull { b ->
+                latestB = b
+                val a = latestA
+                val c = latestC
+                if (a != null && b != null && c != null) {
+                    send(combine(a, b, c))
+                }
+                b != null
             }
-            b != null
-        }
-        sourceC.onReceiveOrNull { c ->
-            latestC = c
-            val a = latestA
-            val b = latestB
-            if (a != null && b != null && c != null) {
-                send(combine(a, b, c))
+            sourceC.onReceiveOrNull { c ->
+                latestC = c
+                val a = latestA
+                val b = latestB
+                if (a != null && b != null && c != null) {
+                    send(combine(a, b, c))
+                }
+                c != null
             }
-            c != null
         }
+    } finally {
+        sourceA.cancel()
+        sourceB.cancel()
+        sourceC.cancel()
     }
-})
+}
 
 
 fun <T> ReceiveChannel<T>.skip(

@@ -16,6 +16,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.tasks.asDeferred
+import kotlinx.coroutines.tasks.await
 import org.jetbrains.anko.alert
 import org.jetbrains.anko.cancelButton
 import org.jetbrains.anko.selector
@@ -351,18 +353,6 @@ class SongPlaylist(
                 isPublic = true
                 sides.offer(doc.getBlob("sides")!!.toObject())
             }
-        }
-    }
-}
-
-
-suspend fun <T> Task<T>.await(): T = suspendCoroutine { cont ->
-    addOnCompleteListener { task ->
-        if (task.isSuccessful) {
-            cont.resume(task.result)
-        } else {
-            val e = task.exception ?: Exception()
-            cont.resumeWithException(e)
         }
     }
 }

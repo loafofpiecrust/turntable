@@ -55,7 +55,7 @@ object FirebaseStreamFunction: StreamProvider {
             "artist" to song.id.artist.displayName.toLowerCase(),
             "albumArtist" to song.id.album.artist.displayName.toLowerCase(),
             "duration" to song.duration.toString()
-        )).gson.obj
+        )).gson().obj
 
 
         val lq = res["lowQuality"].nullObj?.get("url")?.string

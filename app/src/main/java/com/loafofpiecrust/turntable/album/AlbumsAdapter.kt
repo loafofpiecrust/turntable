@@ -84,7 +84,7 @@ class AlbumsAdapter(
         bindAlbum(album, byArtist)
 
         val opts = RequestOptions()
-            .placeholder(R.drawable.ic_default_album)
+//            .placeholder(R.drawable.ic_default_album)
 
         val job = Job(supervisor)
         imageJobs.put(holder, job)?.cancel()
@@ -148,7 +148,7 @@ class AlbumAdapterSectioned(
         bindAlbum(item, true)
 
         val opts = RequestOptions()
-            .placeholder(R.drawable.ic_default_album)
+//            .placeholder(R.drawable.ic_default_album)
 
         launch(job) {
             item.loadThumbnail(Glide.with(coverImage)).consumeEach {

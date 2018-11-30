@@ -39,9 +39,11 @@ class SyncSession: BaseService() {
         var lastReceipt: Long = 0
         for (dir in channel) when (dir) {
             // receiving a ping keeps the session alive
-            MessageDirection.RECEIVED -> if (timer?.cancel() == true) {
+            MessageDirection.RECEIVED -> if (timer != null) {
+                timer.cancel()
                 lastReceipt = System.currentTimeMillis()
                 latency.offer(lastReceipt - lastSent)
+                timer = null
             }
             // Wait for a response until TIMEOUT seconds after the least-recent sent message.
             // after that timeout, end the sync session
@@ -92,6 +94,9 @@ class SyncSession: BaseService() {
         val prevMode = mode
         GlobalScope.launch {
             Sync.send(EndSync, prevMode)
+            if (prevMode is Sync.Mode.InGroup) {
+                Sync.leaveGroup(prevMode.group)
+            }
         }
         stopSelf()
     }
@@ -153,6 +158,7 @@ class SyncSession: BaseService() {
                 }
                 is Sync.Mode.InGroup -> {
                     val name = mode.group.name ?: mode.group.key
+                    this.mode = mode.copy(users = mode.users - sender)
                     App.launchWith { it.toast("Left group '$name'?") }
                 }
             }
@@ -247,6 +253,18 @@ class SyncSession: BaseService() {
                 message.onReceive(sender)
             } else if (!message.requiresSession) {
                 message.onReceive(sender)
+            }
+        }
+
+        fun addMember(user: User) {
+            inbox.offer {
+                if (mode is Sync.Mode.InGroup) {
+                    val groupMode = mode as Sync.Mode.InGroup
+                    mode = groupMode.copy(users = groupMode.users + user)
+                } else {
+                    // ???
+                    // Should we turn a OneOnOne session into a group??
+                }
             }
         }
     }

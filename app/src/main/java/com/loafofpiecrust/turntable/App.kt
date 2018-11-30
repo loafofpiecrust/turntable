@@ -11,6 +11,7 @@ import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.serializers.CompatibleFieldSerializer
 import com.evernote.android.state.StateSaver
 import com.google.firebase.FirebaseApp
+import com.google.firebase.analytics.FirebaseAnalytics
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.album.LocalAlbum
 import com.loafofpiecrust.turntable.model.artist.ArtistId
@@ -136,6 +137,7 @@ class App: Application() {
 //        LeakCanary.install(this)
 
         FirebaseApp.initializeApp(this)
+        FirebaseAnalytics.getInstance(this)
 
         StateSaver.setEnabledForAllActivitiesAndSupportFragments(this, true)
 

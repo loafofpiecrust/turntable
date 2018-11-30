@@ -55,7 +55,7 @@ object MusicBrainz: Repository {
         val res = Http.get("http://musicbrainz.org/ws/2/release-group", params = mapOf(
             "fmt" to "json",
             "query" to query
-        )).gson
+        )).gson()
 
         val entries = res["release-groups"].array
         entries.map { it.obj }.parMap {
@@ -70,7 +70,7 @@ object MusicBrainz: Repository {
                     "method" to "album.getinfo",
                     "album" to name,
                     "artist" to artistName
-                )).gson["album"]
+                )).gson()["album"]
                 val images = res["image"].nullArray
 
                 AlbumDetails(
@@ -122,7 +122,7 @@ object MusicBrainz: Repository {
                 "fmt" to "json",
                 "release-group" to rgid
 //                "status" to "official"
-            )).gson.obj
+            )).gson().obj
 
             attempts += 1
         } while (albumRes["releases"] == null && attempts < 5)
@@ -170,7 +170,7 @@ object MusicBrainz: Repository {
         val res = Http.get("http://musicbrainz.org/ws/2/release/$reid", params = mapOf(
             "fmt" to "json",
             "inc" to "recordings+artist-credits"
-        )).gson
+        )).gson()
 //        async(UI) { println("album release '${reid}'") }
         val albumId = AlbumId(
             res["title"].string,
@@ -224,7 +224,7 @@ object MusicBrainz: Repository {
         val entries = Http.get("http://musicbrainz.org/ws/2/artist", params = mapOf(
             "fmt" to "json",
             "query" to query
-        )).gson["artists"].array
+        )).gson()["artists"].array
 
         return entries.map { it.obj }.mapNotNull {
             val name = it["name"].string
@@ -238,7 +238,7 @@ object MusicBrainz: Repository {
                 "api_key" to BuildConfig.LASTFM_API_KEY, "format" to "json",
                 "method" to "artist.getInfo",
                 "mbid" to mbid
-            )).gson
+            )).gson()
             val thumbnail = try {
                 lfmRes["artist"]["image"][2]["#text"].string
             } catch (e: Exception) {
@@ -266,7 +266,7 @@ object MusicBrainz: Repository {
         return Http.get("http://musicbrainz.org/ws/2/recording", params = mapOf(
             "fmt" to "json",
             "query" to query
-        )).gson["recordings"].array.map {
+        )).gson()["recordings"].array.map {
             val albumObj = it["releases"][0]
             val artistName = it["artist-credit"][0]["artist"]["name"].string
             val artistId = ArtistId(artistName)
@@ -287,7 +287,7 @@ object MusicBrainz: Repository {
 //        val mbid = /*this.mbid ?:*/ findMbid() ?: return@then
 
         val res = Jsoup.parse(
-            Http.get("https://musicbrainz.org/artist/$artistId").text
+            Http.get("https://musicbrainz.org/artist/$artistId").text()
         )
         info { "album: loading $artistId" }
 
@@ -336,7 +336,7 @@ object MusicBrainz: Repository {
                         "method" to "album.getinfo",
                         "album" to title,
                         "artist" to artistName//this.uuid.name
-                    )).gson["album"]
+                    )).gson()["album"]
                     val images = res["image"].nullArray
                     AlbumDetails(
                         albumId,
@@ -381,7 +381,7 @@ object MusicBrainz: Repository {
             "fmt" to "json",
             "query" to "releasegroup:\"${album.displayName}\" AND artist:\"${album.artist.name}\"",
             "limit" to "2"
-        )).gson.obj
+        )).gson().obj
 
         if (res["count"].int > 0) {
             val rg = res["release-groups"][0]

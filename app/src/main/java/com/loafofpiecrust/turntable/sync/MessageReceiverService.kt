@@ -14,11 +14,12 @@ import org.jetbrains.anko.error
 
 
 /**
- * Manages receiving messages.
+ * Manages receiving messages from other users.
  */
 class MessageReceiverService : FirebaseMessagingService(), AnkoLogger {
     override fun onMessageReceived(msg: RemoteMessage) = runBlocking {
         val sender = deserialize(msg.data["sender"]!!) as User
+//        val mode = deserialize(msg.data["mode"]!!) as Sync.Mode
 
         if (!msg.data.containsKey("action") || sender.deviceId == Sync.selfUser.deviceId) {
             // We sent this message ourselves, don't process it.

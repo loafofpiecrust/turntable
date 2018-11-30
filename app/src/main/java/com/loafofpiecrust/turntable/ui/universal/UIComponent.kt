@@ -51,7 +51,7 @@ abstract class UIComponent: IUIComponent {
         return ViewContext(viewScope, ui).render().also { view ->
             view.onAttachStateChangeListener {
                 onViewDetachedFromWindow {
-                    viewScope.job.cancel()
+                    viewScope.job.cancelChildren()
                 }
             }
             this.viewScope = null
@@ -74,7 +74,7 @@ abstract class UIComponent: IUIComponent {
 
     @CallSuper
     open fun onDestroy() {
-        supervisor.cancel()
+        supervisor.cancelChildren()
     }
 
     @CallSuper

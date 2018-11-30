@@ -33,12 +33,11 @@ import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.addToMediaStore
 import com.mcxiaoke.koi.ext.intValue
 import com.mcxiaoke.koi.ext.stringValue
+import io.ktor.client.features.cookies.cookies
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.map
-import okhttp3.Cookie
-import okhttp3.HttpUrl
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import org.jetbrains.anko.*
@@ -81,7 +80,7 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
                 .data(mapOf(
                     "t" to id
                 ))
-                .cookie(cookie?.name(), cookie?.value())
+                .cookie(cookie?.name, cookie?.value)
                 .get()
                 .body()
 
@@ -101,7 +100,7 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
         val STALE_UNAVAILABLE_AGE = 3.days
     }
 
-    private var cookie: okhttp3.Cookie? = null
+    private var cookie: io.ktor.http.Cookie? = null
     private var loggedIn = false
 
     class Torrent : SessionManager() {
@@ -317,7 +316,7 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
                     "album" to song.id.album.displayName.toLowerCase(),
                     "artist" to song.id.artist.displayName.toLowerCase(),
                     "duration" to song.duration.toString()
-                )).gson.obj
+                )).gson().obj
 
                 val lq = res["lowQuality"].nullObj?.get("url")?.string
 
@@ -522,7 +521,7 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
 //        println("torrent service destroyed")
 //    }
 
-    suspend fun login(): Cookie? {
+    suspend fun login(): io.ktor.http.Cookie? {
         // TODO: Get the expiration time of the login cookie
         if (cookie != null) { // and not expired yet
             return cookie
@@ -531,7 +530,7 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
                 headers = mapOf("content-type" to "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW"),
                 body = "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; uuid=\"login_username\"\r\n\r\nloafofpiecrust\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; uuid=\"login_password\"\r\n\r\nPok10101\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; uuid=\"login\"\r\n\r\nвход\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW--"
             )
-            val cookie = Http.client.cookieJar().loadForRequest(HttpUrl.parse("http://rutracker.org/forum/login.php")).find { it.name() == "bb_session" }
+            val cookie = Http.client.cookies("http://rutracker.org/forum/login.php").find { it.name == "bb_session" }
 //            val cookie = res.cookies.getCookie("bb_session")
             return if (cookie != null) {
                 loggedIn = true
@@ -559,7 +558,7 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
                 // "start" to pageNumber * 50
                 // "f" to forumIndexNumber
             ))
-            .cookie(cookie.name(), cookie.value())
+            .cookie(cookie.name, cookie.value)
             .timeout(10000) // 10s
             .post()
             .body()

@@ -120,7 +120,7 @@ data class YouTubeSong(
                 "maxResults" to "7"//,
 //                "videoSyndicated" to "true",
 //                "videoEmbeddable" to "true"
-            )).gson.obj
+            )).gson().obj
 
 
             debug { "youtube: query = '$query'" }
@@ -174,7 +174,7 @@ data class YouTubeSong(
                         "key" to API_KEY,
                         "id" to videoId,
                         "part" to "contentDetails,statistics"
-                    )).gson.obj
+                    )).gson().obj
                     val item = res["items"][0]
 
                     // If the video has over 10000 views,

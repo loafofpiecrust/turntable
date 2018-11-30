@@ -180,53 +180,16 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
             // to retry, we have to rebuild the MediaSource
             playNext()
             prepareSource()
-
-//            errorCount++
-//            if (errorCount < 2) async(BG_POOL) {
-//                OnlineSearchService.instance.reloadSongStreams(_queue.value.current!!.uuid)
-//
-//                // TODO: Ensure this works vs resetting the media source entirely.
-//                player.seekToDefaultPosition(player.currentWindowIndex)
-//            } else {
-//                errorCount = 0
-//                playNext()
-//            }
+        } else {
+            App.instance.toast("Dubious player error (type ${error.type})")
         }
-
-//        if (currentSong.value.remote != null) {
-//        errorCount++
-//        error?.printStackTrace()
-//
-//        if (errorCount < 2) {
-//            given(_queue.value.current) { song: Song ->
-//                task {
-//                    OnlineSearchService.instance.reloadSongStreams(song.uuid)
-//                }.success {
-//                    if (prepareSong(song)) {
-//                        desynced { play() }
-//                    } else {
-//                        errorCount = 0
-//                        player.stop()
-//                        playNext()
-//                    }
-//                }
-//            }
-//        } else {
-//            errorCount = 0
-//            playNext()
-//        }
-//        }
     }
 
     override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
         debug { "player state: playing=$playWhenReady, state=$playbackState" }
+        _isPlaying.offer(playWhenReady)
         when (playbackState) {
             Player.STATE_ENDED -> if (playWhenReady) {
-//                desynced { // Don't sync this, other users will have the same listener.
-//                    // TODO: Extend ExoPlayer types to do gapless playback.
-////                    player.stop() // Prevent continued skipping.
-//                    playNext().await()
-//                }
                 player.stop()
             }
             Player.STATE_IDLE -> pause()
@@ -243,7 +206,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
     override fun onPositionDiscontinuity(reason: Int) {
         if (reason == ExoPlayer.DISCONTINUITY_REASON_PERIOD_TRANSITION) {
             shiftQueuePosition(player.currentWindowIndex)
-//            playNext()
         }
     }
 
@@ -254,7 +216,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
         if (reason == Player.TIMELINE_CHANGE_REASON_PREPARED) {
             val q = _queue.value
             if (player.currentWindowIndex != q.position && timeline.windowCount > 0) {
-
 //                player.seekToDefaultPosition(min(timeline.windowCount - 1, q.position))
             }
         }
@@ -268,14 +229,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
 
 
     private var isPrepared = false
-    private var prepareJob: Deferred<Boolean>? = null
-//    private suspend fun prepareSong(song: Song): Boolean = suspendCoroutine { cont ->
-//        isPrepared = false
-//        isStreaming = false
-//        player.prepare(StreamMediaSource(song, sourceFactory, extractorsFactory) { loaded ->
-//            isPrepared = loaded
-//            cont.resume(loaded)
-//        })
 
 
     fun stop() {
@@ -388,8 +341,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
         addCurrentToHistory()
         val q = _queue.value.toPrev()
         _queue puts q as CombinedQueue
-//        q
-//    }.then(UI) { q ->
+
         if (q.position != player.currentWindowIndex) {
             player.seekToDefaultPosition(q.position)
         }
@@ -432,9 +384,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
             q.shifted(from, to) as CombinedQueue
         }
 
-//        launch(UI) {
-            mediaSource?.moveMediaSource(from, to)
-//        }
+        mediaSource?.moveMediaSource(from, to)
     }
 
     fun replaceQueue(q: CombinedQueue) {
@@ -444,13 +394,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
         } else {
             prepareSource()
         }
-//        _queue putsMapped { prev ->
-//            if (prev.isPlayingNext) {
-//                CombinedQueue(q, prev.nextUp.drop(1))
-//            } else {
-//                CombinedQueue(q, prev.nextUp)
-//            }
-//        }
     }
 
 
@@ -464,7 +407,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
         if (q.current != null) {
             lastResumeTime = player.currentPosition
             player.playWhenReady = true
-            _isPlaying puts true
+//            _isPlaying puts true
             shouldAutoplay = true
         }
         return q.current != null
@@ -478,12 +421,13 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
         return temporaryPause()
     }
 
-    fun temporaryPause(): Boolean {
+    private fun temporaryPause(): Boolean {
+        // TODO: Move this stuff to onPlayerStateChanged
         val alreadyPlaying = _isPlaying.value && player.playWhenReady
         if (alreadyPlaying) {
             totalListenedTime += player.currentPosition - lastResumeTime
             player.playWhenReady = false
-            _isPlaying puts false
+//            _isPlaying puts false
         }
         return alreadyPlaying
     }
@@ -513,11 +457,15 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
             totalListenedTime + (now - lastResumeTime)
         } else totalListenedTime
         val percent = total.toDouble() / player.duration
-        // TODO: Decide on percent threshold to count as a "full" listen. Is half the song enough?
-        if (percent > 0.5) {
+        if (percent > LISTENED_PROPORTION) {
             // TODO: Add timestamp and percent to history entries
             UserPrefs.history appends HistoryEntry(_queue.value.current!!)
         }
         totalListenedTime = 0
+    }
+
+    companion object {
+        // TODO: Decide on percent threshold to count as a "full" listen. Is half the song enough?
+        private const val LISTENED_PROPORTION = 0.5
     }
 }

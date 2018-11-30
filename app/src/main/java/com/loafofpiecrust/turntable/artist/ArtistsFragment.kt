@@ -173,8 +173,7 @@ class ArtistsAdapter(
             val job = launch(Dispatchers.Main) {
                 item.loadThumbnail(Glide.with(holder.card.context)).consumeEach {
                     if (it != null) {
-                        it.apply(RequestOptions().placeholder(R.drawable.ic_default_album))
-                            .transition(DrawableTransitionOptions().crossFade(200))
+                        it.transition(DrawableTransitionOptions().crossFade(150))
                             .listener(item.loadPalette(holder.card, holder.mainLine, holder.subLine))
                             .into(cover)
                     } else {

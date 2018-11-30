@@ -68,35 +68,32 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
                 }
                 .broadcast(CONFLATED)
 
-        private sealed class Action {
-            data class Synced(
-                val message: PlayerAction,
-                val shouldSync: Boolean
-            ): Action()
-        }
+//        private sealed class Action {
+//            data class Synced(
+//                val message: PlayerAction,
+//                val shouldSync: Boolean
+//            ): Action()
+//        }
 
 
-        private val actions = GlobalScope.actor<Action>(
-            capacity = Channel.UNLIMITED
-        ) {
-            for (action in channel) {
-                val service = _instance.valueOrNull?.get() ?: run {
-                    App.instance.startService<MusicService>()
-                    instance.filterNotNull().first()
-                }
-                when (action) {
-                    is Action.Synced ->
-                        service.doAction(action.message, action.shouldSync)
-                }
-            }
-        }
+//        private val actions = GlobalScope.actor<Action>(
+//            capacity = Channel.UNLIMITED
+//        ) {
+//            for (action in channel) {
+//                val service = _instance.valueOrNull?.get() ?: run {
+//                    App.instance.startService<MusicService>()
+//                    instance.filterNotNull().first()
+//                }
+//                when (action) {
+//                    is Action.Synced ->
+//                        service.doAction(action.message, action.shouldSync)
+//                }
+//            }
+//        }
 
         fun offer(msg: PlayerAction, shouldSync: Boolean = true) {
             MusicServiceStarter.start(App.instance, msg, shouldSync)
 //            actions.offer(Action.Synced(msg, shouldSync))
-        }
-        suspend fun enactNow(msg: PlayerAction, shouldSync: Boolean = true) {
-            actions.send(Action.Synced(msg, shouldSync))
         }
     }
 
