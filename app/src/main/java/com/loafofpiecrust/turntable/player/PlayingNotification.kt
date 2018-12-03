@@ -11,7 +11,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.ui.MainActivityStarter
 import kotlinx.coroutines.GlobalScope

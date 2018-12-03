@@ -21,13 +21,11 @@ import com.loafofpiecrust.turntable.model.album.loadPalette
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.puts
-import com.loafofpiecrust.turntable.sync.PlayerAction
-import com.loafofpiecrust.turntable.sync.Sync
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.sync.SyncSession
 import com.loafofpiecrust.turntable.ui.BaseService
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
 import kotlinx.coroutines.launch

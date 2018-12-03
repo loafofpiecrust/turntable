@@ -16,7 +16,7 @@ import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
-import com.loafofpiecrust.turntable.sync.Message
+import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.ui.universal.UIComponent
 import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import com.loafofpiecrust.turntable.ui.popMainContent

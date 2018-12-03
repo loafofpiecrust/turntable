@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable.ui
+package com.loafofpiecrust.turntable.views
 
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.GridLayoutManager
@@ -7,7 +7,6 @@ import android.view.ViewGroup
 import com.afollestad.sectionedrecyclerview.SectionedRecyclerViewAdapter
 import com.afollestad.sectionedrecyclerview.SectionedViewHolder
 import com.loafofpiecrust.turntable.util.lazy
-import com.loafofpiecrust.turntable.views.RecyclerBroadcastAdapter
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.map

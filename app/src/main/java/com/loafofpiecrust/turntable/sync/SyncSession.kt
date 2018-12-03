@@ -4,6 +4,7 @@ import android.content.Intent
 import android.support.v4.app.NotificationCompat
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.tryOr
 import com.loafofpiecrust.turntable.ui.BaseService
@@ -11,7 +12,6 @@ import com.loafofpiecrust.turntable.util.startWith
 import com.loafofpiecrust.turntable.util.switchMap
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
-import org.jetbrains.anko.stopService
 import org.jetbrains.anko.toast
 import java.lang.ref.WeakReference
 

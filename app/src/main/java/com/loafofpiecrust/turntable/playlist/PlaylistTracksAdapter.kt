@@ -7,9 +7,9 @@ import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.views.RecyclerBroadcastAdapter
-import com.loafofpiecrust.turntable.ui.RecyclerListItem
+import com.loafofpiecrust.turntable.views.RecyclerListItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.consumeEach

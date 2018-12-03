@@ -10,7 +10,6 @@ import android.view.Menu
 import android.view.ViewGroup
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
-import com.bumptech.glide.request.RequestOptions
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.artist.Artist

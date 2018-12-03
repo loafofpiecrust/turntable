@@ -10,8 +10,8 @@ import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.PlaylistPicker
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
-import com.loafofpiecrust.turntable.sync.Message
-import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.model.sync.Message
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.ui.universal.showDialog

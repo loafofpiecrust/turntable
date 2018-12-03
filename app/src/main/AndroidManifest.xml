@@ -88,7 +88,7 @@
         </activity>
 
         <activity android:name=".prefs.SettingsActivity" />
-        <activity android:name=".ui.AlbumEditorActivity" />
+        <activity android:name=".album.AlbumEditorActivity" />
         <activity android:name=".ui.universal.UniversalActivity" />
 
         <service

@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable.sync
+package com.loafofpiecrust.turntable.model.sync
 
 import android.os.Parcelable
 import com.loafofpiecrust.turntable.appends
@@ -6,7 +6,6 @@ import com.loafofpiecrust.turntable.model.Recommendable
 import com.loafofpiecrust.turntable.model.playlist.AbstractPlaylist
 import com.loafofpiecrust.turntable.model.queue.CombinedQueue
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs

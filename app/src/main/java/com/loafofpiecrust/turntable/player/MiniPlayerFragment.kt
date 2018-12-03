@@ -1,6 +1,5 @@
-package com.loafofpiecrust.turntable.ui
+package com.loafofpiecrust.turntable.player
 
-import android.graphics.Color
 import android.graphics.Typeface
 import android.view.Gravity
 import android.view.ViewManager
@@ -9,8 +8,8 @@ import android.widget.TextView
 import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.loadPalette
-import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
+import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.iconButton
 import com.loafofpiecrust.turntable.util.switchMap
 import com.loafofpiecrust.turntable.util.textStyle

@@ -7,6 +7,7 @@ import android.view.*
 import com.loafofpiecrust.turntable.ui.currentFragment
 import com.loafofpiecrust.turntable.util.arg
 import com.loafofpiecrust.turntable.util.getValue
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.ImplicitReflectionSerializer
 import org.jetbrains.anko.*
 import java.util.*
@@ -71,9 +72,9 @@ class UniversalFragment: Fragment(), Closable {
         // Only shut down the component when the fragment is being removed.
         // Otherwise, it's a config change and the same component instance
         // will be revived for use in the fragment.
-        if (isRemoving) {
+//        if (isRemoving) {
             component.onDestroy()
-        }
+//        }
     }
 
     override fun onDestroyView() {

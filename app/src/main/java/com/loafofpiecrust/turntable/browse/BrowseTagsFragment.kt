@@ -8,7 +8,7 @@ import com.github.salomonbrys.kotson.*
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.views.RecyclerAdapter
-import com.loafofpiecrust.turntable.ui.RecyclerListItem
+import com.loafofpiecrust.turntable.views.RecyclerListItem
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.produceSingle

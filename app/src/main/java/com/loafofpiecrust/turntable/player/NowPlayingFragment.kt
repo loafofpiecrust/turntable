@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable.ui
+package com.loafofpiecrust.turntable.player
 
 //import com.loafofpiecrust.turntable.service.MusicService2
 //import me.angrybyte.circularslider.CircularSlider
@@ -13,10 +13,11 @@ import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.loadPalette
-import com.loafofpiecrust.turntable.player.MusicService
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.selector
 import com.loafofpiecrust.turntable.sync.*
+import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.channels.firstOrNull

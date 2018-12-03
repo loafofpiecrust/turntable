@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable.ui
+package com.loafofpiecrust.turntable.player
 
 //import com.loafofpiecrust.turntable.service.MusicService2
 import android.graphics.Color
@@ -15,13 +15,14 @@ import com.loafofpiecrust.turntable.model.queue.CombinedQueue
 import com.loafofpiecrust.turntable.model.queue.StaticQueue
 import com.loafofpiecrust.turntable.model.queue.indexWithinUpNext
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.popupMenu
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.song.songOptions
-import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
+import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.*
 import com.loafofpiecrust.turntable.views.RecyclerBroadcastAdapter
+import com.loafofpiecrust.turntable.views.RecyclerListItem
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
 import org.jetbrains.anko.*

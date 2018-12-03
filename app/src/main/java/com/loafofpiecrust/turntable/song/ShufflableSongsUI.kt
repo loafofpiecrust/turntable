@@ -2,11 +2,10 @@ package com.loafofpiecrust.turntable.song
 
 import android.os.Parcelable
 import android.support.constraint.ConstraintLayout.LayoutParams.PARENT_ID
-import android.view.View
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.universal.UIComponent
 import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import com.loafofpiecrust.turntable.ui.universal.createView
@@ -20,8 +19,6 @@ import org.jetbrains.anko.constraint.layout.constraintLayout
 import org.jetbrains.anko.constraint.layout.matchConstraint
 import org.jetbrains.anko.design.floatingActionButton
 import org.jetbrains.anko.dimen
-import org.jetbrains.anko.dip
-import org.jetbrains.anko.frameLayout
 import org.jetbrains.anko.imageResource
 import org.jetbrains.anko.sdk27.coroutines.onClick
 

@@ -44,8 +44,8 @@ import com.loafofpiecrust.turntable.song.SongsOnDiscAdapter
 import com.loafofpiecrust.turntable.song.SongsUI
 import com.loafofpiecrust.turntable.style.detailsStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
-import com.loafofpiecrust.turntable.sync.Message
-import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.model.sync.Message
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.ui.universal.UIComponent
 import com.loafofpiecrust.turntable.ui.universal.ViewContext

@@ -1,19 +1,9 @@
 package com.loafofpiecrust.turntable.ui
 
-import ch.tutteli.atrium.api.cc.en_GB.*
-import ch.tutteli.atrium.verbs.expect
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
-import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.sync.PlayerAction
-import com.loafofpiecrust.turntable.test
-import kotlinx.coroutines.channels.firstOrNull
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import org.junit.Test
-import org.junit.runner.RunWith
 
 
 class MusicPlayerTest {

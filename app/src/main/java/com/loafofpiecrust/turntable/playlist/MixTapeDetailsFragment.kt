@@ -15,10 +15,10 @@ import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.SongsOnDiscAdapter
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
-import com.loafofpiecrust.turntable.sync.Message
-import com.loafofpiecrust.turntable.sync.PlayerAction
-import com.loafofpiecrust.turntable.ui.RecyclerListItem
-import com.loafofpiecrust.turntable.ui.SectionedAdapter
+import com.loafofpiecrust.turntable.model.sync.Message
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
+import com.loafofpiecrust.turntable.views.RecyclerListItem
+import com.loafofpiecrust.turntable.views.SectionedAdapter
 import com.loafofpiecrust.turntable.ui.universal.UIComponent
 import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import com.loafofpiecrust.turntable.util.*

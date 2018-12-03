@@ -15,7 +15,7 @@ import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.turntableStyle
-import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.ui.universal.UIComponent
 import com.loafofpiecrust.turntable.ui.universal.createFragment

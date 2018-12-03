@@ -1,11 +1,9 @@
 package com.loafofpiecrust.turntable.sync
 
 import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Parcelable
-import android.support.v4.app.ActivityCompat.startActivityForResult
 import android.support.v4.app.FragmentActivity
 import android.support.v4.app.NotificationCompat
 import com.firebase.ui.auth.AuthUI
@@ -16,17 +14,15 @@ import com.github.salomonbrys.kotson.string
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.iid.FirebaseInstanceId
-import com.google.firebase.messaging.FirebaseMessaging
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.queue.isEmpty
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.model.sync.Friend
+import com.loafofpiecrust.turntable.model.sync.Message
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.util.*
-import io.ktor.client.call.receive
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*

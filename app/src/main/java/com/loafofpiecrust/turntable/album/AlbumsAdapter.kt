@@ -13,7 +13,7 @@ import com.loafofpiecrust.turntable.model.nameTransition
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.views.RecyclerAdapter
 import com.loafofpiecrust.turntable.views.RecyclerGridItem
-import com.loafofpiecrust.turntable.ui.SectionedAdapter
+import com.loafofpiecrust.turntable.views.SectionedAdapter
 import com.loafofpiecrust.turntable.util.pluralResource
 import com.loafofpiecrust.turntable.views.SimpleHeaderViewHolder
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView

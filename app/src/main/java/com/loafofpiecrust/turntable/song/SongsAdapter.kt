@@ -2,19 +2,14 @@ package com.loafofpiecrust.turntable.song
 
 //import com.loafofpiecrust.turntable.service.MusicService2
 import android.support.annotation.StringRes
-import android.support.v7.widget.RecyclerView
-import android.view.View
 import android.view.ViewGroup
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.sync.PlayerAction
-import com.loafofpiecrust.turntable.views.RecyclerAdapter
-import com.loafofpiecrust.turntable.ui.RecyclerListItem
-import com.loafofpiecrust.turntable.ui.SectionedAdapter
+import com.loafofpiecrust.turntable.views.RecyclerListItem
+import com.loafofpiecrust.turntable.views.SectionedAdapter
 import com.loafofpiecrust.turntable.util.*
 import com.loafofpiecrust.turntable.views.RecyclerBroadcastAdapter
 import com.loafofpiecrust.turntable.views.SimpleHeaderViewHolder
@@ -23,7 +18,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.consumeEach
 import org.jetbrains.anko.colorAttr
-import org.jetbrains.anko.image
 import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.textColor
 import kotlin.coroutines.CoroutineContext

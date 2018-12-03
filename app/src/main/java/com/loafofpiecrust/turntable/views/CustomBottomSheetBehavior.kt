@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable.ui
+package com.loafofpiecrust.turntable.views
 
 import android.support.design.widget.BottomSheetBehavior
 import android.support.design.widget.CoordinatorLayout

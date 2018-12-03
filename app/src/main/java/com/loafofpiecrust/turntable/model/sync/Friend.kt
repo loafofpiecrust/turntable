@@ -6,10 +6,7 @@ import android.support.v4.app.NotificationCompat
 import com.chibatching.kotpref.preference
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.putsMapped
-import com.loafofpiecrust.turntable.sync.Message
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.ui.MainActivityStarter

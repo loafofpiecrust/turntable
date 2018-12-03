@@ -1,10 +1,8 @@
-package com.loafofpiecrust.turntable.ui
+package com.loafofpiecrust.turntable.player
 
 //import com.loafofpiecrust.turntable.service.MusicService2
 import android.content.Context
-import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.v7.util.DiffUtil
-import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.View
@@ -15,17 +13,14 @@ import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
+import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.recyclerViewPager
-import com.loafofpiecrust.turntable.util.size
 import com.loafofpiecrust.turntable.util.switchMap
-import com.loafofpiecrust.turntable.views.ItemOffsetDecoration
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.consumeEach
 import org.jetbrains.anko.*
 import org.jetbrains.anko.cardview.v7.cardView
-import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
 import org.jetbrains.anko.constraint.layout.applyConstraintSet
 import org.jetbrains.anko.constraint.layout.constraintLayout
 import org.jetbrains.anko.constraint.layout.matchConstraint

@@ -2,12 +2,11 @@ package com.loafofpiecrust.turntable.sync
 
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.util.deserialize
 import com.loafofpiecrust.turntable.util.fromBase64
 import kotlinx.coroutines.channels.BroadcastChannel
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error

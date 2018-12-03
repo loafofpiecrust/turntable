@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable.ui
+package com.loafofpiecrust.turntable.album
 
 //import org.jaudiotagger.audio.AudioFileIO
 //import org.jaudiotagger.tag.FieldKey
@@ -22,6 +22,7 @@ import com.loafofpiecrust.turntable.parMap
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.tryOr
+import com.loafofpiecrust.turntable.ui.BaseActivity
 import com.loafofpiecrust.turntable.util.generateChildrenIds
 import com.loafofpiecrust.turntable.util.size
 import kotlinx.coroutines.*

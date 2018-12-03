@@ -5,8 +5,6 @@ import android.support.v7.widget.LinearLayoutManager
 import android.view.*
 import android.widget.EditText
 import com.github.daemontus.Result
-import com.github.daemontus.isOk
-import com.github.daemontus.unwrap
 import com.github.daemontus.unwrapError
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.browse.RecentMixTapesFragment
@@ -18,13 +16,13 @@ import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.util.*
 import com.loafofpiecrust.turntable.views.RecyclerBroadcastAdapter
+import com.loafofpiecrust.turntable.views.RecyclerListItem
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ReceiveChannel
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.alert
 import org.jetbrains.anko.support.v4.toast
-import java.lang.Exception
 import kotlin.coroutines.CoroutineContext
 
 

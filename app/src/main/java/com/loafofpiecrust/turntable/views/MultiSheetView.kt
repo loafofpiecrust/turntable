@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable.ui
+package com.loafofpiecrust.turntable.views
 
 import android.animation.ValueAnimator
 import android.content.Context

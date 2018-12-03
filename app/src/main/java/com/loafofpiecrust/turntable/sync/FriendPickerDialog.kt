@@ -8,11 +8,12 @@ import android.view.ViewGroup
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.sync.Friend
+import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
 import com.loafofpiecrust.turntable.views.RecyclerAdapter
-import com.loafofpiecrust.turntable.ui.RecyclerListItem
+import com.loafofpiecrust.turntable.views.RecyclerListItem
 import com.loafofpiecrust.turntable.util.arg
 import com.loafofpiecrust.turntable.util.getValue
 import com.loafofpiecrust.turntable.util.lazy

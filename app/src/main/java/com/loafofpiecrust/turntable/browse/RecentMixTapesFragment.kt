@@ -13,6 +13,7 @@ import com.loafofpiecrust.turntable.util.days
 import com.loafofpiecrust.turntable.util.produceSingle
 import com.loafofpiecrust.turntable.views.RecyclerAdapter
 import com.loafofpiecrust.turntable.views.RecyclerItem
+import com.loafofpiecrust.turntable.views.RecyclerListItem
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.frameLayout
 import org.jetbrains.anko.recyclerview.v7.recyclerView

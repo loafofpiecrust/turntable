@@ -11,7 +11,6 @@ import com.bumptech.glide.signature.ObjectKey
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.artist.BiographyFragment
 import com.loafofpiecrust.turntable.artist.RelatedArtistsUI
-import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.repository.local.SearchCache
 import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.album.Album
@@ -21,8 +20,8 @@ import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.repository.Repositories
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
-import com.loafofpiecrust.turntable.sync.Message
-import com.loafofpiecrust.turntable.sync.PlayerAction
+import com.loafofpiecrust.turntable.model.sync.Message
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.util.*
@@ -58,13 +57,14 @@ interface Artist: Music {
                 ?.apply(RequestOptions().signature(ObjectKey("${this.id}thumbnail")))
         }
 
-    fun loadArtwork(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
-        GlobalScope.produce {
-            val localArt = Library.loadArtistImage(req, this@Artist.id)
-            send(localArt.receive() ?: req.load(Repositories.fullArtwork(this@Artist, true)))
+    fun loadArtwork(
+        req: RequestManager
+    ): ReceiveChannel<RequestBuilder<Drawable>?> = GlobalScope.produce {
+        val localArt = Library.loadArtistImage(req, this@Artist.id)
+        send(localArt.receive() ?: req.load(Repositories.fullArtwork(this@Artist, true)))
 
-            sendFrom(localArt.filterNotNull())
-        }
+        sendFrom(localArt.filterNotNull())
+    }
 
 
 //    override fun optionsMenu(context: Context, menu: Menu) = with(menu) {

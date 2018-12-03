@@ -14,7 +14,7 @@ import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
-import com.loafofpiecrust.turntable.sync.Message
+import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.ui.popMainContent
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.Dispatchers

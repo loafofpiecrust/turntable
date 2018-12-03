@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable.ui
+package com.loafofpiecrust.turntable.views
 
 import android.support.constraint.ConstraintSet.CHAIN_PACKED
 import android.support.constraint.ConstraintSet.PARENT_ID
@@ -12,7 +12,6 @@ import com.loafofpiecrust.turntable.style.rippleBorderless
 import com.loafofpiecrust.turntable.util.iconButton
 import com.loafofpiecrust.turntable.util.size
 import com.loafofpiecrust.turntable.util.tint
-import com.loafofpiecrust.turntable.views.RecyclerItem
 import org.jetbrains.anko.*
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
 import org.jetbrains.anko.constraint.layout.applyConstraintSet
