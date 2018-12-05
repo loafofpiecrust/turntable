@@ -17,15 +17,15 @@ import com.loafofpiecrust.turntable.model.album.LocalAlbum
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.playlist.SongPlaylist
 import com.loafofpiecrust.turntable.model.queue.CombinedQueue
+import com.loafofpiecrust.turntable.model.queue.StaticQueue
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
-import com.loafofpiecrust.turntable.model.queue.StaticQueue
-import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.model.sync.Friend
-import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.sync.MessageReceiverService
+import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.sync.SyncSession
 import com.loafofpiecrust.turntable.util.CBCSerializer
 import com.loafofpiecrust.turntable.util.SingletonInstantiatorStrategy
@@ -34,9 +34,12 @@ import com.loafofpiecrust.turntable.util.threadLocalLazy
 import de.javakaffee.kryoserializers.ArraysAsListSerializer
 import de.javakaffee.kryoserializers.SubListSerializers
 import de.javakaffee.kryoserializers.UUIDSerializer
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jetbrains.anko.connectivityManager
 import org.objenesis.strategy.StdInstantiatorStrategy
 import java.util.*
@@ -78,9 +81,6 @@ class App: Application() {
                 addDefaultSerializer(ConflatedBroadcastChannel::class.java, CBCSerializer::class.java)
                 addDefaultSerializer(UUID::class.java, UUIDSerializer::class.java)
                 SubListSerializers.addDefaultSerializers(this)
-//                MapSerializer.registerSerializers(this)
-//                ListSerializer.registerSerializers(this)
-//                SetSerializer.registerSerializers(this)
 
                 // Register types under unique IDs
                 // This method is resilient to moves and renames.
@@ -123,8 +123,6 @@ class App: Application() {
 //    val fileSync = FileSyncService()
     lateinit var search: OnlineSearchService
 
-
-
     override fun onCreate() {
         super.onCreate()
         instance = this
@@ -160,37 +158,44 @@ class App: Application() {
         // Initial internet status
         launch {
             delay(500)
-
-            val cm = connectivityManager
-            val onlineConns = cm.allNetworks.map { cm.getNetworkCapabilities(it) }.filter {
-                it.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            }
-            currentInternetStatus puts when {
-                onlineConns.any { it.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED) } -> InternetStatus.UNLIMITED
-                onlineConns.isNotEmpty() -> InternetStatus.LIMITED
-                else -> InternetStatus.OFFLINE
-            }
-
-            val netReq = NetworkRequest.Builder()
-                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                .build()
-            connectivityManager.registerNetworkCallback(netReq, object : ConnectivityManager.NetworkCallback() {
-                override fun onLost(network: Network) {
-                    super.onLost(network)
-                    if (!hasInternet) {
-                        currentInternetStatus puts InternetStatus.OFFLINE
-                    }
-                }
-
-                override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
-                    currentInternetStatus puts when {
-                        capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED) -> InternetStatus.UNLIMITED
-                        capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) -> InternetStatus.LIMITED
-                        else -> InternetStatus.OFFLINE
-                    }
-                }
-            })
+            watchConnectionStatus()
         }
+    }
+
+    private fun onConnectionChanged(networks: Array<Network>) {
+        val onlineConns = networks.asSequence().map {
+            connectivityManager.getNetworkCapabilities(it)
+        }.filter {
+            it.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        }
+        currentInternetStatus puts when {
+            onlineConns.any {
+                it.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+            } -> InternetStatus.UNLIMITED
+            onlineConns.iterator().hasNext() -> InternetStatus.LIMITED
+            else -> InternetStatus.OFFLINE
+        }
+    }
+
+    private fun watchConnectionStatus() {
+        onConnectionChanged(connectivityManager.allNetworks)
+
+        val netReq = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+
+        connectivityManager.registerNetworkCallback(netReq, object : ConnectivityManager.NetworkCallback() {
+            override fun onLost(network: Network) {
+                super.onLost(network)
+                if (!hasInternet) {
+                    currentInternetStatus puts InternetStatus.OFFLINE
+                }
+            }
+
+            override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+                onConnectionChanged(arrayOf(network))
+            }
+        })
     }
 
     val hasInternet: Boolean get() = run {

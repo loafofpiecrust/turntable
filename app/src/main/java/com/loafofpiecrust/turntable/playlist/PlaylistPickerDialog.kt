@@ -5,7 +5,9 @@ import android.support.v7.widget.LinearLayoutManager
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.Recommendable
 import com.loafofpiecrust.turntable.model.album.AlbumId
-import com.loafofpiecrust.turntable.model.playlist.*
+import com.loafofpiecrust.turntable.model.playlist.AlbumCollection
+import com.loafofpiecrust.turntable.model.playlist.SongPlaylist
+import com.loafofpiecrust.turntable.model.playlist.add
 import com.loafofpiecrust.turntable.model.song.HasTracks
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
@@ -14,8 +16,11 @@ import com.loafofpiecrust.turntable.ui.universal.UIComponent
 import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.channels.map
-import org.jetbrains.anko.*
+import org.jetbrains.anko.AlertBuilder
+import org.jetbrains.anko.dip
 import org.jetbrains.anko.recyclerview.v7.recyclerView
+import org.jetbrains.anko.toast
+import org.jetbrains.anko.topPadding
 
 
 //class PlaylistPickerDialog: BaseDialogFragment() {

@@ -1,9 +1,7 @@
 package com.loafofpiecrust.turntable.util
 
 import android.os.Bundle
-import android.os.Parcelable
 import kotlinx.serialization.*
-import kotlin.reflect.KClass
 
 
 object ParcelSerializer {

@@ -139,7 +139,7 @@ object MusicBrainz: Repository {
                 try {
                     val disamb = it["disambiguation"].nullString
                     val name = it["title"].nullString
-                    val isDeluxe = name?.contains(AlbumId.SIMPLE_EDITION_PAT) == true || disamb?.contains(AlbumId.SIMPLE_EDITION_PAT) == true
+                    val isDeluxe = name?.contains(AlbumId.SIMPLE_EDITION) == true || disamb?.contains(AlbumId.SIMPLE_EDITION) == true
                     val datePat = Regex("(\\d+)-?(\\d+)?-?(\\d+)?$")
                     var score = it["date"].nullString?.let { s ->
                         val mat = datePat.find(s)!!

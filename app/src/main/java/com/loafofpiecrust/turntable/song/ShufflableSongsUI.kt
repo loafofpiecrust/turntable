@@ -3,9 +3,9 @@ package com.loafofpiecrust.turntable.song
 import android.os.Parcelable
 import android.support.constraint.ConstraintLayout.LayoutParams.PARENT_ID
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.universal.UIComponent
 import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import com.loafofpiecrust.turntable.ui.universal.createView

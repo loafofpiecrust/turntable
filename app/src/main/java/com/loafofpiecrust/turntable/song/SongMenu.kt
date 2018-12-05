@@ -6,14 +6,14 @@ import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumDetailsUI
 import com.loafofpiecrust.turntable.artist.ArtistDetailsUI
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.model.sync.Message
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.PlaylistPicker
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
-import com.loafofpiecrust.turntable.model.sync.Message
-import com.loafofpiecrust.turntable.model.sync.PlayerAction
-import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.ui.replaceMainContent
+import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.ui.universal.showDialog
 import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick

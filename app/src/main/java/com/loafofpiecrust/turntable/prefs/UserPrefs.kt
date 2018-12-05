@@ -9,11 +9,10 @@ import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.playlist.Playlist
 import com.loafofpiecrust.turntable.model.queue.CombinedQueue
-import com.loafofpiecrust.turntable.model.song.HistoryEntry
 import com.loafofpiecrust.turntable.model.queue.StaticQueue
+import com.loafofpiecrust.turntable.model.song.HistoryEntry
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.util.getColorCompat
-import java.util.*
 
 object UserPrefs: KotprefModel() {
     // Theming
@@ -30,7 +29,6 @@ object UserPrefs: KotprefModel() {
     val artistGridColumns by intPref(3)
     val playlistGridColumns by intPref(1)
 
-
     enum class HQStreamingMode {
         ALWAYS, ONLY_UNMETERED, NEVER
     }
@@ -45,7 +43,6 @@ object UserPrefs: KotprefModel() {
     // Headphones
     val pauseOnUnplug by booleanPref(true)
     val resumeOnPlug by booleanPref(true)
-
 
     // Sync
     val onlySyncOnWifi by booleanPref(false)

@@ -4,14 +4,11 @@ import com.google.firebase.firestore.Blob
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.puts
-import com.loafofpiecrust.turntable.shifted
-import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.repository.Repositories
-import com.loafofpiecrust.turntable.sync.Sync
+import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.util.lazy
 import com.loafofpiecrust.turntable.util.serialize
 import com.loafofpiecrust.turntable.util.toObject
@@ -24,13 +21,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.*
 
-
 class AlbumCollection(
     override val id: PlaylistId,
     override var color: Int?
 ) : AbstractPlaylist(), MutablePlaylist {
-    /// For serialization
-    private constructor(): this(PlaylistId(""), null)
+    @Deprecated("Serializer use only")
+    internal constructor(): this(PlaylistId(""), null)
 
     private val _albums = ConflatedBroadcastChannel(listOf<AlbumId>())
 
@@ -44,28 +40,11 @@ class AlbumCollection(
      * Maybe just return empty for a non-playable collection.
      */
     override val tracksChannel: ReceiveChannel<List<Song>>
-        get() = albums.map {
-            it.mapNotNull { Repositories.find(it) }.lazy
+        get() = albums.map { albums ->
+            albums.mapNotNull { Repositories.find(it) }.lazy
                 .flatMap { it.tracks.lazy }
                 .toList()
         }
-
-    companion object {
-        fun fromDocument(doc: DocumentSnapshot): AlbumCollection = runBlocking {
-            AlbumCollection(
-                PlaylistId(
-                    doc.getString("name")!!,
-                    doc.getBlob("owner")!!.toObject(),
-                    UUID.fromString(doc.id)
-                ),
-                doc.getLong("color")?.toInt()
-            ).apply {
-                isPublished = true
-                _albums puts doc.getBlob("albums")!!.toObject()
-            }
-        }
-    }
-
 
     override fun diffAndMerge(newer: AbstractPlaylist): Boolean {
         if (newer is AlbumCollection) {
@@ -114,6 +93,22 @@ class AlbumCollection(
                     "albums" to Blob.fromBytes(serialize(_albums.value))
                 ))
             isPublished = true
+        }
+    }
+
+    companion object {
+        fun fromDocument(doc: DocumentSnapshot): AlbumCollection = runBlocking {
+            AlbumCollection(
+                PlaylistId(
+                    doc.getString("name")!!,
+                    doc.getBlob("owner")!!.toObject(),
+                    UUID.fromString(doc.id)
+                ),
+                doc.getLong("color")?.toInt()
+            ).apply {
+                isPublished = true
+                _albums puts doc.getBlob("albums")!!.toObject()
+            }
         }
     }
 }

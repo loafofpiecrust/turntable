@@ -3,7 +3,9 @@ package com.loafofpiecrust.turntable.repository.remote
 import android.content.Context
 import android.util.Base64
 import com.github.salomonbrys.kotson.*
-import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.App
+import com.loafofpiecrust.turntable.BuildConfig
+import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
@@ -17,8 +19,8 @@ import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.playlist.PlaylistDetailsUI
 import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.ui.replaceMainContent
+import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.lazy

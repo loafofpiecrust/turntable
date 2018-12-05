@@ -30,6 +30,7 @@ import com.loafofpiecrust.turntable.artist.ArtistDetailsUI
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.sync.Friend
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.player.MiniPlayerFragment
 import com.loafofpiecrust.turntable.player.MusicService
@@ -40,7 +41,6 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.ui.universal.UniversalFragment
 import com.loafofpiecrust.turntable.ui.universal.createFragment

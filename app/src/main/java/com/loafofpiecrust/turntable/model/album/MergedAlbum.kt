@@ -9,15 +9,10 @@ import com.loafofpiecrust.turntable.util.produceSingle
 import com.loafofpiecrust.turntable.util.switchMap
 import kotlinx.coroutines.channels.ReceiveChannel
 
-
 class MergedAlbum(
     private val a: Album,
     private val b: Album
 ): Album {
-    init {
-//        assert(a.id == b.id) { "Can only merge similarly named albums" }
-    }
-
     override val id get() = a.id
     /**
      * The "largest" type associated with their album being merged.

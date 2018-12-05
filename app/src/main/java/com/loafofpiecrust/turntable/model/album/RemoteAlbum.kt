@@ -4,21 +4,15 @@ import android.graphics.drawable.Drawable
 import android.os.Parcelable
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
-import com.bumptech.glide.request.RequestOptions
-import com.bumptech.glide.signature.ObjectKey
-import com.loafofpiecrust.turntable.repository.remote.Spotify
-import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.service.Library
+import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.tryOr
 import com.loafofpiecrust.turntable.util.produceSingle
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.channels.map
 import kotlinx.coroutines.runBlocking
-
 
 @Parcelize
 class RemoteAlbum(
@@ -27,7 +21,7 @@ class RemoteAlbum(
     override val type: Album.Type = Album.Type.LP,
     override val year: Int = 0
 ): Album, Parcelable {
-    private constructor(): this(AlbumId("", ArtistId("")), Spotify.AlbumDetails(""))
+    private constructor(): this(AlbumId(), Spotify.AlbumDetails(""))
 
     @IgnoredOnParcel
     override val tracks: List<Song> by lazy {

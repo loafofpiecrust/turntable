@@ -4,7 +4,10 @@ import com.loafofpiecrust.turntable.tryOr
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.selects.SelectClause1
-import kotlin.coroutines.*
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.coroutines.suspendCoroutine
 
 fun <T> produceSingle(v: T): ReceiveChannel<T> {
     return CompletableDeferred(v).toChannel()
@@ -30,6 +33,7 @@ inline fun <T> CoroutineScope.broadcastSingle(
     return channel
 }
 
+@ExperimentalCoroutinesApi
 class ReceiveDeferredChannel<E>(val deferred: Deferred<E>): ReceiveChannel<E> {
     private var usedUp = false
 
@@ -42,7 +46,9 @@ class ReceiveDeferredChannel<E>(val deferred: Deferred<E>): ReceiveChannel<E> {
     override val onReceiveOrNull: SelectClause1<E?>
         get() = deferred.onAwait
 
-    override fun cancel() = deferred.cancel()
+    override fun cancel() {
+        deferred.cancel()
+    }
     override fun cancel(cause: Throwable?) = deferred.cancel(cause)
 
     override fun iterator(): ChannelIterator<E> {
@@ -86,8 +92,6 @@ inline fun <T> CoroutineScope.suspendAsync(ctx: CoroutineContext = EmptyCoroutin
         }
     }
 }
-
-fun <T> Deferred<T>.get() = runBlocking { await() }
 
 suspend inline fun <T> Deferred<T>.awaitOrElse(alternative: () -> T): T {
     return try {

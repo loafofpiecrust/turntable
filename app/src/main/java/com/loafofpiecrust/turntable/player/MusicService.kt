@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.player
 
-//import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
 import activitystarter.ActivityStarter
 import activitystarter.Arg
 import activitystarter.MakeActivityStarter
@@ -19,9 +18,9 @@ import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.broadcastReceiver
 import com.loafofpiecrust.turntable.model.album.loadPalette
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.puts
-import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.sync.SyncSession
 import com.loafofpiecrust.turntable.ui.BaseService
 import com.loafofpiecrust.turntable.util.*
@@ -29,12 +28,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
 import kotlinx.coroutines.launch
-import org.jetbrains.anko.*
+import org.jetbrains.anko.AnkoLogger
+import org.jetbrains.anko.audioManager
+import org.jetbrains.anko.powerManager
+import org.jetbrains.anko.wifiManager
 import java.lang.ref.WeakReference
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-/// Plays the music to the speakers and manages the _queue, that's it.
+/**
+ * Plays the music to the speakers and manages the queue.
+ */
 @MakeActivityStarter
 class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
     companion object {
@@ -103,10 +107,10 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
      * Incoming command from notification _or_ the sync service.
      * Should remain generic between these two uses to make syncing work as smoothly as possible.
      */
-    @Arg(optional=true)
+    @Arg(optional = true)
     var command: PlayerAction? = null
 
-    @Arg(optional=true)
+    @Arg(optional = true)
     var shouldSync: Boolean = false
 
 
@@ -153,7 +157,11 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
 
     private var isFocused = false
 
-    fun notifyIntent(msg: PlayerAction, shouldSync: Boolean = true, context: Context? = this): PendingIntent = PendingIntent.getService(
+    fun notifyIntent(
+        msg: PlayerAction,
+        shouldSync: Boolean = true,
+        context: Context? = this
+    ): PendingIntent = PendingIntent.getService(
         context ?: App.instance, 69 + msg.hashCode(),
         MusicServiceStarter.getIntent(context, msg, shouldSync),
         PendingIntent.FLAG_UPDATE_CURRENT // Signals the existing MusicService instance
@@ -260,7 +268,10 @@ class MusicService : BaseService(), OnAudioFocusChangeListener, AnkoLogger {
     }
 
     override fun onAudioFocusChange(change: Int) {
-        isFocused = (change == AUDIOFOCUS_GAIN || change == AUDIOFOCUS_GAIN_TRANSIENT || change == AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+        isFocused = change == AUDIOFOCUS_GAIN ||
+            change == AUDIOFOCUS_GAIN_TRANSIENT ||
+            change == AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
+
         when (change) {
             AUDIOFOCUS_GAIN -> doAction(PlayerAction.Play, false)
             AUDIOFOCUS_LOSS -> doAction(PlayerAction.Pause, false)

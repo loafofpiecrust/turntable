@@ -23,11 +23,6 @@
     <!-- Drawer navigation to library base page -->
     <string name="action_library">Library</string>
 
-    <!-- Last.FM -->
-    <string name="lastfm_api_key">fc166cab90ed1689767f61d1ef9cc585</string>
-    <string name="lastfm_secret">3776a178cbfbf5dc0d4365f639f39ba1</string>
-
-
     <!-- Albums/General -->
     <string name="set_grid_size">Grid Size</string>
 

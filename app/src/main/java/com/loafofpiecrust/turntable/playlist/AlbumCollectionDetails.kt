@@ -15,10 +15,13 @@ import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.runBlocking
-import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
+import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.design.appBarLayout
+import org.jetbrains.anko.dimen
 import org.jetbrains.anko.recyclerview.v7.recyclerView
+import org.jetbrains.anko.topPadding
+import org.jetbrains.anko.verticalLayout
 
 @Parcelize
 class AlbumCollectionDetails(

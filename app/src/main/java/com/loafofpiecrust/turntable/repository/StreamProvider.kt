@@ -2,8 +2,8 @@ package com.loafofpiecrust.turntable.repository
 
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.repository.local.LocalApi
-import com.loafofpiecrust.turntable.repository.remote.StreamCache
 import com.loafofpiecrust.turntable.repository.remote.FirebaseStreamFunction
+import com.loafofpiecrust.turntable.repository.remote.StreamCache
 import com.loafofpiecrust.turntable.tryOr
 
 /**

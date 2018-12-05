@@ -4,15 +4,17 @@ import android.content.Context
 import com.google.firebase.firestore.Blob
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ListenerRegistration
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.shifted
-import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.channels.*
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.first
+import kotlinx.coroutines.channels.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
@@ -20,8 +22,6 @@ import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.selector
 import org.jetbrains.anko.toast
 import java.util.*
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 /**
  * Playlist with a time limit and (possibly) multiple sides (eg. A Side, B Side, C Side)

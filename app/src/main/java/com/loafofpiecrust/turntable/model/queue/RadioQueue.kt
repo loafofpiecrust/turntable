@@ -1,8 +1,8 @@
 package com.loafofpiecrust.turntable.model.queue
 
-import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.shifted
 import kotlinx.android.parcel.Parcelize
 import kotlinx.android.parcel.RawValue
@@ -18,7 +18,7 @@ class RadioQueue private constructor(
     private val recommendations: MutableList<Song>,
     override val list: List<Song>,
     override val position: Int
-): Queue {
+) : Queue {
     companion object {
         private const val lookAhead = 2
         private var job: Job? = null

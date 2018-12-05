@@ -1,14 +1,10 @@
 package com.loafofpiecrust.turntable.util
 
-import android.content.Intent
 import android.os.Binder
 import android.os.Bundle
 import android.support.v4.app.BundleCompat
 import android.support.v4.app.Fragment
-import android.support.v7.app.AppCompatActivity
 import kotlinx.coroutines.runBlocking
-import kotlin.properties.ReadOnlyProperty
-import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 /**

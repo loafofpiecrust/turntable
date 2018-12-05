@@ -20,10 +20,11 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.turntableStyle
-import com.loafofpiecrust.turntable.ui.*
+import com.loafofpiecrust.turntable.ui.SearchFragment
+import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.ui.universal.UIComponent
-import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.ui.universal.ViewContext
+import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.util.*
 import com.loafofpiecrust.turntable.views.*
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView

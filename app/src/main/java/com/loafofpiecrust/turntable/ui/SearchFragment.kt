@@ -4,25 +4,19 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.support.v4.widget.SwipeRefreshLayout
 import android.view.Gravity
-import android.view.View
-import android.view.ViewAnimationUtils
 import android.view.ViewManager
 import com.evernote.android.state.State
-import com.evernote.android.state.StateSaver
 import com.lapism.searchview.Search
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.album.AlbumsAdapter
 import com.loafofpiecrust.turntable.album.AlbumsUI
-import com.loafofpiecrust.turntable.artist.ArtistsAdapter
 import com.loafofpiecrust.turntable.artist.ArtistsUI
-import com.loafofpiecrust.turntable.repository.local.LocalApi
-import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.popupMenu
 import com.loafofpiecrust.turntable.repository.Repositories
-import com.loafofpiecrust.turntable.song.SongsAdapter
+import com.loafofpiecrust.turntable.repository.Repository
+import com.loafofpiecrust.turntable.repository.local.LocalApi
 import com.loafofpiecrust.turntable.song.SongsUI
 import com.loafofpiecrust.turntable.ui.universal.createView
 import com.loafofpiecrust.turntable.util.*
@@ -32,11 +26,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.support.v4.toast
-import kotlin.math.max
 
 
 class SearchFragment : BaseFragment() {

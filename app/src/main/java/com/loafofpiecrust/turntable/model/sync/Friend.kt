@@ -22,15 +22,15 @@ import org.jetbrains.anko.toast
 data class Friend(
     val user: User,
     val status: Status
-): Parcelable {
+) : Parcelable {
     enum class Status {
         CONFIRMED,
         SENT_REQUEST,
         RECEIVED_REQUEST
     }
 
-    override fun hashCode() = user.hashCode()
-    override fun equals(other: Any?) =
+    override fun hashCode(): Int = user.hashCode()
+    override fun equals(other: Any?): Boolean =
         other is Friend && other.user == user
 
     fun respondToRequest(accept: Boolean) {
@@ -38,7 +38,7 @@ data class Friend(
     }
 
     // Friendship
-    object Request: Message {
+    object Request : Message {
         override val timeout get() = 28.days
         override suspend fun onReceive(sender: User) = withContext(Dispatchers.Main) {
             val context = App.instance
@@ -47,7 +47,7 @@ data class Friend(
             // We don't know this user in any capacity yet.
             friends putsMapped { it + (sender to Status.RECEIVED_REQUEST) }
 
-            context.notificationManager.notify(NOTIFICATION_ID, NotificationCompat.Builder(context, "turntable").apply {
+            val n = NotificationCompat.Builder(context, "turntable").apply {
                 priority = NotificationCompat.PRIORITY_DEFAULT
                 setSmallIcon(R.drawable.ic_circle)
                 setContentTitle("Friend request")
@@ -60,7 +60,9 @@ data class Friend(
                     MainActivityStarter.getIntent(context, MainActivity.Action.FriendRequest(sender)),
                     0
                 ))
-            }.build())
+            }.build()
+
+            context.notificationManager.notify(NOTIFICATION_ID, n)
         }
 
         private const val NOTIFICATION_ID = 12350

@@ -4,9 +4,7 @@ import android.support.v7.widget.LinearLayoutManager
 import android.view.Menu
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.browse.MusicAdapter
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick

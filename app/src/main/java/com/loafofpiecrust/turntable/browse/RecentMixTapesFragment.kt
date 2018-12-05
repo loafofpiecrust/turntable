@@ -7,7 +7,8 @@ import android.view.ViewManager
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.playlist.PlaylistDetailsUI
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.ui.*
+import com.loafofpiecrust.turntable.ui.BaseFragment
+import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.util.days
 import com.loafofpiecrust.turntable.util.produceSingle

@@ -10,8 +10,8 @@ import kotlinx.coroutines.selects.select
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
-import kotlin.coroutines.suspendCoroutine
 import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 /* Copyright (c) 2008-2018, Nathan Sweet
  * All rights reserved.

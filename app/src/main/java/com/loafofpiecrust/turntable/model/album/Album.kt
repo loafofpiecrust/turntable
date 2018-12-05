@@ -32,11 +32,10 @@ import org.jetbrains.anko.colorAttr
 import org.jetbrains.anko.textColor
 import java.io.Serializable
 
-
 /**
  * Album from any source made up of a list of tracks
  */
-interface Album: Music, HasTracks {
+interface Album : Music, HasTracks {
     override val id: AlbumId
 
     /**
@@ -50,17 +49,17 @@ interface Album: Music, HasTracks {
      * The order of [Type] variants determines the order of album types in a discography.
      */
     enum class Type {
-        /// A full album, or LP
+        /** A full album, or LP */
         LP,
-        /// A shorter release, or EP
+        /** A shorter release, or EP */
         EP,
-        /// A single, maybe with a B-side or some remixes
+        /** A single, maybe with a B-side or some remixes */
         SINGLE,
-        /// A recording of a live show
+        /** A recording of a live show */
         LIVE,
-        /// A collection or compilation that wasn't an original release
+        /** A collection or compilation that wasn't an original release */
         COMPILATION,
-        /// Something else altogether
+        /** Something else altogether */
         OTHER
     }
 
@@ -71,7 +70,6 @@ interface Album: Music, HasTracks {
      * and how tracks on the album are searched for.
      */
     val type: Type
-
 
     fun loadCover(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
         GlobalScope.produce {
@@ -86,8 +84,7 @@ interface Album: Music, HasTracks {
             it?.apply(RequestOptions().signature(ObjectKey("${this.id}thumbnail")))
         }
 
-
-    interface RemoteDetails: Serializable, Parcelable {
+    interface RemoteDetails : Serializable, Parcelable {
         val thumbnailUrl: String?
         val artworkUrl: String?
 
@@ -95,15 +92,17 @@ interface Album: Music, HasTracks {
     }
 }
 
-/// Whether this album has any track discontinuities
-/// For example, if we have Track 1 then Track 3 but no Track 2, then there's a gap.
+/**
+ * Whether this album has any track discontinuities
+ * For example, if we have Track 1 then Track 3 but no Track 2, then there's a gap.
+ */
 val Album.hasTrackGaps: Boolean get() =
     tracks.lazy.zipWithNext().any { (lastSong, song) ->
         song.disc == lastSong.disc && (song.track - lastSong.track > 1)
     }
 
-fun Album.loadPalette(vararg views: View)
-    = loadPalette(this.id, views)
+fun Album.loadPalette(vararg views: View) =
+    loadPalette(this.id, views)
 
 fun loadPalette(id: MusicId, views: Array<out View>) =
     loadPalette(id) { palette, swatch ->

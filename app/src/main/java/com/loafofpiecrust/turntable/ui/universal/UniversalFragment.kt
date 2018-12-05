@@ -7,9 +7,7 @@ import android.view.*
 import com.loafofpiecrust.turntable.ui.currentFragment
 import com.loafofpiecrust.turntable.util.arg
 import com.loafofpiecrust.turntable.util.getValue
-import kotlinx.coroutines.coroutineScope
-import kotlinx.serialization.ImplicitReflectionSerializer
-import org.jetbrains.anko.*
+import org.jetbrains.anko.childrenRecursiveSequence
 import java.util.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty

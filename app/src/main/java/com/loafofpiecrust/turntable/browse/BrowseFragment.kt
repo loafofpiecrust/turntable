@@ -13,13 +13,14 @@ import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.playlist.PlaylistId
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.song.SongsAdapter
 import com.loafofpiecrust.turntable.song.SongsUI
-import com.loafofpiecrust.turntable.model.sync.PlayerAction
-import com.loafofpiecrust.turntable.ui.*
+import com.loafofpiecrust.turntable.ui.BaseFragment
+import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick

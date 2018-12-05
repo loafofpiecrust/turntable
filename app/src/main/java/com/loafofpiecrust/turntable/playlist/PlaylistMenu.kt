@@ -9,12 +9,12 @@ import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.playlist.SongPlaylist
+import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
-import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.ui.popMainContent
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.Dispatchers

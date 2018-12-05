@@ -1,15 +1,10 @@
 package com.loafofpiecrust.turntable.style
 
-import android.graphics.PorterDuff
 import android.support.v7.widget.Toolbar
-import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.ui.popMainContent
 import com.loafofpiecrust.turntable.util.ViewScope
-import com.loafofpiecrust.turntable.util.bind
-import com.loafofpiecrust.turntable.util.complementaryColor
-import com.loafofpiecrust.turntable.util.contrastColor
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 import org.jetbrains.anko.appcompat.v7.navigationIconResource

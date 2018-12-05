@@ -10,7 +10,6 @@ import android.view.Menu
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.artist.ArtistDetailsUI
-import com.loafofpiecrust.turntable.repository.local.LocalApi
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
@@ -19,12 +18,14 @@ import com.loafofpiecrust.turntable.model.artist.MergedArtist
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.repository.Repositories
+import com.loafofpiecrust.turntable.repository.local.LocalApi
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.turntableStyle
-import com.loafofpiecrust.turntable.ui.*
+import com.loafofpiecrust.turntable.ui.SearchFragment
+import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.ui.universal.UIComponent
-import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.ui.universal.ViewContext
+import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.util.*
 import com.loafofpiecrust.turntable.views.ItemOffsetDecoration
 import com.loafofpiecrust.turntable.views.RecyclerItem
@@ -33,8 +34,11 @@ import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.broadcast
+import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.channels.map
 import kotlinx.coroutines.launch
 import org.jetbrains.anko.dimen
 import org.jetbrains.anko.padding

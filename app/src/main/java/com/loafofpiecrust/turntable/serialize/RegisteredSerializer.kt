@@ -1,6 +1,8 @@
 package com.loafofpiecrust.turntable.serialize
 
-import kotlinx.serialization.*
+import kotlinx.serialization.KSerializer
+import kotlin.collections.mutableMapOf
+import kotlin.collections.set
 
 object RegisteredSerializer {
     val registry = mutableMapOf<String, KSerializer<*>>()

@@ -2,7 +2,9 @@ package com.loafofpiecrust.turntable.repository.remote
 
 import com.github.salomonbrys.kotson.*
 import com.google.gson.JsonObject
-import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.BuildConfig
+import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.awaitAllNotNull
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.album.RemoteAlbum
@@ -11,12 +13,12 @@ import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.artist.RemoteArtist
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
+import com.loafofpiecrust.turntable.parMap
 import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.mapNotFailed
 import com.loafofpiecrust.turntable.util.text
-import com.mcxiaoke.koi.ext.closeQuietly
 import io.ktor.client.response.HttpResponse
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.delay

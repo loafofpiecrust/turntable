@@ -2,30 +2,28 @@ package com.loafofpiecrust.turntable.model.playlist
 
 import android.content.Context
 import android.support.annotation.VisibleForTesting
-import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.Blob
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
-import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.model.sync.User
+import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.map
-import kotlinx.coroutines.tasks.asDeferred
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import org.jetbrains.anko.alert
 import org.jetbrains.anko.cancelButton
 import org.jetbrains.anko.selector
 import org.jetbrains.anko.toast
 import java.util.*
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 
 /**
  * Generalizes various playlist forms:
@@ -42,7 +40,7 @@ import kotlin.coroutines.suspendCoroutine
 class SongPlaylist(
     id: PlaylistId,
     initialSideCount: Int = 1
-): Playlist {
+) : Playlist {
     override var id = id
         private set
 
@@ -254,8 +252,8 @@ class SongPlaylist(
 //            return false
 //        }
         // For simplicity, let's assume the same # of sides first
-        sides putsMapped {
-            it.lazy.zip(remote.sides.value.lazy).map { (localSide, remoteSide) ->
+        sides putsMapped { sides ->
+            sides.lazy.zip(remote.sides.value.lazy).map { (localSide, remoteSide) ->
                 // Compile the shared set of songs with indices based on the remote.
                 val compiled = remoteSide.toMutableList()
                 compiled.retainAll(localSide)
@@ -323,7 +321,6 @@ class SongPlaylist(
         }
         return true
     }
-
 
     data class Track(
         val song: Song,

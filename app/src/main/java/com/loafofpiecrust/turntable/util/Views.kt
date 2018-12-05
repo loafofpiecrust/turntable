@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.util
 
-import android.content.Context
 import android.view.ViewManager
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -12,7 +11,6 @@ import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import org.jetbrains.anko.*
 import org.jetbrains.anko.custom.ankoView
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.suspendCoroutine
 
 
 inline fun ViewManager.iconView(

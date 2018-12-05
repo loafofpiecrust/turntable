@@ -13,7 +13,9 @@ import java.util.*
  */
 @Parcelize
 data class AlbumId(
-    /// Original name
+    /**
+    * Original name
+    */
     override val name: String,
     val artist: ArtistId
 ): MusicId, Comparable<AlbumId> {
@@ -23,9 +25,9 @@ data class AlbumId(
     val sortChar: Char get() = displayName.first().toUpperCase()
     val dbKey: String get() = "$displayName~${artist.dbKey}".toLowerCase()
 
-    @Deprecated("Should be ")
+    @Deprecated("Should be elsewhere")
     val discNumber: Int get() =
-        DISC_SUFFIX_PAT.find(name)?.let { m ->
+        DISC_SUFFIX.find(name)?.let { m ->
             m.groups[2]?.value?.toIntOrNull()
         } ?: 1
 
@@ -45,11 +47,11 @@ data class AlbumId(
     override val displayName: String by lazy {
         val toRemove = arrayOf(
             // First, remove " - $type" suffix
-            TYPE_SUFFIX_PAT,
+            TYPE_SUFFIX,
             // Then, remove "(Deluxe Edition)" suffix
-            EDITION_SUFFIX_PAT,
+            EDITION_SUFFIX,
             // Finally, remove "(Disc 1)" suffix (and set the disc # for all tracks?)
-            DISC_SUFFIX_PAT
+            DISC_SUFFIX
         )
 
         var name = this.name
@@ -67,11 +69,10 @@ data class AlbumId(
         }.simplifyQuotes()
     }
 
-
     override fun toString() = "$displayName | $artist"
     override fun equals(other: Any?) = (other as? AlbumId)?.let { other ->
-        this.displayName.equals(other.displayName, true)
-            && this.artist == other.artist
+        this.displayName.equals(other.displayName, true) &&
+                this.artist == other.artist
     } ?: false
     override fun hashCode() = Objects.hash(displayName.toLowerCase(), artist)
     override fun compareTo(other: AlbumId) =
@@ -82,7 +83,6 @@ data class AlbumId(
         COLLATOR.getCollationKey(displayName)
     }
 
-
     companion object {
         val COLLATOR: Collator = Collator.getInstance().apply {
             strength = Collator.PRIMARY
@@ -91,29 +91,28 @@ data class AlbumId(
             it.collationKey
         }.thenBy { it.artist }
 
-        private val TYPE_SUFFIX_PAT = Regex(
+        private val TYPE_SUFFIX = Regex(
             "\\b\\s*[-]?\\s*[(\\[]?(EP|Single|LP)[)\\]]?$",
             RegexOption.IGNORE_CASE
         )
-        private val EDITION_SUFFIX_PAT = Regex(
+        val EDITION_SUFFIX = Regex(
             "\\s+([(\\[][\\w\\s]*(Edition|Version|Deluxe|Release|Reissue|Mono|Stereo|Extended)[\\w\\s]*[)\\]])|(\\w+\\s+(Edition|Version|Release)$)",
             RegexOption.IGNORE_CASE
         )
-        val SIMPLE_EDITION_PAT = Regex(
+        internal val SIMPLE_EDITION = Regex(
             "\\b(Deluxe|Expansion)\\b",
             RegexOption.IGNORE_CASE
         )
-        private val DISC_SUFFIX_PAT = Regex(
+        private val DISC_SUFFIX = Regex(
             "\\s*[(\\[]?\\s*(Disc|Disk|CD)\\s*(\\d+)\\s*[)\\]]?$",
             RegexOption.IGNORE_CASE
         )
     }
 }
 
-
 val AlbumId.selfTitledAlbum: Boolean
     inline get() = displayName.compareTo(artist.displayName, true) == 0
 
-fun String.simplifyQuotes() = this
+fun String.simplifyQuotes(): String = this
     .replace(Regex("[“”]"), "\"")
     .replace(Regex("[‘’]"), "\'")

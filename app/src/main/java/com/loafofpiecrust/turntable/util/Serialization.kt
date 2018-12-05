@@ -1,18 +1,20 @@
 package com.loafofpiecrust.turntable.util
 
+//import org.nustaq.serialization.FSTConfiguration
 import android.util.Base64
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.Input
 import com.esotericsoftware.kryo.io.Output
 import com.google.firebase.firestore.Blob
 import com.loafofpiecrust.turntable.App
-import com.mcxiaoke.koi.ext.closeQuietly
-//import org.nustaq.serialization.FSTConfiguration
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
-import java.util.zip.*
+import java.util.zip.Deflater
+import java.util.zip.DeflaterOutputStream
+import java.util.zip.Inflater
+import java.util.zip.InflaterInputStream
 
 //
 // KRYO

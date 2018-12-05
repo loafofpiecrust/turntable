@@ -14,7 +14,9 @@ import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.Recommendable
 import com.loafofpiecrust.turntable.model.album.AlbumId
-import com.loafofpiecrust.turntable.model.playlist.*
+import com.loafofpiecrust.turntable.model.playlist.AlbumCollection
+import com.loafofpiecrust.turntable.model.playlist.PlaylistId
+import com.loafofpiecrust.turntable.model.playlist.SongPlaylist
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library

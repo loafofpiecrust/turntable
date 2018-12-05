@@ -8,7 +8,10 @@ import at.huber.youtubeExtractor.VideoMeta
 import at.huber.youtubeExtractor.YouTubeExtractor
 import at.huber.youtubeExtractor.YtFile
 import com.amazonaws.auth.CognitoCachingCredentialsProvider
-import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.*
+import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey
+import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper
+import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable
+import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.KeyPair
 import com.amazonaws.regions.Region
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
@@ -40,7 +43,10 @@ import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.map
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
-import org.jetbrains.anko.*
+import org.jetbrains.anko.AnkoLogger
+import org.jetbrains.anko.downloadManager
+import org.jetbrains.anko.error
+import org.jetbrains.anko.info
 import org.jsoup.Jsoup
 import java.io.File
 import java.util.*
@@ -382,145 +388,6 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
         } ?: album to StreamStatus.Unavailable()
     }
 
-    /// TODO: Include both 128 and 192 streams in the return value
-//    fun getYouTubeStreams(song: Song): Pair<Song, SongDBEntry>? {
-//        val key = "${song.name}|${song.album}|${song.artist}".toLowerCase()
-//        async(UI) { println("youtube: looking for ${key}") }
-//        val now = System.currentTimeMillis()
-//        val entry = dbMapper.load(SongDBEntry::class.java, key)
-//        val howOldIsStale = TimeUnit.HOURS.toMillis(12) // 2 months is a potentially stale entry, refresh it
-//        return if (entry?.stream128 != null) {
-//            async(UI) { println("youtube: found DB entry, took ${(System.currentTimeMillis() - now)}ms") }
-//
-//            // Play the existing stream for speed, but also refresh the entry to keep the DB up to date
-//            if (entry.timestamp == null || Math.abs(now - entry.timestamp!!) > howOldIsStale) {
-//                task {
-//                    val ytSong = YouTubeSong.search(song) ?: return@task
-//                    object : YouTubeExtractor(App.instance) {
-//                        override fun onExtractionComplete(streams: SparseArray<YtFile>, meta: VideoMeta) {
-//                            val stream128 = streams[140] // m4a audio, 128kbps
-//                            val stream128ogg = streams[171]
-//                            val stream64webm = streams[250]
-//                            val stream192 = streams[251] // webm audio, 192kbps
-//                            val stream128video = streams[43]
-//                            val stream96video = streams[18]
-//                            val low = stream128 ?: stream128ogg ?: stream128video ?: stream96video ?: stream64webm
-//                            val entry = SongDBEntry(key, ytSong.uuid, System.currentTimeMillis(), low?.url, stream192?.url)
-//                            saveYouTubeStreamUrl(entry)
-//                        }
-//                    }.extract("https://youtube.com/watch?v=${ytSong.uuid}", true, true)
-//                }
-//            }
-//
-//            entry.stream128 = given(entry.stream128) {
-//                decompress(it)
-//            }
-//            entry.stream192 = given(entry.stream192) {
-//                decompress(it)
-//            }
-//
-//            song to entry
-//        } else {
-//            // Check for an album video first
-//            val albumKey = "--full-album--|${song.album}|${song.artist}"
-//            val ytAlbum = YouTubeFullAlbum.search(Album.justForSearch(song.album, song.artist).copy(tracks = listOf(song)))
-//            if (ytAlbum != null) {
-//                val videoTrack = ytAlbum.tracks.firstOrNull()
-//                if (videoTrack != null) {
-//                    val albumEntry = dbMapper.load(SongDBEntry::class.java, albumKey)
-//                    if (albumEntry?.stream128 != null) {
-//                        albumEntry.stream128 = given(albumEntry.stream128) {
-//                            decompress(it)
-//                        }
-//                        albumEntry.stream192 = given(albumEntry.stream192) {
-//                            decompress(it)
-//                        }
-//                        return videoTrack to albumEntry
-//                    } else {
-//                        val cont = deferred<Pair<Song, SongDBEntry>?, Unit>()
-//                        object : YouTubeExtractor(App.instance) {
-//                            override fun onExtractionComplete(streams: SparseArray<YtFile>?, meta: VideoMeta) {
-//                                if (streams == null) {
-//                                    cont.resolve(null)
-//                                    return
-//                                }
-//                                val stream128 = streams[140] // m4a audio, 128kbps
-//                                val stream128ogg = streams[171]
-//                                val stream64webm = streams[250]
-//                                val stream192 = streams[251] // webm audio, 192kbps
-////                        async(UI) { println("youtube: stream 192 at ${stream192?.uuid}") }
-//                                val stream128video = streams[43]
-//                                val stream96video = streams[18]
-//                                val low = stream128 ?: stream128ogg ?: stream128video ?: stream96video ?: stream64webm
-////                        async(UI) { println("youtube: stream 128 at ${low.uuid}") }
-//                                val entry = SongDBEntry(albumKey, ytAlbum.uuid, System.currentTimeMillis(), low?.url, stream192?.url)
-//                                saveYouTubeStreamUrl(entry)
-//                                cont.resolve(videoTrack to entry)
-//                            }
-//
-//                            override fun onCancelled(result: SparseArray<YtFile>?) {
-//                                super.onCancelled(result)
-//                                cont.resolve(null)
-//                            }
-//
-//                            override fun onCancelled() {
-//                                super.onCancelled()
-//                                cont.resolve(null)
-//                            }
-//                        }.extract("https://youtube.com/watch?v=${ytAlbum.uuid}", true, true)
-//
-//                        given (cont.promise.get()) {
-//                            return it
-//                        }
-//                    }
-//                }
-//            }
-//
-//            async(UI) { println("youtube: looking on YouTube itself") }
-//            val ytSong = YouTubeSong.search(song) ?: return null
-//            async(UI) { println("youtube: loading stream") }
-//            // TODO: Check if we have internet before doing this
-//            val cont = deferred<Pair<Song, SongDBEntry>?, Unit>()
-//            object : YouTubeExtractor(App.instance) {
-//                override fun onExtractionComplete(streams: SparseArray<YtFile>?, meta: VideoMeta) {
-//                    if (streams == null) {
-//                        cont.resolve(null)
-//                        return
-//                    }
-//                    val stream128 = streams[140] // m4a audio, 128kbps
-//                    val stream128ogg = streams[171]
-//                    val stream64webm = streams[250]
-//                    val stream192 = streams[251] // webm audio, 192kbps
-////                        async(UI) { println("youtube: stream 192 at ${stream192?.uuid}") }
-//                    val stream128video = streams[43]
-//                    val stream96video = streams[18]
-//                    val low = stream128 ?: stream128ogg ?: stream128video ?: stream96video ?: stream64webm
-////                        async(UI) { println("youtube: stream 128 at ${low.uuid}") }
-//                    val entry = SongDBEntry(key, ytSong.uuid, System.currentTimeMillis(), low?.url, stream192?.url)
-//                    saveYouTubeStreamUrl(entry)
-//                    cont.resolve(song to entry)
-//                }
-//
-//                override fun onCancelled(result: SparseArray<YtFile>?) {
-//                    super.onCancelled(result)
-//                    cont.resolve(null)
-//                }
-//
-//                override fun onCancelled() {
-//                    super.onCancelled()
-//                    cont.resolve(null)
-//                }
-//            }.extract("https://youtube.com/watch?v=${ytSong.uuid}", true, true)
-//
-//            cont.promise.get()
-//        }
-//    }
-
-//    override fun onDestroy() {
-//        super.onDestroy()
-//        println("torrent service destroyed")
-//    }
-
     suspend fun login(): io.ktor.http.Cookie? {
         // TODO: Get the expiration time of the login cookie
         if (cookie != null) { // and not expired yet
@@ -788,7 +655,6 @@ class YTExtractor(
         val stream128 = streams[140] // m4a audio, 128kbps
         val stream256 = streams[141]
         val stream128webm = streams[171]
-//                    val stream64webm = streams[250]
         val stream160webm = streams[251] // webm audio, 192kbps
         val stream128video = streams[43]
         val stream96video = streams[18]

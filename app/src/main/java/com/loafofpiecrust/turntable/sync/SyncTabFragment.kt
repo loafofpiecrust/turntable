@@ -14,13 +14,19 @@ import com.loafofpiecrust.turntable.model.sync.Friend
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.selector
 import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.views.RecyclerAdapter
-import com.loafofpiecrust.turntable.views.RecyclerListItem
+import com.loafofpiecrust.turntable.ui.universal.UIComponent
+import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick
+import com.loafofpiecrust.turntable.views.RecyclerAdapter
+import com.loafofpiecrust.turntable.views.RecyclerListItem
 import com.mcxiaoke.koi.ext.stringValue
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.first
+import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.sdk27.coroutines.onClick
@@ -166,72 +172,77 @@ class SyncTabFragment: BaseFragment() {
         // list of friends
         recyclerView {
             layoutManager = LinearLayoutManager(context)
-            val friends = Friend.friendList
-            adapter = object : RecyclerAdapter<Friend, RecyclerListItem>(job, friends) {
-                override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-                    RecyclerListItem(parent, useIcon = true)
+            adapter = FriendAdapter(job, Friend.friendList)
+        }
+    }
+}
 
-                override fun onBindViewHolder(holder: RecyclerListItem, position: Int) {
-                    val friend = data[position]
-                    holder.apply {
-                        menu.visibility = View.GONE
-                        mainLine.text = friend.user.name
-                        subLine.text = when (friend.status) {
-                            Friend.Status.CONFIRMED -> friend.user.username
-                            Friend.Status.RECEIVED_REQUEST -> getString(R.string.friend_request_received)
-                            Friend.Status.SENT_REQUEST -> getString(R.string.friend_request_sent_line)
+class FriendAdapter(
+    job: Job,
+    friends: ReceiveChannel<List<Friend>>
+) : RecyclerAdapter<Friend, RecyclerListItem>(job, friends) {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
+        RecyclerListItem(parent, useIcon = true)
+
+    override fun onBindViewHolder(holder: RecyclerListItem, position: Int) {
+        val context = holder.itemView.context
+        val friend = data[position]
+        holder.apply {
+            menu.visibility = View.GONE
+            mainLine.text = friend.user.name
+            subLine.text = when (friend.status) {
+                Friend.Status.CONFIRMED -> friend.user.username
+                Friend.Status.RECEIVED_REQUEST -> context.getString(R.string.friend_request_received)
+                Friend.Status.SENT_REQUEST -> context.getString(R.string.friend_request_sent_line)
+            }
+            val choices = when (friend.status) {
+                Friend.Status.CONFIRMED -> listOf(
+                    context.getString(R.string.friend_request_sync) to {
+                        launch {
+                            val user = friend.user.refresh().await()
+                            Sync.requestSync(user)
+                            launch(Dispatchers.Main) {
+                                context.toast("Requested sync with ${user.name}")
+                            }
                         }
-                        val choices = when (friend.status) {
-                            Friend.Status.CONFIRMED -> listOf(
-                                getString(R.string.friend_request_sync) to {
-                                    launch {
-                                        val user = friend.user.refresh().await()
-                                        Sync.requestSync(user)
-                                        launch(Dispatchers.Main) {
-                                            toast("Requested sync with ${user.name}")
-                                        }
-                                    }
-                                },
-                                "Invite to Sync Group" to {
-                                    launch {
-                                        val currMode = SyncSession.mode.first()
-                                        if (currMode is Sync.Mode.InGroup) {
-                                            val user = friend.user.refresh().await()
-                                            Sync.requestSync(currMode, user)
-                                            launch(Dispatchers.Main) {
-                                                toast("Invited ${user.name} to group")
-                                            }
-                                        } else launch(Dispatchers.Main) {
-                                            toast("Not in a group")
-                                        }
-                                    }
-                                },
-                                "Remove as Friend" to {
-                                    Friend.remove(friend.user)
+                    },
+                    "Invite to Sync Group" to {
+                        launch {
+                            val currMode = SyncSession.mode.first()
+                            if (currMode is Sync.Mode.InGroup) {
+                                val user = friend.user.refresh().await()
+                                Sync.requestSync(currMode, user)
+                                launch(Dispatchers.Main) {
+                                    context.toast("Invited ${user.name} to group")
                                 }
-                            )
-                            Friend.Status.RECEIVED_REQUEST -> listOf(
-                                getString(R.string.friend_confirm) to {
-                                    friend.respondToRequest(true)
-                                },
-                                getString(R.string.friend_reject) to {
-                                    friend.respondToRequest(false)
-                                }
-                            )
-                            Friend.Status.SENT_REQUEST -> listOf(
-                                getString(R.string.friend_request_cancel) to {
-                                    Friend.remove(friend.user)
-                                },
-                                "Resend Request" to {
-                                    Friend.request(friend.user)
-                                }
-                            )
+                            } else launch(Dispatchers.Main) {
+                                context.toast("Not in a group")
+                            }
                         }
-                        card.onClick {
-                            selector(getString(R.string.friend_do_what), choices).invoke()
-                        }
+                    },
+                    "Remove as Friend" to {
+                        Friend.remove(friend.user)
                     }
-                }
+                )
+                Friend.Status.RECEIVED_REQUEST -> listOf(
+                    context.getString(R.string.friend_confirm) to {
+                        friend.respondToRequest(true)
+                    },
+                    context.getString(R.string.friend_reject) to {
+                        friend.respondToRequest(false)
+                    }
+                )
+                Friend.Status.SENT_REQUEST -> listOf(
+                    context.getString(R.string.friend_request_cancel) to {
+                        Friend.remove(friend.user)
+                    },
+                    "Resend Request" to {
+                        Friend.request(friend.user)
+                    }
+                )
+            }
+            card.onClick {
+                context.selector(context.getString(R.string.friend_do_what), choices).invoke()
             }
         }
     }

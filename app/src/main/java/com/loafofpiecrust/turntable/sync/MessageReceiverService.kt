@@ -11,12 +11,11 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
 
-
 /**
  * Manages receiving messages from other users.
  */
 class MessageReceiverService : FirebaseMessagingService(), AnkoLogger {
-    override fun onMessageReceived(msg: RemoteMessage) = runBlocking {
+    override fun onMessageReceived(msg: RemoteMessage): Unit = runBlocking {
         val sender = deserialize(msg.data["sender"]!!) as User
 //        val mode = deserialize(msg.data["mode"]!!) as Sync.Mode
 
@@ -29,7 +28,7 @@ class MessageReceiverService : FirebaseMessagingService(), AnkoLogger {
 
         val message = try {
             deserialize(msg.data["action"]!!.fromBase64()) as Message
-        } catch (e: Exception) {
+        } catch (e: ClassCastException) {
             error("Unable to parse message", e)
             return@runBlocking
         }
@@ -46,4 +45,3 @@ class MessageReceiverService : FirebaseMessagingService(), AnkoLogger {
         val messages get() = _messages.openSubscription()
     }
 }
-

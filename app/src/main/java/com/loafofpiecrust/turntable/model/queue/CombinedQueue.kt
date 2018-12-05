@@ -11,7 +11,8 @@ data class CombinedQueue(
     val primary: Queue,
     val nextUp: List<Song>,
     val isPlayingNext: Boolean = false
-): Queue {
+) : Queue {
+    @Deprecated("Serializer use only")
     internal constructor(): this(StaticQueue(), emptyList())
 
     @Transient
@@ -25,7 +26,6 @@ data class CombinedQueue(
     } else primary.position
 
     override val current: Song? get() = list.getOrNull(position)
-
 
     override fun toNext(): Queue {
         return if (isPlayingNext) {
@@ -82,34 +82,29 @@ data class CombinedQueue(
     override fun shiftedPosition(newPos: Int): Queue {
         if (newPos == position) return this
 
+        val diff = newPos - position
         // first decide if the new position is within up next or past it.
-        return if (newPos > position) {
-            val diff = newPos - position
-            if (diff > nextUp.size) {
-                // shifting past all `nextUp` items
-                copy(
-                    primary = primary.shiftedPosition(primary.position + diff - nextUp.size),
-                    nextUp = emptyList(),
-                    isPlayingNext = false
-                )
-            } else {
-                // shifting within `nextUp`
-                copy(
-                    nextUp = nextUp.drop(if (isPlayingNext) diff else diff - 1),
-                    isPlayingNext = true
-                )
-            }
-        } else {
+        return when {
             // when we reverse, we always retain nextUp and we're never playing nextUp anymore
-            // positions in the previously played songs are only relevant to `primary`
-            copy(
+            // positions in the previously played songs are all contained in `primary`
+            newPos <= position -> copy(
                 primary = primary.shiftedPosition(newPos),
                 nextUp = if (isPlayingNext) nextUp.drop(1) else nextUp,
                 isPlayingNext = false
             )
+            // shifting past all `nextUp` items
+            diff > nextUp.size -> copy(
+                primary = primary.shiftedPosition(primary.position + diff - nextUp.size),
+                nextUp = emptyList(),
+                isPlayingNext = false
+            )
+            // shifting within `nextUp`
+            else -> copy(
+                nextUp = nextUp.drop(if (isPlayingNext) diff else diff - 1),
+                isPlayingNext = true
+            )
         }
     }
-
 
     fun shuffled(): CombinedQueue {
         val p = if (primary is StaticQueue) {

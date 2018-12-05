@@ -3,7 +3,7 @@ package com.loafofpiecrust.turntable.model.queue
 import android.os.Parcelable
 import com.loafofpiecrust.turntable.model.song.Song
 
-interface Queue: Parcelable {
+interface Queue : Parcelable {
     val list: List<Song>
     val position: Int
     val current: Song?

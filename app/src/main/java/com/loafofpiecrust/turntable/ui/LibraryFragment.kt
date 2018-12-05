@@ -1,11 +1,8 @@
 package com.loafofpiecrust.turntable.ui
 
 import activitystarter.MakeActivityStarter
-import android.graphics.PorterDuff
-import android.os.Bundle
 import android.support.design.widget.TabLayout
 import android.support.v4.app.Fragment
-import android.support.v4.app.FragmentPagerAdapter
 import android.support.v4.app.FragmentStatePagerAdapter
 import android.support.v7.widget.Toolbar
 import android.view.View
@@ -15,17 +12,13 @@ import android.widget.LinearLayout
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumsUI
 import com.loafofpiecrust.turntable.artist.ArtistsUI
-import com.loafofpiecrust.turntable.browse.BrowseFragment
 import com.loafofpiecrust.turntable.browse.RecommendationsFragment
 import com.loafofpiecrust.turntable.playlist.PlaylistsFragment
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.song.SongsUI
 import com.loafofpiecrust.turntable.sync.SyncTabFragment
 import com.loafofpiecrust.turntable.ui.universal.createFragment
-import com.loafofpiecrust.turntable.util.combineLatest
-import com.loafofpiecrust.turntable.util.memoize
 import com.loafofpiecrust.turntable.util.replayOne
-import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.navigationIconResource
@@ -34,13 +27,7 @@ import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.design.tabLayout
 import org.jetbrains.anko.support.v4.onPageChangeListener
 import org.jetbrains.anko.support.v4.viewPager
-import java.lang.ref.Reference
-import java.lang.ref.WeakReference
-import kotlin.collections.List
-import kotlin.collections.getOrNull
-import kotlin.collections.mutableMapOf
 import kotlin.collections.set
-import kotlin.collections.toList
 
 @MakeActivityStarter
 class LibraryFragment: BaseFragment() {

@@ -3,7 +3,6 @@ package com.loafofpiecrust.turntable.util
 import org.objenesis.instantiator.ObjectInstantiator
 import org.objenesis.strategy.BaseInstantiatorStrategy
 import org.objenesis.strategy.InstantiatorStrategy
-import kotlin.reflect.KClass
 
 /**
  * Instantiates classes that are Kotlin `object`s, via the static INSTANCE field.

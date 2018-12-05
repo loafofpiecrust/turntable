@@ -7,10 +7,10 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.sync.User
+import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.util.replayOne
 import com.loafofpiecrust.turntable.util.serialize
@@ -25,8 +25,8 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.toast
 import java.io.Serializable
 import java.util.*
-import kotlin.coroutines.suspendCoroutine
 import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * Optionally collaborative playlist that syncs to the user's Google Drive storage.
@@ -38,7 +38,6 @@ class CollaborativePlaylist (
 ) : AbstractPlaylist(), MutablePlaylist {
     override val icon: Int
         get() = R.drawable.ic_boombox_color
-
 
     sealed class Operation(
         open val timestamp: Long

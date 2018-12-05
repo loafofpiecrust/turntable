@@ -1,7 +1,6 @@
 package com.loafofpiecrust.turntable.artist
 
 import android.view.ViewManager
-import android.widget.LinearLayout
 import android.widget.TextView
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.artist.Artist

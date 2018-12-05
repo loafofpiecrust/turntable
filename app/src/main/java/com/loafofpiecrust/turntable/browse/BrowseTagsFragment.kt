@@ -7,11 +7,11 @@ import android.view.ViewManager
 import com.github.salomonbrys.kotson.*
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.views.RecyclerAdapter
-import com.loafofpiecrust.turntable.views.RecyclerListItem
 import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
 import com.loafofpiecrust.turntable.util.produceSingle
+import com.loafofpiecrust.turntable.views.RecyclerAdapter
+import com.loafofpiecrust.turntable.views.RecyclerListItem
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.verticalLayout

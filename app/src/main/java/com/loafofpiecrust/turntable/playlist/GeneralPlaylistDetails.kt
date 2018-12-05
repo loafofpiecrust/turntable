@@ -6,15 +6,15 @@ import android.view.View
 import android.widget.TextView
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
-import com.loafofpiecrust.turntable.model.playlist.SongPlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.model.playlist.PlaylistId
+import com.loafofpiecrust.turntable.model.playlist.SongPlaylist
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.song.SongsOnDiscAdapter
 import com.loafofpiecrust.turntable.style.standardStyle
-import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.universal.ParcelableComponent
 import com.loafofpiecrust.turntable.ui.universal.UIComponent
 import com.loafofpiecrust.turntable.ui.universal.ViewContext

@@ -15,9 +15,9 @@ import org.jetbrains.anko.error
  *
  */
 @Parcelize
-@DynamoDBTable(tableName="TurntableUsers")
+@DynamoDBTable(tableName = "TurntableUsers")
 data class User(
-    @DynamoDBHashKey(attributeName="email")
+    @DynamoDBHashKey(attributeName = "email")
     var username: String,
     var deviceId: String,
     var displayName: String?

@@ -11,20 +11,24 @@ import android.view.ViewManager
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.song.Song
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.turntableStyle
-import com.loafofpiecrust.turntable.model.sync.PlayerAction
-import com.loafofpiecrust.turntable.ui.*
+import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.ui.universal.UIComponent
-import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.ui.universal.ViewContext
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.ui.universal.createFragment
+import com.loafofpiecrust.turntable.util.fastScrollRecycler
+import com.loafofpiecrust.turntable.util.menuItem
+import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.views.refreshableRecyclerView
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.channels.*
+import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
+import kotlinx.coroutines.channels.broadcast
+import kotlinx.coroutines.channels.map
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 
 abstract class SongsUI: UIComponent() {

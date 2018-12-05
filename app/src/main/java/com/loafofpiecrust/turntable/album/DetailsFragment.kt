@@ -33,6 +33,8 @@ import com.loafofpiecrust.turntable.collapsingToolbarlparams
 import com.loafofpiecrust.turntable.model.album.*
 import com.loafofpiecrust.turntable.model.imageTransition
 import com.loafofpiecrust.turntable.model.nameTransition
+import com.loafofpiecrust.turntable.model.sync.Message
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.msToTimeString
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
@@ -44,18 +46,18 @@ import com.loafofpiecrust.turntable.song.SongsOnDiscAdapter
 import com.loafofpiecrust.turntable.song.SongsUI
 import com.loafofpiecrust.turntable.style.detailsStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
-import com.loafofpiecrust.turntable.model.sync.Message
-import com.loafofpiecrust.turntable.model.sync.PlayerAction
-import com.loafofpiecrust.turntable.ui.*
 import com.loafofpiecrust.turntable.ui.universal.UIComponent
 import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import com.loafofpiecrust.turntable.ui.universal.createView
 import com.loafofpiecrust.turntable.ui.universal.showDialog
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
+import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
@@ -91,7 +93,6 @@ open class AlbumDetailsUI(
 
         enterTransition = Fade()
     }
-
 
     override fun ViewContext.render() = coordinatorLayout {
         id = R.id.container

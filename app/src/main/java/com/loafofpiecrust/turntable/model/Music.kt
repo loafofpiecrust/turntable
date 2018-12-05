@@ -20,7 +20,9 @@ interface MusicId: Recommendable {
     val displayName: String
 }
 
-/// Provides unique transition names for music content.
+/**
+ * Provides unique transition names for music content.
+ */
 private fun MusicId.transitionFor(elem: String): String =
     elem + this.toString().toLowerCase()
 

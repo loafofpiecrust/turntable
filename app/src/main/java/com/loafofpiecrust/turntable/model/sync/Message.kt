@@ -18,12 +18,12 @@ import java.util.*
 
 interface Message {
     fun minimize(): Message = this
-    /// seconds
+
     val timeout: Duration get() = 3.minutes
+
     val requiresSession: Boolean get() = false
 
     suspend fun onReceive(sender: User)
-
 
     // Recommendations
     data class Recommend(
@@ -102,7 +102,7 @@ sealed class PlayerAction: Message, Parcelable {
     }
 
     @Parcelize
-    data class QueuePosition(val pos: Int): PlayerAction() {
+    data class QueuePosition(val pos: Int) : PlayerAction() {
         override fun MusicService.enact(): Boolean {
             player.shiftQueuePosition(pos)
             return true
@@ -110,7 +110,7 @@ sealed class PlayerAction: Message, Parcelable {
     }
 
     @Parcelize
-    data class RelativePosition(val diff: Int): PlayerAction() {
+    data class RelativePosition(val diff: Int) : PlayerAction() {
         override fun MusicService.enact(): Boolean {
             player.shiftQueuePositionRelative(diff)
             return true
@@ -121,7 +121,7 @@ sealed class PlayerAction: Message, Parcelable {
     data class Enqueue(
         val songs: List<Song>,
         val mode: MusicPlayer.EnqueueMode
-    ): PlayerAction() {
+    ) : PlayerAction() {
         override fun MusicService.enact() : Boolean {
             player.enqueue(songs, mode)
             return true
@@ -132,7 +132,7 @@ sealed class PlayerAction: Message, Parcelable {
     data class ShiftQueueItem(
         val fromIdx: Int,
         val toIdx: Int
-    ): PlayerAction() {
+    ) : PlayerAction() {
         override fun MusicService.enact(): Boolean {
             player.shiftQueueItem(fromIdx, toIdx)
             return true
@@ -140,7 +140,7 @@ sealed class PlayerAction: Message, Parcelable {
     }
 
     @Parcelize
-    data class RemoveFromQueue(val pos: Int): PlayerAction() {
+    data class RemoveFromQueue(val pos: Int) : PlayerAction() {
         override fun MusicService.enact(): Boolean {
             player.removeFromQueue(pos)
             return true
@@ -152,7 +152,7 @@ sealed class PlayerAction: Message, Parcelable {
         val songs: List<Song>,
         val pos: Int = 0,
         val mode: MusicPlayer.OrderMode = MusicPlayer.OrderMode.SEQUENTIAL
-    ): PlayerAction() {
+    ) : PlayerAction() {
         override fun MusicService.enact(): Boolean {
             player.playSongs(songs, pos, mode)
             return true
@@ -162,7 +162,7 @@ sealed class PlayerAction: Message, Parcelable {
     @Parcelize
     data class ReplaceQueue(
         val queue: CombinedQueue
-    ): PlayerAction() {
+    ) : PlayerAction() {
         override fun MusicService.enact(): Boolean {
             info { "Aligning queue for sync" }
             player.replaceQueue(queue)
@@ -171,7 +171,7 @@ sealed class PlayerAction: Message, Parcelable {
     }
 
     @Parcelize
-    data class SeekTo(val pos: Long): PlayerAction() {
+    data class SeekTo(val pos: Long) : PlayerAction() {
         override fun MusicService.enact(): Boolean {
             player.seekTo(pos)
             return true
@@ -179,7 +179,7 @@ sealed class PlayerAction: Message, Parcelable {
     }
 
     @Parcelize
-    object ClearQueue: PlayerAction() {
+    object ClearQueue : PlayerAction() {
         override fun MusicService.enact(): Boolean {
             player.clearQueue()
             return true

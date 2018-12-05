@@ -22,16 +22,23 @@ data class LocalAlbum(
             // We could have an EP of any length if it's marked as such.
             id.name.contains(Regex("\\bEP\\b", RegexOption.IGNORE_CASE)) -> Album.Type.EP
             // Generally, A-side, B-side, extra
-            tracks.size <= 3 -> Album.Type.SINGLE
+            tracks.size <= MAX_SINGLE_TRACKS -> Album.Type.SINGLE
             // Official iTunes/Spotify/international standard definition of EP
             // 4-6 tracks or under 30 min duration.
-            tracks.size <= 6 || duration < 30.minutes -> Album.Type.EP
+            tracks.size <= MAX_EP_TRACKS || duration < MAX_EP_DURATION -> Album.Type.EP
             // Very rough estimate of what's a compilation
-            id.name.contains(Regex("\\b(Collection|Compilation|Best of|Greatest hits)\\b", RegexOption.IGNORE_CASE)) -> Album.Type.COMPILATION
+            id.name.contains(COMPILATION_PAT) -> Album.Type.COMPILATION
             // Anything else should be an LP
             else -> Album.Type.LP
         }
     }
 
     private val duration get() = tracks.sumBy { it.duration }.milliseconds
+
+    companion object {
+        private const val MAX_SINGLE_TRACKS = 3
+        private const val MAX_EP_TRACKS = 6
+        private val MAX_EP_DURATION = 30.minutes
+        private val COMPILATION_PAT = Regex("\\b(Collection|Compilation|Best of|Greatest hits)\\b", RegexOption.IGNORE_CASE)
+    }
 }

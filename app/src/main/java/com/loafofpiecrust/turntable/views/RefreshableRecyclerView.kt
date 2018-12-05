@@ -2,7 +2,6 @@ package com.loafofpiecrust.turntable.views
 
 import android.content.Context
 import android.support.v4.widget.SwipeRefreshLayout
-import android.support.v7.widget.RecyclerView
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewManager
@@ -14,8 +13,6 @@ import kotlinx.coroutines.launch
 import org.jetbrains.anko.AnkoViewDslMarker
 import org.jetbrains.anko.custom.ankoView
 import org.jetbrains.anko.frameLayout
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
 
 /**
  * A RecyclerView augmented to show

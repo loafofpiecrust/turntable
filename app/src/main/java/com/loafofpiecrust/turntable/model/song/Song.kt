@@ -18,23 +18,9 @@ import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.filterNotNull
 import kotlinx.coroutines.channels.produce
 
-
-fun CharSequence.withoutArticle(): CharSequence = when {
-    startsWith("the ", true) -> subSequenceView(4)
-    startsWith("a ", true) -> subSequenceView(2)
-    else -> this
-}
-
-
-data class HistoryEntry(
-    val song: Song,
-    val timestamp: Long = System.currentTimeMillis()
-)
-
-interface HasTracks: Music {
+interface HasTracks : Music {
     val tracks: List<Song>
 }
-
 
 // All possible music status':
 // - Local: has an id, can be played. May be partial album (if album)
@@ -52,15 +38,15 @@ interface HasTracks: Music {
 @Parcelize
 data class Song(
     override val id: SongId,
-    /// This song's track number in the [Album] it comes from.
+    /** This song's track number in the [Album] it comes from. */
     val track: Int,
-    /// The disc number of this song on the [Album] it comes from.
+    /** The disc number of this song on the [Album] it comes from. */
     val disc: Int,
-    /// Air-time in milliseconds
+    /** Air-time in milliseconds */
     val duration: Int,
-    /// Publish year of this song, generally the same as the album it comes from.
+    /** Publish year of this song, generally the same as the album it comes from. */
     val year: Int,
-    /// Platform-specific identifier
+    /** Platform-specific identifier */
     @Transient
     val platformId: PlatformId? = null
 ): Music, Parcelable, HasTracks, Recommendable {
@@ -74,7 +60,10 @@ data class Song(
      */
     val discTrack: Int get() = disc * 1000 + track
 
-    fun loadCover(req: RequestManager, cb: (Palette?, Palette.Swatch?) -> Unit = { a, b -> }): ReceiveChannel<RequestBuilder<Drawable>?> =
+    fun loadCover(
+        req: RequestManager,
+        cb: (Palette?, Palette.Swatch?) -> Unit = { a, b -> }
+    ): ReceiveChannel<RequestBuilder<Drawable>?> =
         GlobalScope.produce {
             val localArt = Library.loadAlbumCover(req, id.album)
             val first = localArt.receive()
@@ -123,7 +112,6 @@ data class Song(
             }
         }
 
-
         enum class Quality(val bitrate: Int = -1) {
             AWFUL(128),  // ~128kbps
             UNKNOWN, // Unlisted quality is probably comparable to 192kbps
@@ -155,11 +143,22 @@ data class Song(
      * Source-specific ID providing info to locate related content from the same source.
      * For example, a [PlatformId] implementation may provide Android Media Query IDs.
      */
-    interface PlatformId: Parcelable
+    interface PlatformId : Parcelable
 
     companion object {
-        val MIN_DURATION = 5.seconds
-        val MAX_DURATION = 1.hours
-        val DEFAULT_DURATION = 4.minutes
+        val MIN_DURATION: Duration = 5.seconds
+        val MAX_DURATION: Duration = 1.hours
+        val DEFAULT_DURATION: Duration = 4.minutes
     }
 }
+
+fun CharSequence.withoutArticle(): CharSequence = when {
+    startsWith("the ", true) -> subSequenceView(4)
+    startsWith("a ", true) -> subSequenceView(2)
+    else -> this
+}
+
+data class HistoryEntry(
+    val song: Song,
+    val timestamp: Long = System.currentTimeMillis()
+)

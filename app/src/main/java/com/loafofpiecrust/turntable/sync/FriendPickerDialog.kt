@@ -12,11 +12,11 @@ import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
-import com.loafofpiecrust.turntable.views.RecyclerAdapter
-import com.loafofpiecrust.turntable.views.RecyclerListItem
 import com.loafofpiecrust.turntable.util.arg
 import com.loafofpiecrust.turntable.util.getValue
 import com.loafofpiecrust.turntable.util.lazy
+import com.loafofpiecrust.turntable.views.RecyclerAdapter
+import com.loafofpiecrust.turntable.views.RecyclerListItem
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.map
 import org.jetbrains.anko.*

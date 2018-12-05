@@ -14,7 +14,9 @@ import com.github.salomonbrys.kotson.string
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.iid.FirebaseInstanceId
-import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.App
+import com.loafofpiecrust.turntable.BuildConfig
+import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.queue.isEmpty
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.sync.Message
@@ -25,7 +27,7 @@ import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.*
+import kotlinx.coroutines.channels.firstOrNull
 import kotlinx.coroutines.tasks.await
 import org.jetbrains.anko.*
 

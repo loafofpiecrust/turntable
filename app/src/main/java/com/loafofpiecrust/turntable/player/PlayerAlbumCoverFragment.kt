@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.player
 
-//import com.loafofpiecrust.turntable.service.MusicService2
 import android.content.Context
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.LinearLayoutManager
@@ -26,10 +25,6 @@ import org.jetbrains.anko.constraint.layout.constraintLayout
 import org.jetbrains.anko.constraint.layout.matchConstraint
 
 class PlayerAlbumCoverFragment : BaseFragment() {
-
-    //    private val subs = ArrayList<Disposable>()
-//    var slidingPanel: SlidingUpPanelLayout? = null
-
     override fun ViewManager.createView(): View = recyclerViewPager {
         layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         adapter = Adapter()
@@ -72,8 +67,8 @@ class PlayerAlbumCoverFragment : BaseFragment() {
             val song = q[position]
 
             subs.put(holder, App.async(Dispatchers.Main) {
-                song.loadCover(Glide.with(holder.view)).consumeEach {
-                    it?.into(holder.image) ?: run {
+                song.loadCover(Glide.with(holder.view)).consumeEach { req ->
+                    req?.into(holder.image) ?: run {
                         holder.image.imageResource = R.drawable.ic_default_album
                     }
                 }
@@ -97,11 +92,11 @@ class PlayerAlbumCoverFragment : BaseFragment() {
                 override fun getOldListSize() = old.size
                 override fun getNewListSize() = new.size
 
-                override fun areItemsTheSame(oldIdx: Int, newIdx: Int) // compare existence
-                    = old[oldIdx] === new[newIdx]
+                override fun areItemsTheSame(oldIdx: Int, newIdx: Int) = // compare existence
+                    old[oldIdx] === new[newIdx]
 
-                override fun areContentsTheSame(oldIdx: Int, newIdx: Int) // compare metadata
-                    = old[oldIdx] == new[newIdx]
+                override fun areContentsTheSame(oldIdx: Int, newIdx: Int) = // compare metadata
+                    old[oldIdx] == new[newIdx]
             }
 
             // Don't halt any UI
@@ -117,8 +112,8 @@ class PlayerAlbumCoverFragment : BaseFragment() {
             }
         }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int)
-            = ViewHolder.create(parent.context)
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
+            ViewHolder.create(parent.context)
 
         class ViewHolder private constructor(val view: View): RecyclerView.ViewHolder(view) {
             val image = view.findViewById<ImageView>(R.id.image)!!
@@ -147,6 +142,5 @@ class PlayerAlbumCoverFragment : BaseFragment() {
                 })
             }
         }
-
     }
 }
