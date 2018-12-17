@@ -16,6 +16,7 @@ import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.ui.popMainContent
+import com.loafofpiecrust.turntable.ui.universal.show
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -119,10 +120,9 @@ fun Toolbar.playlistOptions(
 
     menuItem(R.string.playlist_generate_similar, showIcon = false).onClick(Dispatchers.Default) {
         val tracks = playlist.tracksChannel.first()
-        val tracksToUse = (0..minOf(5, tracks.size)).lazy
-            .map { Random.nextInt(tracks.size) }
-            .mapNotNull { tracks.getOrNull(it)?.id }
-            .toList()
+        val tracksToUse = (0..minOf(5, tracks.size)).map {
+            tracks[Random.nextInt(tracks.size)].id
+        }
         Spotify.openRecommendationsPlaylist(context, songs = tracksToUse)
     }
 }

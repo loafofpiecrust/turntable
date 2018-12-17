@@ -18,6 +18,7 @@ import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.sync.SyncDetailsDialog
 import com.loafofpiecrust.turntable.sync.SyncSession
 import com.loafofpiecrust.turntable.ui.BaseFragment
+import com.loafofpiecrust.turntable.ui.universal.show
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.channels.firstOrNull

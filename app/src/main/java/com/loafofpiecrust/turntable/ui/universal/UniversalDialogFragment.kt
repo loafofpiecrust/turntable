@@ -45,7 +45,7 @@ class UniversalDialogFragment(): DialogFragment() {
     }
 }
 
-fun <T> T.show(context: Context) where T : DialogComponent, T: Parcelable {
+fun <T> T.show(context: Context) where T : DialogComponent {
     UniversalDialogFragment(this).show(
         (context as AppCompatActivity).supportFragmentManager,
         javaClass.canonicalName

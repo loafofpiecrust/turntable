@@ -1,20 +1,15 @@
 package com.loafofpiecrust.turntable.sync
 
-import android.app.Dialog
 import android.graphics.Color
-import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.view.ViewGroup
-import android.view.ViewManager
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.sync.Friend
 import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.serialize.arg
-import com.loafofpiecrust.turntable.serialize.getValue
-import com.loafofpiecrust.turntable.serialize.setValue
-import com.loafofpiecrust.turntable.ui.BaseDialogFragment
+import com.loafofpiecrust.turntable.ui.universal.DialogComponent
+import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import com.loafofpiecrust.turntable.util.lazy
 import com.loafofpiecrust.turntable.views.RecyclerAdapter
 import com.loafofpiecrust.turntable.views.RecyclerListItem
@@ -22,8 +17,7 @@ import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-import org.jetbrains.anko.support.v4.alert
-import org.jetbrains.anko.support.v4.toast
+import java.io.Serializable
 import kotlin.coroutines.CoroutineContext
 
 private class UserAdapter(
@@ -33,8 +27,8 @@ private class UserAdapter(
 ): RecyclerAdapter<User, RecyclerListItem>(parentContext, channel) {
     var selected: RecyclerListItem? = null
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int)
-        = RecyclerListItem(parent, 2, false)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
+        RecyclerListItem(parent, 2, false)
 
     override fun onBindViewHolder(holder: RecyclerListItem, position: Int) = holder.run {
         val item = data[position]
@@ -50,18 +44,13 @@ private class UserAdapter(
     }
 }
 
-class FriendPickerDialog(): BaseDialogFragment() {
-    constructor(message: Message, acceptText: String = "Send"): this() {
-        this.message = message
-        this.acceptText = acceptText
-    }
-
-    private var message: Message by arg()
-    private var acceptText: String by arg()
-
+class FriendPickerDialog(
+    private val message: Message,
+    private val acceptText: String
+): DialogComponent(), Serializable {
     private var selected: User? = null
 
-    override fun ViewManager.createView() = recyclerView {
+    override fun ViewContext.render() = recyclerView {
         minimumHeight = dimen(R.dimen.song_item_height) * 5
         layoutManager = LinearLayoutManager(context)
         val friends = Friend.friends.openSubscription().map { friends ->
@@ -70,21 +59,21 @@ class FriendPickerDialog(): BaseDialogFragment() {
             }.map { it.key }.toList()
         }
 
-        adapter = UserAdapter(job, friends) {
+        adapter = UserAdapter(coroutineContext, friends) {
             selected = it
         }
     }
 
-    override fun onCreateDialog(savedInstanceState: Bundle?) = alert(R.string.friend_pick) {
-        customView { createView() }
+    override fun AlertBuilder<*>.prepare() {
+        titleResource = R.string.friend_pick
 
-        // TODO: Prevent implicit dismissal
+        // TODO: Prevent implicit dismissal?
         positiveButton(acceptText) {
             selected?.let {
                 Sync.send(this@FriendPickerDialog.message, it)
-            } ?: toast("Must choose a friend.")
+            } ?: ctx.toast("Must choose a friend.")
         }
 
         cancelButton {}
-    }.build() as Dialog
+    }
 }
