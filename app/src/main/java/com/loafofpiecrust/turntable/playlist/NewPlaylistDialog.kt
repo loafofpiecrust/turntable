@@ -3,9 +3,8 @@ package com.loafofpiecrust.turntable.playlist
 import android.content.Context
 import android.graphics.Color
 import android.os.Parcelable
-import android.support.transition.Slide
 import android.text.InputType
-import android.view.Gravity
+import android.transition.Slide
 import android.view.ViewManager
 import android.widget.ArrayAdapter
 import com.jaredrummler.android.colorpicker.ColorPickerDialog
@@ -19,11 +18,17 @@ import com.loafofpiecrust.turntable.model.playlist.PlaylistId
 import com.loafofpiecrust.turntable.model.playlist.SongPlaylist
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.serialize.arg
+import com.loafofpiecrust.turntable.serialize.getValue
+import com.loafofpiecrust.turntable.serialize.setValue
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.style.standardStyle
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.ui.popMainContent
+import com.loafofpiecrust.turntable.util.localizedName
+import com.loafofpiecrust.turntable.util.menuItem
+import com.loafofpiecrust.turntable.util.onClick
 import com.mcxiaoke.koi.ext.onTextChange
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
@@ -36,9 +41,9 @@ import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.sdk27.coroutines.onItemSelectedListener
 import kotlin.reflect.KClass
 
-class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
+class NewPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
     companion object {
-        fun withItems(items: List<Recommendable>) = AddPlaylistDialog().apply {
+        fun withItems(items: List<Recommendable>) = NewPlaylistDialog().apply {
             startingTracks = TrackList(items)
         }
     }
@@ -62,12 +67,12 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
     override fun onCreate() {
         super.onCreate()
 
-        Slide().apply {
-            slideEdge = Gravity.BOTTOM
-        }.let {
-            enterTransition = it
-            exitTransition = it
-        }
+//        Slide().apply {
+//            slideEdge = Gravity.BOTTOM
+//        }.let {
+//            enterTransition = it
+//            exitTransition = it
+//        }
     }
 
     private fun createAndFinish() {
@@ -104,7 +109,7 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
             toolbar {
                 standardStyle()
                 navigationIconResource = R.drawable.ic_close
-                setNavigationOnClickListener { dismiss() }
+                setNavigationOnClickListener { context.popMainContent() }
                 title = "New Collection"
 
                 menuItem(R.string.fui_button_text_save, R.drawable.ic_save, showIcon = true).onClick {
@@ -140,7 +145,7 @@ class AddPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
                         .setAllowPresets(true)
                         .setShowColorShades(true)
                         .create().apply {
-                            setColorPickerDialogListener(this@AddPlaylistDialog)
+                            setColorPickerDialogListener(this@NewPlaylistDialog)
                         }.show(requireActivity().fragmentManager, "color-picker-dialog")
                 }
             }

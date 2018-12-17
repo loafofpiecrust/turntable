@@ -1,13 +1,15 @@
 package org.jaudiotagger.audio.aiff;
 
 //import java.io.EOFException;
+
 import java.io.IOException;
-//import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+
+//import java.io.InputStream;
 
 public class AiffUtil {
 

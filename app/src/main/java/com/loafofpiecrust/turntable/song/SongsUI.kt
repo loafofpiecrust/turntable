@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.song
 
-//import com.loafofpiecrust.turntable.service.MusicService2
 import android.content.Context
 import android.os.Parcelable
 import android.support.v7.widget.DividerItemDecoration

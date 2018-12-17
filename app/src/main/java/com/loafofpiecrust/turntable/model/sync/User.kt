@@ -4,12 +4,15 @@ import android.os.Parcelable
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBIgnore
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable
+import com.github.ajalt.timberkt.Timber
+import com.github.salomonbrys.kotson.string
+import com.google.gson.*
 import com.loafofpiecrust.turntable.repository.remote.StreamCache
 import com.loafofpiecrust.turntable.service.OnlineSearchService
+import com.loafofpiecrust.turntable.sync.Sync
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.*
-import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.error
+import java.lang.reflect.Type
 
 /**
  *
@@ -34,7 +37,7 @@ data class User(
             username
         } else displayName!!
 
-    companion object: AnkoLogger by AnkoLogger<User>() {
+    companion object {
         fun resolve(username: String): User? = run {
             if (username.isBlank()) return null
 
@@ -52,7 +55,7 @@ data class User(
             try {
                 db.save(this@User)
             } catch (e: Exception) {
-                error("Failed uploading user data", e)
+                Timber.e(e) { "Failed uploading user data" }
             }
         }
     }
@@ -64,5 +67,20 @@ data class User(
             displayName = newer.displayName
         }
         newer ?: this@User
+    }
+}
+
+class UserSerializer: JsonSerializer<User>, JsonDeserializer<User> {
+    override fun deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): User {
+        val username = json.string
+        return if (username.isBlank() || username == Sync.selfUser.username) {
+            Sync.selfUser
+        } else {
+            User.resolve(json.string)!!
+        }
+    }
+
+    override fun serialize(src: User, typeOfSrc: Type, context: JsonSerializationContext): JsonElement {
+        return context.serialize(src.username)
     }
 }

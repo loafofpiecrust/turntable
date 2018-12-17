@@ -12,7 +12,7 @@ import android.widget.LinearLayout
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumsUI
 import com.loafofpiecrust.turntable.artist.ArtistsUI
-import com.loafofpiecrust.turntable.browse.RecommendationsFragment
+import com.loafofpiecrust.turntable.browse.RecommendationsUI
 import com.loafofpiecrust.turntable.playlist.PlaylistsFragment
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.song.SongsUI
@@ -47,7 +47,7 @@ class LibraryFragment: BaseFragment() {
                 "Artists" -> ArtistsUI.All().createFragment() // artists
                 "Playlists" -> PlaylistsFragment() // playlists!
                 "Friends" -> SyncTabFragment()
-                "Recommendations" -> RecommendationsFragment()
+                "Recommendations" -> RecommendationsUI().createFragment()
                 else -> throw Error("Unrecognized Library tab \'$key\'")
             }
         }
@@ -116,10 +116,13 @@ class LibraryFragment: BaseFragment() {
                 .onCreateOptionsMenu(toolbar.menu, null)
 
             onPageChangeListener {
-                onPageSelected {
+                onPageSelected { idx ->
                     toolbar.menu.clear()
-                    tabsAdapter.getItem(it)
-                        .onCreateOptionsMenu(toolbar.menu, null)
+
+                    val frag = tabsAdapter.getItem(idx)
+//                    if (frag.context != null) {
+                        frag.onCreateOptionsMenu(toolbar.menu, null)
+//                    }
                 }
             }
             offscreenPageLimit = 2

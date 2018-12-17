@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.model.playlist
 
 import android.support.annotation.DrawableRes
+import com.github.ajalt.timberkt.Timber
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
@@ -24,16 +25,13 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
-import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.error
-import org.jetbrains.anko.warn
 import java.util.*
 import kotlin.coroutines.resumeWithException
 
 @Parcelize
 data class PlaylistId(
     override val name: String,
-    val owner: User = Sync.selfUser,
+    val owner: User? = null,
     val uuid: UUID = UUID.randomUUID()
 ): MusicId, Recommendable {
     private constructor(): this("")
@@ -115,7 +113,7 @@ abstract class AbstractPlaylist : Playlist {
         UserPrefs.playlists.repeat()
     }
 
-    companion object: AnkoLogger by AnkoLogger<Playlist>() {
+    companion object {
         suspend fun find(id: UUID): Playlist? {
             val db = FirebaseFirestore.getInstance()
             val doc = db.playlists().document(id.toString()).get().await()
@@ -158,7 +156,7 @@ abstract class AbstractPlaylist : Playlist {
                         "playlist" -> CollaborativePlaylist.fromDocument(doc)
                         "albums" -> AlbumCollection.fromDocument(doc)
                         else -> {
-                            warn { "Unrecognized playlist format $format" }
+                            Timber.w { "Unrecognized playlist format $format" }
                             null
                         }
                     }.apply {
@@ -166,7 +164,7 @@ abstract class AbstractPlaylist : Playlist {
                     }
                 }
             } catch (err: Exception) {
-                error("Playlist query failed", err)
+                Timber.e(err) { "Playlist query failed" }
                 listOf()
             }
         }

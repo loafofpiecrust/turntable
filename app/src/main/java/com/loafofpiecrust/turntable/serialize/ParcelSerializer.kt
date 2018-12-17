@@ -1,4 +1,4 @@
-package com.loafofpiecrust.turntable.util
+package com.loafofpiecrust.turntable.serialize
 
 import android.os.Bundle
 import kotlinx.serialization.*

@@ -1,24 +1,13 @@
 package org.jaudiotagger.audio.aiff;
 
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.RandomAccessFile;
-import java.text.SimpleDateFormat;
-import java.util.logging.Level;
-import java.util.logging.SimpleFormatter;
-import java.util.logging.StreamHandler;
-
-import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.exceptions.CannotReadException;
-import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
-import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
 import org.jaudiotagger.audio.generic.AudioFileReader;
 import org.jaudiotagger.audio.generic.GenericAudioHeader;
 import org.jaudiotagger.tag.Tag;
-import org.jaudiotagger.tag.TagException;
 import org.jaudiotagger.tag.aiff.AiffTag;
+
+import java.io.IOException;
+import java.io.RandomAccessFile;
 
 public class AiffFileReader extends AudioFileReader {
 

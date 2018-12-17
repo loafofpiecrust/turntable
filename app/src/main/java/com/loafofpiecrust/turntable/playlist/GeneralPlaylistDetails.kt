@@ -5,6 +5,7 @@ import android.view.Gravity
 import android.view.View
 import android.widget.TextView
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.artist.emptyContentView
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
 import com.loafofpiecrust.turntable.model.playlist.MixTape
 import com.loafofpiecrust.turntable.model.playlist.PlaylistId
@@ -55,11 +56,12 @@ class NewPlaylistDetails(
     override fun ViewContext.render() = verticalLayout {
         appBarLayout {
             topPadding = dimen(R.dimen.statusbar_height)
+            backgroundColor = playlist.color
+                ?: UserPrefs.primaryColor.value
+
             toolbar {
                 standardStyle()
                 title = playlist.id.displayName
-                backgroundColor = playlist.color
-                    ?: UserPrefs.primaryColor.value
 
                 playlistOptions(context, playlist)
             }
@@ -77,19 +79,10 @@ class NewPlaylistDetails(
                 }
             }
             emptyState {
-                verticalLayout {
-                    gravity = Gravity.CENTER
-                    padding = dimen(R.dimen.empty_state_padding)
-                    textView(R.string.playlist_empty) {
-                        textSizeDimen = R.dimen.title_text_size
-                        textAlignment = TextView.TEXT_ALIGNMENT_CENTER
-                        bottomPadding = dip(8)
-                    }
-                    textView(R.string.playlist_empty_details) {
-                        textSizeDimen = R.dimen.subtitle_text_size
-                        textAlignment = TextView.TEXT_ALIGNMENT_CENTER
-                    }
-                }
+                emptyContentView(
+                    R.string.playlist_empty,
+                    R.string.playlist_empty_details
+                )
             }
         }
     }

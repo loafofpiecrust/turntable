@@ -27,4 +27,10 @@
     <string name="friend_confirm">Confirm Friendship</string>
     <string name="friend_reject">Reject Friendship</string>
     <string name="friend_request_cancel">Cancel Request</string>
+
+    <!-- Recommendations -->
+    <string name="recommendations_empty">No recommendations yet</string>
+    <string name="recommendations_empty_details">You can recommend an artist, album, song, or playlist from their respective details screens.</string>
+    <string name="friends_empty">No friends</string>
+    <string name="friends_empty_details">Use the \'+\' button to add a friend.</string>
 </resources>

@@ -7,4 +7,5 @@
     <string name="search_musicbrainz">MusicBrainz</string>
     <string name="search_local">Local Library</string>
     <string name="search_all">Search All</string>
+    <string name="search_results_empty_details">Try again with a different query.</string>
 </resources>

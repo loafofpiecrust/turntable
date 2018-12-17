@@ -5,11 +5,9 @@ import com.google.android.exoplayer2.C
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.SeekParameters
 import com.google.android.exoplayer2.Timeline
-import com.google.android.exoplayer2.extractor.ExtractorsFactory
 import com.google.android.exoplayer2.source.*
 import com.google.android.exoplayer2.trackselection.TrackSelection
 import com.google.android.exoplayer2.upstream.Allocator
-import com.google.android.exoplayer2.upstream.DataSource
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
@@ -17,12 +15,12 @@ import com.loafofpiecrust.turntable.repository.StreamProviders
 import com.loafofpiecrust.turntable.util.milliseconds
 import com.loafofpiecrust.turntable.util.toMicroseconds
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.launch
 
 class StreamMediaSource(
     private val song: Song,
-    private val sourceFactory: DataSource.Factory,
-    private val extractorsFactory: ExtractorsFactory,
+    private val factory: ExtractorMediaSource.Factory,
     private val listener: ((Boolean) -> Unit)? = null
 ): BaseMediaSource(), MediaSource.SourceInfoRefreshListener {
     private var attemptCount: Int = 0
@@ -34,7 +32,7 @@ class StreamMediaSource(
             refreshSourceInfo(Timeline.EMPTY, null)
             null
         } else if (innerSource == null) {
-            return StreamMediaPeriod(song, sourceFactory, extractorsFactory, id, allocator) { src ->
+            return StreamMediaPeriod(song, factory, id, allocator) { src ->
                 if (src == null) {
                     attemptCount += 1
                     refreshSourceInfo(Timeline.EMPTY, null)
@@ -55,6 +53,7 @@ class StreamMediaSource(
             } else mediaPeriod
             innerSource?.releasePeriod(period)
         } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -80,8 +79,7 @@ class StreamMediaSource(
 
 class StreamMediaPeriod(
     private val song: Song,
-    private val sourceFactory: DataSource.Factory,
-    private val extractorsFactory: ExtractorsFactory,
+    private val sourceFactory: ExtractorMediaSource.Factory,
     private val id: MediaSource.MediaPeriodId,
     private val allocator: Allocator,
     private val sourceCallback: (MediaSource?) -> Unit
@@ -126,19 +124,15 @@ class StreamMediaPeriod(
                 media.end.milliseconds.toMicroseconds().toLong()
             } else C.TIME_END_OF_SOURCE
 
-            println("youtube: media loaded, $start-$end")
-
             val srcUrl = media.bestSourceFor(
-                App.currentInternetStatus.value,
-                UserPrefs.hqStreamingMode.value
+                App.currentInternetStatus.openSubscription().first(),
+                UserPrefs.hqStreamingMode.openSubscription().first()
             )!!.url
 
-            source = ClippingMediaSource(ExtractorMediaSource(
-                Uri.parse(srcUrl),
-                sourceFactory,
-                extractorsFactory,
-                null, null
-            ), start, end)
+            source = ClippingMediaSource(
+                sourceFactory.createMediaSource(Uri.parse(srcUrl)),
+                start, end
+            )
 
             callback.onContinueLoadingRequested(this@StreamMediaPeriod)
         }

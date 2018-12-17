@@ -4,7 +4,14 @@ import org.jaudiotagger.audio.asf.util.ChunkPositionComparator;
 import org.jaudiotagger.audio.asf.util.Utils;
 
 import java.math.BigInteger;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Stores multiple ASF objects (chunks) in form of {@link Chunk} objects, and is

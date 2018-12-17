@@ -11,7 +11,7 @@ package com.loafofpiecrust.turntable.service
 
 //
 //class FileSyncService : DriveEventService() {
-//    companion object: AnkoLogger {
+//    companion object {
 //        lateinit var instance: FileSyncService
 //
 ////        val SCOPES = arrayOf(

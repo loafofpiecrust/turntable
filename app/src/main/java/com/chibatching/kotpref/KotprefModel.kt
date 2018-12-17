@@ -4,18 +4,14 @@ import android.annotation.TargetApi
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
-import com.chibatching.kotpref.filepref.BaseObjFilePref
-import com.chibatching.kotpref.filepref.objFilePref
+import com.chibatching.kotpref.filepref.ObjFilePref
 import com.chibatching.kotpref.pref.*
-import com.loafofpiecrust.turntable.awaitAllNotNull
 import com.loafofpiecrust.turntable.parMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import java.util.*
 import kotlin.properties.ReadOnlyProperty
-import kotlin.properties.ReadWriteProperty
-
 
 
 abstract class KotprefModel {
@@ -65,7 +61,7 @@ abstract class KotprefModel {
      * @param default default string value
      * @param key custom preference key
      */
-    protected fun stringPref(default: String = "", key: String? = null)
+    protected fun stringPref(default: String = "", key: String)
             : ReadOnlyProperty<KotprefModel, ConflatedBroadcastChannel<String>> = StringPref(default, key)
 
     /**
@@ -73,15 +69,15 @@ abstract class KotprefModel {
      * @param default default string value
      * @param key custom preference key resource uuid
      */
-    protected fun stringPref(default: String = "", key: Int)
-            = stringPref(default, context.getString(key))
+    protected fun stringPref(default: String = "", key: Int) =
+        stringPref(default, context.getString(key))
 
     /**
      * Delegate nullable string shared preference property.
      * @param default default string value
      * @param key custom preference key
      */
-    protected fun nullableStringPref(default: String? = null, key: String? = null)
+    protected fun nullableStringPref(default: String? = null, key: String)
             : ReadOnlyProperty<KotprefModel, ConflatedBroadcastChannel<String?>> = StringNullablePref(default, key)
 
     /**
@@ -89,15 +85,15 @@ abstract class KotprefModel {
      * @param default default string value
      * @param key custom preference key resource uuid
      */
-    protected fun nullableStringPref(default: String? = null, key: Int)
-            = nullableStringPref(default, context.getString(key))
+    protected fun nullableStringPref(default: String? = null, key: Int) =
+        nullableStringPref(default, context.getString(key))
 
     /**
      * Delegate int shared preference property.
      * @param default default int value
      * @param key custom preference key
      */
-    protected fun intPref(default: Int = 0, key: String? = null)
+    protected fun intPref(default: Int = 0, key: String)
             : ReadOnlyProperty<KotprefModel, ConflatedBroadcastChannel<Int>> = IntPref(default, key)
 
     /**
@@ -105,15 +101,15 @@ abstract class KotprefModel {
      * @param default default int value
      * @param key custom preference key resource uuid
      */
-    protected fun intPref(default: Int = 0, key: Int)
-            = intPref(default, context.getString(key))
+    protected fun intPref(default: Int = 0, key: Int) =
+        intPref(default, context.getString(key))
 
     /**
      * Delegate long shared preference property.
      * @param default default long value
      * @param key custom preference key
      */
-    protected fun longPref(default: Long = 0L, key: String? = null)
+    protected fun longPref(default: Long = 0L, key: String)
             : ReadOnlyProperty<KotprefModel, ConflatedBroadcastChannel<Long>> = LongPref(default, key)
 
     /**
@@ -129,7 +125,7 @@ abstract class KotprefModel {
      * @param default default float value
      * @param key custom preference key
      */
-    protected fun floatPref(default: Float = 0F, key: String? = null)
+    protected fun floatPref(default: Float = 0F, key: String)
             : ReadOnlyProperty<KotprefModel, ConflatedBroadcastChannel<Float>> = FloatPref(default, key)
 
     /**
@@ -145,7 +141,7 @@ abstract class KotprefModel {
      * @param default default boolean value
      * @param key custom preference key
      */
-    protected fun booleanPref(default: Boolean = false, key: String? = null)
+    protected fun booleanPref(default: Boolean = false, key: String)
             : ReadOnlyProperty<KotprefModel, ConflatedBroadcastChannel<Boolean>> = BooleanPref(default, key)
 
     /**
@@ -153,8 +149,8 @@ abstract class KotprefModel {
      * @param default default boolean value
      * @param key custom preference key resource uuid
      */
-    protected fun booleanPref(default: Boolean = false, key: Int)
-            = booleanPref(default, context.getString(key))
+    protected fun booleanPref(default: Boolean = false, key: Int) =
+        booleanPref(default, context.getString(key))
 
     /**
      * Delegate string set shared preference property.
@@ -162,8 +158,8 @@ abstract class KotprefModel {
      * @param key custom preference key
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    protected fun stringSetPref(default: Set<String> = LinkedHashSet(), key: String? = null)
-            = stringSetPref(key) { default }
+    protected fun stringSetPref(default: Set<String> = LinkedHashSet(), key: String) =
+        stringSetPref(key) { default }
 
     /**
      * Delegate string set shared preference property.
@@ -171,8 +167,8 @@ abstract class KotprefModel {
      * @param key custom preference key resource uuid
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    protected fun stringSetPref(default: Set<String> = LinkedHashSet(), key: Int)
-            = stringSetPref(context.getString(key)) { default }
+    protected fun stringSetPref(default: Set<String> = LinkedHashSet(), key: Int) =
+        stringSetPref(context.getString(key)) { default }
 
     /**
      * Delegate string set shared preference property.
@@ -180,7 +176,7 @@ abstract class KotprefModel {
      * @param default default string set value creation function
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    protected fun stringSetPref(key: String? = null, default: () -> Set<String>)
+    protected fun stringSetPref(key: String, default: () -> Set<String>)
             : ReadOnlyProperty<KotprefModel, ConflatedBroadcastChannel<Set<String>>> = StringSetPref(default, key)
 
     /**
@@ -189,8 +185,8 @@ abstract class KotprefModel {
      * @param default default string set value
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    protected fun stringSetPref(key: Int, default: () -> Set<String>)
-            = stringSetPref(context.getString(key), default)
+    protected fun stringSetPref(key: Int, default: () -> Set<String>) =
+        stringSetPref(context.getString(key), default)
 
     /**
      * Begin bulk edit mode. You must commit or cancel after bulk edit finished.
@@ -228,7 +224,7 @@ abstract class KotprefModel {
 
     companion object {
         @PublishedApi
-        internal val files = mutableListOf<BaseObjFilePref<*>>()
+        internal val files = mutableListOf<ObjFilePref<*>>()
 
         suspend fun saveFiles() {
             files.parMap(Dispatchers.IO) { it.save() }.awaitAll()
@@ -238,5 +234,5 @@ abstract class KotprefModel {
 
 
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-inline fun <reified T: Any> preference(default: T)
-    = com.chibatching.kotpref.filepref.objFilePref(default).also { KotprefModel.files.add(it) }
+inline fun <reified T: Any> preference(key: String, default: T) =
+    com.chibatching.kotpref.filepref.objFilePref(key, default).also { KotprefModel.files.add(it) }

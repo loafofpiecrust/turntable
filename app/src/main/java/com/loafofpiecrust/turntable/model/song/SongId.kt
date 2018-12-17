@@ -7,6 +7,7 @@ import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.util.toFileName
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
+import kotlinx.serialization.Transient
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import java.util.*
 
@@ -18,25 +19,25 @@ data class SongId(
     val artist: ArtistId = album.artist,
     var features: List<ArtistId> = emptyList()
 ): MusicId, Parcelable, Comparable<SongId> {
-    internal constructor(): this("", AlbumId())
+//    internal constructor(): this("", AlbumId())
 
     constructor(title: String, album: String, artist: String, songArtist: String = artist):
         this(title, AlbumId(album, ArtistId(artist)), ArtistId(songArtist))
 
 
-    override fun toString() = "$displayName | $album"
-    override fun equals(other: Any?) = this === other || (other is SongId
-        && this.displayName.equals(other.displayName, true)
-        && this.album == other.album
-        && this.artist == other.artist
+    override fun toString(): String = "$displayName | $album"
+    override fun equals(other: Any?): Boolean = this === other || (other is SongId &&
+        this.displayName.equals(other.displayName, true) &&
+        this.album == other.album &&
+        this.artist == other.artist
     )
 
-    fun fuzzyEquals(other: SongId) =
-        FuzzySearch.ratio(name, other.name) >= 88
-        && FuzzySearch.ratio(album.name, other.album.name) >= 88
-        && FuzzySearch.ratio(album.artist.name, other.album.artist.name) >= 88
+    fun fuzzyEquals(other: SongId): Boolean =
+        FuzzySearch.ratio(name, other.name) >= 88 &&
+            FuzzySearch.ratio(album.name, other.album.name) >= 88 &&
+            FuzzySearch.ratio(album.artist.name, other.album.artist.name) >= 88
 
-    override fun hashCode() = Objects.hash(
+    override fun hashCode(): Int = Objects.hash(
         displayName.toLowerCase(),
         album,
         artist
@@ -45,6 +46,7 @@ data class SongId(
     override fun compareTo(other: SongId): Int = COMPARATOR.compare(this, other)
 
     @IgnoredOnParcel
+    @Transient
     override val displayName = run {
         // remove features!
         val m = FEATURE_PAT.find(name)

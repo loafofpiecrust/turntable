@@ -72,16 +72,16 @@ class RefreshableRecyclerView(
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         ViewScope(this).launch(start = CoroutineStart.UNDISPATCHED) {
-//            if (channel?.isEmpty == true) {
-//                isRefreshing = true
-//            }
+            if (channel?.isEmpty == true) {
+                isRefreshing = true
+            }
             channel?.consumeEach {
                 // Every time we receive data, ensure we stop showing the load circle.
                 isRefreshing = false
                 // Show the "empty view" if there's no data
                 if (it == null) {
                     showIsNull()
-                } else if (it is Collection<*> && it.isEmpty()) {
+                } else if ((it is Collection<*> && it.isEmpty()) || (it is Map<*, *> && it.isEmpty())) {
                     showIsEmpty()
                 } else {
                     showContents()
@@ -91,5 +91,6 @@ class RefreshableRecyclerView(
     }
 }
 
-inline fun ViewManager.refreshableRecyclerView(init: @AnkoViewDslMarker RefreshableRecyclerView.() -> Unit = {}): RefreshableRecyclerView =
-    ankoView({ RefreshableRecyclerView(it) }, theme = 0, init = init)
+inline fun ViewManager.refreshableRecyclerView(
+    init: @AnkoViewDslMarker RefreshableRecyclerView.() -> Unit = {}
+) = ankoView({ RefreshableRecyclerView(it) }, theme = 0, init = init)

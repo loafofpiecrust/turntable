@@ -6,15 +6,13 @@ import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Handler
 import android.provider.MediaStore
-import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.bumptech.glide.request.RequestOptions
 import com.chibatching.kotpref.KotprefModel
+import com.github.ajalt.timberkt.Timber
 import com.github.salomonbrys.kotson.get
-import com.github.salomonbrys.kotson.obj
 import com.github.salomonbrys.kotson.string
+import com.google.gson.JsonObject
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
@@ -29,26 +27,26 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repository.Repositories
+import com.loafofpiecrust.turntable.serialize.page
 import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.intValue
 import com.mcxiaoke.koi.ext.longValue
 import com.mcxiaoke.koi.ext.stringValue
+import io.ktor.client.request.get
+import io.paperdb.Paper
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.channels.map
 import me.xdrop.fuzzywuzzy.FuzzySearch
-import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.error
-import org.jetbrains.anko.info
 import java.io.File
 import java.io.Serializable
 import java.util.*
 import kotlin.collections.HashMap
 
 /// Manages all our music and album covers, including loading from MediaStore
-object Library: AnkoLogger, CoroutineScope by GlobalScope {
+object Library: CoroutineScope by GlobalScope {
     data class AlbumMetadata(
         val id: AlbumId,
 //        val name: String,
@@ -81,11 +79,17 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
     val localSongs = ConflatedBroadcastChannel<List<Song>>()
 //    private val _albums = ConflatedBroadcastChannel<List<Album>>(listOf())
 
-    private val albumCovers get() = UserPrefs.albumMeta
+    private val albumCovers by Paper.page("albumMetadata") {
+        emptyMap<AlbumId, Library.AlbumMetadata>()
+    }
 
-    private val artistMeta get() = UserPrefs.artistMeta
+    private val artistMeta by Paper.page("artistMetadata") {
+        emptyMap<ArtistId, Library.ArtistMetadata>()
+    }
 
-    val remoteAlbums get() = UserPrefs.remoteAlbums
+    val remoteAlbums by Paper.page("remoteAlbums") {
+        listOf<Album>()
+    }
 
     private val cachedPlaylists = ConflatedBroadcastChannel(listOf<Playlist>())
 
@@ -233,14 +237,14 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
         artistMeta.openSubscription().map { it[id] }
 
     fun loadAlbumCover(req: RequestManager, id: AlbumId): ReceiveChannel<RequestBuilder<Drawable>?> =
-        findAlbumExtras(id).map {
+        findAlbumExtras(id).distinctSeq().map {
             it?.artworkUri?.let {
                 req.load(it)
             }
         }
 
     fun loadArtistImage(req: RequestManager, id: ArtistId): ReceiveChannel<RequestBuilder<Drawable>?> =
-        findArtistExtras(id).map {
+        findArtistExtras(id).distinctSeq().map {
             it?.artworkUri?.let {
                 req.load(it)
             }
@@ -249,11 +253,11 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
 
 
     fun addAlbumExtras(meta: AlbumMetadata) {
-        UserPrefs.albumMeta putsMapped { it + (meta.id to meta) }
+        albumCovers[meta.id] = meta
     }
 
     fun addArtistExtras(meta: ArtistMetadata) {
-        UserPrefs.artistMeta putsMapped { it + (meta.id to meta) }
+        artistMeta[meta.id] = meta
     }
 
 
@@ -289,7 +293,7 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
 //                UserPrefs.albumMeta appends key
 //            }
             val updateKey = {
-                UserPrefs.albumMeta putsMapped { it + (key.id to key) }
+                albumCovers putsMapped { it + (key.id to key) }
             }
 //
 //            val res = try {
@@ -351,34 +355,32 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
             if (cached != null && (cached.artworkUri != null || (now - cached.lastUpdated) <= METADATA_UPDATE_FREQ)) {
                 return@forEach
             }
-//            val res = http.get<JsonElement>("https://ws.audioscrobbler.com/2.0/", params = mapOf(
-//                "api_key" to LASTFM_KEY, "format" to "json",
-//                "method" to "artist.getinfo",
-//                "artist" to artist.uuid.name
-//            )).obj
-            val json = try {
-                Http.get("https://ws.audioscrobbler.com/2.0/", params = mapOf(
-                    "api_key" to BuildConfig.LASTFM_API_KEY, "format" to "json",
-                    "method" to "artist.getinfo",
-                    "artist" to artist.id.displayName
-                )).gson()
+
+            val res = try {
+                http.get<JsonObject>("https://ws.audioscrobbler.com/2.0/") {
+                    parameters(
+                        "format" to "json",
+                        "api_key" to BuildConfig.LASTFM_API_KEY,
+                        "method" to "artist.getinfo",
+                        "artist" to artist.id.displayName
+                    )
+                }
             } catch (e: Exception) {
                 return@forEach
             }
-            val res = json.obj
 
             res["artist"]?.get("image")?.get(3)?.get("#text")?.string?.let { uri ->
-                UserPrefs.artistMeta putsMapped {
+                artistMeta putsMapped {
                     it + (artist.id to key.copy(artworkUri = uri))
                 }
-                launch(Dispatchers.Main) {
-                    Glide.with(context.applicationContext)
-                        .load(uri)
-//                      .apply(Library.ARTWORK_OPTIONS.signature(ObjectKey(key)))
-                        .preload()
-                }
+//                launch(Dispatchers.Main) {
+//                    Glide.with(context.applicationContext)
+//                        .load(uri)
+////                      .apply(Library.ARTWORK_OPTIONS.signature(ObjectKey(key)))
+//                        .preload()
+//                }
             } ?: run {
-                UserPrefs.artistMeta putsMapped { it + (artist.id to key) }
+                artistMeta putsMapped { it + (artist.id to key) }
             }
 
             delay(50)
@@ -386,27 +388,24 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
     }
 
     fun addRemoteAlbum(album: Album) = launch {
-//        val existing = findAlbum(album.uuid).first()
-//        if (existing == null) {
         // Ensure the tracks are loaded before saving.
-            if (!album.tracks.isEmpty()) {
-                UserPrefs.remoteAlbums appends album
-                KotprefModel.saveFiles()
-            }
-//        }
-    }
-
-    fun removeRemoteAlbum(album: Album) = launch {
-        val all = UserPrefs.remoteAlbums.value
-        val idx = all.indexOfFirst { it.id == album.id }
-        if (idx != -1) {
-            UserPrefs.remoteAlbums puts all.without(idx)
+        if (!album.tracks.isEmpty()) {
+            remoteAlbums appends album
             KotprefModel.saveFiles()
         }
     }
 
-    fun findPlaylist(id: UUID): ReceiveChannel<Playlist?>
-        = UserPrefs.playlists.openSubscription().switchMap {
+    fun removeRemoteAlbum(album: Album) = launch {
+        val all = remoteAlbums.value
+        val idx = all.indexOfFirst { it.id == album.id }
+        if (idx != -1) {
+            remoteAlbums puts all.without(idx)
+            KotprefModel.saveFiles()
+        }
+    }
+
+    fun findPlaylist(id: UUID): ReceiveChannel<Playlist?> =
+        UserPrefs.playlists.openSubscription().switchMap {
             val r = it.find { it.id.uuid == id }
                 ?: UserPrefs.recommendations.value.lazy
                     .mapNotNull { it as? Playlist }
@@ -417,9 +416,9 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
             } else findCachedPlaylist(id)
         }
 
-    private fun findCachedPlaylist(id: UUID): ReceiveChannel<Playlist?>
-        = cachedPlaylists.openSubscription().map {
-            it.find { it.id.uuid == id }
+    private fun findCachedPlaylist(id: UUID): ReceiveChannel<Playlist?> =
+        cachedPlaylists.openSubscription().map { playlists ->
+            playlists.find { it.id.uuid == id }
         }
 
     fun addPlaylist(pl: Playlist) {
@@ -432,11 +431,11 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
 
 
     fun initData(context: Context) {
-        info { "maybe loading local data" }
+        Timber.d { "maybe loading local data" }
         if (!initialized) {
             initialized = true
 
-            info { "loading local data" }
+            Timber.d { "loading local data" }
 
             // Load all the songs from the MediaStore
             launch {
@@ -451,7 +450,9 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
 
             // Change events for mediaStore
             // On change, empty _all and refill with songs
-            context.contentResolver.registerContentObserver(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, true,
+            context.contentResolver.registerContentObserver(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                true,
                 object : ContentObserver(Handler()) {
                     override fun onChange(selfChange: Boolean, uri: Uri?) {
                         println("songs: External Media has been added at $uri")
@@ -524,10 +525,10 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
             null
         )
         if (cur == null) {
-            error { "lopc: Cursor failed to load." }
+            Timber.e { "lopc: Cursor failed to load." }
             return emptyList()
         } else if (!cur.moveToFirst()) {
-            error { "lopc: No music" }
+            Timber.i { "User has no local music" }
             return emptyList()
         } else cur.use {
             val songs = ArrayList<Song>(cur.count)
@@ -578,7 +579,7 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
                         localSongSources[songId] = data
                     }
                 } catch (e: Exception) {
-                    error("Failed to compile song", e)
+                    Timber.e(e) { "Failed to compile song" }
                     break
                 }
             } while (cur.moveToNext())
@@ -590,15 +591,12 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
         // TODO: Add preference for including internal content (default = false)
         // Load the song library here
 //        val internal = async(BG_POOL) { compileSongsFrom(MediaStore.Audio.Media.INTERNAL_CONTENT_URI) }
-        info { "compiling songs on sd card" }
         val external = try {
             compileSongsFrom(context, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
         } catch (e: Exception) {
-            error(e.message, e)
+            Timber.e(e)
             emptyList<Song>()
         }
-
-        info { "songs: $external" }
 
         localSongs.offer(/*internal.await() +*/ external)
     }
@@ -679,15 +677,6 @@ object Library: AnkoLogger, CoroutineScope by GlobalScope {
         }
 
 //        UserPrefs.albumMeta puts metaList
-    }
-
-
-    val ARTWORK_OPTIONS by lazy {
-        RequestOptions()
-//            .fallback(R.drawable.ic_default_album)
-            .error(R.drawable.ic_default_album)
-            .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
-            .fitCenter()
     }
 
 

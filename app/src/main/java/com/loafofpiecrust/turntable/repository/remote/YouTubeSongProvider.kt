@@ -2,13 +2,15 @@ package com.loafofpiecrust.turntable.repository.remote
 
 import com.github.salomonbrys.kotson.long
 import com.github.salomonbrys.kotson.nullObj
-import com.github.salomonbrys.kotson.obj
 import com.github.salomonbrys.kotson.string
+import com.google.gson.JsonObject
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.repository.StreamProvider
 import com.loafofpiecrust.turntable.service.OnlineSearchService
-import com.loafofpiecrust.turntable.util.Http
-import com.loafofpiecrust.turntable.util.gson
+import com.loafofpiecrust.turntable.util.http
+import com.loafofpiecrust.turntable.util.parameters
+import io.ktor.client.request.get
+import io.ktor.client.request.url
 
 
 /**
@@ -49,14 +51,16 @@ object YouTubeSongProvider: StreamProvider {
  */
 object FirebaseStreamFunction: StreamProvider {
     override suspend fun sourceForSong(song: Song): Song.Media? {
-        val res = Http.get("https://us-central1-turntable-3961c.cloudfunctions.net/parseStreamsFromYouTube", params = mapOf(
-            "title" to song.id.displayName.toLowerCase(),
-            "album" to song.id.album.displayName.toLowerCase(),
-            "artist" to song.id.artist.displayName.toLowerCase(),
-            "albumArtist" to song.id.album.artist.displayName.toLowerCase(),
-            "duration" to song.duration.toString()
-        )).gson().obj
-
+        val res = http.get<JsonObject> {
+            url("https://us-central1-turntable-3961c.cloudfunctions.net/parseStreamsFromYouTube")
+            parameters(
+                "title" to song.id.displayName.toLowerCase(),
+                "album" to song.id.album.displayName.toLowerCase(),
+                "artist" to song.id.artist.displayName.toLowerCase(),
+                "albumArtist" to song.id.album.artist.displayName.toLowerCase(),
+                "duration" to song.duration
+            )
+        }
 
         val lq = res["lowQuality"].nullObj?.get("url")?.string
 

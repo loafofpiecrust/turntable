@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.model.sync
 
 import android.os.Parcelable
+import com.github.ajalt.timberkt.Timber
 import com.loafofpiecrust.turntable.appends
 import com.loafofpiecrust.turntable.model.Recommendable
 import com.loafofpiecrust.turntable.model.playlist.AbstractPlaylist
@@ -13,7 +14,7 @@ import com.loafofpiecrust.turntable.util.Duration
 import com.loafofpiecrust.turntable.util.days
 import com.loafofpiecrust.turntable.util.minutes
 import kotlinx.android.parcel.Parcelize
-import org.jetbrains.anko.info
+import kotlinx.serialization.Serializable
 import java.util.*
 
 interface Message {
@@ -26,6 +27,7 @@ interface Message {
     suspend fun onReceive(sender: User)
 
     // Recommendations
+//    @Serializable
     data class Recommend(
         val content: Recommendable
     ): Message {
@@ -102,9 +104,9 @@ sealed class PlayerAction: Message, Parcelable {
     }
 
     @Parcelize
-    data class QueuePosition(val pos: Int) : PlayerAction() {
+    data class QueuePosition(val position: Int) : PlayerAction() {
         override fun MusicService.enact(): Boolean {
-            player.shiftQueuePosition(pos)
+            player.shiftQueuePosition(position)
             return true
         }
     }
@@ -140,21 +142,22 @@ sealed class PlayerAction: Message, Parcelable {
     }
 
     @Parcelize
-    data class RemoveFromQueue(val pos: Int) : PlayerAction() {
+    data class RemoveFromQueue(val position: Int) : PlayerAction() {
         override fun MusicService.enact(): Boolean {
-            player.removeFromQueue(pos)
+            player.removeFromQueue(position)
             return true
         }
     }
 
     @Parcelize
+    @Serializable
     data class PlaySongs(
         val songs: List<Song>,
-        val pos: Int = 0,
+        val position: Int = 0,
         val mode: MusicPlayer.OrderMode = MusicPlayer.OrderMode.SEQUENTIAL
     ) : PlayerAction() {
         override fun MusicService.enact(): Boolean {
-            player.playSongs(songs, pos, mode)
+            player.playSongs(songs, position, mode)
             return true
         }
     }
@@ -164,16 +167,16 @@ sealed class PlayerAction: Message, Parcelable {
         val queue: CombinedQueue
     ) : PlayerAction() {
         override fun MusicService.enact(): Boolean {
-            info { "Aligning queue for sync" }
+            Timber.d { "Aligning queue for sync" }
             player.replaceQueue(queue)
             return true
         }
     }
 
     @Parcelize
-    data class SeekTo(val pos: Long) : PlayerAction() {
+    data class SeekTo(val position: Long) : PlayerAction() {
         override fun MusicService.enact(): Boolean {
-            player.seekTo(pos)
+            player.seekTo(position)
             return true
         }
     }

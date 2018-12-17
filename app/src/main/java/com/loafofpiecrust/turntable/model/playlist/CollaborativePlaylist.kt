@@ -2,7 +2,8 @@ package com.loafofpiecrust.turntable.model.playlist
 
 import android.content.Context
 import com.github.daemontus.Result
-import com.google.firebase.firestore.Blob
+import com.github.salomonbrys.kotson.fromJson
+import com.github.salomonbrys.kotson.typedToJson
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -13,8 +14,6 @@ import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.util.replayOne
-import com.loafofpiecrust.turntable.util.serialize
-import com.loafofpiecrust.turntable.util.toObject
 import com.loafofpiecrust.turntable.util.withReplaced
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
@@ -181,8 +180,8 @@ class CollaborativePlaylist (
                 "color" to color,
                 "lastModified" to lastModified,
                 "createdTime" to createdTime,
-                "operations" to Blob.fromBytes(serialize(operations.value)),
-                "owner" to Blob.fromBytes(serialize(id.owner))
+                "operations" to App.gson.typedToJson(operations.value),
+                "owner" to id.owner?.let { App.gson.typedToJson(it) }
             ))
         }
 //        val ops = doc.collection("operations")
@@ -227,12 +226,12 @@ class CollaborativePlaylist (
             CollaborativePlaylist(
                 PlaylistId(
                     doc.getString("name")!!,
-                    doc.getBlob("owner")!!.toObject(),
+                    App.gson.fromJson(doc.getString("owner")!!),
                     UUID.fromString(doc.id)
                 ),
                 doc.getLong("color")?.toInt()
             ).apply {
-                operations puts doc.getBlob("operations")!!.toObject()
+                operations puts App.gson.fromJson(doc.getString("operations")!!)
                 lastModified = doc.getDate("lastModified")!!
                 isPublished = true
             }

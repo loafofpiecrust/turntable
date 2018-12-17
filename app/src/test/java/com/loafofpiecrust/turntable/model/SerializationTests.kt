@@ -1,22 +1,28 @@
 package com.loafofpiecrust.turntable.model
 
-import android.os.Bundle
 import ch.tutteli.atrium.api.cc.en_GB.*
 import ch.tutteli.atrium.verbs.assert
 import ch.tutteli.atrium.verbs.expect
+import com.github.salomonbrys.kotson.fromJson
+import com.github.salomonbrys.kotson.typedToJson
+import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
+import com.loafofpiecrust.turntable.model.sync.Message
+import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.parMap
-import com.loafofpiecrust.turntable.util.ParcelSerializer
-import com.loafofpiecrust.turntable.util.deserialize
-import com.loafofpiecrust.turntable.util.serialize
+import de.javakaffee.kryoserializers.dexx.ListSerializer
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.firstOrNull
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.internal.ArrayListSerializer
+import kotlinx.serialization.json.JSON
+import kotlinx.serialization.parse
+import kotlinx.serialization.stringify
 import java.util.*
 import kotlin.test.*
 
@@ -27,6 +33,14 @@ class SerializationTests {
         runBlocking { serialize(1) }
     }
 
+    inline fun <reified T : Any> serialize(obj: T): String {
+        return App.gson.typedToJson(obj)
+    }
+
+    inline fun <reified T : Any> deserialize(bytes: String): T {
+        return App.gson.fromJson(bytes)
+    }
+
     private val song = Song(
         SongId("Let It Be", AlbumId("Let It Be", ArtistId("The Beatles"))),
         track = 6,
@@ -35,29 +49,29 @@ class SerializationTests {
         year = 1970
     )
 
-    @Test fun `single song`() = runBlocking<Unit> {
-        val serialized = serialize(song)
-        println(serialized.size)
-        println(serialized.toString(Charsets.ISO_8859_1))
-        val deserialized = deserialize(serialized)
-        assert(deserialized).toBe(song)
-    }
-
-    @Test fun `song to string via base64`() = runBlocking<Unit> {
-        val serialized = Base64.getEncoder().encodeToString(serialize(song))
-        println(serialized.length)
+    @Test
+    fun `single song`() = runBlocking<Unit> {
+        val serialized = App.gson.typedToJson(song)
         println(serialized)
-        val deserialized = deserialize(Base64.getDecoder().decode(serialized))
+        val deserialized: Song = App.gson.fromJson(serialized)
         assert(deserialized).toBe(song)
     }
 
-    @Test fun `channel of songs`() = runBlocking<Unit> {
-        val chan = ConflatedBroadcastChannel<List<Song>>()
-        chan.offer(listOf(song))
-        val serialized = serialize(chan)
-        println(serialized.size)
-        println(serialized.toString(Charsets.ISO_8859_1))
-        val deserialized = (deserialize(serialized) as ConflatedBroadcastChannel<*>)
+    @Test
+    fun `list of songs`() {
+        val list = listOf(song)
+        val serialized = App.gson.toJson(list)
+        val deserialized: List<Song> = App.gson.fromJson(serialized)
+        expect(deserialized).toBe(list)
+    }
+
+    @Test
+    fun `channel of songs`() = runBlocking<Unit> {
+        val chan = ConflatedBroadcastChannel<List<Song>>(listOf(song))
+        val serialized = App.gson.typedToJson(chan)
+//        println(serialized.size)
+        println(serialized)
+        val deserialized = (App.gson.fromJson<ConflatedBroadcastChannel<List<Song>>>(serialized))
             .openSubscription().firstOrNull()
         val orig = chan.openSubscription().firstOrNull()
 
@@ -66,58 +80,94 @@ class SerializationTests {
         assert(deserialized).toBe(orig)
     }
 
-    @Test fun `empty songs channel`() = runBlocking {
-        val chan = ConflatedBroadcastChannel<List<Song>>()
-        val serialized = serialize(chan)
-        println(serialized.size)
-        println(serialized.toString(Charsets.ISO_8859_1))
-        val deserialized = deserialize(serialized) as ConflatedBroadcastChannel<*>
-        assert(deserialized.valueOrNull).toBe(null)
+    data class ChanContainer(val chan: ConflatedBroadcastChannel<List<Song>>)
+
+    @Test
+    fun `empty songs channel`() {
+        val chan = ChanContainer(ConflatedBroadcastChannel())
+        val serialized = App.gson.typedToJson(chan)
+        println(serialized)
+        val deserialized: ChanContainer = App.gson.fromJson(serialized)
+        assert(deserialized.chan.valueOrNull).toBe(null)
     }
 
-    @Test fun `refs and copies`() = runBlocking<Unit> {
-        val orig = listOf(song, song, song.copy())
-        val serd = serialize(orig)
-        val deser = deserialize(serd) as List<Song>
-        assert(deser).toBe(orig).and {
-            assert(subject[1]).isSameAs(subject[0])
-            assert(subject[2]).isNotSameAs(subject[1])
-        }
+    data class UUIDContainer(val id: UUID = UUID.randomUUID())
+
+    @Test
+    fun uuid() {
+//        runBlocking {
+        val orig = UUIDContainer()
+        val serd = App.gson.typedToJson(orig)
+        val deser: UUIDContainer = App.gson.fromJson(serd)
+        expect(deser).toBe(orig)
+//        }
     }
 
-    @Test fun uuid() {
-        runBlocking {
-            data class Simple(val id: UUID = UUID.randomUUID())
-            val orig = Simple()
-            val serd = serialize(orig)
-            val deser = deserialize(serd)
-            assert(deser).toBe(orig)
-        }
-    }
-
-    @Test fun `many songs in parallel`() {
+    @Test
+    fun `many songs in parallel`() {
         val songs = mutableListOf(song)
-        for (i in 0..500) {
+        for (i in 0..10000) {
             songs.add(song)
         }
 
-        val reser = runBlocking {
+        val reser = runBlocking(Dispatchers.IO) {
             songs.parMap {
-                serialize(it)
-            }.parMap {
-                deserialize(it.await()) as Song
+                deserialize<Song>(serialize(it))
             }.awaitAll()
+        }
+        expect(reser).toBe(songs)
+    }
+
+    @Test
+    fun `many songs in sequence`() {
+        val songs = mutableListOf(song)
+        for (i in 0..10000) {
+            songs.add(song)
+        }
+
+        val reser = songs.map {
+            deserialize<Song>(serialize(it))
         }
         expect(reser).toBe(songs)
     }
 
 
     object Something
-    @Test fun `singletons`() = runBlocking<Unit> {
+
+    @Test
+    fun `singletons`() = runBlocking<Unit> {
         val orig = Something
         val ser = serialize(Something)
         print(ser)
-        val deser = deserialize(ser)
-        expect(deser).isSameAs(orig)
+        val deser: Something = deserialize(ser)
+        expect(deser).toBe(orig)
+    }
+
+    @Test
+    fun `polymorphic singleton`() {
+        val msg: Message = PlayerAction.TogglePause
+        val ser = App.gson.typedToJson(msg)
+        println(ser)
+        val deser = App.gson.fromJson<Message>(ser)
+        expect(deser).toBe(msg)
+    }
+
+    @Test
+    fun `polymorphic message`() {
+        val msg: Message = PlayerAction.PlaySongs(listOf(song))
+        val ser = App.gson.typedToJson(msg)
+        println(ser)
+        val deser: Message = App.gson.fromJson(ser)
+        expect(deser).toBe(msg)
+    }
+
+    @Test
+    fun `polymorphic list`() {
+        val items = listOf<MusicId>(
+            song.id,
+            AlbumId("Hello", ArtistId("Somebody"))
+        )
+        val deser: List<MusicId> = deserialize(serialize(items))
+        expect(deser).toBe(items)
     }
 }

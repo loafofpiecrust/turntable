@@ -8,6 +8,7 @@ import com.frostwire.jlibtorrent.alerts.AddTorrentAlert
 import com.frostwire.jlibtorrent.alerts.Alert
 import com.frostwire.jlibtorrent.alerts.BlockFinishedAlert
 import com.frostwire.jlibtorrent.alerts.TorrentFinishedAlert
+import com.github.ajalt.timberkt.Timber
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.song.Song
@@ -19,8 +20,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import me.xdrop.fuzzywuzzy.FuzzySearch
-import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.debug
 import org.jsoup.Jsoup
 import java.io.File
 
@@ -54,7 +53,7 @@ sealed class ArtistDownload(val quality: Song.Media.Quality): MusicDownload {
 sealed class TorrentArtist(
     private val goal: Artist,
     quality: Song.Media.Quality
-) : ArtistDownload(quality), AnkoLogger {
+) : ArtistDownload(quality) {
     data class AlbumResult(val fileIdx: Int, val file: File, val matchRatio: Int)
     data class SongResult(val fileIdx: Int, val matchRatio: Int)
 
@@ -149,13 +148,12 @@ sealed class TorrentArtist(
         val albums = goal.albums
         val paths = (0 until files.numFiles()).map { it to File(files.filePath(it)) }
 
-        debug { "torrent: mapping ${albums.size} albums against ${files.numFiles()} files" }
-
+        Timber.d { "torrent: mapping ${albums.size} albums against ${files.numFiles()} files" }
 
         val folders = paths.groupBy { it.second.parentFile }
 
         albumFiles.putAll(albums.map { album ->
-            debug { "torrent: mapping album '${album.id}'" }
+            Timber.d { "torrent: mapping album '${album.id}'" }
             val (albumFolder, songFiles) = folders
                 .maxBy { (folder, files) ->
                     // This means 2 folders that match can be distinguished by year
@@ -165,7 +163,7 @@ sealed class TorrentArtist(
                     FuzzySearch.partialRatio(album.id.displayName, folder.name) + yearBias
                 }!!
 
-            debug { "torrent: album map: '${album.id}' to '${albumFolder.name}'" }
+            Timber.d { "torrent: album map: '${album.id}' to '${albumFolder.name}'" }
 //            album to songFiles.map { it.first }
             album to mapOf(*album.tracks.mapNotNull { song ->
                 val (ratio, songFile) = songFiles.lazy.map { (idx, file) ->
@@ -174,7 +172,7 @@ sealed class TorrentArtist(
                     matchRatio
                 }!!
                 val (idx, file) = songFile
-                debug { "torrent: song map: '${song.id}' to '${file.name}'" }
+                Timber.d { "torrent: song map: '${song.id}' to '${file.name}'" }
                 if (ratio > 50) {
                     song to idx
                 } else { // Nowhere near a match
@@ -182,7 +180,7 @@ sealed class TorrentArtist(
                 }
             }.toTypedArray())
         })
-        debug { "torrent: done mapping albums" }
+        Timber.d { "torrent: done mapping albums" }
     }
 
     private fun indexAlbum(album: Album): Map<Song, Int>? {
@@ -254,7 +252,7 @@ sealed class TorrentArtist(
         val handle = tor.handle ?: return
         for ((album, songs) in albumFiles) {
             for ((song, idx) in songs) {
-                debug { "torrent: setting priority of $idx to high" }
+                Timber.d { "torrent: setting priority of $idx to high" }
                 handle.setFilePriority(idx, Priority.SIX)
             }
         }

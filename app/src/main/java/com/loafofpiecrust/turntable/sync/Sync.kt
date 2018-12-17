@@ -7,13 +7,13 @@ import android.os.Parcelable
 import android.support.v4.app.FragmentActivity
 import android.support.v4.app.NotificationCompat
 import com.firebase.ui.auth.AuthUI
-import com.github.salomonbrys.kotson.jsonArray
-import com.github.salomonbrys.kotson.jsonObject
-import com.github.salomonbrys.kotson.obj
+import com.github.ajalt.timberkt.Timber
 import com.github.salomonbrys.kotson.string
+import com.github.salomonbrys.kotson.typedToJson
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.iid.FirebaseInstanceId
+import com.google.gson.JsonObject
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
@@ -23,19 +23,28 @@ import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.player.MusicService
+import com.loafofpiecrust.turntable.ui.BaseActivity
 import com.loafofpiecrust.turntable.ui.MainActivity
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.util.http
+import com.loafofpiecrust.turntable.util.inSeconds
+import com.loafofpiecrust.turntable.util.jsonBody
+import com.loafofpiecrust.turntable.util.minutes
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.url
+import io.ktor.client.response.HttpResponse
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.firstOrNull
 import kotlinx.coroutines.tasks.await
-import org.jetbrains.anko.*
+import org.jetbrains.anko.notificationManager
+import org.jetbrains.anko.toast
 
 /**
  * Manages sending messages both for a session and
  * general messages unrelated to a session.
  */
-object Sync: AnkoLogger {
+object Sync {
     private const val API_KEY = BuildConfig.FIREBASE_API_KEY
     private const val PROJECT_ID = BuildConfig.FIREBASE_PROJECT_ID
     private const val SERVER_KEY = BuildConfig.FIREBASE_SERVER_KEY
@@ -55,6 +64,7 @@ object Sync: AnkoLogger {
             }
         }
 
+    val isLoggedIn get() = selfUser.username.isNotBlank()
 
     internal fun setCurrentDevice(deviceId: String) {
         selfUser.deviceId = deviceId
@@ -92,7 +102,11 @@ object Sync: AnkoLogger {
         send(Response(false, mode), request.sender)
     }
 
-    fun requestLogin(activity: FragmentActivity) {
+    fun requestLogin(activity: FragmentActivity, soft: Boolean) {
+        if (googleAccount != null) {
+            return
+        }
+
         val lastAcc = FirebaseAuth.getInstance().currentUser
         if (lastAcc != null) {
             login(lastAcc)
@@ -108,18 +122,23 @@ object Sync: AnkoLogger {
 
                 login(acc!!.user)
             } catch (err: Exception) {
-                withContext(Dispatchers.Main) {
-                    // Create and launch sign-in intent
-                    activity.startActivityForResult(
-                        AuthUI.getInstance()
-                            .createSignInIntentBuilder()
-                            .setAvailableProviders(providers)
-                            .build(),
-                        69
-                    )
-                }
+                if (!soft) openLoginDialog(activity, providers)
             }
         }
+    }
+
+    private fun openLoginDialog(
+        activity: FragmentActivity,
+        providers: List<AuthUI.IdpConfig>
+    ) = GlobalScope.launch(Dispatchers.Main) {
+        // Create and launch sign-in intent
+        activity.startActivityForResult(
+            AuthUI.getInstance()
+                .createSignInIntentBuilder()
+                .setAvailableProviders(providers)
+                .build(),
+            69
+        )
     }
 
     fun login(acc: FirebaseUser) {
@@ -133,6 +152,13 @@ object Sync: AnkoLogger {
     }
 
     suspend fun send(msg: Message, mode: Sync.Mode): Boolean {
+        if (!isLoggedIn) {
+            BaseActivity.current?.let { activity ->
+                requestLogin(activity, soft = false)
+            }
+            return false
+        }
+
         val target = when (mode) {
             is Sync.Mode.None -> return false
             is Sync.Mode.OneOnOne -> mode.other.deviceId
@@ -140,41 +166,43 @@ object Sync: AnkoLogger {
             is Sync.Mode.Topic -> "/topics/${mode.topic}"
         }
 
-        info { "Sending $msg to $mode" }
+        Timber.d { "Sending $msg to $mode" }
 
-        val res = Http.post("https://fcm.googleapis.com/fcm/send",
-            headers = mapOf(
-                "Authorization" to "key=$SERVER_KEY"
-            ),
-            body = jsonObject(
+        val json = App.gson.typedToJson(msg.minimize())
+
+        Timber.d { "sending json $json" }
+
+        val res = http.post<HttpResponse> {
+            url("https://fcm.googleapis.com/fcm/send")
+            header("Authorization", "key=$SERVER_KEY")
+            jsonBody = mapOf(
                 "to" to target,
                 "priority" to "high",
                 "time_to_live" to msg.timeout.inSeconds().longValue,
-                "data" to jsonObject(
-                    "sender" to serialize(selfUser).toBase64(),
-                    "action" to serialize(msg.minimize()).toBase64()
+                "data" to mapOf(
+                    "sender" to App.gson.typedToJson(selfUser),
+                    "action" to json
                 )
             )
-        )
+        }
 
-        info { "Send response $res" }
+        Timber.d { "Send response $res" }
         // TODO: Process messages that fail to send to part of a group.
         // TODO: Cache messages sent when there's no connection, then dispatch them once we regain connection.
         return res.status.value == 200
     }
 
     suspend fun createGroup(name: String): Sync.Group? {
-        val res = Http.post("https://fcm.googleapis.com/fcm/notification",
-            headers = mapOf(
-                "Authorization" to "key=$API_KEY",
-                "project_id" to PROJECT_ID
-            ),
-            body = jsonObject(
+        val res = http.post<JsonObject> {
+            url("https://fcm.googleapis.com/fcm/notification")
+            header("Authorization", "key=$API_KEY")
+            header("project_id", PROJECT_ID)
+            jsonBody = mapOf(
                 "operation" to "create",
                 "notification_key_name" to name,
-                "registration_ids" to jsonArray(selfUser.deviceId)
+                "registration_ids" to arrayOf(selfUser.deviceId)
             )
-        ).gson().obj
+        }
 
         return if (res.has("notification_key")) {
             // the group key
@@ -188,18 +216,17 @@ object Sync: AnkoLogger {
     }
 
     suspend fun joinGroup(group: Sync.Group): Boolean {
-        val res = Http.post("https://fcm.googleapis.com/fcm/notification",
-            headers = mapOf(
-                "Authorization" to "key=$API_KEY",
-                "project_id" to PROJECT_ID
-            ),
-            body = jsonObject(
+        val res = http.post<JsonObject> {
+            url("https://fcm.googleapis.com/fcm/notification")
+            header("Authorization", "key=$API_KEY")
+            header("project_id", PROJECT_ID)
+            jsonBody = mapOf(
                 "operation" to "add",
                 "notification_key" to group.key,
                 "notification_key_name" to group.name,
-                "registration_ids" to jsonArray(selfUser.deviceId)
-            ).toString()
-        ).gson().obj
+                "registration_ids" to arrayOf(selfUser.deviceId)
+            )
+        }
 
         return if (!res.has("notification_key")) {
             error { "Failed to join group '${group.name}'" }
@@ -212,18 +239,17 @@ object Sync: AnkoLogger {
     }
 
     suspend fun leaveGroup(group: Sync.Group): Boolean {
-        val res = Http.post("https://fcm.googleapis.com/fcm/notification",
-            headers = mapOf(
-                "Authorization" to "key=$API_KEY",
-                "project_id" to PROJECT_ID
-            ),
-            body = jsonObject(
+        val res = http.post<JsonObject> {
+            url("https://fcm.googleapis.com/fcm/notification")
+            header("Authorization", "key=$API_KEY")
+            header("project_id", PROJECT_ID)
+            jsonBody = mapOf(
                 "operation" to "remove",
                 "notification_key" to group.key,
                 "notification_key_name" to group.name,
-                "registration_ids" to jsonArray(selfUser.deviceId)
+                "registration_ids" to arrayOf(selfUser.deviceId)
             )
-        ).gson().obj
+        }
 
         return if (!res.has("notification_key")) {
             error("sync: failed to leave group '${group.name}'")
@@ -266,6 +292,7 @@ object Sync: AnkoLogger {
 
     // Sync setup
     @Parcelize
+//    @Serializable
     class Request(
         private val currentSong: Song?,
         val mode: Sync.Mode? = null
@@ -298,7 +325,8 @@ object Sync: AnkoLogger {
         }
     }
 
-    private class Response(
+//    @Serializable
+    class Response(
         val accept: Boolean,
         val mode: Sync.Mode
     ): Message {
@@ -314,22 +342,30 @@ object Sync: AnkoLogger {
             }
 
             if (accept) {
-                if (mode is Mode.OneOnOne) {
-                    // set sync mode and enable sync in MusicService
-                    SyncSession.start(Mode.OneOnOne(sender))
+                startSession(sender)
+            }
+        }
 
-                    // Send them our current queue
-                    val player = MusicService.player.firstOrNull()
-                    val queue = player?.queue?.firstOrNull()
-                    if (queue != null) {
-                        send(PlayerAction.ReplaceQueue(queue), sender)
-                        if (!queue.isEmpty()) {
-                            delay(100)
-                            send(PlayerAction.SeekTo(player.currentBufferState.position), sender)
-                        }
-                    }
-                } else if (mode is Mode.InGroup) {
-                    SyncSession.addMember(sender)
+        private suspend fun startSession(other: User) {
+            if (mode is Mode.OneOnOne) {
+                // set sync mode and enable sync in MusicService
+                SyncSession.start(Mode.OneOnOne(other))
+
+                // Send them our current queue
+                syncQueues(other)
+            } else if (mode is Mode.InGroup) {
+                SyncSession.addMember(other)
+            }
+        }
+
+        private suspend fun syncQueues(other: User) {
+            val player = MusicService.player.firstOrNull()
+            val queue = player?.queue?.firstOrNull()
+            if (queue != null) {
+                send(PlayerAction.ReplaceQueue(queue), other)
+                if (!queue.isEmpty()) {
+                    delay(100)
+                    send(PlayerAction.SeekTo(player.currentBufferState.position), other)
                 }
             }
         }
@@ -349,7 +385,6 @@ object Sync: AnkoLogger {
          * A user can join a group after being invited by another user.
          * Any user can start a group at any time.
          * When a user agrees to join, that response is sent to the whole group.
-         *
          */
         @Parcelize
         data class InGroup(
@@ -363,6 +398,7 @@ object Sync: AnkoLogger {
 
     @Parcelize
     data class SentMessage<T>(
-        val message: T, val sender: User
+        val message: T,
+        val sender: User
     ): Parcelable where T: Message, T: Parcelable
 }

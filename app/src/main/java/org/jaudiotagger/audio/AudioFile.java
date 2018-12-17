@@ -21,25 +21,25 @@ package org.jaudiotagger.audio;
 import android.content.Context;
 import android.support.v4.provider.DocumentFile;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.io.RandomAccessFile;
-import java.util.logging.Logger;
-import java.util.ArrayList;
-
 import org.jaudiotagger.audio.aiff.AiffTag;
 import org.jaudiotagger.audio.exceptions.CannotWriteException;
 import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
 import org.jaudiotagger.audio.flac.metadatablock.MetadataBlockDataPicture;
-import org.jaudiotagger.logging.ErrorMessage;
-import org.jaudiotagger.tag.asf.AsfTag;
-import org.jaudiotagger.audio.wav.WavTag;
 import org.jaudiotagger.audio.real.RealTag;
+import org.jaudiotagger.audio.wav.WavTag;
+import org.jaudiotagger.logging.ErrorMessage;
 import org.jaudiotagger.tag.Tag;
+import org.jaudiotagger.tag.asf.AsfTag;
+import org.jaudiotagger.tag.flac.FlacTag;
 import org.jaudiotagger.tag.mp4.Mp4Tag;
 import org.jaudiotagger.tag.vorbiscomment.VorbisCommentTag;
-import org.jaudiotagger.tag.flac.FlacTag;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.logging.Logger;
 
 /**
  * <p>This is the main object manipulated by the user representing an audiofile, its properties and its tag.

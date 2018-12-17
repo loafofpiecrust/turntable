@@ -18,10 +18,19 @@
  */
 package org.jaudiotagger.audio.asf.util;
 
-import org.jaudiotagger.audio.asf.data.*;
+import org.jaudiotagger.audio.asf.data.AsfHeader;
+import org.jaudiotagger.audio.asf.data.ContainerType;
+import org.jaudiotagger.audio.asf.data.MetadataContainer;
+import org.jaudiotagger.audio.asf.data.MetadataContainerFactory;
+import org.jaudiotagger.audio.asf.data.MetadataDescriptor;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
-import org.jaudiotagger.tag.asf.*;
+import org.jaudiotagger.tag.asf.AsfFieldKey;
+import org.jaudiotagger.tag.asf.AsfTag;
+import org.jaudiotagger.tag.asf.AsfTagBannerField;
+import org.jaudiotagger.tag.asf.AsfTagCoverField;
+import org.jaudiotagger.tag.asf.AsfTagField;
+import org.jaudiotagger.tag.asf.AsfTagTextField;
 import org.jaudiotagger.tag.reference.GenreTypes;
 
 import java.util.Iterator;

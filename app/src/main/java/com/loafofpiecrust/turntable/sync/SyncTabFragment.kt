@@ -8,18 +8,19 @@ import android.provider.ContactsContract
 import android.support.v7.widget.LinearLayoutManager
 import android.view.*
 import android.widget.EditText
+import com.github.ajalt.timberkt.Timber
 import com.github.florent37.runtimepermission.kotlin.askPermission
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.artist.emptyContentView
 import com.loafofpiecrust.turntable.model.sync.Friend
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.selector
 import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.ui.universal.UIComponent
-import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.views.RecyclerAdapter
 import com.loafofpiecrust.turntable.views.RecyclerListItem
+import com.loafofpiecrust.turntable.views.refreshableRecyclerView
 import com.mcxiaoke.koi.ext.stringValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -32,6 +33,7 @@ import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.support.v4.alert
 import org.jetbrains.anko.support.v4.toast
+import kotlin.coroutines.CoroutineContext
 
 
 class SyncTabFragment: BaseFragment() {
@@ -41,50 +43,52 @@ class SyncTabFragment: BaseFragment() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
-        val choices = listOf(
-            getString(R.string.friend_from_contacts) to {
-                requestPickContact()
-            },
-            getString(R.string.friend_from_email) to {
-                alert {
-                    titleResource = R.string.friend_add
+        val choices = {
+            listOf(
+                getString(R.string.friend_from_contacts) to {
+                    requestPickContact()
+                },
+                getString(R.string.friend_from_email) to {
+                    alert {
+                        titleResource = R.string.friend_add
 
-                    lateinit var textBox: EditText
-                    customView {
-                        verticalLayout {
-                            padding = dimen(R.dimen.text_content_margin)
-                            textBox = editText {
-                                lines = 1
-                                hint = "User email address"
+                        lateinit var textBox: EditText
+                        customView {
+                            verticalLayout {
+                                padding = dimen(R.dimen.text_content_margin)
+                                textBox = editText {
+                                    lines = 1
+                                    hint = "User email address"
+                                }
                             }
                         }
-                    }
-                    positiveButton(R.string.user_befriend) {
-                        val key = textBox.text.toString()
-                        launch(Dispatchers.IO) {
-                            val user = User.resolve(key)
-                            launch(Dispatchers.Main) {
-                                // TODO: Use localized strings in xml
-                                toast(if (user != null) {
-                                    if (Friend.request(user)) {
-                                        getString(R.string.friend_request_sent, user.displayName)
+                        positiveButton(R.string.user_befriend) {
+                            val key = textBox.text.toString()
+                            launch(Dispatchers.IO) {
+                                val user = User.resolve(key)
+                                launch(Dispatchers.Main) {
+                                    // TODO: Use localized strings in xml
+                                    toast(if (user != null) {
+                                        if (Friend.request(user)) {
+                                            getString(R.string.friend_request_sent, user.displayName)
+                                        } else {
+                                            getString(R.string.friend_request_already_added, user.displayName)
+                                        }
                                     } else {
-                                        getString(R.string.friend_request_already_added, user.displayName)
-                                    }
-                                } else {
-                                    getString(R.string.user_nonexistent, key)
-                                })
+                                        getString(R.string.user_nonexistent, key)
+                                    })
+                                }
                             }
                         }
-                    }
-                    cancelButton {}
-                }.show()
-            }
-        )
+                        cancelButton {}
+                    }.show()
+                }
+            )
+        }
 
         menu.menuItem(R.string.friend_add, R.drawable.ic_add, showIcon = true) {
             onClick {
-                selector(getString(R.string.friend_add), choices).invoke()
+                selector(getString(R.string.friend_add), choices()).invoke()
             }
         }
 
@@ -146,39 +150,49 @@ class SyncTabFragment: BaseFragment() {
             val id = cursor.stringValue(ContactsContract.Contacts._ID)
             val name = cursor.stringValue(ContactsContract.Contacts.DISPLAY_NAME)
             val email = cursor.stringValue(ContactsContract.CommonDataKinds.Email.ADDRESS)
-            println("friends: adding $id:$name at $email")
 
             launch(Dispatchers.IO) {
                 val user = User.resolve(email)
-                launch(Dispatchers.Main) {
-                    toast(if (user != null) {
-                        if (Friend.request(user)) {
-                            getString(R.string.friend_request_sent, user.name)
-                        } else {
-                            getString(R.string.friend_request_already_added, user.name)
-                        }
+                val msg = if (user != null) {
+                    if (Friend.request(user)) {
+                        getString(R.string.friend_request_sent, user.name)
                     } else {
-                        getString(R.string.user_nonexistent, name)
-                    })
+                        getString(R.string.friend_request_already_added, user.name)
+                    }
+                } else {
+                    getString(R.string.user_nonexistent, name)
+                }
+
+                launch(Dispatchers.Main) {
+                    toast(msg)
                 }
             }
         }
     }
 
 
-    override fun ViewManager.createView() = with(this) {
-        // 'New Friend!' button
+    override fun ViewManager.createView() = refreshableRecyclerView {
+        channel = Friend.friends.openSubscription()
 
         // list of friends
-        recyclerView {
-            layoutManager = LinearLayoutManager(context)
-            adapter = FriendAdapter(job, Friend.friendList)
+        contents {
+            recyclerView {
+                layoutManager = LinearLayoutManager(context)
+                adapter = FriendAdapter(coroutineContext, Friend.friendList)
+            }
+        }
+
+        emptyState {
+            emptyContentView(
+                R.string.friends_empty,
+                R.string.friends_empty_details
+            )
         }
     }
 }
 
 class FriendAdapter(
-    job: Job,
+    job: CoroutineContext,
     friends: ReceiveChannel<List<Friend>>
 ) : RecyclerAdapter<Friend, RecyclerListItem>(job, friends) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
@@ -191,7 +205,7 @@ class FriendAdapter(
             menu.visibility = View.GONE
             mainLine.text = friend.user.name
             subLine.text = when (friend.status) {
-                Friend.Status.CONFIRMED -> friend.user.username
+                Friend.Status.CONFIRMED -> friend.user.deviceId
                 Friend.Status.RECEIVED_REQUEST -> context.getString(R.string.friend_request_received)
                 Friend.Status.SENT_REQUEST -> context.getString(R.string.friend_request_sent_line)
             }

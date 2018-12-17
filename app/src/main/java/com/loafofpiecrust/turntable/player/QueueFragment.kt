@@ -35,7 +35,7 @@ class QueueFragment : BaseFragment() {
     private var songList: RecyclerView? = null
 
     override fun ViewManager.createView() = cardView {
-        cardElevation = dimen(R.dimen.medium_elevation).toFloat()
+        cardElevation = dimen(R.dimen.top_elevation).toFloat()
 
         linearLayout {
             orientation = LinearLayout.VERTICAL

@@ -2,7 +2,7 @@ package com.loafofpiecrust.turntable.model.playlist
 
 import android.content.Context
 import android.support.annotation.VisibleForTesting
-import com.google.firebase.firestore.Blob
+import com.github.salomonbrys.kotson.fromJson
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.loafofpiecrust.turntable.*
@@ -10,7 +10,11 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.sync.Sync
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.ui.BaseActivity
+import com.loafofpiecrust.turntable.ui.MainActivity
+import com.loafofpiecrust.turntable.util.lazy
+import com.loafofpiecrust.turntable.util.minutes
+import com.loafofpiecrust.turntable.util.withReplaced
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -37,13 +41,10 @@ import java.util.*
  * - It is the duty of the UI to enforce permissions.
  * - Represented as a list of Operations that compose into the actual track list
  */
+//@Serializable
 class SongPlaylist(
-    id: PlaylistId,
-    initialSideCount: Int = 1
+    override var id: PlaylistId
 ) : Playlist {
-    override var id = id
-        private set
-
     override val icon: Int
         get() = R.drawable.ic_queue
 
@@ -62,7 +63,7 @@ class SongPlaylist(
         private set
 
     val sides = ConflatedBroadcastChannel(
-        (1..initialSideCount).map { emptyList<Track>() }
+        listOf(listOf<Track>())
     )
 
     val tracksChannel: ReceiveChannel<List<Song>>
@@ -165,8 +166,8 @@ class SongPlaylist(
         }
     }
 
-    private fun canModify(user: User): Boolean =
-        user == id.owner
+    fun canModify(user: User): Boolean =
+        id.owner == null || user.username == id.owner?.username
 
     private fun modify() {
         if (!canModify(Sync.selfUser)) {
@@ -177,6 +178,15 @@ class SongPlaylist(
     }
 
     fun publish() {
+        // TODO: Check that we're logged in here.
+        if (id.owner == null) {
+            if (Sync.isLoggedIn) {
+                id = id.copy(owner = Sync.selfUser)
+            } else {
+                Sync.requestLogin(BaseActivity.current!!, soft = false)
+                return
+            }
+        }
         if (!isPublic) {
             upload()
         } else {
@@ -235,10 +245,10 @@ class SongPlaylist(
     private fun toDocument(): Map<String, Any> = runBlocking {
         mapOf(
             "name" to id.name,
-            "owner" to id.owner.username,
+            "owner" to (id.owner?.username ?: ""),
             "lastModifiedTime" to lastModifiedTime,
             "maxSideDuration" to maxSideDuration,
-            "sides" to Blob.fromBytes(serialize(sides.value))
+            "sides" to App.gson.toJson(sides.value)
         )
     }
 
@@ -336,20 +346,18 @@ class SongPlaylist(
         const val SIDE_UNLIMITED: Long = -1
         private val DEFAULT_TRACK_DURATION = 4.minutes
 
-        private fun fromDocument(doc: DocumentSnapshot) = runBlocking {
-            SongPlaylist(
-                PlaylistId(
-                    doc.getString("name")!!,
-                    User.resolve(doc.getString("owner")!!)!!,
-                    UUID.fromString(doc.id)
-                )
-            ).apply {
-                lastSyncTime = System.currentTimeMillis()
-                lastModifiedTime = doc.getLong("lastModifiedTime")!!
-                maxSideDuration = doc.getLong("maxSideDuration")!!
-                isPublic = true
-                sides.offer(doc.getBlob("sides")!!.toObject())
-            }
+        private fun fromDocument(doc: DocumentSnapshot) = SongPlaylist(
+            PlaylistId(
+                doc.getString("name")!!,
+                User.resolve(doc.getString("owner")!!)!!,
+                UUID.fromString(doc.id)
+            )
+        ).apply {
+            lastSyncTime = System.currentTimeMillis()
+            lastModifiedTime = doc.getLong("lastModifiedTime")!!
+            maxSideDuration = doc.getLong("maxSideDuration")!!
+            isPublic = true
+            sides.offer(App.gson.fromJson(doc.getString("sides")!!))
         }
     }
 }

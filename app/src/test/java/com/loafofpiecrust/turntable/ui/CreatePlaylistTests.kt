@@ -28,10 +28,10 @@ class CreatePlaylistTests {
 
 //    @Test fun `create playlist`() {
 //        val activity = Robolectric.buildActivity(
-//            AddPlaylistDialog::class.java,
+//            NewPlaylistDialog::class.java,
 //            AddPlaylistActivityStarter.getIntent(
 //                App.instance,
-//                AddPlaylistDialog.TrackList(listOf(track1, track2))
+//                NewPlaylistDialog.TrackList(listOf(track1, track2))
 //            )
 //        ).setup().get()
 //

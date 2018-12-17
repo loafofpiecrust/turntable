@@ -1,16 +1,18 @@
 package com.loafofpiecrust.turntable.player
 
 import android.content.Context
+import com.github.ajalt.timberkt.Timber
 import com.google.android.exoplayer2.*
+import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSourceFactory
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory
 import com.google.android.exoplayer2.source.ConcatenatingMediaSource
+import com.google.android.exoplayer2.source.ExtractorMediaSource
 import com.google.android.exoplayer2.source.TrackGroupArray
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
-import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.appends
 import com.loafofpiecrust.turntable.model.queue.*
@@ -24,19 +26,17 @@ import com.loafofpiecrust.turntable.util.with
 import com.loafofpiecrust.turntable.util.without
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.map
 import kotlinx.coroutines.channels.produce
 import kotlinx.coroutines.delay
-import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.debug
-import org.jetbrains.anko.error
+import okhttp3.OkHttpClient
 import org.jetbrains.anko.toast
 import kotlin.coroutines.CoroutineContext
 
-class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScope {
+class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
     override val coroutineContext: CoroutineContext = SupervisorJob()
 
     enum class EnqueueMode {
@@ -44,23 +44,21 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
         IMMEDIATELY_NEXT, // Will play _immediately_ after the current song
     }
 
-
-    private val userAgent = "Mozilla/5.0 (X11; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0"
     private val bandwidthMeter = DefaultBandwidthMeter()
-    private val sourceFactory by lazy {
-        DefaultDataSourceFactory(
-            ctx,
-            bandwidthMeter,
-            DefaultHttpDataSourceFactory(
-                userAgent,
+    private val mediaSourceFactory by lazy {
+        ExtractorMediaSource.Factory(
+            DefaultDataSourceFactory(
+                ctx,
                 bandwidthMeter,
-                4000, // timeouts
-                4000,
-                false
+                OkHttpDataSourceFactory(
+                    OkHttpClient(),
+                    USER_AGENT,
+                    null
+                )
             )
-        )
+        ).setExtractorsFactory(DefaultExtractorsFactory())
     }
-    private val extractorsFactory = DefaultExtractorsFactory()
+
     private val player = ExoPlayerFactory.newSimpleInstance(
         DefaultRenderersFactory(ctx),
         DefaultTrackSelector(AdaptiveTrackSelection.Factory(bandwidthMeter)),
@@ -150,14 +148,14 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
 
     init {
         // Handle case of restoring state after process death.
-        if (!_queue.value.isEmpty()) {
+        if (_queue.valueOrNull?.isEmpty() == false) {
             prepareSource()
         }
     }
 
     fun release() {
         player.release()
-        coroutineContext.cancel()
+        coroutineContext.cancelChildren()
     }
 
     override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters?) {
@@ -172,7 +170,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
         // This means the current song couldn't be loaded.
         // In this case, delete the DB entry for the current song.
         // Then, try again to play it.
-        error(error.type, error)
+        Timber.e(error) { error.type.toString() }
 
         // if the error is a SOURCE error 404 or 403,
         // clear streams and try again
@@ -189,7 +187,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
     }
 
     override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
-        debug { "player state: playing=$playWhenReady, state=$playbackState" }
+        Timber.d { "player state: playing=$playWhenReady, state=$playbackState" }
         _isPlaying.offer(playWhenReady)
         when (playbackState) {
             Player.STATE_ENDED -> if (playWhenReady) {
@@ -247,20 +245,28 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
         when (mode) {
             OrderMode.SEQUENTIAL -> {
                 val primary = StaticQueue(songs, position)
-                _queue putsMapped { q ->
-                    val next = if (q.isPlayingNext) q.nextUp.drop(1) else q.nextUp
-                    CombinedQueue(primary, next)
-                }
+                val q = _queue.valueOrNull
+                val next = if (q != null) {
+                    if (q.isPlayingNext) q.nextUp.drop(1) else q.nextUp
+                } else listOf()
+
+                _queue.offer(CombinedQueue(primary, next))
             }
             OrderMode.SHUFFLE -> {
                 nonShuffledQueue = StaticQueue(songs, position)
                 val shuffledSongs = if (position > 0) {
                     listOf(songs[position]) + songs.without(position).shuffled()
                 } else songs.shuffled()
-                _queue putsMapped { q ->
-                    val next = if (q.isPlayingNext) q.nextUp.drop(1) else q.nextUp
-                    CombinedQueue(StaticQueue(shuffledSongs, 0), next)
-                }
+
+                val q = _queue.valueOrNull
+                val next = if (q != null) {
+                    if (q.isPlayingNext) q.nextUp.drop(1) else q.nextUp
+                } else listOf()
+
+                _queue.offer(CombinedQueue(
+                    StaticQueue(shuffledSongs, 0),
+                    next
+                ))
             }
         }
         prepareSource()
@@ -276,7 +282,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
                         isPrepared = loaded
                         if (loaded) play()
                     }
-                StreamMediaSource(song, sourceFactory, extractorsFactory, cb)
+                StreamMediaSource(song, mediaSourceFactory, cb)
             })
         }
         player.seekToDefaultPosition(q.position)
@@ -304,7 +310,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
             EnqueueMode.IMMEDIATELY_NEXT -> _queue putsMapped { q ->
                 mediaSource?.addMediaSources(
                     q.position + 1,
-                    songs.map { StreamMediaSource(it, sourceFactory, extractorsFactory) }
+                    songs.map { StreamMediaSource(it, mediaSourceFactory) }
                 )
                 val pos = if (q.isPlayingNext) 1 else 0
                 q.copy(nextUp = q.nextUp.with(songs, pos))
@@ -312,7 +318,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
             EnqueueMode.NEXT -> _queue putsMapped { q ->
                 mediaSource?.addMediaSources(
                     q.primary.position + q.nextUp.size + 1,
-                    songs.map { StreamMediaSource(it, sourceFactory, extractorsFactory) }
+                    songs.map { StreamMediaSource(it, mediaSourceFactory) }
                 )
                 q.copy(nextUp = q.nextUp + songs)
             }
@@ -470,5 +476,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, AnkoLogger, CoroutineScop
     companion object {
         // TODO: Decide on percent threshold to count as a "full" listen. Is half the song enough?
         private const val LISTENED_PROPORTION = 0.5
+        private const val USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0"
     }
 }

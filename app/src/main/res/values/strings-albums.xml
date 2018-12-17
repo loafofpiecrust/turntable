@@ -22,6 +22,8 @@
     <string name="album_partial">Partially Downloaded</string>
     <string name="album_already_downloaded">Album already downloaded</string>
     <string name="album_by_artist">Album by %1$s</string>
+    <string name="albums_empty">No albums</string>
+    <string name="albums_empty_details">Find an artist you like and bookmark one of their albums.</string>
 
     <!-- Album types -->
     <plurals name="Album_Type_LP">

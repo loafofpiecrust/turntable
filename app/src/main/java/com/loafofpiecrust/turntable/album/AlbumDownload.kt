@@ -6,8 +6,10 @@ import com.frostwire.jlibtorrent.alerts.AddTorrentAlert
 import com.frostwire.jlibtorrent.alerts.Alert
 import com.frostwire.jlibtorrent.alerts.BlockFinishedAlert
 import com.frostwire.jlibtorrent.alerts.TorrentFinishedAlert
+import com.github.ajalt.timberkt.Timber
 import com.github.salomonbrys.kotson.*
 import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.artist.MusicDownload
 import com.loafofpiecrust.turntable.artist.TorrentArtist
@@ -16,14 +18,13 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.song.YouTubeSong
 import com.loafofpiecrust.turntable.util.*
+import io.ktor.client.request.get
+import io.ktor.client.request.url
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import me.xdrop.fuzzywuzzy.FuzzySearch
-import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.debug
-import org.jetbrains.anko.info
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.safety.Whitelist
@@ -37,7 +38,7 @@ import kotlin.math.abs
 sealed class AlbumDownload(
     val quality: Song.Media.Quality
 ): MusicDownload {
-    companion object: AnkoLogger {
+    companion object {
         fun search(album: Album) : AlbumDownload? {
             return null
 //            val tpb = task { TPBAlbum.search(album) }
@@ -416,10 +417,9 @@ class TPBAlbum(
         suspend fun search(album: Album): TPBAlbum? {
             // Sorted by seeders (desc), in the Audio category
             val query = URLEncoder.encode("${album.id} ${album.id.artist}", "UTF-8")
-            val res = Jsoup.parse(Http.get(
-                "https://thepiratebay.org/search/$query/0/7/100"//,
-//                timeout = 10.0
-            ).use { it.text() })
+            val res = Jsoup.parse(
+                http.get<String>("https://thepiratebay.org/search/$query/0/7/100")
+            )
 
             // TODO: Add check for no results
             val table = res.getElementById("searchResult").child(1)
@@ -528,21 +528,24 @@ data class YouTubeFullAlbum(
         return goal
     }
 
-    companion object: AnkoLogger by AnkoLogger<YouTubeFullAlbum>() {
+    companion object {
         private val HMS_PAT by lazy { Regex("\\b\\(?(\\d{1,2}):(\\d{2}):(\\d{2})\\)?\\b") }
         private val MS_PAT by lazy { Regex("\\b\\(?(\\d{1,2}):(\\d{2})\\)?\\b") }
 
         suspend fun search(album: Album): YouTubeFullAlbum? {
-            val res = Http.get("https://www.googleapis.com/youtube/v3/search", params = mapOf(
-                "key" to BuildConfig.YOUTUBE_API_KEY,
-                "part" to "snippet",
-                "type" to "video",
-                "q" to "${album.id.artist} ${album.id.displayName} full album",
-                "maxResults" to "4",
-                "videoSyndicated" to "true"
-            )).gson()
+            val res = http.get<JsonObject> {
+                url("https://www.googleapis.com/youtube/v3/search")
+                parameters(
+                    "key" to BuildConfig.YOUTUBE_API_KEY,
+                    "part" to "snippet",
+                    "type" to "video",
+                    "q" to "${album.id.artist} ${album.id.displayName} full album",
+                    "maxResults" to 4,
+                    "videoSyndicated" to true
+                )
+            }
 
-            info { "youtube: searching query '${album.id.artist} ${album.id.displayName} full album'" }
+            Timber.d { "youtube: searching query '${album.id.artist} ${album.id.displayName} full album'" }
 
             val items = tryOr(JsonArray()) { res["items"].array }
             val results = items.map { it.obj }.map {
@@ -555,7 +558,7 @@ data class YouTubeFullAlbum(
                 if (matchRatio < 85 || !title.contains("Full Album", true) || videoId == null) {
                     return@map null
                 }
-                info { "youtube: potential album match '$title' at $videoId" }
+                Timber.d { "youtube: potential album match '$title' at $videoId" }
 //                task(UI) { println("youtube: potential result matches ${matchRatio}%") }
 
 //                    object : YouTubeExtractorOld(App.instance) {
@@ -582,14 +585,17 @@ data class YouTubeFullAlbum(
             = grabFromVideo(album, videoId) ?: grabFromComments(album, videoId)
 
         private suspend fun grabFromComments(album: Album, videoId: String): YouTubeFullAlbum? = run {
-            val res = Http.get("https://www.googleapis.com/youtube/v3/commentThreads", params = mapOf(
-                "key" to BuildConfig.YOUTUBE_API_KEY,
-                "part" to "snippet",
-                "videoId" to videoId,
-                "maxResults" to "4",
-                "order" to "relevance",
-                "textFormat" to "plainText"
-            )).gson().obj
+            val res = http.get<JsonObject> {
+                url("https://www.googleapis.com/youtube/v3/commentThreads")
+                parameters(
+                    "key" to BuildConfig.YOUTUBE_API_KEY,
+                    "part" to "snippet",
+                    "videoId" to videoId,
+                    "maxResults" to "4",
+                    "order" to "relevance",
+                    "textFormat" to "plainText"
+                )
+            }
 
             res["items"].array.lazy.map { it.obj }.mapNotFailed {
                 val info = it["snippet"]["topLevelComment"]["snippet"].obj
@@ -608,7 +614,7 @@ data class YouTubeFullAlbum(
                         }.maxBy { it.first }!!
 
                         if (ratio > 80) {
-                            info { "youtube: mapping song '${song.id.name}' to section ${vidTrack.start}-${vidTrack.end} called '${vidTrack.title}'" }
+                            Timber.d { "youtube: mapping song '${song.id.name}' to section ${vidTrack.start}-${vidTrack.end} called '${vidTrack.title}'" }
                             song to vidTrack
                         } else null
                     } else null
@@ -622,7 +628,9 @@ data class YouTubeFullAlbum(
 
         private suspend fun grabFromVideo(album: Album, videoId: String): YouTubeFullAlbum? = run {
             // Unfortunately, to grab the description we have to parse the video page :(
-            val pageRes = Http.get("https://youtube.com/watch?v=$videoId", cacheLevel = Http.CacheLevel.PAGE).use { it.text() }
+            val pageRes = http.get<String>(
+                "https://youtube.com/watch?v=$videoId"
+            )
             val descStart = "<p uuid=\"eow-description\" class=\"\" >"
             val descStartIdx = pageRes.indexOf(descStart) + descStart.length
             val descEndIdx = pageRes.indexOf("</p>", startIndex=descStartIdx)
@@ -690,7 +698,7 @@ data class YouTubeFullAlbum(
                     }.maxBy { it.first } ?: return@mapNotNull null
 
                     if (ratio > 80) {
-                        info { "youtube: mapping song '${song.id.displayName}' to section ${vidTrack.start}-${vidTrack.end} called '${vidTrack.title}'" }
+                        Timber.d { "youtube: mapping song '${song.id.displayName}' to section ${vidTrack.start}-${vidTrack.end} called '${vidTrack.title}'" }
                         val videoSongDuration = vidTrack.end - vidTrack.start
                         val newDurationCorrect = abs(song.duration - videoSongDuration).milliseconds < 1.minutes
                         val end = if (newDurationCorrect) {
@@ -762,7 +770,7 @@ data class YouTubeFullAlbum(
                 val titles = videoTracks.map { it.title.trim() }
                 val suffix = titles.longestSharedSuffix(true) ?: ""
                 val prefix = titles.longestSharedPrefix(true) ?: ""
-                debug { "youtube: prefix = $prefix, suffix = $suffix, titles: $titles" }
+                Timber.d { "youtube: prefix = $prefix, suffix = $suffix, titles: $titles" }
 //                    var longestCommonSuffix = -1
 //                    val first = videoTracks[0]
 //                    do {

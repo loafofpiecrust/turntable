@@ -19,7 +19,11 @@
 package org.jaudiotagger.audio.generic;
 
 import org.jaudiotagger.logging.ErrorMessage;
-import org.jaudiotagger.tag.*;
+import org.jaudiotagger.tag.FieldDataInvalidException;
+import org.jaudiotagger.tag.FieldKey;
+import org.jaudiotagger.tag.KeyNotFoundException;
+import org.jaudiotagger.tag.TagField;
+import org.jaudiotagger.tag.TagTextField;
 import org.jaudiotagger.tag.images.Artwork;
 
 import java.util.ArrayList;

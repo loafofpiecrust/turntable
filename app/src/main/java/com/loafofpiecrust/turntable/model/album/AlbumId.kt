@@ -12,6 +12,7 @@ import java.util.*
  * Used to determine duplicate and mergeable albums in a discography.
  */
 @Parcelize
+//@Serializable
 data class AlbumId(
     /**
     * Original name
@@ -22,10 +23,14 @@ data class AlbumId(
     @Deprecated("Serializer use only")
     internal constructor(): this("", ArtistId())
 
+    @kotlinx.serialization.Transient
     val sortChar: Char get() = displayName.first().toUpperCase()
+
+    @kotlinx.serialization.Transient
     val dbKey: String get() = "$displayName~${artist.dbKey}".toLowerCase()
 
     @Deprecated("Should be elsewhere")
+    @kotlinx.serialization.Transient
     val discNumber: Int get() =
         DISC_SUFFIX.find(name)?.let { m ->
             m.groups[2]?.value?.toIntOrNull()
@@ -44,6 +49,7 @@ data class AlbumId(
      * It's a Deluxe Edition => It's a Deluxe Edition
      */
     @delegate:Transient
+    @kotlinx.serialization.Transient
     override val displayName: String by lazy {
         val toRemove = arrayOf(
             // First, remove " - $type" suffix
@@ -79,6 +85,7 @@ data class AlbumId(
         COMPARATOR.compare(this, other)
 
     @delegate:Transient
+    @kotlinx.serialization.Transient
     private val collationKey by lazy {
         COLLATOR.getCollationKey(displayName)
     }

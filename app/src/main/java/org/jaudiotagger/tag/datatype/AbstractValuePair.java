@@ -21,7 +21,11 @@
  */
 package org.jaudiotagger.tag.datatype;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A two way mapping between an uuid and a value

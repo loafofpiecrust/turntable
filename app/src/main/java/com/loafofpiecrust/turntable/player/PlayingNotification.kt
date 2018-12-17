@@ -1,14 +1,11 @@
 package com.loafofpiecrust.turntable.player
 
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
+import android.app.*
 import android.os.Build
-import android.support.annotation.RequiresApi
 import android.support.v4.app.NotificationCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import com.github.ajalt.timberkt.Timber
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.sync.PlayerAction
@@ -23,9 +20,7 @@ class PlayingNotification(private val service: MusicService) {
     private var lastSongColor: Int? = null
 
     init {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            createChannel()
-        }
+        createChannel(service)
     }
 
     fun show(song: Song?, playing: Boolean) {
@@ -40,18 +35,9 @@ class PlayingNotification(private val service: MusicService) {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun createChannel() = service.notificationManager.createNotificationChannel(
-        NotificationChannel(CHANNEL_ID, "Music Playback", NotificationManager.IMPORTANCE_HIGH).apply {
-            description = "Playback controls and info"
-            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-            setShowBadge(true)
-            enableVibration(false)
-        }
-    )
-
     private fun build(song: Song?, playing: Boolean, paletteColor: Int? = null) {
         if (song == null) {
+            Timber.i { "No song, stopping MusicService" }
             service.stopForeground(true)
             return
         }
@@ -146,5 +132,18 @@ class PlayingNotification(private val service: MusicService) {
 
     companion object {
         private const val CHANNEL_ID = "turntable"
+
+        internal fun createChannel(service: Service) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                service.notificationManager.createNotificationChannel(
+                    NotificationChannel(CHANNEL_ID, "Music Playback", NotificationManager.IMPORTANCE_HIGH).apply {
+                        description = "Playback controls and info"
+                        lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                        setShowBadge(true)
+                        enableVibration(false)
+                    }
+                )
+            }
+        }
     }
 }

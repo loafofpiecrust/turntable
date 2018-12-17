@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable
 
-//import quatja.com.vorolay.VoronoiView
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -34,18 +33,20 @@ import kotlin.coroutines.*
 
 fun msToTimeString(ms: Int): String {
     // seconds: divide by 1000
-    // minutes: divide seconds by 60
     val sec = ms / 1000
+    // minutes: divide seconds by 60
     val min = sec / 60
-    val subsec = sec % 60
-    return String.format(Locale.US, "%02d:%02d", min, subsec)
+    val secWithinMin = sec % 60
+    return String.format(Locale.US, "%02d:%02d", min, secWithinMin)
 }
 
-class broadcastReceiver(val init: (Context, Intent) -> Unit): BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        init(context, intent)
+
+inline fun broadcastReceiver(crossinline receive: (Context, Intent) -> Unit) =
+    object: BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            receive(context, intent)
+        }
     }
-}
 
 fun <T> List<T>.dedup(pred: (T, T) -> Boolean = { a, b -> a == b }): List<T> =
     dedupMerge(pred) { a, b -> a }
@@ -443,6 +444,15 @@ infix fun <T> ConflatedBroadcastChannel<List<T>>.appends(toAdd: T) {
         } else {
             listOf(toAdd)
         })
+    }
+}
+
+operator fun <K, T> ConflatedBroadcastChannel<Map<K, T>>.set(key: K, value: T) {
+    synchronized(this) {
+        val prev = valueOrNull
+        offer(if (prev != null) {
+            prev + (key to value)
+        } else mapOf(key to value))
     }
 }
 

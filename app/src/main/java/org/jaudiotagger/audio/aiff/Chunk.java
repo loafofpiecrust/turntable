@@ -1,6 +1,5 @@
 package org.jaudiotagger.audio.aiff;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 

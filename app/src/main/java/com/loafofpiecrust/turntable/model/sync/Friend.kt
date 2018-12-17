@@ -3,14 +3,16 @@ package com.loafofpiecrust.turntable.model.sync
 import android.app.PendingIntent
 import android.os.Parcelable
 import android.support.v4.app.NotificationCompat
-import com.chibatching.kotpref.preference
+import com.github.ajalt.timberkt.Timber
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.putsMapped
+import com.loafofpiecrust.turntable.serialize.page
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.ui.MainActivityStarter
 import com.loafofpiecrust.turntable.util.days
+import io.paperdb.Paper
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.map
@@ -38,6 +40,7 @@ data class Friend(
     }
 
     // Friendship
+//    @Serializable
     object Request : Message {
         override val timeout get() = 28.days
         override suspend fun onReceive(sender: User) = withContext(Dispatchers.Main) {
@@ -72,6 +75,7 @@ data class Friend(
         }
     }
 
+//    @Serializable
     data class Response(val accept: Boolean): Message {
         override val timeout get() = 28.days
         override suspend fun onReceive(sender: User) {
@@ -98,7 +102,7 @@ data class Friend(
 
 
     companion object {
-        val friends by preference(emptyMap<User, Status>())
+        val friends by Paper.page("friends") { emptyMap<User, Status>() }
         val friendList get() = friends.openSubscription().map {
             it.map { Friend(it.key, it.value) }
         }
@@ -108,6 +112,7 @@ data class Friend(
          */
         fun request(user: User): Boolean {
             return if (!friends.value.containsKey(user)) {
+                Timber.i { "requesting friendship with ${user.displayName} at ${user.username}" }
                 friends putsMapped { it + (user to Status.SENT_REQUEST) }
                 Sync.send(Request, user)
                 true
@@ -115,17 +120,15 @@ data class Friend(
         }
 
         fun respondToRequest(user: User, accept: Boolean) {
-//            if (friends.value[user] == Status.RECEIVED_REQUEST) {
-                Sync.send(Response(accept), user)
+            Sync.send(Response(accept), user)
 
-                friends putsMapped { friends ->
-                    if (accept) {
-                        friends + (user to Status.CONFIRMED)
-                    } else {
-                        friends - user
-                    }
+            friends putsMapped { friends ->
+                if (accept) {
+                    friends + (user to Status.CONFIRMED)
+                } else {
+                    friends - user
                 }
-//            }
+            }
         }
 
         fun remove(user: User) {

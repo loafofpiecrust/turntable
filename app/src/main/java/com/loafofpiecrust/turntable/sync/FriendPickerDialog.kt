@@ -11,9 +11,10 @@ import com.loafofpiecrust.turntable.model.sync.Friend
 import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.serialize.arg
+import com.loafofpiecrust.turntable.serialize.getValue
+import com.loafofpiecrust.turntable.serialize.setValue
 import com.loafofpiecrust.turntable.ui.BaseDialogFragment
-import com.loafofpiecrust.turntable.util.arg
-import com.loafofpiecrust.turntable.util.getValue
 import com.loafofpiecrust.turntable.util.lazy
 import com.loafofpiecrust.turntable.views.RecyclerAdapter
 import com.loafofpiecrust.turntable.views.RecyclerListItem

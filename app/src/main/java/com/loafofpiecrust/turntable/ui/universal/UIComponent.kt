@@ -8,6 +8,9 @@ import android.support.v4.app.Fragment
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
+import com.loafofpiecrust.turntable.ui.BaseActivity
+import com.loafofpiecrust.turntable.ui.MainActivity
+import com.loafofpiecrust.turntable.ui.popMainContent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -25,8 +28,8 @@ interface IUIComponent: CoroutineScope, AnkoComponent<Any> {
 
 interface ParcelableComponent: IUIComponent, Parcelable
 
-fun IUIComponent.createView(context: Context, container: Closable): View {
-    return createView(AnkoContext.create(context, container))
+fun IUIComponent.createView(context: Context): View {
+    return createView(AnkoContext.create(context))
 }
 
 fun IUIComponent.createView(parent: ViewGroup): View {
@@ -66,7 +69,6 @@ abstract class UIComponent: IUIComponent {
 
     open fun Fragment.onCreate() {}
     open fun Activity.onCreate() {}
-    open fun AlertBuilder<*>.prepare() {}
     open fun Menu.prepareOptions(context: Context) {}
 
     open fun onPause() {}
@@ -106,6 +108,13 @@ abstract class UIComponent: IUIComponent {
 //        return createView(this).apply {
 //            block()
 //        }
+//    }
+}
+
+abstract class DialogComponent: UIComponent() {
+    open fun AlertBuilder<*>.prepare() {}
+//    fun dismiss() {
+//        BaseActivity.current?.popMainContent()
 //    }
 }
 

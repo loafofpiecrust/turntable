@@ -6,6 +6,7 @@ import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.model.sync.User
+import com.loafofpiecrust.turntable.player.PlayingNotification
 import com.loafofpiecrust.turntable.tryOr
 import com.loafofpiecrust.turntable.ui.BaseService
 import com.loafofpiecrust.turntable.util.startWith
@@ -110,6 +111,7 @@ class SyncSession: BaseService() {
 
     private fun updateNotification() {
         // TODO: Add to same notification group as MusicService
+        PlayingNotification.createChannel(this)
         startForeground(70, NotificationCompat.Builder(this, "turntable").apply {
             priority = NotificationCompat.PRIORITY_DEFAULT
             setSmallIcon(R.drawable.ic_sync)
@@ -140,14 +142,14 @@ class SyncSession: BaseService() {
     }
 
 
-    private object Ping: Message {
+    object Ping: Message {
         override val requiresSession: Boolean
             get() = true
 
         override suspend fun onReceive(sender: User) {}
     }
 
-    private object EndSync: Message {
+    object EndSync: Message {
         override val requiresSession: Boolean
             get() = true
 

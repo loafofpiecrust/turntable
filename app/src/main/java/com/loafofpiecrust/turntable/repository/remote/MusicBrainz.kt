@@ -1,5 +1,6 @@
 package com.loafofpiecrust.turntable.repository.remote
 
+import com.github.ajalt.timberkt.Timber
 import com.github.salomonbrys.kotson.*
 import com.google.gson.JsonObject
 import com.loafofpiecrust.turntable.*
@@ -14,14 +15,13 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.awaitOr
-import com.loafofpiecrust.turntable.util.gson
-import com.loafofpiecrust.turntable.util.text
+import com.loafofpiecrust.turntable.util.http
+import com.loafofpiecrust.turntable.util.parameters
+import io.ktor.client.request.get
+import io.ktor.client.request.url
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.*
-import org.jetbrains.anko.error
-import org.jetbrains.anko.info
 import org.jsoup.Jsoup
 
 object MusicBrainz: Repository {
@@ -52,10 +52,13 @@ object MusicBrainz: Repository {
 
 
     override suspend fun searchAlbums(query: String): List<Album> = coroutineScope {
-        val res = Http.get("http://musicbrainz.org/ws/2/release-group", params = mapOf(
-            "fmt" to "json",
-            "query" to query
-        )).gson()
+        val res = http.get<JsonObject> {
+            url("http://musicbrainz.org/ws/2/release-group")
+            parameters(
+                "fmt" to "json",
+                "query" to query
+            )
+        }
 
         val entries = res["release-groups"].array
         entries.map { it.obj }.parMap {
@@ -64,13 +67,17 @@ object MusicBrainz: Repository {
             val mbid = it["id"].string
             val task = async {
                 // Check for potential release year here. Maybe grab tracks too
-                val res = Http.get("http://ws.audioscrobbler.com/2.0", params = mapOf(
-                    "api_key" to BuildConfig.LASTFM_API_KEY,
-                    "format" to "json",
-                    "method" to "album.getinfo",
-                    "album" to name,
-                    "artist" to artistName
-                )).gson()["album"]
+                val res = http.get<JsonObject> {
+                    url("http://ws.audioscrobbler.com/2.0")
+                    parameters(
+                        "api_key" to BuildConfig.LASTFM_API_KEY,
+                        "format" to "json",
+                        "method" to "album.getinfo",
+                        "album" to name,
+                        "artist" to artistName
+                    )
+                }["album"]
+
                 val images = res["image"].nullArray
 
                 AlbumDetails(
@@ -118,11 +125,13 @@ object MusicBrainz: Repository {
             if (attempts > 0) {
                 delay(600)
             }
-            albumRes = Http.get("http://musicbrainz.org/ws/2/release", params = mapOf(
-                "fmt" to "json",
-                "release-group" to rgid
+            albumRes = http.get("http://musicbrainz.org/ws/2/release") {
+                parameters(
+                    "fmt" to "json",
+                    "release-group" to rgid
 //                "status" to "official"
-            )).gson().obj
+                )
+            }
 
             attempts += 1
         } while (albumRes["releases"] == null && attempts < 5)
@@ -167,10 +176,13 @@ object MusicBrainz: Repository {
 //            task(UI) { println("album: picked release $reid") }
 
         // We don't have this albums' song info, so retrieve it from Last.FM
-        val res = Http.get("http://musicbrainz.org/ws/2/release/$reid", params = mapOf(
-            "fmt" to "json",
-            "inc" to "recordings+artist-credits"
-        )).gson()
+        val res = http.get<JsonObject> {
+            url("http://musicbrainz.org/ws/2/release/$reid")
+            parameters(
+                "fmt" to "json",
+                "inc" to "recordings+artist-credits"
+            )
+        }
 //        async(UI) { println("album release '${reid}'") }
         val albumId = AlbumId(
             res["title"].string,
@@ -221,10 +233,13 @@ object MusicBrainz: Repository {
     }
 
     override suspend fun searchArtists(query: String): List<Artist> {
-        val entries = Http.get("http://musicbrainz.org/ws/2/artist", params = mapOf(
-            "fmt" to "json",
-            "query" to query
-        )).gson()["artists"].array
+        val entries = http.get<JsonObject> {
+            url("http://musicbrainz.org/ws/2/artist")
+            parameters(
+                "fmt" to "json",
+                "query" to query
+            )
+        }["artists"].array
 
         return entries.map { it.obj }.mapNotNull {
             val name = it["name"].string
@@ -234,11 +249,14 @@ object MusicBrainz: Repository {
                 .joinToString(" ")
             val mbid = it["id"].string
 
-            val lfmRes = Http.get("http://ws.audioscrobbler.com/2.0", params = mapOf(
-                "api_key" to BuildConfig.LASTFM_API_KEY, "format" to "json",
-                "method" to "artist.getInfo",
-                "mbid" to mbid
-            )).gson()
+            val lfmRes = http.get<JsonObject> {
+                url("http://ws.audioscrobbler.com/2.0")
+                parameters(
+                    "api_key" to BuildConfig.LASTFM_API_KEY, "format" to "json",
+                    "method" to "artist.getInfo",
+                    "mbid" to mbid
+                )
+            }
             val thumbnail = try {
                 lfmRes["artist"]["image"][2]["#text"].string
             } catch (e: Exception) {
@@ -263,10 +281,13 @@ object MusicBrainz: Repository {
 
 
     override suspend fun searchSongs(query: String): List<Song> {
-        return Http.get("http://musicbrainz.org/ws/2/recording", params = mapOf(
-            "fmt" to "json",
-            "query" to query
-        )).gson()["recordings"].array.map {
+        return http.get<JsonObject> {
+            url("http://musicbrainz.org/ws/2/recording")
+            parameters(
+                "fmt" to "json",
+                "query" to query
+            )
+        }["recordings"].array.map {
             val albumObj = it["releases"][0]
             val artistName = it["artist-credit"][0]["artist"]["name"].string
             val artistId = ArtistId(artistName)
@@ -287,9 +308,9 @@ object MusicBrainz: Repository {
 //        val mbid = /*this.mbid ?:*/ findMbid() ?: return@then
 
         val res = Jsoup.parse(
-            Http.get("https://musicbrainz.org/artist/$artistId").text()
+            http.get<String>("https://musicbrainz.org/artist/$artistId")
         )
-        info { "album: loading $artistId" }
+        Timber.d { "album: loading $artistId" }
 
         val artistName = res.getElementsByClass("artistheader")[0]
             .child(0).child(0).text()
@@ -319,7 +340,7 @@ object MusicBrainz: Repository {
                 else -> Album.Type.LP
             }
 
-            info { "album: release type $type" }
+            Timber.d { "album: release type $type" }
             val items = sections[idx + 1].child(1)
             items.children().map {
                 val titleLink = it.child(1).child(0)
@@ -331,12 +352,15 @@ object MusicBrainz: Repository {
 
 
                 val (remote, cover) = try {
-                    val res = Http.get("http://ws.audioscrobbler.com/2.0", params = mapOf(
-                        "api_key" to BuildConfig.LASTFM_API_KEY, "format" to "json",
-                        "method" to "album.getinfo",
-                        "album" to title,
-                        "artist" to artistName//this.uuid.name
-                    )).gson()["album"]
+                    val res = http.get<JsonObject> {
+                        url("http://ws.audioscrobbler.com/2.0")
+                        parameters(
+                            "api_key" to BuildConfig.LASTFM_API_KEY, "format" to "json",
+                            "method" to "album.getinfo",
+                            "album" to title,
+                            "artist" to artistName//this.uuid.name
+                        )
+                    }["album"]
                     val images = res["image"].nullArray
                     AlbumDetails(
                         albumId,
@@ -368,7 +392,7 @@ object MusicBrainz: Repository {
                     type = type
                 )
 
-                info { "album: added '$title'!!" }
+                Timber.d { "album: added '$title'!!" }
 
                 album
             }
@@ -377,11 +401,14 @@ object MusicBrainz: Repository {
 
 
     override suspend fun find(album: AlbumId): Album? = try {
-        val res = Http.get("https://musicbrainz.org/ws/2/release-group", params = mapOf(
-            "fmt" to "json",
-            "query" to "releasegroup:\"${album.displayName}\" AND artist:\"${album.artist.name}\"",
-            "limit" to "2"
-        )).gson().obj
+        val res = http.get<JsonObject> {
+            url("https://musicbrainz.org/ws/2/release-group")
+            parameters(
+                "fmt" to "json",
+                "query" to "releasegroup:\"${album.displayName}\" AND artist:\"${album.artist.name}\"",
+                "limit" to "2"
+            )
+        }
 
         if (res["count"].int > 0) {
             val rg = res["release-groups"][0]

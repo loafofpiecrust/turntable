@@ -6,6 +6,7 @@ import android.support.v4.widget.SwipeRefreshLayout
 import android.view.Gravity
 import android.view.ViewManager
 import com.evernote.android.state.State
+import com.github.ajalt.timberkt.Timber
 import com.lapism.searchview.Search
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.album.AlbumsUI
@@ -17,14 +18,20 @@ import com.loafofpiecrust.turntable.popupMenu
 import com.loafofpiecrust.turntable.repository.Repositories
 import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.repository.local.LocalApi
+import com.loafofpiecrust.turntable.serialize.arg
+import com.loafofpiecrust.turntable.serialize.getValue
+import com.loafofpiecrust.turntable.serialize.setValue
 import com.loafofpiecrust.turntable.song.SongsUI
 import com.loafofpiecrust.turntable.ui.universal.createView
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.util.menuItem
+import com.loafofpiecrust.turntable.util.onClick
+import com.loafofpiecrust.turntable.util.searchBar
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
@@ -35,7 +42,7 @@ class SearchFragment : BaseFragment() {
     sealed class Category<T>: Parcelable {
         @Transient
         @IgnoredOnParcel
-        val results = ConflatedBroadcastChannel<List<T>>()
+        val results = ConflatedBroadcastChannel<List<T>>(emptyList())
 
         @Parcelize class Artists: Category<Artist>()
         @Parcelize class Albums: Category<Album>()
@@ -53,10 +60,6 @@ class SearchFragment : BaseFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-//        enterTransition = Slide().apply {
-//            slideEdge = Gravity.BOTTOM
-//        }
         allowEnterTransitionOverlap = true
 
         // Upon restoring with a query, restore the results.
@@ -82,10 +85,13 @@ class SearchFragment : BaseFragment() {
             topPadding = dip(64)
             results = when (cat) {
                 is Category.Songs -> SongsUI.Custom(cat.results).createView(this)
-                is Category.Albums -> AlbumsUI.Custom(cat.results.openSubscription()).createView(this)
-                is Category.Artists -> ArtistsUI.Custom(cat.results, false).createView(this)
+                is Category.Albums -> AlbumsUI.Custom(cat.results).createView(this)
+                is Category.Artists -> ArtistsUI.Custom(
+                    cat.results,
+                    R.string.search_results_empty_details
+                ).createView(this)
             } as SwipeRefreshLayout
-            results?.isRefreshing = false
+//            results?.isRefreshing = false
         }.lparams(matchParent, matchParent)
 
         searchBar {
@@ -147,6 +153,7 @@ class SearchFragment : BaseFragment() {
             }
             searchJob?.invokeOnCompletion { err ->
                 if (err != null) launch(Dispatchers.Main) {
+                    Timber.e(err) { "Search failed" }
                     toast("Search failed.")
                 }
             }

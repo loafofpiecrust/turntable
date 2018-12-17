@@ -36,6 +36,7 @@ interface HasTracks : Music {
 // - Partial: metadata confirmed, no stream urls
 // - Resolved: confirmed metadata and stream urls
 @Parcelize
+//@Serializable
 data class Song(
     override val id: SongId,
     /** This song's track number in the [Album] it comes from. */
@@ -50,6 +51,7 @@ data class Song(
     @Transient
     val platformId: PlatformId? = null
 ): Music, Parcelable, HasTracks, Recommendable {
+    @kotlinx.serialization.Transient
     override val tracks: List<Song> get() = listOf(this)
 
     /**
@@ -58,6 +60,7 @@ data class Song(
      *
      * Example: Disc 2, Track 27 => 2027
      */
+    @kotlinx.serialization.Transient
     val discTrack: Int get() = disc * 1000 + track
 
     fun loadCover(

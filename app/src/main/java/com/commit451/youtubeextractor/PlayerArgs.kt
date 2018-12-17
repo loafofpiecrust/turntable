@@ -1,7 +1,5 @@
 package com.commit451.youtubeextractor
 
-import com.google.gson.annotations.SerializedName
-
 //import com.squareup.moshi.Json
 
 internal class PlayerArgs {

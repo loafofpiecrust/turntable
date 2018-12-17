@@ -18,12 +18,16 @@
  */
 package org.jaudiotagger.audio.generic;
 
-import android.content.Context;
 import android.support.v4.provider.DocumentFile;
 
 import org.jaudiotagger.audio.AudioFile;
 
-import java.io.*;
+import java.io.DataInput;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import java.util.logging.Logger;

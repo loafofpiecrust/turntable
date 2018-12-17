@@ -5,13 +5,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewManager
 import com.github.salomonbrys.kotson.*
+import com.google.gson.JsonObject
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.ui.BaseFragment
-import com.loafofpiecrust.turntable.util.Http
-import com.loafofpiecrust.turntable.util.gson
+import com.loafofpiecrust.turntable.util.http
+import com.loafofpiecrust.turntable.util.parameters
 import com.loafofpiecrust.turntable.util.produceSingle
 import com.loafofpiecrust.turntable.views.RecyclerAdapter
 import com.loafofpiecrust.turntable.views.RecyclerListItem
+import io.ktor.client.request.get
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.verticalLayout
@@ -28,10 +30,12 @@ class BrowseTagsFragment: BaseFragment() {
     )
 
     private val popularTags: List<Tag> = runBlocking {
-        val res = Http.get(LASTFM_API_URL, params=mapOf(
-            "api_key" to BuildConfig.LASTFM_API_KEY, "format" to "json",
-            "method" to "chart.getTopTags"
-        )).gson()["toptags"]
+        val res = http.get<JsonObject>(LASTFM_API_URL) {
+            parameters(
+                "api_key" to BuildConfig.LASTFM_API_KEY, "format" to "json",
+                "method" to "chart.getTopTags"
+            )
+        }["toptags"]
         val tagResults = res["tag"].array
         tagResults.map { it.obj }.map {
             Tag(

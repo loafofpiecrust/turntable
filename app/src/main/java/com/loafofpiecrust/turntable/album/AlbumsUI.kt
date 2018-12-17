@@ -1,7 +1,5 @@
 package com.loafofpiecrust.turntable.album
 
-//import org.musicbrainz.controller.Controller
-
 import android.content.Context
 import android.os.Parcelable
 import android.support.v7.widget.GridLayoutManager
@@ -10,6 +8,7 @@ import android.view.Menu
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.artist.ArtistDetailsUI
+import com.loafofpiecrust.turntable.artist.emptyContentView
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
@@ -34,16 +33,12 @@ import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
-import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.channels.broadcast
-import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.channels.map
 import kotlinx.coroutines.launch
 import org.jetbrains.anko.dimen
 import org.jetbrains.anko.padding
 import org.jetbrains.anko.recyclerview.v7.recyclerView
-
 
 sealed class AlbumsUI(
     private val splitByType: Boolean = false,
@@ -60,7 +55,6 @@ sealed class AlbumsUI(
     }
 
     override fun ViewContext.render() = refreshableRecyclerView {
-        isRefreshing = true
         channel = displayAlbums.openSubscription()
 
         contents {
@@ -124,6 +118,13 @@ sealed class AlbumsUI(
                 addItemDecoration(ItemOffsetDecoration(dimen(R.dimen.grid_gutter)))
             }
         }
+
+        emptyState {
+            emptyContentView(
+                R.string.albums_empty,
+                R.string.albums_empty_details
+            )
+        }
     }
 
     override fun Menu.prepareOptions(context: Context) {
@@ -171,31 +172,29 @@ sealed class AlbumsUI(
 
         override val albums get() =
             (artistChannel ?: Library.findArtist(artist)
-                .map(Dispatchers.IO) {
-                    if (it is LocalArtist) {
-                        when (mode) {
-                            ArtistDetailsUI.Mode.LIBRARY -> it
-                            ArtistDetailsUI.Mode.LIBRARY_AND_REMOTE ->
-                                Repositories.find(artist)?.let { remote -> MergedArtist(it, remote) } ?: it
-                            ArtistDetailsUI.Mode.REMOTE -> it // use case?
-                        }
-                    } else {
-                        when (mode) {
-                            ArtistDetailsUI.Mode.LIBRARY -> it
-                            ArtistDetailsUI.Mode.LIBRARY_AND_REMOTE ->
-                                LocalApi.find(artist)?.let { local -> MergedArtist(local, it!!) } ?: it
-                            ArtistDetailsUI.Mode.REMOTE -> it // use case?
-                        }
+                .map(Dispatchers.IO) { artist ->
+                    if (artist is LocalArtist) when (mode) {
+                        ArtistDetailsUI.Mode.LIBRARY -> artist
+                        ArtistDetailsUI.Mode.LIBRARY_AND_REMOTE ->
+                            Repositories.find(this.artist)?.let { remote -> MergedArtist(artist, remote) } ?: artist
+                        ArtistDetailsUI.Mode.REMOTE -> artist // use case?
+                    } else when (mode) {
+                        ArtistDetailsUI.Mode.LIBRARY -> LocalApi.find(this.artist)
+                        ArtistDetailsUI.Mode.LIBRARY_AND_REMOTE ->
+                            LocalApi.find(this.artist)?.let { local -> MergedArtist(local, artist!!) } ?: artist
+                        ArtistDetailsUI.Mode.REMOTE -> artist // use case?
                     }
                 })
                 .map(Dispatchers.IO) { it?.albums ?: emptyList() }
     }
 
     class Custom(
-        override val albums: ReceiveChannel<List<Album>>,
+        albums: BroadcastChannel<List<Album>>,
         splitByType: Boolean = false,
         sortBy: SortBy? = null
-    ): AlbumsUI(splitByType, sortBy)
+    ): AlbumsUI(splitByType, sortBy) {
+        override val albums = albums.openSubscription()
+    }
 
 
     enum class SortBy(val comparator: Comparator<Album>) {

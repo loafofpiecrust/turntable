@@ -12,7 +12,7 @@ data class CombinedQueue(
     val nextUp: List<Song>,
     val isPlayingNext: Boolean = false
 ) : Queue {
-    @Deprecated("Serializer use only")
+//    @Deprecated("Serializer use only")
     internal constructor(): this(StaticQueue(), emptyList())
 
     @Transient

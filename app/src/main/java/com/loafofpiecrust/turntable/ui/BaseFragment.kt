@@ -9,8 +9,10 @@ import android.os.IBinder
 import android.support.v4.app.DialogFragment
 import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentActivity
+import android.support.v4.app.FragmentTransaction
 import android.support.v7.app.AppCompatActivity
 import android.view.*
+import com.github.ajalt.timberkt.Timber
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import kotlinx.coroutines.*
@@ -18,8 +20,7 @@ import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.consumeEach
 import org.jetbrains.anko.AnkoContext
-import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.info
+import java.lang.ref.WeakReference
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
@@ -42,7 +43,7 @@ interface ViewComponentScope: CoroutineScope {
     ) = openSubscription().consumeEachAsync(context, action)
 }
 
-abstract class BaseFragment: Fragment(), AnkoLogger, ViewComponentScope {
+abstract class BaseFragment: Fragment(), ViewComponentScope {
     /**
      * Allows abstraction over managing channel closing.
      * Use cases (bound to lifecycle):
@@ -88,7 +89,7 @@ abstract class BaseFragment: Fragment(), AnkoLogger, ViewComponentScope {
 
     override fun onDestroy() {
         super.onDestroy()
-        job.cancel()
+        job.cancelChildren()
     }
 
     /**
@@ -97,7 +98,7 @@ abstract class BaseFragment: Fragment(), AnkoLogger, ViewComponentScope {
      */
     fun View.fragment(alwaysReplace: Boolean = false, createFragment: () -> Fragment) {
         if (isFirstInit || alwaysReplace) {
-            info { "creating fragment" }
+            Timber.d { "creating fragment" }
             if (this.id == View.NO_ID) {
                 // BEWARE: This will crash if within a navigable fragment!!
                 this.id = View.generateViewId()
@@ -114,7 +115,7 @@ abstract class BaseFragment: Fragment(), AnkoLogger, ViewComponentScope {
     }
 }
 
-abstract class BaseDialogFragment: DialogFragment(), AnkoLogger, ViewComponentScope {
+abstract class BaseDialogFragment: DialogFragment(), ViewComponentScope {
     override val job = SupervisorJob()
 
     abstract fun ViewManager.createView(): View?
@@ -135,14 +136,14 @@ abstract class BaseDialogFragment: DialogFragment(), AnkoLogger, ViewComponentSc
 
     override fun onDestroyView() {
         super.onDestroyView()
-        job.cancel()
+        job.cancelChildren()
     }
 
     fun show(ctx: Context, fullscreen: Boolean = false) {
         if (ctx is FragmentActivity) {
             if (fullscreen) {
                 ctx.supportFragmentManager.beginTransaction()
-//                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
                     .add(android.R.id.content, this)
                     .addToBackStack(null)
                     .commit()
@@ -153,7 +154,7 @@ abstract class BaseDialogFragment: DialogFragment(), AnkoLogger, ViewComponentSc
     }
 }
 
-abstract class BaseActivity: AppCompatActivity(), AnkoLogger, ViewComponentScope {
+abstract class BaseActivity: AppCompatActivity(), ViewComponentScope {
     override val job = SupervisorJob()
 
     private var isFirstInit = true
@@ -187,12 +188,12 @@ abstract class BaseActivity: AppCompatActivity(), AnkoLogger, ViewComponentScope
 
     override fun onDestroy() {
         super.onDestroy()
-        job.cancel()
+        job.cancelChildren()
     }
 
     fun View.fragment(alwaysReplace: Boolean = false, createFragment: () -> Fragment) {
         if (isFirstInit || alwaysReplace) {
-            info { "creating fragment" }
+            Timber.d { "creating fragment" }
             // BEWARE: This will crash if within a navigable fragment!!
             if (this.id == View.NO_ID) {
                 this.id = View.generateViewId()
@@ -203,9 +204,19 @@ abstract class BaseActivity: AppCompatActivity(), AnkoLogger, ViewComponentScope
                 .commit()
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        currentWeak = WeakReference(this)
+    }
+
+    companion object {
+        private var currentWeak: WeakReference<BaseActivity>? = null
+        val current: BaseActivity? get() = currentWeak?.get()
+    }
 }
 
-abstract class BaseService: Service(), CoroutineScope, AnkoLogger {
+abstract class BaseService: Service(), CoroutineScope {
     private val job = SupervisorJob()
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Default + job
@@ -214,6 +225,6 @@ abstract class BaseService: Service(), CoroutineScope, AnkoLogger {
 
     override fun onDestroy() {
         super.onDestroy()
-        job.cancel()
+        job.cancelChildren()
     }
 }

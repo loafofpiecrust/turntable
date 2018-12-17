@@ -2,7 +2,9 @@ package com.loafofpiecrust.turntable.repository.remote
 
 import android.content.Context
 import android.util.Base64
+import com.github.ajalt.timberkt.Timber
 import com.github.salomonbrys.kotson.*
+import com.google.gson.JsonObject
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
@@ -21,16 +23,14 @@ import com.loafofpiecrust.turntable.repository.Repository
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.ui.universal.createFragment
-import com.loafofpiecrust.turntable.util.Http
-import com.loafofpiecrust.turntable.util.gson
+import com.loafofpiecrust.turntable.util.http
 import com.loafofpiecrust.turntable.util.lazy
+import com.loafofpiecrust.turntable.util.urlEncodedFormBody
+import io.ktor.client.request.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.jetbrains.anko.debug
-import org.jetbrains.anko.error
-import org.jetbrains.anko.info
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -50,17 +50,17 @@ object Spotify: Repository {
             return apiRequest(
                 "albums/$id/tracks",
                 mapOf("limit" to "50")
-            ).gson()["items"].array.map {
-//                RemoteSong(
+            )["items"].array.map { song ->
+                //                RemoteSong(
                 Song(
                     SongId(
-                        it["name"].string,
+                        song["name"].string,
                         album,
-                        ArtistId(it["artists"][0]["name"].string)
+                        ArtistId(song["artists"][0]["name"].string)
                     ),
-                    track = it["track_number"].int,
-                    disc = it["disc_number"].int,
-                    duration = it["duration_ms"].int,
+                    track = song["track_number"].int,
+                    disc = song["disc_number"].int,
+                    duration = song["duration_ms"].int,
                     year = 0
                 )
 //                )
@@ -70,9 +70,10 @@ object Spotify: Repository {
         suspend fun fullArtwork(): String? {
             if (artworkUrl != null) return artworkUrl
 
-            val res = Http.get("https://api.spotify.com/v1/albums/$id", headers = mapOf(
-                "Authorization" to "Bearer $accessToken"
-            )).gson()
+            val res = http.get<JsonObject> {
+                url("https://api.spotify.com/v1/albums/$id")
+                header("Authorization", "Bearer ${login()}")
+            }
 
             return res["images"][0]["url"].nullString
         }
@@ -88,7 +89,7 @@ object Spotify: Repository {
             apiRequest(
                 "artists/$id/albums",
                 mapOf("limit" to "50")
-            ).gson()["items"].array.lazy.map { it.obj }.map {
+            )["items"].array.lazy.map { it.obj }.map {
                 val imgs = it["images"].array
                 val artists = it["artists"].array
                 RemoteAlbum(
@@ -116,9 +117,10 @@ object Spotify: Repository {
         suspend fun fullArtwork(search: Boolean): String? {
             if (artworkUrl != null) return artworkUrl
 
-            val res = Http.get("https://api.spotify.com/v1/artists/$id", headers = mapOf(
-                "Authorization" to "Bearer $accessToken"
-            )).gson().obj
+            val res = http.get<JsonObject> {
+                url("https://api.spotify.com/v1/artists/$id")
+                header("Authorization", "Bearer ${login()}")
+            }
 
             return res["images"]?.get(0)?.get("url")?.string
         }
@@ -128,42 +130,41 @@ object Spotify: Repository {
     private const val clientSecret = BuildConfig.SPOTIFY_SECRET
 
     private var accessToken: String? = null
-        get() {
-            synchronized(this) {
-                val now = System.currentTimeMillis()
-                if (field == null || (now - tokenTimestamp) > tokenLifespan) {
-                    runBlocking { login() }
-                }
-            }
-            return field
-        }
-    private var tokenTimestamp: Long = 0
-    private var tokenLifespan: Long = 3600000
+    private var tokenExpiry: Long = 0
 
     private suspend fun apiRequest(url: String, params: Map<String, String> = mapOf()) =
-        Http.get(
-            "https://api.spotify.com/v1/$url",
-            params = params,
-            headers = mapOf("Authorization" to "Bearer $accessToken")
-        )
+        http.get<JsonObject> {
+            url("https://api.spotify.com/v1/$url")
+            for ((k, v) in params) {
+                parameter(k, v)
+            }
+            header("Authorization", "Bearer ${login()}")
+        }
 
-    private suspend fun login() {
-        val authKey = Base64.encodeToString("$clientId:$clientSecret".toByteArray(), Base64.NO_WRAP)
-        debug { "recs: key = $authKey" }
+    @Synchronized
+    private suspend fun login(): String {
+        val now = System.currentTimeMillis()
+        if (accessToken != null && now < tokenExpiry) {
+            return accessToken!!
+        }
+
         try {
-            val res = Http.post("https://accounts.spotify.com/api/token",
-                body = mapOf("grant_type" to "client_credentials"),
-                headers = mapOf("Authorization" to "Basic $authKey")
-            ).gson()
-            info { res }
+            val authKey = Base64.encodeToString("$clientId:$clientSecret".toByteArray(), Base64.NO_WRAP)
+            Timber.d { "recs: key = $authKey" }
+            val json = http.post<JsonObject> {
+                url("https://accounts.spotify.com/api/token")
+                header("Authorization", "Basic $authKey")
+                urlEncodedFormBody = mapOf("grant_type" to "client_credentials")
+            }
 //            task(UI) { println("recs: res = ${t.text}") }
 //            val res = JsonParser().parse(t.text)
-            accessToken = res["access_token"].nullString
-            debug { "recs: token = $accessToken" }
-            tokenTimestamp = System.currentTimeMillis()
-            tokenLifespan = res["expires_in"].long * 1000
+            accessToken = json["access_token"].nullString
+            val lifespan = json["expires_in"].long * 1000
+            tokenExpiry = System.currentTimeMillis() + lifespan
+            return accessToken!!
         } catch (e: Exception) {
-            error("Spotify failed to login", e)
+            Timber.e(e) { "Spotify failed to login" }
+            throw e
         }
     }
 
@@ -172,7 +173,7 @@ object Spotify: Repository {
             "q" to "artist:\"${artist.displayName}\"",
             "type" to "artist",
             "limit" to "3"
-        )).gson()
+        ))
 
         return res["artists"]["items"].nullArray?.map { it["id"].string } ?: listOf()
     }
@@ -181,14 +182,14 @@ object Spotify: Repository {
         val res = apiRequest("search", mapOf(
             "q" to query,
             "type" to "artist"
-        )).gson()
+        ))
 
-        return res["artists"]["items"].array.map {
-            val imgs = it["images"].array
+        return res["artists"]["items"].array.map { artist ->
+            val imgs = artist["images"].array
             RemoteArtist(
-                ArtistId(it["name"].string),
+                ArtistId(artist["name"].string),
                 ArtistDetails(
-                    it["id"].string,
+                    artist["id"].string,
                     imgs.last()["url"].string,
                     imgs.first()["url"].string
                 )
@@ -207,7 +208,7 @@ object Spotify: Repository {
             "q" to "track:\"${song.name}\" artist:\"${song.artist}\" album:\"${song.album.name}\"",
             "type" to "track",
             "limit" to "3"
-        )).gson()
+        ))
 
         return res["tracks"]["items"].array.map { it["id"].string }
     }
@@ -217,7 +218,7 @@ object Spotify: Repository {
             "q" to "album:\"${album.name}\" artist:\"${album.artist.name}\"",
             "type" to "album",
             "limit" to "3"
-        )).gson()
+        ))
 
         return res["albums"]["items"].nullArray?.map {
             val artists = it["artists"].array
@@ -238,21 +239,21 @@ object Spotify: Repository {
             "q" to query,
             "type" to "album",
             "limit" to "3"
-        )).gson()
+        ))
 
-        return res["albums"]["items"].array.map {
-            val imgs = it["images"].array
+        return res["albums"]["items"].array.map { album ->
+            val imgs = album["images"].array
             RemoteAlbum(
                 AlbumId(
-                    it["name"].string,
-                    ArtistId(it["artists"][0]["name"].string)
+                    album["name"].string,
+                    ArtistId(album["artists"][0]["name"].string)
                 ),
                 AlbumDetails(
-                    it["id"].string,
+                    album["id"].string,
                     imgs.last()["url"].string,
                     imgs.first()["url"].string
                 ),
-                type = when (it["album_type"].string) {
+                type = when (album["album_type"].string) {
                     "single" -> Album.Type.SINGLE
                     "compilation" -> Album.Type.COMPILATION
                     else -> Album.Type.LP
@@ -268,18 +269,18 @@ object Spotify: Repository {
                 "q" to query,
                 "type" to "track"
             )
-        ).gson()["tracks"]["items"].array.map {
-//            RemoteSong(
+        )["tracks"]["items"].array.map { track ->
+            //            RemoteSong(
             Song(
                 SongId(
-                    it["name"].string,
-                    it["album"]["name"].string,
-                    it["album"]["artists"][0]["name"].string,
-                    it["artists"][0]["name"].string
+                    track["name"].string,
+                    track["album"]["name"].string,
+                    track["album"]["artists"][0]["name"].string,
+                    track["artists"][0]["name"].string
                 ),
-                track = it["track_number"].int,
-                disc = it["disc_number"].int,
-                duration = it["duration_ms"].int,
+                track = track["track_number"].int,
+                disc = track["disc_number"].int,
+                duration = track["duration_ms"].int,
                 year = 0
             )
 //            )
@@ -289,27 +290,26 @@ object Spotify: Repository {
     private suspend fun recommendationsFor(params: Map<String, String>): List<Song> {
 
 //        task(UI) { println("recs: artists = $artists") }
-        val res = apiRequest("recommendations", params).gson()
+        val res = apiRequest("recommendations", params)
 //        task(UI) { println("recs: $res") }
 
         val tracks = res["tracks"].array
-        return tracks.lazy.map { it.obj }.map {
-//            RemoteSong(
+        return tracks.lazy.map { it.obj }.map { track ->
+            //            RemoteSong(
             Song(
                 SongId(
-                    it["name"].string,
+                    track["name"].string,
                     AlbumId(
-                        it["album"]["name"].string,
-                        ArtistId(it["album"]["artists"][0]["name"].string)
+                        track["album"]["name"].string,
+                        ArtistId(track["album"]["artists"][0]["name"].string)
                     )
                 ),
-                track = it["track_number"].int,
-                disc = it["disc_number"].nullInt ?: 1,
-                duration = it["duration_ms"].int,
+                track = track["track_number"].int,
+                disc = track["disc_number"].nullInt ?: 1,
+                duration = track["duration_ms"].int,
                 year = 0
             )
 //            )
-
         }.toList()
     }
 
@@ -379,7 +379,7 @@ object Spotify: Repository {
 
     suspend fun similarTo(artist: ArtistId): List<Artist> {
         val a = searchFor(artist).firstOrNull() ?: return listOf()
-        val res = apiRequest("artists/$a/related-artists").gson()
+        val res = apiRequest("artists/$a/related-artists")
 
         return res["artists"].array.map {
             val obj = it.obj
@@ -409,7 +409,7 @@ object Spotify: Repository {
                 "offset" to (page * 100).toString(),
                 "fields" to "name,owner.display_name,tracks.items(added_at,track(track_number,disc_number,duration_ms,name,album(name,type,release_date),artists(name)))"
             )
-        ).gson()
+        )
 
         val items = res["tracks"]["items"].array.map {
             val track = it["track"].obj
@@ -452,7 +452,7 @@ object Spotify: Repository {
                 "limit" to "50",
                 "offset" to (page * 50).toString()
             )
-        ).gson()
+        )
 
         return res["items"].array.map {
             val obj = it.obj
@@ -474,13 +474,11 @@ object Spotify: Repository {
             }
         }
 
-        val res = Http.get("search", headers = mapOf(
-            "Authorization" to "Bearer $accessToken"
-        ), params = mapOf(
+        val res = apiRequest("search", params = mapOf(
             "q" to "album:\"${album.id.name}\" artist:\"${album.id.artist.name}\"",
             "type" to "album",
             "limit" to "3"
-        )).gson()
+        ))
 
         return res["albums"]["items"].nullArray?.lazy?.map { it["images"][0]["url"].nullString }?.first()
     }

@@ -10,11 +10,11 @@ import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.playlist.PlaylistPicker
+import com.loafofpiecrust.turntable.playlist.AddToPlaylistDialog
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.ui.universal.createFragment
-import com.loafofpiecrust.turntable.ui.universal.showDialog
+import com.loafofpiecrust.turntable.ui.universal.show
 import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick
 
@@ -32,7 +32,7 @@ fun Menu.songOptions(context: Context, song: Song) {
     }
 
     menuItem(R.string.add_to_playlist).onClick {
-        PlaylistPicker(song).showDialog(context)
+        AddToPlaylistDialog(song).show(context)
     }
 
     menuItem(R.string.share).onClick {

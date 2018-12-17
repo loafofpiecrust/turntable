@@ -1,12 +1,10 @@
 package org.jaudiotagger.audio.aiff;
 
+import org.jaudiotagger.audio.generic.Utils;
+
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
-
-import org.jaudiotagger.audio.generic.Utils;
 
 public class CommentsChunk extends Chunk {
 

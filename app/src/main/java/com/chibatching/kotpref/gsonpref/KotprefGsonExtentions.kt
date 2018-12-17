@@ -1,15 +1,5 @@
 package com.chibatching.kotpref.gsonpref
 
-import android.content.SharedPreferences
-import com.chibatching.kotpref.Kotpref
-import com.chibatching.kotpref.KotprefModel
-import com.chibatching.kotpref.pref.AbstractPref
-import com.google.gson.Gson
-import java.io.StringWriter
-import kotlin.properties.ReadOnlyProperty
-import kotlin.properties.ReadWriteProperty
-import kotlin.reflect.KProperty
-
 
 /**
  * Gson object to serialize and deserialize delegated property

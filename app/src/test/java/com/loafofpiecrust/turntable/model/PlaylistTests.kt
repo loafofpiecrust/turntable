@@ -4,6 +4,8 @@ import android.graphics.Color
 import ch.tutteli.atrium.api.cc.en_GB.*
 import ch.tutteli.atrium.verbs.assert
 import ch.tutteli.atrium.verbs.expect
+import com.github.salomonbrys.kotson.fromJson
+import com.github.salomonbrys.kotson.typedToJson
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.artist.ArtistId
@@ -11,8 +13,6 @@ import com.loafofpiecrust.turntable.model.playlist.*
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.sync.User
-import com.loafofpiecrust.turntable.util.deserialize
-import com.loafofpiecrust.turntable.util.serialize
 import kotlinx.coroutines.channels.firstOrNull
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -62,6 +62,10 @@ class PlaylistTests {
         redHouse
     )
 
+    inline fun <reified T: Any> copyObj(obj: T): T {
+        return App.gson.fromJson(App.gson.typedToJson(obj))
+    }
+
     suspend fun SongPlaylist.updateSync() {
         delay(2)
         lastSyncTime = System.currentTimeMillis()
@@ -75,8 +79,8 @@ class PlaylistTests {
             MixTape.Type.C60,
             Color.BLUE
         )
-        val serd = runBlocking { serialize(mixtape) }
-        val deserd = runBlocking { deserialize(serd) } as MixTape
+        val serd = App.gson.toJson(mixtape)
+        val deserd: MixTape = App.gson.fromJson(serd)
         assert(deserd.tracks).toBe(mixtape.tracks)
     }
 
@@ -118,10 +122,10 @@ class PlaylistTests {
         original.add(redHouse)
         original.updateSync()
 
-        val branch = App.kryo.copy(original)
+        val branch = copyObj(original)
         branch.add(meOnTheBeach)
 
-        val origMerged = App.kryo.copy(original)
+        val origMerged = copyObj(original)
         origMerged.mergeWith(branch)
         delay(2)
         expect(origMerged.tracks).toBe(listOf(redHouse, meOnTheBeach))
@@ -136,7 +140,7 @@ class PlaylistTests {
         original.add(redHouse)
         original.updateSync()
 
-        val branch = App.kryo.copy(original)
+        val branch = copyObj(original)
         branch.remove(redHouse.id)
         branch.updateSync()
 
@@ -155,7 +159,7 @@ class PlaylistTests {
         expect(original.tracks).toBe(listOf(cloverSaloon))
 
         // Another user starts editing the playlist.
-        val remote = App.kryo.copy(original)
+        val remote = copyObj(original)
         remote.add(meOnTheBeach)
         remote.remove(cloverSaloon.id)
         // they sync with the database
@@ -183,7 +187,7 @@ class PlaylistTests {
         expect(original.tracks).toBe(listOf(cloverSaloon, meOnTheBeach))
 
         // branch
-        val branch = App.kryo.copy(original)
+        val branch = copyObj(original)
         branch.move(meOnTheBeach.id, cloverSaloon.id)
         expect(branch.tracks).toBe(listOf(meOnTheBeach, cloverSaloon))
 
@@ -194,7 +198,7 @@ class PlaylistTests {
 
         delay(2)
 
-        val branchMerged = App.kryo.copy(branch)
+        val branchMerged = copyObj(branch)
         branchMerged.mergeWith(original)
         delay(2)
         expect(branchMerged.tracks).toBe(listOf(meOnTheBeach, cloverSaloon, redHouse))

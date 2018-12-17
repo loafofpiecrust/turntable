@@ -2,45 +2,41 @@ package com.chibatching.kotpref.filepref
 
 import android.content.SharedPreferences
 import com.chibatching.kotpref.pref.AbstractPref
+import com.github.ajalt.timberkt.Timber
+import com.github.salomonbrys.kotson.fromJson
+import com.github.salomonbrys.kotson.typedToJson
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.util.hasValue
+import com.loafofpiecrust.turntable.util.replayOne
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.channels.*
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.error
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.actor
+import kotlinx.coroutines.channels.map
+import kotlinx.io.IOException
 import kotlin.reflect.KProperty
 
-abstract class BaseObjFilePref<T: Any>(
+abstract class ObjFilePref<T: Any>(
+    val key: String,
     val default: T
-): AbstractPref<T>(), AnkoLogger {
+): AbstractPref<T>() {
     private var lastWrite = 0L
     private val lastModify = subject.openSubscription().map {
         System.nanoTime()
     }.replayOne()
-    private var className: String? = null
-    private var name: String? = null
 
 
-//    private sealed class Action {
-//        object Save: Action()
-//        data class Load(
-//            val thisRef: KotprefModel,
-//            val property: KProperty<*>
-//        ): Action()
-//    }
     private val saveActor = GlobalScope.actor<Unit>(capacity = Channel.CONFLATED) {
-        consumeEach {
+        for (e in channel) {
             doSave()
         }
     }
 
-    protected val fileName: String get() = "$className.$name.prop"
+    protected val fileName: String get() = "$key.prop"
 
     private fun doSave() {
-        if (name == null || className == null || lastModify.value < lastWrite) return
+        if (lastModify.value < lastWrite) return
         try {
             val file = App.instance.filesDir.resolve(fileName)
             if (!file.exists()) {
@@ -48,11 +44,13 @@ abstract class BaseObjFilePref<T: Any>(
             }
 
             lastWrite = System.nanoTime()
-            runBlocking { serialize(file.outputStream(), subject.value) }
-        } catch (e: Throwable) {
-            error("Preference '$name' failed to save.", e)
+            file.writeText(serialize(subject.value))
+        } catch (e: IOException) {
+            Timber.e(e) { "Preference '$key' failed to save." }
         }
     }
+
+    protected abstract fun serialize(obj: T): String
 
     fun save() {
         saveActor.offer(Unit)
@@ -60,9 +58,6 @@ abstract class BaseObjFilePref<T: Any>(
 
 
     override fun getValue(thisRef: Any, property: KProperty<*>): ConflatedBroadcastChannel<T> {
-        className = thisRef.javaClass.scopedName
-        name = property.name
-
         if (!subject.hasValue) {
             getFromPreference(property, UserPrefs.kotprefPreference).also {
                 subject.offer(it)
@@ -78,18 +73,34 @@ abstract class BaseObjFilePref<T: Any>(
     override fun setToEditor(property: KProperty<*>, value: T, editor: SharedPreferences.Editor) {
         save()
     }
-}
 
-inline fun <reified T: Any> objFilePref(default: T) = object: BaseObjFilePref<T>(default) {
     override fun getFromPreference(property: KProperty<*>, preference: SharedPreferences): T {
         return try {
             val file = App.instance.filesDir.resolve(fileName)
             if (file.exists()) {
-                deserialize(file.inputStream()) as T
+                deserialize(file.readText())
             } else default
-        } catch (e: Exception) {
-            error("Preference '${property.name}' failed to load.", e)
+        } catch (e: IOException) {
+            Timber.e(e) { "Preference '$key' failed to load." }
+            default
+        } catch (e: ClassCastException) {
+            Timber.e(e) { "Preference '$key' had invalid data" }
             default
         }
     }
+
+    protected abstract fun deserialize(input: String): T
+}
+
+inline fun <reified T: Any> objFilePref(
+    key: String,
+    default: T
+) = object: ObjFilePref<T>(key, default) {
+    override fun deserialize(input: String): T = try {
+        App.gson.fromJson(input)
+    } catch (e: Throwable) {
+        Timber.e(e) { "Json failed to parse" }
+        default
+    }
+    override fun serialize(obj: T): String = App.gson.typedToJson(obj)
 }

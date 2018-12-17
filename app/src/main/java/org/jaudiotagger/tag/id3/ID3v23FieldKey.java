@@ -1,6 +1,10 @@
 package org.jaudiotagger.tag.id3;
 
-import org.jaudiotagger.tag.id3.framebody.*;
+import org.jaudiotagger.tag.id3.framebody.FrameBodyCOMM;
+import org.jaudiotagger.tag.id3.framebody.FrameBodyTIPL;
+import org.jaudiotagger.tag.id3.framebody.FrameBodyTXXX;
+import org.jaudiotagger.tag.id3.framebody.FrameBodyUFID;
+import org.jaudiotagger.tag.id3.framebody.FrameBodyWXXX;
 
 /**
  * List of known id3v23 metadata fields

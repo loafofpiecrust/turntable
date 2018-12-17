@@ -19,9 +19,10 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue
 import com.frostwire.jlibtorrent.SessionManager
 import com.frostwire.jlibtorrent.TorrentHandle
 import com.frostwire.jlibtorrent.TorrentInfo
+import com.github.ajalt.timberkt.Timber
 import com.github.salomonbrys.kotson.nullObj
-import com.github.salomonbrys.kotson.obj
 import com.github.salomonbrys.kotson.string
+import com.google.gson.JsonObject
 import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.album.YouTubeFullAlbum
 import com.loafofpiecrust.turntable.artist.MusicDownload
@@ -32,21 +33,26 @@ import com.loafofpiecrust.turntable.model.album.selfTitledAlbum
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.song.dbKey
+import com.loafofpiecrust.turntable.serialize.compress
+import com.loafofpiecrust.turntable.serialize.decompress
 import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.addToMediaStore
 import com.mcxiaoke.koi.ext.intValue
 import com.mcxiaoke.koi.ext.stringValue
 import io.ktor.client.features.cookies.cookies
+import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.url
+import io.ktor.client.response.HttpResponse
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.map
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
-import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.downloadManager
-import org.jetbrains.anko.error
-import org.jetbrains.anko.info
 import org.jsoup.Jsoup
 import java.io.File
 import java.util.*
@@ -55,7 +61,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 
-class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
+class OnlineSearchService : CoroutineScope by GlobalScope {
     enum class OrderBy(val code: Int) {
         DATE(1),
         NAME(2),
@@ -142,6 +148,7 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
                 entry == null -> StreamStatus.Unknown
                 entry.youtubeId == null -> StreamStatus.Unavailable()
                 else -> tryOr(StreamStatus.Unknown) {
+                    // TODO: Stop using compression or use platform-independent impl
                     entry.stream128 = entry.stream128?.decompress()
                     entry.stream192 = entry.stream192?.decompress()
 
@@ -231,7 +238,7 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
 //                "stream192" to AttributeValue(entry.stream192)
 //            ))
         } catch (e: Exception) {
-            error("Failed to save song to database", e)
+            Timber.e(e) { "Failed to save song to database" }
         }
     }
 
@@ -317,12 +324,15 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
                     )
                 }
             } ?: tryOr(SongStream(StreamStatus.Unknown)) {
-                val res = Http.get("https://us-central1-turntable-3961c.cloudfunctions.net/parseStreamsFromYouTube", params = mapOf(
-                    "title" to song.id.displayName.toLowerCase(),
-                    "album" to song.id.album.displayName.toLowerCase(),
-                    "artist" to song.id.artist.displayName.toLowerCase(),
-                    "duration" to song.duration.toString()
-                )).gson().obj
+                val res = http.get<JsonObject> {
+                    url("https://us-central1-turntable-3961c.cloudfunctions.net/parseStreamsFromYouTube")
+                    parameters(
+                        "title" to song.id.displayName.toLowerCase(),
+                        "album" to song.id.album.displayName.toLowerCase(),
+                        "artist" to song.id.artist.displayName.toLowerCase(),
+                        "duration" to song.duration.toString()
+                    )
+                }
 
                 val lq = res["lowQuality"].nullObj?.get("url")?.string
 
@@ -351,7 +361,7 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
     suspend fun getSongStreams(song: Song): SongStream {
         val key = song.id.dbKey
         val existing = getExistingEntry(key)
-        info { "youtube: ${song.id} existing entry? $existing" }
+        Timber.d { "youtube: ${song.id} existing entry? $existing" }
         return evalExistingStream(song, existing)
     }
 
@@ -393,11 +403,12 @@ class OnlineSearchService : AnkoLogger, CoroutineScope by GlobalScope {
         if (cookie != null) { // and not expired yet
             return cookie
         } else {
-            val res = Http.post("http://rutracker.org/forum/login.php",
-                headers = mapOf("content-type" to "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW"),
+            http.post<HttpResponse> {
+                url("http://rutracker.org/forum/login.php")
+                contentType(ContentType.parse("multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW"))
                 body = "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; uuid=\"login_username\"\r\n\r\nloafofpiecrust\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; uuid=\"login_password\"\r\n\r\nPok10101\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; uuid=\"login\"\r\n\r\nвход\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW--"
-            )
-            val cookie = Http.client.cookies("http://rutracker.org/forum/login.php").find { it.name == "bb_session" }
+            }
+            val cookie = http.cookies("http://rutracker.org/forum/login.php").find { it.name == "bb_session" }
 //            val cookie = res.cookies.getCookie("bb_session")
             return if (cookie != null) {
                 loggedIn = true

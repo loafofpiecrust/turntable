@@ -1,8 +1,5 @@
 package org.jaudiotagger.audio.aiff;
 
-import java.util.List;
-
-import org.jaudiotagger.audio.generic.AbstractTag;
 import org.jaudiotagger.audio.generic.GenericTag;
 import org.jaudiotagger.audio.generic.Utils;
 import org.jaudiotagger.tag.FieldDataInvalidException;
@@ -10,7 +7,6 @@ import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.KeyNotFoundException;
 import org.jaudiotagger.tag.TagField;
 import org.jaudiotagger.tag.TagTextField;
-import org.jaudiotagger.tag.images.Artwork;
 
 public class AiffTag extends GenericTag {
 

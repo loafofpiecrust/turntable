@@ -1,18 +1,17 @@
 package com.loafofpiecrust.turntable.repository.remote
 
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper
+import com.github.ajalt.timberkt.Timber
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.dbKey
 import com.loafofpiecrust.turntable.repository.StreamProvider
+import com.loafofpiecrust.turntable.serialize.compress
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.tryOr
-import com.loafofpiecrust.turntable.util.compress
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.error
 
-object StreamCache: StreamProvider, AnkoLogger {
+object StreamCache: StreamProvider {
     val mapper: DynamoDBMapper by lazy {
         DynamoDBMapper.builder()
             .dynamoDBClient(OnlineSearchService.instance.database)
@@ -51,7 +50,7 @@ object StreamCache: StreamProvider, AnkoLogger {
                 stream192 = media.bestSource()?.url?.compress()
             ))
         } catch (e: Exception) {
-            error("Failed to save song to database", e)
+            Timber.e(e) { "Failed to save song to database" }
         }
     }
 }

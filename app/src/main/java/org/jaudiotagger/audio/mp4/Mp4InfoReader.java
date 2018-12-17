@@ -21,7 +21,15 @@ package org.jaudiotagger.audio.mp4;
 import org.jaudiotagger.audio.exceptions.CannotReadException;
 import org.jaudiotagger.audio.exceptions.CannotReadVideoException;
 import org.jaudiotagger.audio.generic.GenericAudioHeader;
-import org.jaudiotagger.audio.mp4.atom.*;
+import org.jaudiotagger.audio.mp4.atom.Mp4AlacBox;
+import org.jaudiotagger.audio.mp4.atom.Mp4BoxHeader;
+import org.jaudiotagger.audio.mp4.atom.Mp4DrmsBox;
+import org.jaudiotagger.audio.mp4.atom.Mp4EsdsBox;
+import org.jaudiotagger.audio.mp4.atom.Mp4FtypBox;
+import org.jaudiotagger.audio.mp4.atom.Mp4MdhdBox;
+import org.jaudiotagger.audio.mp4.atom.Mp4Mp4aBox;
+import org.jaudiotagger.audio.mp4.atom.Mp4MvhdBox;
+import org.jaudiotagger.audio.mp4.atom.Mp4StsdBox;
 import org.jaudiotagger.logging.ErrorMessage;
 
 import java.io.IOException;

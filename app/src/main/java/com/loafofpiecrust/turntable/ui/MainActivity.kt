@@ -1,7 +1,6 @@
 package com.loafofpiecrust.turntable.ui
 
 import activitystarter.Arg
-import activitystarter.MakeActivityStarter
 import android.Manifest
 import android.app.SearchManager
 import android.content.Context
@@ -20,6 +19,7 @@ import android.view.View
 import android.view.ViewManager
 import com.chibatching.kotpref.KotprefModel
 import com.firebase.ui.auth.IdpResponse
+import com.github.ajalt.timberkt.Timber
 import com.github.florent37.runtimepermission.kotlin.askPermission
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.auth.FirebaseAuth
@@ -57,7 +57,6 @@ import org.jetbrains.anko.*
 import org.jetbrains.anko.design.navigationView
 import org.jetbrains.anko.support.v4.drawerLayout
 
-@MakeActivityStarter
 class MainActivity : BaseActivity() {
     sealed class Action: Parcelable {
         @Parcelize class OpenNowPlaying: Action()
@@ -127,6 +126,9 @@ class MainActivity : BaseActivity() {
         firstSheetPeek {
             id = R.id.miniPlayer
             backgroundColor = colorAttr(android.R.attr.windowBackground)
+            clipToPadding = false
+            clipToOutline = false
+            elevation = dimen(R.dimen.medium_elevation).toFloat()
             fragment { MiniPlayerFragment() }
         }
 
@@ -168,13 +170,12 @@ class MainActivity : BaseActivity() {
         askPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) { res ->
             if (res.isAccepted) {
                 Library.initData(applicationContext)
-                Sync.requestLogin(this)
+                Sync.requestLogin(this, soft = false)
             } else {
                 toast("Unable to load local music")
             }
         }
     }
-
 
 //    lateinit var gclient: GoogleApiClient
 
@@ -182,10 +183,9 @@ class MainActivity : BaseActivity() {
         super.onNewIntent(intent)
 
         val action = intent.getParcelableExtra<Action>("action")
-        info { action }
         when (action) {
             // TODO: Impl with BottomSheet
-//            is Action.OpenNowPlaying -> slider?.panelState = SlidingUpPanelLayout.PanelState.EXPANDED
+            is Action.OpenNowPlaying -> sheets.unhide(true)
             is Action.FriendRequest -> {
                 val sender = action.sender
                 alert("${sender.name} wants to be friends") {
@@ -205,7 +205,8 @@ class MainActivity : BaseActivity() {
                         // change some UI element to indicate sync mode (in Now Playing?)
                         // TODO: Send display uuid or have that somewhere.
                         Sync.confirmSync(req)
-                        toast("Now synced with ${req.message.mode}")
+                        val target = req.message.mode ?: req.sender
+                        toast("Now synced with $target")
                     }
                     negativeButton(R.string.request_decline) {
                         Sync.declineSync(req)
@@ -238,7 +239,7 @@ class MainActivity : BaseActivity() {
 //                }
             } else if (intent.action == Intent.ACTION_VIEW && intent.data != null) {
                 val rawUri = intent.data!!
-                info { rawUri }
+                Timber.d { rawUri.toString() }
                 launch {
                     val uri = FirebaseDynamicLinks.getInstance()
                         .getDynamicLink(intent)
@@ -256,7 +257,7 @@ class MainActivity : BaseActivity() {
 //        if (resultCode != RESULT_OK) return
 
         MainActivityStarter.fill(this, data?.extras)
-        info { action }
+        Timber.d { action.toString() }
 
         if (requestCode == 69 && data != null) {
             val result = IdpResponse.fromResultIntent(data)
@@ -373,7 +374,7 @@ fun Context.replaceMainContent(fragment: Fragment, allowBackNav: Boolean = true,
         (this as? MainActivity)?.collapseDrawers()
 
         val screenName = if (fragment is UniversalFragment) {
-            fragment.component.javaClass.scopedName
+            fragment.component::class.scopedName
         } else {
             fragment.javaClass.scopedName
         }

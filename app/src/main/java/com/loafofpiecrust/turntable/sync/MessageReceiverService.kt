@@ -1,37 +1,44 @@
 package com.loafofpiecrust.turntable.sync
 
+import com.github.ajalt.timberkt.Timber
+import com.github.salomonbrys.kotson.fromJson
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.model.sync.User
-import com.loafofpiecrust.turntable.util.deserialize
-import com.loafofpiecrust.turntable.util.fromBase64
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.runBlocking
-import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.error
 
 /**
  * Manages receiving messages from other users.
  */
-class MessageReceiverService : FirebaseMessagingService(), AnkoLogger {
+class MessageReceiverService : FirebaseMessagingService() {
     override fun onMessageReceived(msg: RemoteMessage): Unit = runBlocking {
-        val sender = deserialize(msg.data["sender"]!!) as User
+        Timber.d { "received ${msg.data}" }
+
+        val sender = try {
+            App.gson.fromJson<User>(msg.data["sender"]!!)
+        } catch (e: Exception) {
+            return@runBlocking
+        }
 //        val mode = deserialize(msg.data["mode"]!!) as Sync.Mode
 
         if (!msg.data.containsKey("action") || sender.deviceId == Sync.selfUser.deviceId) {
             // We sent this message ourselves, don't process it.
             // This will happen when synced in a group.
-            error("Message has no action")
+            Timber.e { "Message has no action" }
             return@runBlocking
         }
 
         val message = try {
-            deserialize(msg.data["action"]!!.fromBase64()) as Message
-        } catch (e: ClassCastException) {
-            error("Unable to parse message", e)
+            App.gson.fromJson<Message>(msg.data["action"]!!)
+        } catch (e: Exception) {
+            Timber.e(e) { "Unable to parse message" }
             return@runBlocking
         }
+
+        Timber.d { "deserialized message: $message" }
 
         _messages.send(message to sender)
     }

@@ -16,7 +16,13 @@
 package org.jaudiotagger.tag.id3;
 
 import org.jaudiotagger.audio.mp3.MP3File;
-import org.jaudiotagger.tag.*;
+import org.jaudiotagger.tag.InvalidDataTypeException;
+import org.jaudiotagger.tag.InvalidFrameException;
+import org.jaudiotagger.tag.InvalidTagException;
+import org.jaudiotagger.tag.PaddingException;
+import org.jaudiotagger.tag.TagField;
+import org.jaudiotagger.tag.TagOptionSingleton;
+import org.jaudiotagger.tag.TagTextField;
 import org.jaudiotagger.tag.id3.framebody.AbstractID3v2FrameBody;
 import org.jaudiotagger.tag.id3.framebody.FrameBodyEncrypted;
 import org.jaudiotagger.tag.id3.framebody.FrameBodyUnsupported;

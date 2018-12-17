@@ -2,7 +2,6 @@ package com.loafofpiecrust.turntable.player
 
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.os.Bundle
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.FloatingActionButton
 import android.view.View
@@ -35,37 +34,9 @@ import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.sdk27.coroutines.onSeekBarChangeListener
 
 open class NowPlayingFragment : BaseFragment() {
-    var playButton: FloatingActionButton by weak()
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        MusicService.instance.switchMap {
-            it?.player?.currentSong
-        }.switchMap { song ->
-            song?.loadCover(Glide.with(view))?.map { req ->
-                song to req
-            }
-        }.consumeEachAsync { (song, req) ->
-            if (req != null) {
-                req.listener(loadPalette(song.id.album) { palette, swatch ->
-                    val c =
-                        (palette?.mutedSwatch
-                            ?: palette?.darkMutedSwatch
-                            ?: palette?.darkVibrantSwatch)?.rgb
-                            ?: Color.BLACK
-                    playButton.backgroundTintList = ColorStateList.valueOf(c)
-                }).preload()
-            } else {
-                // reset playButton color.
-                playButton.backgroundTintList = ColorStateList.valueOf(UserPrefs.primaryColor.value)
-            }
-        }
-    }
-
     override fun ViewManager.createView() = constraintLayout {
         backgroundColor = colorAttr(android.R.attr.windowBackground)
-        MusicService.currentSongColor.consumeEachAsync {
-            backgroundColor = it
-        }
+//        elevation = dimen(R.dimen.low_elevation).toFloat()
 
         topPadding = dimen(R.dimen.statusbar_height)
 
@@ -154,10 +125,10 @@ open class NowPlayingFragment : BaseFragment() {
             }
         }
 
-        playButton = floatingActionButton {
+        val playButton = floatingActionButton {
             id = R.id.playing_icon
             imageResource = R.drawable.ic_play_arrow
-            elevation = dimen(R.dimen.low_elevation).toFloat()
+//            elevation = dimen(R.dimen.medium_elevation).toFloat()
             isLongClickable = true
 
             MusicService.instance.switchMap {
@@ -176,6 +147,7 @@ open class NowPlayingFragment : BaseFragment() {
                 }
             }
         }
+        bindBackgroundColor(this, playButton)
 
 
         val nextBtn = iconButton(R.drawable.ic_skip_next) {
@@ -275,6 +247,34 @@ open class NowPlayingFragment : BaseFragment() {
                     TOP to TOP of playButton,
                     BOTTOM to BOTTOM of playButton
                 )
+            }
+        }
+    }
+
+    private fun bindBackgroundColor(root: View, playButton: FloatingActionButton) {
+        MusicService.currentSongColor.consumeEachAsync {
+            root.backgroundColor = it
+        }
+
+        MusicService.instance.switchMap {
+            it?.player?.currentSong
+        }.switchMap { song ->
+            song?.loadCover(Glide.with(root))?.map { req ->
+                song to req
+            }
+        }.consumeEachAsync { (song, req) ->
+            if (req != null) {
+                req.listener(loadPalette(song.id.album) { palette, swatch ->
+                    val c =
+                        (palette?.mutedSwatch
+                            ?: palette?.darkMutedSwatch
+                            ?: palette?.darkVibrantSwatch)?.rgb
+                            ?: Color.BLACK
+                    playButton.backgroundTintList = ColorStateList.valueOf(c)
+                }).preload()
+            } else {
+                // reset playButton color.
+                playButton.backgroundTintList = ColorStateList.valueOf(UserPrefs.primaryColor.value)
             }
         }
     }

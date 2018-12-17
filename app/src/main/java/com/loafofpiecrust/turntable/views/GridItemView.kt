@@ -25,7 +25,7 @@ class GridItemView(
 ): CardView(context) {
     init {
         id = R.id.card
-        cardElevation = dimen(R.dimen.medium_elevation).toFloat()
+        cardElevation = dimen(R.dimen.low_elevation).toFloat()
         radius = dimen(R.dimen.card_corner_radius).toFloat()
     }
 

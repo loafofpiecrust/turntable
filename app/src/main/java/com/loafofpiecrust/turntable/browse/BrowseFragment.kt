@@ -58,7 +58,7 @@ class BrowseFragment: BaseFragment() {
                 button(R.string.show_more).lparams {
                     gravity = Gravity.END
                 }.onClick {
-                    context.replaceMainContent(RecommendationsFragment())
+                    context.replaceMainContent(RecommendationsUI().createFragment())
                 }
             }
             recyclerView {
@@ -167,7 +167,10 @@ fun RecyclerListItem.bindMusic(
         }
         is PlaylistId -> {
             mainLine.text = item.displayName
-            subLine.text = ctx.getString(R.string.playlist_author, item.owner.displayName, "Playlist")
+            subLine.text = item.owner?.let { owner ->
+                ctx.getString(R.string.playlist_author, owner.displayName, "Playlist")
+            } ?: ""
+
             card.onClick {
 //                val playlist = withContext(Dispatchers.IO) {
 //                    AbstractPlaylist.findChannel(item.uuid)

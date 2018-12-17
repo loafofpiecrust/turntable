@@ -4,7 +4,10 @@ import org.jaudiotagger.tag.mp4.field.Mp4FieldType;
 import org.jaudiotagger.tag.mp4.field.Mp4TagReverseDnsField;
 import org.jaudiotagger.tag.reference.Tagger;
 
-import static org.jaudiotagger.tag.mp4.field.Mp4FieldType.*;
+import static org.jaudiotagger.tag.mp4.field.Mp4FieldType.COVERART_JPEG;
+import static org.jaudiotagger.tag.mp4.field.Mp4FieldType.IMPLICIT;
+import static org.jaudiotagger.tag.mp4.field.Mp4FieldType.INTEGER;
+import static org.jaudiotagger.tag.mp4.field.Mp4FieldType.TEXT;
 
 /**
  * Starting list of known mp4 metadata fields that follow the Parent,Data or ---,issuer,uuid,data

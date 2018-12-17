@@ -93,7 +93,7 @@
 #-keep class java.time.** { *; }
 #-keep class java.beans.** { *; }
 #-keep class org.jdom.xpath.** { *; }
--keep class com.esotericsoftware.kryo.serializers.* { *; }
+#-keep class com.esotericsoftware.kryo.serializers.* { *; }
 #-keepclassmembers class java.lang.Class { *; }
 
 -ignorewarnings
@@ -119,9 +119,10 @@
 #-keep class kotlin.collections.** { <init>(...); }
 #-keep class com.android.tools.profiler.agent.okhttp.OkHttp3Interceptor { *; }
 
--keepclassmembers class com.esotericsoftware.kryo.serializers.** { *; }
+#-keepclassmembers class com.esotericsoftware.kryo.serializers.** { *; }
 
 -keep class okhttp3.Headers { *; }
+-keep class com.bumptech.glide.integration.okhttp3.OkHttpGlideModule
 
 #-keepnames class kotlin.reflect.**
 #-keepclassmembers class java.util.** { <init>(...); }

@@ -1,12 +1,10 @@
 package org.jaudiotagger.audio.aiff;
 
-import java.io.RandomAccessFile;
+import org.jaudiotagger.audio.generic.GenericAudioHeader;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-
-import org.jaudiotagger.audio.AudioHeader;
-import org.jaudiotagger.audio.generic.GenericAudioHeader;
 
 /**
  *   Non-"tag" metadata from the AIFF file. In general, read-only.

@@ -6,7 +6,12 @@ import org.jaudiotagger.audio.asf.util.Utils;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * This structure represents the &quot;Metadata Object&quot;,&quot;Metadata

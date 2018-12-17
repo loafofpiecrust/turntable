@@ -1,14 +1,10 @@
 package org.jaudiotagger.audio.aiff;
 
+import org.jaudiotagger.audio.generic.Utils;
+
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.text.SimpleDateFormat;
 import java.util.Date;
-
-import org.jaudiotagger.audio.generic.Utils;
-import org.jaudiotagger.tag.FieldDataInvalidException;
-import org.jaudiotagger.tag.aiff.AiffTag;
-import org.jaudiotagger.tag.aiff.AiffTagFieldKey;
 
 public class FormatVersionChunk extends Chunk {
     

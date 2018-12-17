@@ -1,9 +1,11 @@
 package com.loafofpiecrust.turntable.model.playlist
 
 import android.content.Context
-import com.google.firebase.firestore.Blob
+import com.github.salomonbrys.kotson.fromJson
+import com.github.salomonbrys.kotson.typedToJson
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
+import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.sync.User
@@ -18,7 +20,6 @@ import kotlinx.coroutines.channels.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
-import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.selector
 import org.jetbrains.anko.toast
 import java.util.*
@@ -52,18 +53,18 @@ open class MixTape(
         val sideNames: List<String> get() = (0 until sideCount).map(::sideName)
     }
 
-    companion object: AnkoLogger {
+    companion object {
         fun fromDocument(doc: DocumentSnapshot): MixTape = runBlocking {
             MixTape(
                 PlaylistId(
                     doc.getString("name")!!,
-                    doc.getBlob("owner")!!.toObject(),
+                    App.gson.fromJson(doc.getString("owner")!!),
                     UUID.fromString(doc.id)
                 ),
                 Type.valueOf(doc.getString("type")!!),
                 doc.getLong("color")?.toInt()
             ).apply {
-                sides puts doc.getBlob("tracks")!!.toObject()
+                sides puts App.gson.fromJson(doc.getString("tracks")!!)
                 lastModified = doc.getDate("lastModified")!!
                 isPublished = true
             }
@@ -239,8 +240,8 @@ class MutableMixtape(
                     "color" to color,
                     "lastModified" to lastModified,
                     "createdTime" to createdTime,
-                    "tracks" to Blob.fromBytes(serialize(sides.value)),
-                    "owner" to Blob.fromBytes(serialize(id.owner))
+                    "tracks" to App.gson.typedToJson(sides.value),
+                    "owner" to id.owner?.let { App.gson.typedToJson(it) }
                 ))
         }
         isPublished = true

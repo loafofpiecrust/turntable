@@ -23,12 +23,14 @@ import org.jaudiotagger.audio.generic.AbstractTag;
 import org.jaudiotagger.audio.generic.Utils;
 import org.jaudiotagger.audio.ogg.util.VorbisHeader;
 import org.jaudiotagger.logging.ErrorMessage;
-import org.jaudiotagger.tag.*;
-import org.jaudiotagger.tag.images.Artwork;
-
-import static org.jaudiotagger.tag.vorbiscomment.VorbisCommentFieldKey.VENDOR;
-
+import org.jaudiotagger.tag.FieldDataInvalidException;
+import org.jaudiotagger.tag.FieldKey;
+import org.jaudiotagger.tag.InvalidFrameException;
+import org.jaudiotagger.tag.KeyNotFoundException;
+import org.jaudiotagger.tag.TagField;
+import org.jaudiotagger.tag.TagTextField;
 import org.jaudiotagger.tag.id3.valuepair.TextEncoding;
+import org.jaudiotagger.tag.images.Artwork;
 import org.jaudiotagger.tag.images.ArtworkFactory;
 import org.jaudiotagger.tag.vorbiscomment.util.Base64Coder;
 
@@ -38,6 +40,8 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
+
+import static org.jaudiotagger.tag.vorbiscomment.VorbisCommentFieldKey.VENDOR;
 
 /**
  * This is the logical representation of  Vorbis Comment Data

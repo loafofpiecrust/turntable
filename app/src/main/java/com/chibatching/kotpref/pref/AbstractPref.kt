@@ -1,22 +1,19 @@
 package com.chibatching.kotpref.pref
 
 import android.content.SharedPreferences
-import com.chibatching.kotpref.Kotpref
-import com.chibatching.kotpref.KotprefModel
 import com.loafofpiecrust.turntable.prefs.UserPrefs
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.util.hasValue
+import com.loafofpiecrust.turntable.util.skip
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.channels.sendBlocking
 import kotlinx.coroutines.launch
-import org.jetbrains.anko.AnkoLogger
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
 
-abstract class AbstractPref<T: Any?>: ReadOnlyProperty<Any, ConflatedBroadcastChannel<T>>, AnkoLogger {
+abstract class AbstractPref<T: Any?>: ReadOnlyProperty<Any, ConflatedBroadcastChannel<T>> {
     protected var subject = ConflatedBroadcastChannel<T>()
 
     override operator fun getValue(thisRef: Any, property: KProperty<*>): ConflatedBroadcastChannel<T> {

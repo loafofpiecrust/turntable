@@ -3,13 +3,13 @@ package com.loafofpiecrust.turntable.model.artist
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.MusicId
-import com.loafofpiecrust.turntable.model.album.AlbumId
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.song.withoutArticle
 import com.loafofpiecrust.turntable.util.compareTo
 import kotlinx.android.parcel.Parcelize
 
 @Parcelize
+//@Serializable
 data class ArtistId(
     override val name: String,
     val altName: String? = null,
@@ -18,19 +18,24 @@ data class ArtistId(
     @Deprecated("Serializer use only")
     internal constructor(): this("")
 
+    @kotlinx.serialization.Transient
     private val sortName: CharSequence
         get() = displayName.withoutArticle()
 
+    @kotlinx.serialization.Transient
     val dbKey: String get() = sortName.toString()
 
     /** Character used for alphabetized scrollbars and section titles */
+    @kotlinx.serialization.Transient
     val sortChar: Char get() = sortName.first().toUpperCase()
 
+    @kotlinx.serialization.Transient
     val featureList: String get() = if (features.isNotEmpty()) {
         App.instance.getString(R.string.artist_features, features.joinToString(", "))
     } else ""
 
     @delegate:Transient
+    @kotlinx.serialization.Transient
     override val displayName: String by lazy {
         val feat = SongId.FEATURE_PAT.find(name)
         if (feat != null) {

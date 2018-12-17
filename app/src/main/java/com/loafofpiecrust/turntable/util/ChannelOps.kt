@@ -72,7 +72,7 @@ fun <A, B, R> combineLatest(
     sourceA: ReceiveChannel<A>,
     sourceB: ReceiveChannel<B>,
     context: CoroutineContext = Dispatchers.Unconfined,
-    combine: suspend (A, B) -> R
+    combine: (A, B) -> R
 ): ReceiveChannel<R> = GlobalScope.produce(context) {
     var latestA: A? = null
     var latestB: B? = null
@@ -80,18 +80,22 @@ fun <A, B, R> combineLatest(
     try {
         whileSelect {
             sourceA.onReceiveOrNull { a ->
-                latestA = a
-                val b = latestB
-                if (a != null && b != null) {
-                    send(combine(a, b))
+                if (a != null) {
+                    latestA = a
+                    val b = latestB
+                    if (b != null) {
+                        send(combine(a, b))
+                    }
                 }
                 a != null
             }
             sourceB.onReceiveOrNull { b ->
-                latestB = b
-                val a = latestA
-                if (b != null && a != null) {
-                    send(combine(a, b))
+                if (b != null) {
+                    latestB = b
+                    val a = latestA
+                    if (a != null) {
+                        send(combine(a, b))
+                    }
                 }
                 b != null
             }
@@ -187,7 +191,7 @@ fun <T> ReceiveChannel<T>.distinctInstanceSeq(
 
 fun <T> ReceiveChannel<T>.distinctBySeq(
     context: CoroutineContext = Dispatchers.Unconfined,
-    areSame: suspend (T, T) -> Boolean
+    areSame: (T, T) -> Boolean
 ): ReceiveChannel<T> = GlobalScope.produce(context) {
     consume {
         var prev = receive().also { send(it) }

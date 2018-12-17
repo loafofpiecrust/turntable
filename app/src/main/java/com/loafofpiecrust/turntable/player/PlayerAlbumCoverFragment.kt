@@ -123,7 +123,7 @@ class PlayerAlbumCoverFragment : BaseFragment() {
                     clipToPadding = false
 
                     cardView {
-                        cardElevation = dimen(R.dimen.medium_elevation).toFloat()
+                        cardElevation = dimen(R.dimen.high_elevation).toFloat()
                         constraintLayout {
                             val img = imageView {
                                 id = R.id.image

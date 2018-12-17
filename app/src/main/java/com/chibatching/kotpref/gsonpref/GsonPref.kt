@@ -1,13 +1,5 @@
 package com.chibatching.kotpref.gsonpref
 
-import android.content.SharedPreferences
-import com.chibatching.kotpref.KotprefModel
-import com.chibatching.kotpref.pref.AbstractPref
-import com.github.salomonbrys.kotson.fromJson
-import com.github.salomonbrys.kotson.typedToJson
-import com.loafofpiecrust.turntable.App
-import kotlin.reflect.KProperty
-
 
 //class GsonPref<T : Any>(val targetClass: KClass<T>, val default: T, val key: String?) : AbstractPref<T>() {
 //

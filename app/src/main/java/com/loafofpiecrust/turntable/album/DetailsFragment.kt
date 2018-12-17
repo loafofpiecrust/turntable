@@ -38,7 +38,7 @@ import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.msToTimeString
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
-import com.loafofpiecrust.turntable.playlist.PlaylistPicker
+import com.loafofpiecrust.turntable.playlist.AddToPlaylistDialog
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repository.Repositories
 import com.loafofpiecrust.turntable.service.Library
@@ -49,7 +49,7 @@ import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.ui.universal.UIComponent
 import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import com.loafofpiecrust.turntable.ui.universal.createView
-import com.loafofpiecrust.turntable.ui.universal.showDialog
+import com.loafofpiecrust.turntable.ui.universal.show
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.CoroutineScope
@@ -275,7 +275,7 @@ private fun Menu.prepareOptions(scope: CoroutineScope, context: Context, album: 
     }
 
     menuItem(R.string.add_to_playlist).onClick {
-        PlaylistPicker(album.id).showDialog(context)
+        AddToPlaylistDialog(album.id).show(context)
     }
 
     if (album is RemoteAlbum) {

@@ -21,16 +21,31 @@ package org.jaudiotagger.tag.mp4;
 import org.jaudiotagger.audio.generic.AbstractTag;
 import org.jaudiotagger.audio.mp4.atom.Mp4BoxHeader;
 import org.jaudiotagger.logging.ErrorMessage;
-import org.jaudiotagger.tag.*;
+import org.jaudiotagger.tag.FieldDataInvalidException;
+import org.jaudiotagger.tag.FieldKey;
+import org.jaudiotagger.tag.KeyNotFoundException;
+import org.jaudiotagger.tag.TagField;
+import org.jaudiotagger.tag.TagOptionSingleton;
 import org.jaudiotagger.tag.images.Artwork;
 import org.jaudiotagger.tag.images.ArtworkFactory;
-import org.jaudiotagger.tag.mp4.field.*;
+import org.jaudiotagger.tag.mp4.field.Mp4DiscNoField;
+import org.jaudiotagger.tag.mp4.field.Mp4GenreField;
+import org.jaudiotagger.tag.mp4.field.Mp4TagByteField;
+import org.jaudiotagger.tag.mp4.field.Mp4TagCoverField;
+import org.jaudiotagger.tag.mp4.field.Mp4TagReverseDnsField;
+import org.jaudiotagger.tag.mp4.field.Mp4TagTextField;
+import org.jaudiotagger.tag.mp4.field.Mp4TagTextNumberField;
+import org.jaudiotagger.tag.mp4.field.Mp4TrackField;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 
-import static org.jaudiotagger.tag.mp4.Mp4FieldKey.*;
+import static org.jaudiotagger.tag.mp4.Mp4FieldKey.DISCNUMBER;
+import static org.jaudiotagger.tag.mp4.Mp4FieldKey.GENRE;
+import static org.jaudiotagger.tag.mp4.Mp4FieldKey.GENRE_CUSTOM;
+import static org.jaudiotagger.tag.mp4.Mp4FieldKey.KEY_OLD;
+import static org.jaudiotagger.tag.mp4.Mp4FieldKey.TRACK;
 
 /**
  * A Logical representation of Mp4Tag, i.e the meta information stored in an Mp4 file underneath the

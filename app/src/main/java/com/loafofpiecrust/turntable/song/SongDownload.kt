@@ -3,7 +3,9 @@ package com.loafofpiecrust.turntable.song
 import android.app.DownloadManager
 import android.net.Uri
 import android.os.Environment
+import com.github.ajalt.timberkt.Timber
 import com.github.salomonbrys.kotson.*
+import com.google.gson.JsonObject
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.artist.MusicDownload
@@ -12,11 +14,11 @@ import com.loafofpiecrust.turntable.model.song.filePath
 import com.loafofpiecrust.turntable.parMap
 import com.loafofpiecrust.turntable.provided
 import com.loafofpiecrust.turntable.service.OnlineSearchService
-import com.loafofpiecrust.turntable.util.Http
-import com.loafofpiecrust.turntable.util.gson
+import com.loafofpiecrust.turntable.util.http
+import com.loafofpiecrust.turntable.util.parameters
+import io.ktor.client.request.get
+import io.ktor.client.request.url
 import me.xdrop.fuzzywuzzy.FuzzySearch
-import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.debug
 import org.jetbrains.anko.downloadManager
 import kotlin.math.abs
 
@@ -29,7 +31,7 @@ data class YouTubeSong(
     val duration: Int
 ) : SongDownload() {
 
-    companion object: AnkoLogger by AnkoLogger<YouTubeSong>() {
+    companion object {
         const val API_KEY = BuildConfig.YOUTUBE_API_KEY
         private val PAT_UNOFFICIAL by lazy {
             Regex("\\b(live|remix|mix|cover|unofficial|instrumental|sessions)\\b")
@@ -112,18 +114,19 @@ data class YouTubeSong(
 //            return null
 
 
-            val res = Http.get("https://www.googleapis.com/youtube/v3/search", params = mapOf(
-                "key" to API_KEY,
-                "part" to "snippet",
-                "type" to "video",
-                "q" to query,
-                "maxResults" to "7"//,
-//                "videoSyndicated" to "true",
-//                "videoEmbeddable" to "true"
-            )).gson().obj
+            val res = http.get<JsonObject> {
+                url("https://www.googleapis.com/youtube/v3/search")
+                parameters(
+                    "key" to API_KEY,
+                    "part" to "snippet",
+                    "type" to "video",
+                    "q" to query,
+                    "maxResults" to 7
+                )
+            }
 
 
-            debug { "youtube: query = '$query'" }
+            Timber.d { "youtube: query = '$query'" }
 
             val items = res["items"].array
             val results = items.mapIndexed { idx, it -> idx to it.obj }.parMap { (idx, it) ->
@@ -170,11 +173,14 @@ data class YouTubeSong(
 //                }
 
                     // Fucking YouTube. We still need the video duration to filter by and confirm sameness.
-                    val res = Http.get("https://www.googleapis.com/youtube/v3/videos", params = mapOf(
-                        "key" to API_KEY,
-                        "id" to videoId,
-                        "part" to "contentDetails,statistics"
-                    )).gson().obj
+                    val res = http.get<JsonObject> {
+                        url("https://www.googleapis.com/youtube/v3/videos")
+                        parameters(
+                            "key" to API_KEY,
+                            "id" to videoId,
+                            "part" to "contentDetails,statistics"
+                        )
+                    }
                     val item = res["items"][0]
 
                     // If the video has over 10000 views,
@@ -255,7 +261,7 @@ data class YouTubeSong(
                         matchRatio += 5
                     }
 
-                    debug { "youtube: possibly '$title' is ${duration}ms, match=$matchRatio, uuid=$videoId" }
+                    Timber.d { "youtube: possibly '$title' is ${duration}ms, match=$matchRatio, uuid=$videoId" }
 
                     // TODO: Prioritize shit that has the artist uuid in the name and/or description
                     // TODO: Check for album uuid in description, if it's there prioritize. If not, don't penalize
@@ -263,14 +269,14 @@ data class YouTubeSong(
                     (matchRatio to YouTubeSong(song, title, videoId, duration))
                         .provided { matchRatio >= 84 }
                 } catch (e: Exception) {
-                    debug { e.stackTrace }
+                    Timber.d(e)
                     null
                 }
             }.mapNotNull { it.await() }.sortedByDescending { (match, _) -> match }
             val choice = results.firstOrNull()?.second
 
             if (choice != null) {
-                debug { "youtube: picked '${choice.title}' is ${choice.duration}ms, uuid=${choice.id}" }
+                Timber.d { "youtube: picked '${choice.title}' is ${choice.duration}ms, uuid=${choice.id}" }
             }
             return choice
         }

@@ -14,6 +14,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.ImageView
 import com.bumptech.glide.Glide
+import com.github.ajalt.timberkt.Timber
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.AlbumId
@@ -102,7 +103,7 @@ class AlbumEditorActivity : BaseActivity() {
                         saveTags(album, dialog)
                     }
                 } catch (e: Exception) {
-                    error("Failed to save tags", e)
+                    Timber.e(e) { "Failed to save tags" }
                     toast("Failed to save tags")
                 }
 

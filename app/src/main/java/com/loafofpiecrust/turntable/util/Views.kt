@@ -5,7 +5,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import com.lapism.searchview.widget.SearchView
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.style.rippleBorderless
+import com.loafofpiecrust.turntable.style.rippleCircle
 import com.lsjwzh.widget.recyclerviewpager.RecyclerViewPager
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import org.jetbrains.anko.*
@@ -33,7 +33,7 @@ inline fun ViewManager.iconButton(
     iconRes: Int,
     block: @AnkoViewDslMarker ImageButton.() -> Unit
 ) = imageButton(iconRes) {
-    rippleBorderless()
+    rippleCircle()
     padding = dimen(R.dimen.fab_margin)
     block()
 }

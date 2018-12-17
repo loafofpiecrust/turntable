@@ -20,14 +20,17 @@ package org.jaudiotagger.audio.mp4;
 
 import org.jaudiotagger.audio.exceptions.CannotReadException;
 import org.jaudiotagger.audio.exceptions.CannotWriteException;
-import org.jaudiotagger.audio.mp4.atom.*;
+import org.jaudiotagger.audio.mp4.atom.Mp4BoxHeader;
+import org.jaudiotagger.audio.mp4.atom.Mp4FreeBox;
+import org.jaudiotagger.audio.mp4.atom.Mp4HdlrBox;
+import org.jaudiotagger.audio.mp4.atom.Mp4MetaBox;
+import org.jaudiotagger.audio.mp4.atom.Mp4StcoBox;
 import org.jaudiotagger.logging.ErrorMessage;
 import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.TagOptionSingleton;
 import org.jaudiotagger.tag.mp4.Mp4Tag;
 import org.jaudiotagger.tag.mp4.Mp4TagCreator;
 import org.jaudiotagger.utils.tree.DefaultMutableTreeNode;
-
 
 import java.io.IOException;
 import java.io.RandomAccessFile;

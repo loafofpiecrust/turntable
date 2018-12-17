@@ -1,5 +1,6 @@
 package com.loafofpiecrust.turntable.repository.remote
 
+import com.github.ajalt.timberkt.Timber
 import com.github.salomonbrys.kotson.*
 import com.google.gson.JsonObject
 import com.loafofpiecrust.turntable.BuildConfig
@@ -15,17 +16,18 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.parMap
 import com.loafofpiecrust.turntable.repository.Repository
-import com.loafofpiecrust.turntable.util.Http
 import com.loafofpiecrust.turntable.util.gson
+import com.loafofpiecrust.turntable.util.http
 import com.loafofpiecrust.turntable.util.mapNotFailed
-import com.loafofpiecrust.turntable.util.text
+import com.loafofpiecrust.turntable.util.parameters
+import io.ktor.client.request.get
+import io.ktor.client.request.parameter
+import io.ktor.client.request.url
 import io.ktor.client.response.HttpResponse
+import io.ktor.http.userAgent
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import org.jetbrains.anko.debug
-import org.jetbrains.anko.error
-import org.jetbrains.anko.info
 import org.jsoup.Jsoup
 
 /**
@@ -55,7 +57,7 @@ object Discogs: Repository {
             get() = artworkUrl
 
         override val albums: List<Album> by lazy {
-            info { "discography for $id" }
+            Timber.d { "discography for $id" }
             runBlocking { discographyHtml(id) }
 //            runBlocking { discography(uuid) }
         }
@@ -79,26 +81,33 @@ object Discogs: Repository {
             var res: HttpResponse
             do {
                 reqCount--
-                res = Http.get(url, params = params + mapOf(
-                    "key" to key,
-                    "secret" to secret
-                ), headers = mapOf(
-                    "User-Agent" to "com.loafofpiecrust.turntable/0.1alpha"
-                ))
+                res = http.get(url) {
+                    userAgent("com.loafofpiecrust.turntable/0.1alpha")
+                    for ((k, v) in params) {
+                        parameter(k, v)
+                    }
+                    parameters(
+                        "key" to key,
+                        "secret" to secret
+                    )
+                }
+                Timber.d { res.status.toString() }
+
                 if (res.status.value == 429) {
                     res.close()
                     delay(4000)
                 }
             } while (res.status.value > 400 && reqCount > 0)
-            val rem = res.headers["X-Discogs-Ratelimit-Remaining"]!!.toInt()
-            info { "$rem remaining" }
-            if (rem <= 5) {
+            Timber.d { res.headers.toString() }
+            val rem = res.headers["X-Discogs-Ratelimit-Remaining"]?.toInt()
+            Timber.d { "$rem remaining" }
+            if (rem != null && rem <= 5) {
                 delay(500)
             }
 
             res.gson().obj
         } catch (e: Exception) {
-            error(e.message, e)
+            Timber.wtf(e)
             throw e
 //            error(e)
         }
@@ -361,7 +370,7 @@ object Discogs: Repository {
 
             val common = subRels.groupingBy { it.type }
                 .eachCount().also {
-                    debug { "discogs: for ${master.id.displayName}, $it" }
+                    Timber.d { "discogs: for ${master.id.displayName}, $it" }
                 }
                 .maxBy {
                     if (it.key != Album.Type.OTHER) {
@@ -377,7 +386,7 @@ object Discogs: Repository {
             )
         }.awaitAllNotNull()
 
-        debug { "discogs: requested $totalMasterReqs masters" }
+        Timber.d { "discogs: requested $totalMasterReqs masters" }
 
         return (masters + releases.map { it.first })//.dedupMerge(
 //            { a, b -> a.uuid == b.uuid },
@@ -419,13 +428,15 @@ object Discogs: Repository {
 
     suspend fun discographyHtml(id: Int): List<Album> {
         var start = System.nanoTime()
-        val txt = Http.get("https://www.discogs.com/artist/$id", mapOf(
-            "limit" to "100"
-        )).use { it.text() }
-        info { "discography request took ${System.nanoTime() - start}ns" }
+        val txt = http.get<String> {
+            url("https://www.discogs.com/artist/$id")
+            parameter("limit", 100)
+        }
+
+        Timber.d { "discography request took ${System.nanoTime() - start}ns" }
         start = System.nanoTime()
         val res = Jsoup.parse(txt).body()
-        info { "discography parse took ${System.nanoTime() - start}ns" }
+        Timber.d { "discography parse took ${System.nanoTime() - start}ns" }
         start = System.nanoTime()
 //        val profile = res.getElementsByClass("profile").first()
 //        val artist = ArtistId(profile.child(0).text())
@@ -479,7 +490,7 @@ object Discogs: Repository {
             }
             else -> null
         } }.also {
-            info { "discography process took ${System.nanoTime() - start}ns" }
+            Timber.d { "discography process took ${System.nanoTime() - start}ns" }
         }
     }
 
@@ -492,7 +503,7 @@ object Discogs: Repository {
 //            "releases/"+ res["versions"][0]["id"].string
 //        } else uuid
         if (id.isEmpty()) return listOf()
-        info { "getting tracks of album '$id'" }
+        Timber.d { "getting tracks of album '$id'" }
         val res = apiRequest("https://api.discogs.com/$id")
         val albumTitle = res["title"].string
         val artistName = cleanArtistName(res["artists"][0]["name"].string)

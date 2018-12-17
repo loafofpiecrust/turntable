@@ -8,9 +8,18 @@ private val Class<*>.scopedNameParts: Sequence<String> get() =
     name.splitToSequence('.', '$')
         .dropWhile { it[0].isLowerCase() }
 
+private val KClass<*>.scopedNameParts: Sequence<String>? get() =
+    qualifiedName?.splitToSequence('.', '$')
+        ?.dropWhile { it[0].isLowerCase() }
+
 val Class<*>.scopedName: String get() {
     requireNotNull(name) { "Cannot get resource name for local or anonymous class $this" }
     return scopedNameParts.joinToString(".")
+}
+
+val KClass<*>.scopedName: String get() {
+    requireNotNull(qualifiedName) { "Cannot get resource name for local or anonymous class $this" }
+    return scopedNameParts!!.joinToString(".")
 }
 
 @StringRes

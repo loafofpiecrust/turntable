@@ -8,7 +8,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.style.rippleBorderless
+import com.loafofpiecrust.turntable.style.ripple
 import com.loafofpiecrust.turntable.util.iconButton
 import com.loafofpiecrust.turntable.util.size
 import com.loafofpiecrust.turntable.util.tint
@@ -26,7 +26,7 @@ open class RecyclerListItem(
     useIcon: Boolean = false
 ): RecyclerItem(AnkoContext.create(parent.context, parent).constraintLayout {
     id = R.id.card
-    rippleBorderless()
+    ripple()
 
     val textPadding = (dimen(R.dimen.text_content_margin) * 0.75).toInt()
     lparams(width = matchParent, height = (dimen(R.dimen.subtitle_text_size) * maxOf(2.2f, maxTextLines.toFloat())).toInt() + textPadding * 2)

@@ -1,15 +1,5 @@
 package com.chibatching.kotpref.gsonpref
 
-import android.content.SharedPreferences
-import com.chibatching.kotpref.Kotpref
-import com.chibatching.kotpref.pref.AbstractPref
-import com.github.salomonbrys.kotson.fromJson
-import com.github.salomonbrys.kotson.typedToJson
-import com.loafofpiecrust.turntable.App
-import java.io.StringWriter
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty
-
 
 //inline fun <reified T : Any> gsonNullablePrefObj(default: T?, key: String?) =
 //    object: AbstractPref<T?>() {

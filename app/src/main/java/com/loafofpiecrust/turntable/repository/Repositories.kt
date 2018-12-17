@@ -1,5 +1,6 @@
 package com.loafofpiecrust.turntable.repository
 
+import com.github.ajalt.timberkt.Timber
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.album.Album
@@ -18,7 +19,6 @@ import com.loafofpiecrust.turntable.tryOr
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
-import org.jetbrains.anko.info
 import kotlin.coroutines.coroutineContext
 
 /**
@@ -43,7 +43,7 @@ object Repositories: Repository {
 
             val res = tryOr(null) { block(a) }
             if (res != null) {
-                info { "Search succeeded on ${a.javaClass.simpleName}" }
+                Timber.d { "Search succeeded on ${a.javaClass.simpleName}" }
                 return res
             }
         }

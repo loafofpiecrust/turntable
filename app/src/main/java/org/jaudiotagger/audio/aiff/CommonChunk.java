@@ -1,9 +1,9 @@
 package org.jaudiotagger.audio.aiff;
 
+import org.jaudiotagger.audio.generic.Utils;
+
 import java.io.IOException;
 import java.io.RandomAccessFile;
-
-import org.jaudiotagger.audio.generic.Utils;
 
 public class CommonChunk extends Chunk {
 

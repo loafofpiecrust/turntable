@@ -18,7 +18,7 @@
     <string name="mixtape_side">%1$s Side</string>
     <string name="mixtape_side_named">%2$s: %1$s Side</string>
     <string name="recommendations">Recommendations</string>
-    <string name="playlist_new">Add</string>
+    <string name="playlist_new">New Playlist</string>
     <string name="mixtapes_recent">Recent Mixtapes</string>
     <string name="playlist_subscribe">Subscribe</string>
     <string name="playlist_publish">Publish</string>
@@ -29,6 +29,10 @@
     <string name="playlist_change_color">Change Color</string>
 
     <!-- Empty state -->
-    <string name="playlist_empty">No tracks here yet</string>
-    <string name="playlist_empty_details">Add a song to this playlist and play it back here.</string>
+    <string name="playlist_empty">No tracks yet</string>
+    <string name="playlist_empty_details">Add a song by using its context menu.</string>
+    <string name="playlists_empty">No playlists yet</string>
+    <string name="playlists_empty_details">Tap the \'+\' button to create a new playlist.</string>
+    <string name="playlist_none_selected">No playlist selected</string>
+    <string name="playlist_add_confirm">Add</string>
 </resources>

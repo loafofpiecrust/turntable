@@ -22,9 +22,17 @@ import org.jaudiotagger.audio.generic.Utils;
 import org.jaudiotagger.audio.ogg.util.VorbisHeader;
 import org.jaudiotagger.tag.TagField;
 import org.jaudiotagger.tag.TagTextField;
-import static org.jaudiotagger.tag.vorbiscomment.VorbisCommentFieldKey.*;
 
 import java.io.UnsupportedEncodingException;
+
+import static org.jaudiotagger.tag.vorbiscomment.VorbisCommentFieldKey.ALBUM;
+import static org.jaudiotagger.tag.vorbiscomment.VorbisCommentFieldKey.ARTIST;
+import static org.jaudiotagger.tag.vorbiscomment.VorbisCommentFieldKey.COMMENT;
+import static org.jaudiotagger.tag.vorbiscomment.VorbisCommentFieldKey.DATE;
+import static org.jaudiotagger.tag.vorbiscomment.VorbisCommentFieldKey.DESCRIPTION;
+import static org.jaudiotagger.tag.vorbiscomment.VorbisCommentFieldKey.GENRE;
+import static org.jaudiotagger.tag.vorbiscomment.VorbisCommentFieldKey.TITLE;
+import static org.jaudiotagger.tag.vorbiscomment.VorbisCommentFieldKey.TRACKNUMBER;
 
 /**
  * This class represents the uuid and content of a tag entry in ogg-files.

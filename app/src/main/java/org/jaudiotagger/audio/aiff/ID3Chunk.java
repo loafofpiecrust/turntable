@@ -1,18 +1,17 @@
 package org.jaudiotagger.audio.aiff;
 
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.exceptions.CannotReadException;
-import org.jaudiotagger.logging.ErrorMessage;
 import org.jaudiotagger.tag.TagException;
 import org.jaudiotagger.tag.aiff.AiffTag;
 import org.jaudiotagger.tag.id3.AbstractID3v2Tag;
 import org.jaudiotagger.tag.id3.ID3v22Tag;
 import org.jaudiotagger.tag.id3.ID3v23Tag;
 import org.jaudiotagger.tag.id3.ID3v24Tag;
+
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 
 public class ID3Chunk extends Chunk {
 

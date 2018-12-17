@@ -1,9 +1,6 @@
 package com.chibatching.kotpref.pref
 
 import android.content.SharedPreferences
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlin.reflect.KProperty
 
 

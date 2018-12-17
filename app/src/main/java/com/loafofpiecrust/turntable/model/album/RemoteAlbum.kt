@@ -24,6 +24,7 @@ class RemoteAlbum(
     private constructor(): this(AlbumId(), Spotify.AlbumDetails(""))
 
     @IgnoredOnParcel
+    @delegate:Transient
     override val tracks: List<Song> by lazy {
         runBlocking(Dispatchers.IO) {
             // grab tracks from online

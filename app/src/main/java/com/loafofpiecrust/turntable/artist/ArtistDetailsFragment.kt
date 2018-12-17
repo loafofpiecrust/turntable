@@ -89,7 +89,7 @@ open class ArtistDetailsUI(
 
     private val albumsUI by lazy {
         AlbumsUI.Custom(
-            albums.openSubscription(),
+            albums,
             sortBy = AlbumsUI.SortBy.YEAR,
             splitByType = true
         )
@@ -237,9 +237,10 @@ open class ArtistDetailsUI(
 
 
         // Albums by this artist
-        val albumsView = albumsUI.createView(this).lparams(width = matchParent) {
-            behavior = AppBarLayout.ScrollingViewBehavior()
-        }
+        val albumsView = albumsUI.createView(this)
+            .lparams(width = matchParent) {
+                behavior = AppBarLayout.ScrollingViewBehavior()
+            }
 
         currentMode.openSubscription()
             .skip(1)

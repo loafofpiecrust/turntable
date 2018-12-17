@@ -22,12 +22,9 @@ import org.jaudiotagger.audio.exceptions.CannotReadException;
 import org.jaudiotagger.audio.flac.metadatablock.BlockType;
 import org.jaudiotagger.audio.flac.metadatablock.MetadataBlockDataStreamInfo;
 import org.jaudiotagger.audio.flac.metadatablock.MetadataBlockHeader;
-import org.jaudiotagger.audio.generic.GenericAudioHeader;
 
-import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.util.logging.Logger;

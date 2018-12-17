@@ -4,20 +4,18 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.support.v4.app.Fragment
 import android.view.*
+import com.loafofpiecrust.turntable.serialize.arg
+import com.loafofpiecrust.turntable.serialize.getValue
+import com.loafofpiecrust.turntable.serialize.setValue
 import com.loafofpiecrust.turntable.ui.currentFragment
-import com.loafofpiecrust.turntable.util.arg
-import com.loafofpiecrust.turntable.util.getValue
 import org.jetbrains.anko.childrenRecursiveSequence
+import java.io.Serializable
 import java.util.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
-interface Closable {
-    fun close()
-}
 
-
-class UniversalFragment: Fragment(), Closable {
+class UniversalFragment: Fragment() {
     var component: UIComponent by arg()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,7 +25,7 @@ class UniversalFragment: Fragment(), Closable {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         return component.run {
-            createView(requireContext(), this@UniversalFragment)
+            createView(requireContext())
         }.also {
             // Stable method of recursively assigning sibling-unique IDs
             // to every view in the hierarchy.
@@ -80,13 +78,13 @@ class UniversalFragment: Fragment(), Closable {
         component.onDestroyView()
     }
 
-    override fun close() {
-        activity?.let { act ->
-            if (act.currentFragment === this) {
-                act.supportFragmentManager.popBackStack()
-            }
-        }
-    }
+//    override fun close() {
+//        activity?.let { act ->
+//            if (act.currentFragment === this) {
+//                act.supportFragmentManager.popBackStack()
+//            }
+//        }
+//    }
 
 //    companion object {
 //        internal fun from(component: UIComponent) = UniversalFragment().apply {
@@ -118,9 +116,9 @@ interface Navigable {
 
 /// Allow creating fragments/activities from Parcelable Components
 /// Otherwise, only plain views can be created.
-fun <T> T.createFragment(): Fragment where T : UIComponent, T: Parcelable {
-    return UniversalFragment().also {
-        it.component = this
-        it.onCreate()
+fun UIComponent.createFragment(): Fragment {
+    return UniversalFragment().also { fragment ->
+        fragment.component = this
+        fragment.onCreate()
     }
 }

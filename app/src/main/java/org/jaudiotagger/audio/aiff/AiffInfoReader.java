@@ -1,9 +1,9 @@
 package org.jaudiotagger.audio.aiff;
 
+import org.jaudiotagger.audio.exceptions.CannotReadException;
+
 import java.io.IOException;
 import java.io.RandomAccessFile;
-
-import org.jaudiotagger.audio.exceptions.CannotReadException;
 
 
 /** Functions for reading an AIFF file */

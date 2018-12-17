@@ -5,9 +5,10 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.support.v7.app.AppCompatActivity
 import com.loafofpiecrust.turntable.R
+import kotlinx.io.core.Closeable
 import org.jetbrains.anko.startActivity
 
-class UniversalActivity: AppCompatActivity(), Closable {
+class UniversalActivity: AppCompatActivity(), Closeable {
     lateinit var component: UIComponent
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -16,7 +17,7 @@ class UniversalActivity: AppCompatActivity(), Closable {
         setTheme(R.style.AppTheme)
         setContentView(component.run {
             onCreate()
-            createView(this@UniversalActivity, this@UniversalActivity)
+            createView(this@UniversalActivity)
         })
     }
 

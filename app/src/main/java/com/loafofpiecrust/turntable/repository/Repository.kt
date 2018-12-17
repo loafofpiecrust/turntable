@@ -7,14 +7,13 @@ import com.loafofpiecrust.turntable.model.artist.Artist
 import com.loafofpiecrust.turntable.model.artist.ArtistId
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
-import org.jetbrains.anko.AnkoLogger
 
 /**
  * Repository of music metadata that can be searched for an:
  * [Artist], [Album], [Song], artwork pertaining to one of these, etc.
  * Does *NOT* provide any streaming/downloading sources.
  */
-interface Repository: AnkoLogger {
+interface Repository {
     @get:StringRes
     val displayName: Int
         get() = -1
