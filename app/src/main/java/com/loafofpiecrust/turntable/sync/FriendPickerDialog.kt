@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.sync
 
 import android.graphics.Color
+import android.support.annotation.StringRes
 import android.support.v7.widget.LinearLayoutManager
 import android.view.ViewGroup
 import com.loafofpiecrust.turntable.R
@@ -46,7 +47,8 @@ private class UserAdapter(
 
 class FriendPickerDialog(
     private val message: Message,
-    private val acceptText: String
+    @StringRes
+    private val acceptText: Int
 ): DialogComponent(), Serializable {
     private var selected: User? = null
 

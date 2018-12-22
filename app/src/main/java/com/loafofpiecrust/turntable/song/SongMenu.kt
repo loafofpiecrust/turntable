@@ -38,7 +38,7 @@ fun Menu.songOptions(context: Context, song: Song) {
     menuItem(R.string.share).onClick {
         FriendPickerDialog(
             Message.Recommend(song),
-            context.getString(R.string.share)
+            R.string.share
         ).show(context)
     }
 }

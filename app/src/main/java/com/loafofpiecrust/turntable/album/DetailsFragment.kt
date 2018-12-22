@@ -258,7 +258,7 @@ private fun Menu.prepareOptions(scope: CoroutineScope, context: Context, album: 
     menuItem(R.string.recommend).onClick {
         FriendPickerDialog(
             Message.Recommend(album.id),
-            context.getString(R.string.recommend)
+            R.string.recommend
         ).show(context)
     }
 

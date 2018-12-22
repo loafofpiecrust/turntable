@@ -91,7 +91,7 @@ fun Menu.artistOptions(context: Context, artist: Artist) {
     menuItem(R.string.recommend).onClick {
         FriendPickerDialog(
             Message.Recommend(artist.id),
-            context.getString(R.string.recommend)
+            R.string.recommend
         ).show(context)
     }
 

@@ -79,7 +79,7 @@ open class MixtapeDetailsUI(
                 menuItem(R.string.share).onClick {
                     FriendPickerDialog(
                         Message.Recommend(playlistId),
-                        "Share"
+                        R.string.share
                     ).show(context)
                 }
 

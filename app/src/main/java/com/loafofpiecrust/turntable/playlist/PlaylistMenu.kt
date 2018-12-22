@@ -43,12 +43,14 @@ fun Toolbar.playlistOptions(
                     maxLines = 1
                 }
             }
+
             positiveButton("Rename") {
                 val name = editor.text.toString()
                 playlist.rename(name)
                 this@playlistOptions.title = name
             }
-            negativeButton("Cancel") {}
+
+            cancelButton {}
         }.show()
     }
 
@@ -69,7 +71,7 @@ fun Toolbar.playlistOptions(
 
     menuItem(R.string.playlist_delete, showIcon = false).onClick {
         context.alert("Delete playlist '${playlist.id.name}'") {
-            positiveButton("Delete") {
+            positiveButton(R.string.playlist_delete) {
                 GlobalScope.launch {
                     UserPrefs.playlists putsMapped {
                         it.withoutFirst { it.id.uuid == playlist.id.uuid }
@@ -77,7 +79,8 @@ fun Toolbar.playlistOptions(
                 }
                 ctx.popMainContent()
             }
-            negativeButton("Cancel") {}
+
+            cancelButton {}
         }.show()
     }
 
@@ -108,7 +111,7 @@ fun Toolbar.playlistOptions(
         menuItem(R.string.share, showIcon = false).onClick {
             FriendPickerDialog(
                 Message.Recommend(playlist.id),
-                "Share"
+                R.string.share
             ).show(context)
         }
 

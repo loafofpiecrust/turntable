@@ -104,7 +104,7 @@ open class NowPlayingFragment : BaseFragment() {
                                 }
                                 FriendPickerDialog(
                                     Sync.Request(song),
-                                    "Request Sync"
+                                    R.string.friend_request_sync
                                 ).show(v.context)
                             }
                         )).invoke()
