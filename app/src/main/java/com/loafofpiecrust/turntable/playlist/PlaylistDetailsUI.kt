@@ -49,9 +49,9 @@ class PlaylistDetailsUI(
     }
 
     override fun Fragment.onCreate() {
-        Slide().let {
-            enterTransition = it
-            exitTransition = it
+        Slide().let { anim ->
+            enterTransition = anim
+            exitTransition = anim
         }
     }
 
@@ -59,8 +59,8 @@ class PlaylistDetailsUI(
     }
 
     override fun onResume() {
-        if (playlist.isPublished) {
-        }
+//        if (playlist.isPublished) {
+//        }
     }
 
     override fun onDestroyView() {
@@ -79,7 +79,6 @@ class PlaylistDetailsUI(
         }
 
         appBarLayout {
-            //                fitsSystemWindows = true
             playlist.color?.let { backgroundColor = it }
             topPadding = dimen(R.dimen.statusbar_height)
 
@@ -99,12 +98,14 @@ class PlaylistDetailsUI(
                                 maxLines = 1
                             }
                         }
-                        positiveButton("Rename") {
+
+                        positiveButton(R.string.playlist_rename) {
                             val name = editor.text.toString()
                             playlist.rename(name)
                             this@toolbar.title = name
                         }
-                        negativeButton("Cancel") {}
+
+                        cancelButton {}
                     }.show()
                     true
                 }
@@ -126,7 +127,7 @@ class PlaylistDetailsUI(
 
                 menuItem(R.string.playlist_delete, showIcon = false).onClick {
                     context.alert("Delete playlist '${playlist.id.name}'") {
-                        positiveButton("Delete") {
+                        positiveButton(R.string.playlist_delete) {
                             GlobalScope.launch {
                                 UserPrefs.playlists putsMapped {
                                     it.withoutFirst { it.id.uuid == playlistId.uuid }
@@ -146,6 +147,7 @@ class PlaylistDetailsUI(
                         context.toast("Playlist isn't published")
                     }
                 }
+
                 menuItem(R.string.playlist_generate_similar, showIcon = false).onClick(Dispatchers.Default) {
                     val tracks = playlist.tracksChannel.first()
                     val tracksToUse = (0..minOf(5, tracks.size)).lazy
@@ -158,7 +160,7 @@ class PlaylistDetailsUI(
                 menuItem(R.string.share, showIcon = false).onClick {
                     FriendPickerDialog(
                         Message.Recommend(playlistId),
-                        "Share"
+                        R.string.share
                     ).show(context)
                 }
 
@@ -166,13 +168,8 @@ class PlaylistDetailsUI(
                 menuItem(R.string.playlist_subscribe, showIcon = false).onClick {
                     Library.addPlaylist(playlist)
                 }
-
-//                    menuItem("Make Completable", showIcon = false).onClick {
-//                        playlist.isCompletable = true
-//                    }
-
             }.lparams(width = matchParent) {
-                //                    scrollFlags = SCROLL_FLAG_SCROLL and SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
+//                scrollFlags = SCROLL_FLAG_SCROLL and SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
             }
         }.lparams(width = matchParent)
 
