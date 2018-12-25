@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Color
 import android.support.annotation.ColorInt
 import android.support.annotation.ColorRes
+import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.v4.content.ContextCompat
 import android.support.v4.graphics.ColorUtils
 import android.view.View
@@ -11,6 +12,8 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import org.jetbrains.anko.childrenSequence
+import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder
+import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
 import org.jetbrains.anko.constraint.layout.ViewConstraintBuilder
 
 var TextView.textStyle: Int
@@ -37,6 +40,13 @@ var ViewGroup.LayoutParams.size: Int
         width = value
         height = value
     }
+
+fun ViewConstraintBuilder.fillParent() = arrayOf(
+    TOP to TOP of PARENT_ID,
+    BOTTOM to BOTTOM of PARENT_ID,
+    START to START of PARENT_ID,
+    END to END of PARENT_ID
+)
 
 var ViewConstraintBuilder.size: Int
     @Deprecated("No getter for size", level = DeprecationLevel.ERROR)

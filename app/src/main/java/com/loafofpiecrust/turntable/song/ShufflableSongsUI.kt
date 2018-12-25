@@ -24,9 +24,12 @@ import org.jetbrains.anko.sdk27.coroutines.onClick
 
 @Parcelize
 class ShufflableSongsUI: UIComponent(), Parcelable {
-    private val songsUI = SongsUI.All()
+    private val songsUI = AllSongsUI()
 
     // FIXME: This is a big mess...
+    // The issue is that we're essentially recreating the whole fragment system
+    // and how fragments are built to nest all for the sake of the instantiation syntax.
+    // it might be a worthy sacrifice?
     override fun onDestroy() {
         super.onDestroy()
         songsUI.onDestroy()

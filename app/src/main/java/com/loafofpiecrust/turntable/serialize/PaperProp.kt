@@ -24,8 +24,7 @@ abstract class PaperProp<T: Any>: ReadOnlyProperty<Any, ConflatedBroadcastChanne
     override fun getValue(thisRef: Any, property: KProperty<*>): ConflatedBroadcastChannel<T> {
         if (subject.valueOrNull == null && !initialized) {
             initialized = true
-            // Never ever change this book name
-            val book = Paper.book("userdata")
+            val book = Paper.book(BOOK_NAME)
             val readValue = try {
                 runBlocking { readValue(book) }
             } catch (e: Exception) {
@@ -42,6 +41,15 @@ abstract class PaperProp<T: Any>: ReadOnlyProperty<Any, ConflatedBroadcastChanne
             }
         }
         return subject
+    }
+
+    companion object {
+        /**
+         * Never **ever** change this book name
+         * This means that user data will be stored as JSON in the folder:
+         * <app_data>/userdata/<name>.paper
+         */
+        private const val BOOK_NAME = "userdata"
     }
 }
 

@@ -48,19 +48,10 @@ class PlaylistDetailsUI(
             .first() as CollaborativePlaylist
     }
 
-    override fun Fragment.onCreate() {
-        Slide().let { anim ->
-            enterTransition = anim
-            exitTransition = anim
-        }
-    }
-
     override fun onPause() {
     }
 
     override fun onResume() {
-//        if (playlist.isPublished) {
-//        }
     }
 
     override fun onDestroyView() {

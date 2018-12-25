@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import com.loafofpiecrust.turntable.ui.BaseActivity
 import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.ui.popMainContent
+import com.loafofpiecrust.turntable.ui.replaceMainContent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -84,10 +85,12 @@ abstract class UIComponent: IUIComponent {
 //        viewScope.cancelChildren()
     }
 
-    fun pushToMain(context: Context) {
-        if (context is UniversalActivity) {
-            (context.component as? Navigable)?.push(this)
-        }
+    fun pushToMain() {
+        BaseActivity.current?.replaceMainContent(this.createFragment())
+    }
+
+    fun dismiss() {
+        BaseActivity.current?.supportFragmentManager?.popBackStack(javaClass.simpleName, -1)
     }
 
     fun <T> ReceiveChannel<T>.consumeEachAsync(
@@ -99,6 +102,7 @@ abstract class UIComponent: IUIComponent {
             consumeEach { action(it) }
         }
     }
+
     fun <T> BroadcastChannel<T>.consumeEachAsync(
         context: CoroutineContext = EmptyCoroutineContext,
         action: suspend (T) -> Unit
@@ -113,9 +117,6 @@ abstract class UIComponent: IUIComponent {
 
 abstract class DialogComponent: UIComponent() {
     open fun AlertBuilder<*>.prepare() {}
-//    fun dismiss() {
-//        BaseActivity.current?.popMainContent()
-//    }
 }
 
 class ViewContext(

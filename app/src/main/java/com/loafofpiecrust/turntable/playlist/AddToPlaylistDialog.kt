@@ -14,10 +14,14 @@ import com.loafofpiecrust.turntable.model.song.HasTracks
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.sync.Sync
+import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.ui.universal.DialogComponent
 import com.loafofpiecrust.turntable.ui.universal.ViewContext
+import com.loafofpiecrust.turntable.ui.universal.show
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 
@@ -25,8 +29,6 @@ import org.jetbrains.anko.recyclerview.v7.recyclerView
 class AddToPlaylistDialog(
     private val item: Recommendable
 ) : DialogComponent(), Parcelable {
-    private var selected: Playlist? = null
-
     override fun ViewContext.render() = recyclerView {
         topPadding = dimen(R.dimen.dialog_top_padding)
 
@@ -46,23 +48,19 @@ class AddToPlaylistDialog(
             coroutineContext,
             applicablePlaylists,
             readOnly = true
-        ) { p -> selected = p }
+        ) { p ->
+            addToPlaylist(ctx, p)
+            dismiss()
+        }
     }
 
     override fun AlertBuilder<*>.prepare() {
         titleResource = R.string.add_to_playlist
 
-        positiveButton(R.string.playlist_add_confirm) {
-            val selected = selected
-            if (selected != null) {
-                addToPlaylist(ctx, selected)
-            } else {
-                ctx.toast(R.string.playlist_none_selected)
-            }
-        }
-
-        neutralPressed(R.string.playlist_new) {
-            NewPlaylistDialog.withItems(listOf(item)).show(ctx, fullscreen = true)
+        positiveButton(R.string.playlist_new) {
+            dismiss()
+            NewPlaylistDialog.withItems(listOf(item))
+                .show(ctx, fullscreen = true)
         }
 
         cancelButton {}

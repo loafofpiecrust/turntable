@@ -5,11 +5,10 @@ import android.support.annotation.StringRes
 import com.jaredrummler.android.colorpicker.ColorPreference
 import com.loafofpiecrust.turntable.util.hasValue
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
-import org.jetbrains.anko.ctx
 
 
 fun PreferenceFragment.preferences(cb: PreferenceScreen.() -> Unit) {
-    val screen = preferenceManager.createPreferenceScreen(ctx)
+    val screen = preferenceManager.createPreferenceScreen(activity)
     preferenceScreen = screen
     cb(screen)
 }

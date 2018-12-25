@@ -21,30 +21,6 @@ import org.jetbrains.anko.recyclerview.v7.recyclerView
 import java.io.Serializable
 import kotlin.coroutines.CoroutineContext
 
-private class UserAdapter(
-    parentContext: CoroutineContext,
-    channel: ReceiveChannel<List<User>>,
-    val listener: (User) -> Unit
-): RecyclerAdapter<User, RecyclerListItem>(parentContext, channel) {
-    var selected: RecyclerListItem? = null
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-        RecyclerListItem(parent, 2, false)
-
-    override fun onBindViewHolder(holder: RecyclerListItem, position: Int) = holder.run {
-        val item = data[position]
-        mainLine.text = item.displayName ?: "Untitled"
-        subLine.text = item.username
-        coverImage?.imageResource = R.drawable.ic_face
-        card.setOnClickListener {
-            selected?.card?.backgroundColor = Color.TRANSPARENT
-            card.backgroundColor = UserPrefs.accentColor.value
-            selected = holder
-            listener(item)
-        }
-    }
-}
-
 class FriendPickerDialog(
     private val message: Message,
     @StringRes
@@ -77,5 +53,29 @@ class FriendPickerDialog(
         }
 
         cancelButton {}
+    }
+}
+
+private class UserAdapter(
+    parentContext: CoroutineContext,
+    channel: ReceiveChannel<List<User>>,
+    val listener: (User) -> Unit
+): RecyclerAdapter<User, RecyclerListItem>(parentContext, channel) {
+    var selected: RecyclerListItem? = null
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
+        RecyclerListItem(parent, 2, false)
+
+    override fun onBindViewHolder(holder: RecyclerListItem, position: Int) = holder.run {
+        val item = data[position]
+        mainLine.text = item.displayName ?: "Untitled"
+        subLine.text = item.username
+        coverImage?.imageResource = R.drawable.ic_face
+        card.setOnClickListener {
+            selected?.card?.backgroundColor = Color.TRANSPARENT
+            card.backgroundColor = UserPrefs.accentColor.value
+            selected = holder
+            listener(item)
+        }
     }
 }

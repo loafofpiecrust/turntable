@@ -96,16 +96,10 @@ open class ArtistDetailsUI(
     }
 
     override fun Fragment.onCreate() {
-        val trans = TransitionSet()
+        sharedElementEnterTransition = TransitionSet()
             .addTransition(ChangeBounds())
             .addTransition(ChangeTransform())
             .addTransition(ChangeClipBounds())
-
-        sharedElementEnterTransition = trans
-//        sharedElementReturnTransition = trans
-
-//        enterTransition = Fade()
-//        exitTransition = Fade()
     }
 
     override fun ViewContext.render() = coordinatorLayout {
@@ -199,10 +193,8 @@ open class ArtistDetailsUI(
                 }.collapsingToolbarlparams(width = matchParent) {
                     collapseMode = COLLAPSE_MODE_PIN
                 }
-
             }.lparams {
-                width = matchParent
-                height = matchParent
+                size = matchParent
                 scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
                     AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
             }
@@ -232,7 +224,6 @@ open class ArtistDetailsUI(
                     image.imageResource = R.drawable.ic_default_album
                 }
             }
-
         }.lparams(width = matchParent, height = wrapContent)
 
 

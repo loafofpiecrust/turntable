@@ -25,14 +25,12 @@ import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.sync.SyncSession
 import com.loafofpiecrust.turntable.ui.BaseService
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.jetbrains.anko.audioManager
 import org.jetbrains.anko.powerManager
+import org.jetbrains.anko.startService
 import org.jetbrains.anko.wifiManager
 import java.lang.ref.WeakReference
 import kotlin.coroutines.resume
@@ -72,32 +70,27 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
                 }
                 .broadcast(CONFLATED)
 
-//        private sealed class Action {
-//            data class Synced(
-//                val message: PlayerAction,
-//                val shouldSync: Boolean
-//            ): Action()
-//        }
 
+        private data class SyncedAction(
+            val message: PlayerAction,
+            val shouldSync: Boolean
+        )
 
-//        private val actions = GlobalScope.actor<Action>(
-//            capacity = Channel.UNLIMITED
-//        ) {
-//            for (action in channel) {
-//                val service = _instance.valueOrNull?.get() ?: run {
-//                    App.instance.startService<MusicService>()
-//                    instance.filterNotNull().first()
-//                }
-//                when (action) {
-//                    is Action.Synced ->
-//                        service.doAction(action.message, action.shouldSync)
-//                }
-//            }
-//        }
+        private val actions = GlobalScope.actor<SyncedAction>(
+            capacity = Channel.UNLIMITED
+        ) {
+            for (action in channel) {
+                val service = _instance.valueOrNull?.get() ?: run {
+                    App.instance.startService<MusicService>()
+                    instance.filterNotNull().first()
+                }
+                service.doAction(action.message, action.shouldSync)
+            }
+        }
 
         fun offer(msg: PlayerAction, shouldSync: Boolean = true) {
             MusicServiceStarter.start(App.instance, msg, shouldSync)
-//            actions.offer(Action.Synced(msg, shouldSync))
+//            actions.offer(SyncedAction(msg, shouldSync))
         }
     }
 

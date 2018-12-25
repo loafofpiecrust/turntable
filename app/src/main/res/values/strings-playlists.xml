@@ -27,6 +27,7 @@
     <string name="playlist_rename">Rename</string>
     <string name="playlist_generate_similar">Generate Similar</string>
     <string name="playlist_change_color">Change Color</string>
+    <string name="playlist_name_required">Playlist name must not be empty</string>
 
     <!-- Empty state -->
     <string name="playlist_empty">No tracks yet</string>

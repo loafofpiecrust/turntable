@@ -12,4 +12,5 @@
 .idea/
 /app/release/
 /projectFilesBackup
-
+/.vscode
+/.settings

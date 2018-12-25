@@ -64,7 +64,6 @@ open class RecyclerListItem(
         tint = context.colorAttr(android.R.attr.textColor)
     }
 
-    val iconSize = dimen(R.dimen.icon_size)
     applyConstraintSet {
         track {
             connect(
@@ -81,7 +80,7 @@ open class RecyclerListItem(
                 TOP to TOP of mainLine,
                 BOTTOM to BOTTOM of subLine
             )
-            size = iconSize
+            size = dimen(R.dimen.icon_size)
         }
         mainLine {
             connect(

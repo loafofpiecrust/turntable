@@ -24,7 +24,6 @@ import com.loafofpiecrust.turntable.util.*
 import com.loafofpiecrust.turntable.views.RecyclerListItem
 import com.loafofpiecrust.turntable.views.SectionedAdapter
 import com.loafofpiecrust.turntable.views.SimpleHeaderViewHolder
-import com.mcxiaoke.koi.ext.toast
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

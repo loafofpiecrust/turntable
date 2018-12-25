@@ -6,13 +6,13 @@ import android.preference.PreferenceFragment
 import com.chibatching.kotpref.KotprefModel
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.ui.LibraryFragment
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 
 @MakeActivityStarter
 class MainPrefsFragment : PreferenceFragment() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -39,10 +39,11 @@ class MainPrefsFragment : PreferenceFragment() {
                 color(UserPrefs.primaryColor, "Primary Color")
                 color(UserPrefs.accentColor, "Accent Color")
 
-                multiSelectList(UserPrefs.libraryTabs, "Library Tabs") {
-                    entries = arrayOf("Songs", "Albums", "Artists", "Playlists", "Friends", "Recommendations")
-                    entryValues = entries
-                }
+                // FIXME: Use a preference type that allows editing a List<T>
+//                multiSelectList(LibraryFragment.tabs, "Library Tabs") {
+//                    entries = arrayOf("Songs", "Albums", "Artists", "Playlists", "Friends", "Recommendations")
+//                    entryValues = entries
+//                }
             }
 
             category("Headphones") {
@@ -66,13 +67,6 @@ class MainPrefsFragment : PreferenceFragment() {
                 entries = UserPrefs.HQStreamingMode.values().map { it.name }.toTypedArray()
                 entryValues = entries
             }
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        GlobalScope.launch {
-            KotprefModel.saveFiles()
         }
     }
 }

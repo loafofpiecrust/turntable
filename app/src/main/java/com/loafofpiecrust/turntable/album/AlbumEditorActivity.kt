@@ -1,9 +1,5 @@
 package com.loafofpiecrust.turntable.album
 
-//import org.jaudiotagger.audio.AudioFileIO
-//import org.jaudiotagger.tag.FieldKey
-//import org.jaudiotagger.tag.TagOptionSingleton
-
 import activitystarter.Arg
 import android.app.ProgressDialog
 import android.net.Uri

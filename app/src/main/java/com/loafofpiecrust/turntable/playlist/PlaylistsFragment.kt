@@ -24,6 +24,7 @@ import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.ui.universal.createFragment
+import com.loafofpiecrust.turntable.ui.universal.show
 import com.loafofpiecrust.turntable.util.*
 import com.loafofpiecrust.turntable.views.RecyclerBroadcastAdapter
 import com.loafofpiecrust.turntable.views.RecyclerListItem
@@ -40,15 +41,6 @@ import kotlin.coroutines.CoroutineContext
 
 
 class PlaylistsFragment: BaseFragment() {
-    companion object {
-        fun newInstance(
-            user: User? = null,
-            columnCount: Int = 0
-        ) = PlaylistsFragment().apply {
-            user?.let { this.user = it }
-            this.columnCount = columnCount
-        }
-    }
     private var user: User by arg { Sync.selfUser }
     private var columnCount: Int by arg()
 
@@ -58,7 +50,7 @@ class PlaylistsFragment: BaseFragment() {
             context?.replaceMainContent(RecentMixTapesFragment(), true)
         }
 
-        menu.menuItem(R.string.playlist_new, R.drawable.ic_add, showIcon =true).onClick {
+        menu.menuItem(R.string.playlist_new, R.drawable.ic_add, showIcon = true).onClick {
             NewPlaylistDialog().show(requireContext(), fullscreen = true)
         }
 
@@ -158,8 +150,8 @@ class PlaylistsFragment: BaseFragment() {
             UserPrefs.playlists putsMapped { it.shifted(fromIdx, toIdx) }
         }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerListItem
-            = RecyclerListItem(parent, 3, useIcon = true)
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
+            RecyclerListItem(parent, 3, useIcon = true)
 
         override fun RecyclerListItem.onBind(item: Playlist, position: Int, job: Job) {
             val ctx = itemView.context
@@ -192,6 +184,16 @@ class PlaylistsFragment: BaseFragment() {
 
         override fun itemsSame(a: Playlist, b: Playlist, aIdx: Int, bIdx: Int): Boolean {
             return a.id.uuid == b.id.uuid
+        }
+    }
+
+    companion object {
+        fun newInstance(
+            user: User? = null,
+            columnCount: Int = 0
+        ) = PlaylistsFragment().apply {
+            user?.let { this.user = it }
+            this.columnCount = columnCount
         }
     }
 }

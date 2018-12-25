@@ -140,12 +140,7 @@ open class AlbumDetailsUI(
                     applyConstraintSet {
                         val padBy = dimen(R.dimen.details_image_padding)
                         image {
-                            connect(
-                                TOP to TOP of PARENT_ID,
-                                START to START of PARENT_ID,
-                                BOTTOM to BOTTOM of PARENT_ID,
-                                END to END of PARENT_ID
-                            )
+                            connect(*fillParent())
                             size = matchConstraint
                             dimensionRation = "H,1:1"
                         }
@@ -266,7 +261,7 @@ private fun Menu.prepareOptions(scope: CoroutineScope, context: Context, album: 
         val link = FirebaseDynamicLinks.getInstance()
             .createDynamicLink()
             .setDomainUriPrefix("https://turntable.page.link")
-            .setLink(Uri.parse("https://loafofpiecrust.com/turntable/album?name=${album.id.displayName}&artist=${album.id.artist.displayName}"))
+            .setLink(Uri.parse("https://loafofpiecrust.com/projects/turntable/album?name=${album.id.displayName}&artist=${album.id.artist.displayName}"))
             .buildDynamicLink()
 
         val clip = ClipData.newRawUri("Check out ${album.id.displayName}", link.uri)

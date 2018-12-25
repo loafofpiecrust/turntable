@@ -3,6 +3,7 @@ package com.loafofpiecrust.turntable.playlist
 import android.content.Context
 import android.graphics.Color
 import android.os.Parcelable
+import android.support.v4.app.DialogFragment
 import android.text.InputType
 import android.transition.Slide
 import android.view.ViewManager
@@ -39,6 +40,7 @@ import org.jetbrains.anko.design.appBarLayout
 import org.jetbrains.anko.design.textInputLayout
 import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.sdk27.coroutines.onItemSelectedListener
+import org.jetbrains.anko.support.v4.toast
 import kotlin.reflect.KClass
 
 class NewPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
@@ -58,42 +60,7 @@ class NewPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
 
     override fun onStart() {
         super.onStart()
-        if (dialog != null) {
-//            setStyle(DialogFragment.STYLE_NO_FRAME, 0)
-            dialog.window?.setLayout(matchParent, matchParent)
-        }
-    }
-
-    override fun onCreate() {
-        super.onCreate()
-
-//        Slide().apply {
-//            slideEdge = Gravity.BOTTOM
-//        }.let {
-//            enterTransition = it
-//            exitTransition = it
-//        }
-    }
-
-    private fun createAndFinish() {
-        val color = playlistColor.valueOrNull
-        val id = PlaylistId(playlistName, Sync.selfUser)
-        val pl = when (playlistType) {
-            AlbumCollection::class -> AlbumCollection(id, color).apply {
-                startingTracks.tracks.forEach {
-                    (it as? AlbumId)?.let { add(it) }
-                }
-            }
-            SongPlaylist::class -> SongPlaylist(id).also { pl ->
-                pl.color = color
-                startingTracks.tracks.forEach {
-                    (it as? Song)?.let { pl.add(it) }
-                }
-            }
-            else -> kotlin.error("Unreachable")
-        }
-        Library.addPlaylist(pl)
-        dismiss()
+        dialog?.window?.setLayout(matchParent, matchParent)
     }
 
     override fun ViewManager.createView() = verticalLayout {
@@ -177,6 +144,32 @@ class NewPlaylistDialog : BaseDialogFragment(), ColorPickerDialogListener {
 
     override fun onColorSelected(dialogId: Int, color: Int) {
         playlistColor.offer(color)
+    }
+
+    private fun createAndFinish() {
+        if (playlistName.isBlank()) {
+            toast(R.string.playlist_name_required)
+            return
+        }
+
+        val color = playlistColor.valueOrNull
+        val id = PlaylistId(playlistName, Sync.selfUser)
+        val pl = when (playlistType) {
+            AlbumCollection::class -> AlbumCollection(id, color).also { pl ->
+                for (item in startingTracks.tracks) {
+                    (item as? AlbumId)?.let { pl.add(it) }
+                }
+            }
+            SongPlaylist::class -> SongPlaylist(id).also { pl ->
+                pl.color = color
+                for (item in startingTracks.tracks) {
+                    (item as? Song)?.let { pl.add(it) }
+                }
+            }
+            else -> error("Unknown playlist type")
+        }
+        Library.addPlaylist(pl)
+        dismiss()
     }
 }
 

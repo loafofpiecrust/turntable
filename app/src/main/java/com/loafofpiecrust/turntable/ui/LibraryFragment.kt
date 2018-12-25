@@ -15,10 +15,13 @@ import com.loafofpiecrust.turntable.artist.ArtistsUI
 import com.loafofpiecrust.turntable.browse.RecommendationsUI
 import com.loafofpiecrust.turntable.playlist.PlaylistsFragment
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.serialize.page
+import com.loafofpiecrust.turntable.song.ShufflableSongsUI
 import com.loafofpiecrust.turntable.song.SongsUI
 import com.loafofpiecrust.turntable.sync.SyncTabFragment
 import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.util.replayOne
+import io.paperdb.Paper
 import kotlinx.coroutines.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.navigationIconResource
@@ -29,26 +32,18 @@ import org.jetbrains.anko.support.v4.onPageChangeListener
 import org.jetbrains.anko.support.v4.viewPager
 import kotlin.collections.set
 
-@MakeActivityStarter
 class LibraryFragment: BaseFragment() {
-    private val tabs = UserPrefs.libraryTabs.openSubscription()
-        .map { it.toList() }.replayOne()
-//    private val tabs = ConflatedBroadcastChannel(listOf("Artists", "Albums"))
-
-//    private val currentTabFragment get() = currentTabIdx.openSubscription()
-//        .combineLatest(tabFragments.openSubscription()) { idx, tabs -> tabs[idx] }
-
     private val fragments = mutableMapOf<String, Fragment>()
     private val createFragment = { key: String ->
         fragments.getOrPut(key) {
             when (key) {
                 "Albums" -> AlbumsUI.All().createFragment()
-                "Songs" -> SongsUI.All().createFragment() // all songs yo
+                "Songs" -> ShufflableSongsUI().createFragment() // all songs yo
                 "Artists" -> ArtistsUI.All().createFragment() // artists
                 "Playlists" -> PlaylistsFragment() // playlists!
                 "Friends" -> SyncTabFragment()
                 "Recommendations" -> RecommendationsUI().createFragment()
-                else -> throw Error("Unrecognized Library tab \'$key\'")
+                else -> error("Unrecognized Library tab \'$key\'")
             }
         }
     }
@@ -58,7 +53,6 @@ class LibraryFragment: BaseFragment() {
     ) : FragmentStatePagerAdapter(childFragmentManager) {
         override fun getCount() = tabs.size
 
-        // TODO: Map the index to the correct tab. For now, hardcode.
         override fun getItem(position: Int) = createFragment(tabs[position])
 
         override fun instantiateItem(container: ViewGroup, position: Int): Any {
@@ -104,10 +98,10 @@ class LibraryFragment: BaseFragment() {
 
         val pager = viewPager {
             id = R.id.container
-            val tabsAdapter = TabsPager(this@LibraryFragment.tabs.value)
+            val tabsAdapter = TabsPager(LibraryFragment.tabs.value)
             adapter = tabsAdapter
 
-            this@LibraryFragment.tabs.consumeEachAsync { tabs ->
+            LibraryFragment.tabs.consumeEachAsync { tabs ->
                 tabsAdapter.tabs = tabs
                 tabsAdapter.notifyDataSetChanged()
             }
@@ -132,5 +126,11 @@ class LibraryFragment: BaseFragment() {
         }
 
         tabs?.setupWithViewPager(pager)
+    }
+
+    companion object {
+        val tabs by Paper.page("libraryTabs") {
+            listOf("Albums", "Artists", "Playlists", "Friends", "Recommendations")
+        }
     }
 }

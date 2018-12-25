@@ -139,16 +139,21 @@ abstract class BaseDialogFragment: DialogFragment(), ViewComponentScope {
         job.cancelChildren()
     }
 
+//    override fun dismiss() {
+//        activity?.onBackPressed()
+//    }
+
     fun show(ctx: Context, fullscreen: Boolean = false) {
         if (ctx is FragmentActivity) {
+            val t = ctx.supportFragmentManager.beginTransaction()
+                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                .addToBackStack(null)
+
             if (fullscreen) {
-                ctx.supportFragmentManager.beginTransaction()
-                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
-                    .add(android.R.id.content, this)
-                    .addToBackStack(null)
+                t.add(android.R.id.content, this, javaClass.simpleName)
                     .commit()
             } else {
-                super.show(ctx.supportFragmentManager, this.javaClass.simpleName)
+                super.show(t, javaClass.simpleName)
             }
         }
     }

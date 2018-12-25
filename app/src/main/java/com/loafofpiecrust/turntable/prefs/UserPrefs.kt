@@ -26,9 +26,9 @@ object UserPrefs: KotprefModel() {
     val accentColor by intPref(context.getColorCompat(R.color.md_teal_200), "accentColor")
 
     // Structure
-    val libraryTabs by Paper.page<Set<String>>("libraryTabs") {
-        setOf("Albums", "Artists", "Playlists", "Friends", "Recommendations")
-    }
+//    val libraryTabs by Paper.page<Set<String>>("libraryTabs") {
+//        setOf("Albums", "Artists", "Playlists", "Friends", "Recommendations")
+//    }
     val albumGridColumns by intPref(3, "albumGridColumns")
     val artistGridColumns by intPref(3, "artistGridColumns")
     val playlistGridColumns by intPref(1, "playlistGridColumns")

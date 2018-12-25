@@ -161,6 +161,7 @@ sealed class AlbumsUI(
                 it.values.sortedBy { it.id }
             }
     }
+
     // TODO: Add OnPlaylist type.
     @Parcelize
     class ByArtist(

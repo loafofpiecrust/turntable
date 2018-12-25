@@ -37,7 +37,6 @@ import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.support.v4.toast
 
-
 class SearchFragment : BaseFragment() {
     sealed class Category<T>: Parcelable {
         @Transient

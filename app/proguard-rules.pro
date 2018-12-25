@@ -27,6 +27,8 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 
+-keep class kotlinx.coroutines.Dispatchers { *; }
+
 # Uncomment this to preserve the line number information for
 # debugging stack traces.
 -keepattributes SourceFile,LineNumberTable
