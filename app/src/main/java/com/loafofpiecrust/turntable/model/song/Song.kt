@@ -19,7 +19,7 @@ import kotlinx.coroutines.channels.filterNotNull
 import kotlinx.coroutines.channels.produce
 
 interface HasTracks : Music {
-    val tracks: List<Song>
+    suspend fun resolveTracks(): List<Song>
 }
 
 // All possible music status':
@@ -51,8 +51,7 @@ data class Song(
     @Transient
     val platformId: PlatformId? = null
 ): Music, Parcelable, HasTracks, Recommendable {
-    @kotlinx.serialization.Transient
-    override val tracks: List<Song> get() = listOf(this)
+    override suspend fun resolveTracks() = listOf(this)
 
     /**
      * Comparable/sortable value for disc and track
@@ -64,32 +63,30 @@ data class Song(
     val discTrack: Int get() = disc * 1000 + track
 
     fun loadCover(
-        req: RequestManager,
-        cb: (Palette?, Palette.Swatch?) -> Unit = { a, b -> }
+        req: RequestManager
     ): ReceiveChannel<RequestBuilder<Drawable>?> =
         GlobalScope.produce {
             val localArt = Library.loadAlbumCover(req, id.album)
-            val first = localArt.receive()
-            send(if (first != null) {
-                first
-            } else {
-                val remoteAlbum = Repositories.find(id.album)
-                if (remoteAlbum != null) {
+            val initial = localArt.receive()
+                ?: Repositories.find(id.album)?.let { remoteAlbum ->
                     req.load(Repositories.fullArtwork(remoteAlbum, true))
-                } else {
-                    null
                 }
-            })
 
+            send(initial)
             sendFrom(localArt.filterNotNull())
         }
 
     data class Media(
         val sources: List<Source>,
+        // Never expire by default
+        val expiryDate: Long = Long.MAX_VALUE,
+        // Play the whole source by default
         val start: Int = 0,
         val end: Int = 0
     ) {
-        constructor(url: String): this(listOf(Source(url)))
+        constructor(url: String): this(
+            listOf(Source(url, Quality.UNKNOWN))
+        )
 
         fun bestSource() = sources.maxBy { it.quality }
         fun mediocreSource() =
@@ -126,18 +123,22 @@ data class Song(
 
         data class Source(
             val url: String,
-            val quality: Quality = Quality.UNKNOWN
+            val quality: Quality
         )
 
         companion object {
-            fun fromYouTube(lqUrl: String, hqUrl: String?): Media {
+            fun fromYouTube(
+                lqUrl: String,
+                hqUrl: String?,
+                expiryDate: Long = System.currentTimeMillis() + 6.hours.toMillis().toLong()
+            ): Media {
                 val sources = mutableListOf(
                     Source(lqUrl, Quality.LOW)
                 )
                 if (hqUrl != null) {
                     sources.add(Source(hqUrl, Quality.MEDIUM))
                 }
-                return Media(sources)
+                return Media(sources, expiryDate)
             }
         }
     }

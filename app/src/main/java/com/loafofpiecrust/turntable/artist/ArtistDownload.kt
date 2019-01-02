@@ -165,7 +165,8 @@ sealed class TorrentArtist(
 
             Timber.d { "torrent: album map: '${album.id}' to '${albumFolder.name}'" }
 //            album to songFiles.map { it.first }
-            album to mapOf(*album.tracks.mapNotNull { song ->
+            val tracks = runBlocking { album.resolveTracks() }
+            album to mapOf(*tracks.mapNotNull { song ->
                 val (ratio, songFile) = songFiles.lazy.map { (idx, file) ->
                     FuzzySearch.partialRatio(song.id.name, file.name) to (idx to file)
                 }.maxBy { (matchRatio, rest) ->
@@ -209,7 +210,8 @@ sealed class TorrentArtist(
 
         val res = if (albumRes.second.matchRatio >= 50) {
             paths.removeAt(albumRes.first)
-            mapOf(*album.tracks.mapNotNull { song ->
+            val tracks = runBlocking { album.resolveTracks() }
+            mapOf(*tracks.mapNotNull { song ->
                 val songRes = paths.filter { (fileIdx, file) ->
                     file.startsWith(albumRes.second.file) // song is in this album folder
                 }.mapIndexed { idx, (fileIdx, file) ->

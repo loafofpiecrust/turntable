@@ -16,4 +16,6 @@
     <string name="disc_number">Disc %1$s</string>
 
     <string name="song_by_artist">Song by %1$s</string>
+    <string name="songs_empty">No songs</string>
+    <string name="all_songs_empty_details">Add an album to your library and its tracks will be listed here.</string>
 </resources>

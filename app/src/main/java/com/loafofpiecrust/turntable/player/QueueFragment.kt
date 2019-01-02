@@ -45,11 +45,11 @@ class QueueFragment : BaseFragment() {
             val currentItem = RecyclerListItem(this, 3).also {
                 addView(it.itemView)
             }
-            currentItem.statusIcon.imageResource = R.drawable.ic_play_circle_outline
+            currentItem.coverImage?.imageResource = R.drawable.ic_play_circle_outline
             UserPrefs.accentColor.consumeEachAsync {
                 currentItem.mainLine.textColor = it
                 currentItem.subLine.textColor = it
-                currentItem.statusIcon.tint = it
+                currentItem.coverImage?.tint = it
             }
 
             textView(R.string.queue_up_next) {

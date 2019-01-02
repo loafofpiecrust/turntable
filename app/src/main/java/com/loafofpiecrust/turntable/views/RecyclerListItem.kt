@@ -23,7 +23,7 @@ import org.jetbrains.anko.sdk27.coroutines.textChangedListener
 open class RecyclerListItem(
     parent: ViewGroup,
     maxTextLines: Int = 3,
-    useIcon: Boolean = false
+    fullSizeImage: Boolean = false
 ): RecyclerItem(AnkoContext.create(parent.context, parent).constraintLayout {
     id = R.id.card
     ripple()
@@ -33,13 +33,14 @@ open class RecyclerListItem(
 
     val mainLine = textView {
         id = R.id.mainLine
+        textSizeDimen = R.dimen.subtitle_text_size
         maxLines = maxTextLines - 1
     }
 
     val subLine = textView {
         id = R.id.subLine
         maxLines = 1
-        textSizeDimen = R.dimen.small_text_size
+//        textSizeDimen = R.dimen.small_text_size
         visibility = View.GONE
         textChangedListener {
             afterTextChanged {
@@ -56,7 +57,7 @@ open class RecyclerListItem(
     }
 
     val statusIcon = imageView {
-        id = R.id.status_icon
+        id = R.id.image
     }
 
     val overflow = iconButton(R.drawable.ic_overflow) {
@@ -80,14 +81,19 @@ open class RecyclerListItem(
                 TOP to TOP of mainLine,
                 BOTTOM to BOTTOM of subLine
             )
-            size = dimen(R.dimen.icon_size)
+            dimensionRation = "H,1:1"
+            size = if (fullSizeImage) {
+                dip(40)
+            } else {
+                dimen(R.dimen.icon_size)
+            }
         }
         mainLine {
             connect(
                 TOP to TOP of PARENT_ID,
-                START to END of track,
                 END to START of overflow margin dip(16),
-                BOTTOM to TOP of subLine
+                BOTTOM to TOP of subLine,
+                START to END of track
             )
             verticalChainStyle = CHAIN_PACKED
             width = matchConstraint
@@ -115,5 +121,5 @@ open class RecyclerListItem(
     val menu: ImageButton = itemView.find(R.id.itemMenuDots)
 //    val progress: View = itemView.findViewById(R.uuid.progressBg)
 //    val playingIcon: ImageView = itemView.findViewById(R.uuid.playing_icon)
-    val statusIcon: ImageView = itemView.find(R.id.status_icon)
+//    val statusIcon: ImageView = itemView.find(R.id.status_icon)
 }

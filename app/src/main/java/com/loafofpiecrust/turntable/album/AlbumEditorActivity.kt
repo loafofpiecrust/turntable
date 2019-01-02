@@ -91,7 +91,7 @@ class AlbumEditorActivity : BaseActivity() {
             imageResource = R.drawable.ic_save
             onClick {
                 val dialog = progressDialog("Writing Tags...") {
-                    max = album.tracks.size
+                    max = runBlocking { album.resolveTracks().size }
                 }.apply { show() }
 
                 try {
@@ -162,7 +162,7 @@ class AlbumEditorActivity : BaseActivity() {
             return listOf<Unit>()
         }
 
-        album.tracks.parMap { song ->
+        album.resolveTracks().parMap { song ->
             Library.sourceForSong(song.id)?.let { path ->
                 tryOr(null) {
                     val internal = File(path)

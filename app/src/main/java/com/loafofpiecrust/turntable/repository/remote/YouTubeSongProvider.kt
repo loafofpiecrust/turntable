@@ -36,7 +36,11 @@ object YouTubeSongProvider: StreamProvider {
         val streams = OnlineSearchService.instance.getSongStreams(song)
         if (streams.status is OnlineSearchService.StreamStatus.Available) {
             Song.Media(
-                listOf(Song.Media.Source(streams.status.hqStream ?: streams.status.stream)),
+                listOf(Song.Media.Source(
+                    streams.status.hqStream ?: streams.status.stream,
+                    Song.Media.Quality.UNKNOWN
+                )),
+                expiryDate = streams.status.expiryDate,
                 start = streams.start,
                 end = streams.end
             )
@@ -71,7 +75,7 @@ object FirebaseStreamFunction: StreamProvider {
             val hq = res["highQuality"].nullObj?.get("url")?.string
             val expiryDate = res["expiryDate"].long
 //            val id = res["id"].string
-            Song.Media.fromYouTube(lq, hq)
+            Song.Media.fromYouTube(lq, hq, expiryDate)
         }
     }
 }

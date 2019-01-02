@@ -79,8 +79,12 @@ abstract class AbstractPlaylist : Playlist {
     var createdTime: Date = Date()
         private set
 
-    final override val tracks: List<Song>
+    val tracks: List<Song>
         get() = runBlocking { tracksChannel.firstOrNull() } ?: emptyList()
+
+    final override suspend fun resolveTracks(): List<Song> {
+        return tracksChannel.firstOrNull() ?: listOf()
+    }
 
     abstract val tracksChannel: ReceiveChannel<List<Song>>
 

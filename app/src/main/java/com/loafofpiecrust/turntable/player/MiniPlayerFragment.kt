@@ -37,7 +37,7 @@ class MiniPlayerFragment: BaseFragment() {
             mainLine = textView {
                 maxLines = 2
                 textStyle = Typeface.BOLD
-//                        textSizeDimen = R.dimen.title_text_size
+                textSizeDimen = R.dimen.subtitle_text_size
             }
             subLine = textView {
                 lines = 1
@@ -74,7 +74,7 @@ class MiniPlayerFragment: BaseFragment() {
                 song to it
             }
         }.consumeEachAsync { (song, req) ->
-            req?.addListener(loadPalette(song.id.album, arrayOf(mainLine, subLine)))
+            req?.addListener(loadPalette(song.id.album, arrayOf(mainLine, subLine, this@linearLayout)))
                 ?.into(cover)
         }
     }

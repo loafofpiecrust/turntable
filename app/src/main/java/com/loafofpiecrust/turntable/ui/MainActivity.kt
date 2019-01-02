@@ -275,6 +275,7 @@ class MainActivity : BaseActivity() {
             contentResolver.takePersistableUriPermission(uri, permissions)
             UserPrefs.sdCardUri puts uri.toString()
         }
+        this.action = null
     }
 
     override fun onBackPressed() {

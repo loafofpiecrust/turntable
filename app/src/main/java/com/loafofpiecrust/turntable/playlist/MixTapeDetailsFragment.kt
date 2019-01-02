@@ -116,7 +116,7 @@ open class MixtapeDetailsUI(
                 R.string.mixtape_side,
                 formatSubtitle = { it.id.artist.displayName }
             ) { song ->
-                val allTracks = playlist.value!!.tracks
+                val allTracks = playlist.value!!.resolveTracks()
                 val idx = allTracks.indexOf(song)
                 MusicService.offer(PlayerAction.PlaySongs(allTracks, idx))
             }

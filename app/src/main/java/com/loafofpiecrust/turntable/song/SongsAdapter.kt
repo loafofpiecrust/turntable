@@ -1,8 +1,12 @@
 package com.loafofpiecrust.turntable.song
 
 //import com.loafofpiecrust.turntable.service.MusicService2
+import android.graphics.Color
 import android.support.annotation.StringRes
+import android.support.v4.graphics.ColorUtils
+import android.view.View
 import android.view.ViewGroup
+import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.song.Song
@@ -19,15 +23,14 @@ import com.loafofpiecrust.turntable.views.RecyclerListItem
 import com.loafofpiecrust.turntable.views.SectionedAdapter
 import com.loafofpiecrust.turntable.views.SimpleHeaderViewHolder
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.launch
 import org.jetbrains.anko.colorAttr
+import org.jetbrains.anko.imageResource
 import org.jetbrains.anko.sdk27.coroutines.onClick
 import org.jetbrains.anko.textColor
+import org.jetbrains.anko.toast
 import kotlin.coroutines.CoroutineContext
 
 open class SongsOnDiscAdapter(
@@ -77,7 +80,7 @@ class SongsAdapter(
         data[position].id.displayName.take(1)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-        RecyclerListItem(parent)
+        RecyclerListItem(parent, fullSizeImage = true)
 
     override fun RecyclerListItem.onBind(item: Song, position: Int, job: Job) {
         bindSong(
@@ -90,6 +93,20 @@ class SongsAdapter(
                 onClickItem(data, position)
             }
         )
+        track.visibility = View.INVISIBLE
+        coverImage?.let { imageView ->
+            launch(job) {
+                item.loadCover(Glide.with(imageView)).consumeEach { req ->
+                    withContext(Dispatchers.Main) {
+                        if (req != null) {
+                            req.into(imageView)
+                        } else {
+                            imageView.imageResource = R.drawable.ic_default_album
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -102,6 +119,8 @@ fun RecyclerListItem.bindSong(
     formatTrack: ((Song) -> String)?,
     onClickItem: suspend (Song) -> Unit
 ) {
+    val context = itemView.context
+
     track.text = formatTrack?.invoke(item) ?: (position + 1).toString()
     mainLine.text = item.id.displayName
     subLine.text = formatSubtitle(item)
@@ -114,11 +133,15 @@ fun RecyclerListItem.bindSong(
     }
 
     card.onClick {
-        onClickItem(item)
+        val isLocal = Library.sourceForSong(item.id) != null
+        val internet = App.currentInternetStatus.value
+        if (internet == App.InternetStatus.OFFLINE && !isLocal) {
+            context.toast(R.string.no_internet)
+        } else {
+            onClickItem(item)
+        }
     }
 
-
-    val context = itemView.context
     CoroutineScope(job).launch(Dispatchers.Main) {
         MusicService.instance.switchMap {
             it?.let { music ->
@@ -144,11 +167,16 @@ fun RecyclerListItem.bindSong(
 //                } else {
 //                    holder.statusIcon.visibility = View.GONE
 //                }
-
                 val isLocal = Library.sourceForSong(item.id) != null
                 val c = if (internet == App.InternetStatus.OFFLINE && !isLocal) {
-                    context.getColorCompat(R.color.text_unavailable)
-                } else context.colorAttr(android.R.attr.textColor)
+                    ColorUtils.setAlphaComponent(
+                        context.colorAttr(android.R.attr.textColor),
+                        100
+                    )
+                } else {
+                    context.colorAttr(android.R.attr.textColor)
+                }
+
                 mainLine.textColor = c
                 subLine.textColor = c
                 track.textColor = c

@@ -10,6 +10,7 @@ import android.view.*
 import android.widget.EditText
 import com.github.ajalt.timberkt.Timber
 import com.github.florent37.runtimepermission.kotlin.askPermission
+import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.artist.emptyContentView
 import com.loafofpiecrust.turntable.model.sync.Friend
@@ -86,8 +87,8 @@ class SyncTabFragment: BaseFragment() {
             )
         }
 
-        menu.menuItem(R.string.friend_add, R.drawable.ic_add, showIcon = true) {
-            onClick {
+        menu.menuItem(R.string.friend_add, R.drawable.ic_add, showIcon = true).onClick {
+            App.withInternet {
                 selector(getString(R.string.friend_add), choices()).invoke()
             }
         }
@@ -196,7 +197,7 @@ class FriendAdapter(
     friends: ReceiveChannel<List<Friend>>
 ) : RecyclerAdapter<Friend, RecyclerListItem>(job, friends) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-        RecyclerListItem(parent, useIcon = true)
+        RecyclerListItem(parent)
 
     override fun onBindViewHolder(holder: RecyclerListItem, position: Int) {
         val context = holder.itemView.context

@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.player
 
 import android.net.Uri
+import com.github.ajalt.timberkt.Timber
 import com.google.android.exoplayer2.C
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.SeekParameters
@@ -8,15 +9,19 @@ import com.google.android.exoplayer2.Timeline
 import com.google.android.exoplayer2.source.*
 import com.google.android.exoplayer2.trackselection.TrackSelection
 import com.google.android.exoplayer2.upstream.Allocator
+import com.google.android.exoplayer2.upstream.TransferListener
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repository.StreamProviders
 import com.loafofpiecrust.turntable.util.milliseconds
 import com.loafofpiecrust.turntable.util.toMicroseconds
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.io.IOException
 
 class StreamMediaSource(
     private val song: Song,
@@ -28,17 +33,18 @@ class StreamMediaSource(
     private var player: ExoPlayer? = null
 
     override fun createPeriod(id: MediaSource.MediaPeriodId, allocator: Allocator): MediaPeriod? {
-        return if (attemptCount > 2 && innerSource == null) {
-            refreshSourceInfo(Timeline.EMPTY, null)
+        return if (attemptCount >= 2 && innerSource == null) {
+//            throw IOException("Couldn't load remote song")
+//            refreshSourceInfo(Timeline.EMPTY, null)
             null
         } else if (innerSource == null) {
             return StreamMediaPeriod(song, factory, id, allocator) { src ->
                 if (src == null) {
                     attemptCount += 1
-                    refreshSourceInfo(Timeline.EMPTY, null)
+//                    refreshSourceInfo(Timeline.EMPTY, null)
                 } else {
                     innerSource = src
-                    src.prepareSource(player, false, this)
+                    src.prepareSource(player, false, this, null)
                 }
             }
         } else {
@@ -53,11 +59,11 @@ class StreamMediaSource(
             } else mediaPeriod
             innerSource?.releasePeriod(period)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e)
         }
     }
 
-    override fun prepareSourceInternal(player: ExoPlayer, isTopLevelSource: Boolean) {
+    override fun prepareSourceInternal(player: ExoPlayer?, isTopLevelSource: Boolean, mediaTransferListener: TransferListener?) {
         this.player = player
         refreshSourceInfo(SinglePeriodTimeline(song.duration.toLong(), true, false), null)
     }
@@ -95,10 +101,13 @@ class StreamMediaPeriod(
     var mediaPeriod: MediaPeriod? = null
         private set
     private var source: MediaSource? = null
+    private var failedToLoad: Boolean = false
     private lateinit var callback: MediaPeriod.Callback
 
     override fun maybeThrowPrepareError() {
-        mediaPeriod?.maybeThrowPrepareError()
+        if (failedToLoad && mediaPeriod == null) {
+            throw IOException("Couldn't load remote song")
+        }
     }
 
     override fun getBufferedPositionUs(): Long {
@@ -125,16 +134,20 @@ class StreamMediaPeriod(
             } else C.TIME_END_OF_SOURCE
 
             val srcUrl = media.bestSourceFor(
-                App.currentInternetStatus.openSubscription().first(),
+                App.internetStatus.first(),
                 UserPrefs.hqStreamingMode.openSubscription().first()
             )!!.url
 
-            source = ClippingMediaSource(
-                sourceFactory.createMediaSource(Uri.parse(srcUrl)),
-                start, end
-            )
+//            if (srcUrl != null) {
+                source = ClippingMediaSource(
+                    sourceFactory.createMediaSource(Uri.parse(srcUrl)),
+                    start, end
+                )
+//            }
 
-            callback.onContinueLoadingRequested(this@StreamMediaPeriod)
+//            withContext(Dispatchers.Main) {
+                callback.onContinueLoadingRequested(this@StreamMediaPeriod)
+//            }
         }
     }
 
@@ -151,7 +164,8 @@ class StreamMediaPeriod(
             true
         } else {
             sourceCallback.invoke(source)
-//            callback.onContinueLoadingRequested(this)
+            Timber.d { "Maybe couldn't load song" }
+            failedToLoad = true
             // song can't be loaded?
             true
         }

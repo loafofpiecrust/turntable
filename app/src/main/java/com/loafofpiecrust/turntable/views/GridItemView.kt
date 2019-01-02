@@ -46,12 +46,13 @@ class GridItemView(
     val mainLine = constrain.textView {
         id = R.id.mainLine
         textStyle = Typeface.BOLD
+        textSizeDimen = R.dimen.subtitle_text_size
         maxLines = maxTextLines - 1
     }
 
     val subLine = constrain.textView {
         id = R.id.subLine
-        textSizeDimen = R.dimen.small_text_size
+//        textSizeDimen = R.dimen.small_text_size
         lines = 1
         textChangedListener {
             afterTextChanged {

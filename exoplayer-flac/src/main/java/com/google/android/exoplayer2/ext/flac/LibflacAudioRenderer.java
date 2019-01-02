@@ -53,7 +53,7 @@ public class LibflacAudioRenderer extends SimpleDecoderAudioRenderer {
     if (!FlacLibrary.isAvailable()
         || !MimeTypes.AUDIO_FLAC.equalsIgnoreCase(format.sampleMimeType)) {
       return FORMAT_UNSUPPORTED_TYPE;
-    } else if (!supportsOutputEncoding(C.ENCODING_PCM_16BIT)) {
+    } else if (!supportsOutput(format.channelCount, C.ENCODING_PCM_16BIT)) {
       return FORMAT_UNSUPPORTED_SUBTYPE;
     } else if (!supportsFormatDrm(drmSessionManager, format.drmInitData)) {
       return FORMAT_UNSUPPORTED_DRM;
@@ -65,7 +65,8 @@ public class LibflacAudioRenderer extends SimpleDecoderAudioRenderer {
   @Override
   protected FlacDecoder createDecoder(Format format, ExoMediaCrypto mediaCrypto)
       throws FlacDecoderException {
-    return new FlacDecoder(NUM_BUFFERS, NUM_BUFFERS, format.initializationData);
+    return new FlacDecoder(
+        NUM_BUFFERS, NUM_BUFFERS, format.maxInputSize, format.initializationData);
   }
 
 }

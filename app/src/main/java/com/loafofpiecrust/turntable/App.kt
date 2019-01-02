@@ -28,6 +28,7 @@ import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.anko.connectivityManager
+import org.jetbrains.anko.toast
 import java.lang.reflect.Type
 import kotlin.coroutines.CoroutineContext
 
@@ -50,6 +51,14 @@ class App: Application() {
         inline fun launchWith(crossinline block: suspend (context: Context) -> Unit) {
             launch {
                 block(instance)
+            }
+        }
+
+        inline fun withInternet(block: () -> Unit) {
+            if (currentInternetStatus.valueOrNull == InternetStatus.OFFLINE) {
+                instance.toast(R.string.no_internet)
+            } else {
+                block()
             }
         }
 
@@ -200,6 +209,7 @@ class App: Application() {
             onlineConns.iterator().hasNext() -> InternetStatus.LIMITED
             else -> InternetStatus.OFFLINE
         }
+        Timber.i { "internet status: ${currentInternetStatus.valueOrNull}" }
     }
 
     private fun watchConnectionStatus() {
@@ -215,6 +225,15 @@ class App: Application() {
                 if (!hasInternet) {
                     currentInternetStatus puts InternetStatus.OFFLINE
                 }
+                Timber.i { "internet status: ${currentInternetStatus.valueOrNull}" }
+            }
+
+            override fun onUnavailable() {
+                super.onUnavailable()
+                if (!hasInternet) {
+                    currentInternetStatus puts InternetStatus.OFFLINE
+                }
+                Timber.i { "internet status: ${currentInternetStatus.valueOrNull}" }
             }
 
             override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {

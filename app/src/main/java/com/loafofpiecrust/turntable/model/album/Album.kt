@@ -19,14 +19,18 @@ import com.loafofpiecrust.turntable.model.song.HasTracks
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repository.Repositories
+import com.loafofpiecrust.turntable.repository.local.SearchCache
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.util.lazy
+import com.loafofpiecrust.turntable.util.produceSingle
 import com.loafofpiecrust.turntable.util.sendFrom
+import com.loafofpiecrust.turntable.util.switchMap
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.filterNotNull
 import kotlinx.coroutines.channels.map
 import kotlinx.coroutines.channels.produce
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.colorAttr
 import org.jetbrains.anko.textColor
@@ -81,7 +85,7 @@ interface Album : Music, HasTracks {
 
     fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> =
         Library.loadAlbumCover(req, this.id).map {
-            it?.apply(RequestOptions().signature(ObjectKey("${this.id}thumbnail")))
+            it ?: req.load(SearchCache.fullArtwork(this@Album))
         }
 
     interface RemoteDetails : Serializable, Parcelable {
@@ -97,7 +101,7 @@ interface Album : Music, HasTracks {
  * For example, if we have Track 1 then Track 3 but no Track 2, then there's a gap.
  */
 val Album.hasTrackGaps: Boolean get() =
-    tracks.lazy.zipWithNext().any { (lastSong, song) ->
+    runBlocking { resolveTracks() }.lazy.zipWithNext().any { (lastSong, song) ->
         song.disc == lastSong.disc && (song.track - lastSong.track > 1)
     }
 

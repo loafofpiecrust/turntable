@@ -76,18 +76,16 @@ open class NowPlayingFragment : BaseFragment() {
                 }
             }
 
-            launch {
-                MusicService.instance.switchMap {
-                    it?.player?.bufferState
-                }.consumeEach {
-                    max = it.duration.toInt()
+            MusicService.player.switchMap {
+                it?.bufferState
+            }.consumeEachAsync {
+                max = it.duration.toInt()
 
-                    // Allows seeking while the song is playing without weird skipping.
-                    if (!isSeeking) {
-                        progress = it.position.toInt()
-                    }
-                    secondaryProgress = it.bufferedPosition.toInt()
+                // Allows seeking while the song is playing without weird skipping.
+                if (!isSeeking) {
+                    progress = it.position.toInt()
                 }
+                secondaryProgress = it.bufferedPosition.toInt()
             }
         }
 
@@ -132,8 +130,8 @@ open class NowPlayingFragment : BaseFragment() {
 //            elevation = dimen(R.dimen.medium_elevation).toFloat()
             isLongClickable = true
 
-            MusicService.instance.switchMap {
-                it?.player?.isPlaying
+            MusicService.player.switchMap {
+                it?.isPlaying
             }.consumeEachAsync { playing ->
                 if (playing) {
                     imageResource = R.drawable.ic_pause
@@ -257,8 +255,8 @@ open class NowPlayingFragment : BaseFragment() {
             root.backgroundColor = it
         }
 
-        MusicService.instance.switchMap {
-            it?.player?.currentSong
+        MusicService.player.switchMap {
+            it?.currentSong
         }.switchMap { song ->
             song?.loadCover(Glide.with(root))?.map { req ->
                 song to req

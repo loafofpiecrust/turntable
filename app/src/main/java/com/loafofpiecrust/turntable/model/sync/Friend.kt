@@ -42,7 +42,7 @@ data class Friend(
     // Friendship
 //    @Serializable
     object Request : Message {
-        override val timeout get() = 28.days
+        override val timeout get() = 27.5.days
         override suspend fun onReceive(sender: User) = withContext(Dispatchers.Main) {
             val context = App.instance
 
@@ -77,7 +77,7 @@ data class Friend(
 
 //    @Serializable
     data class Response(val accept: Boolean): Message {
-        override val timeout get() = 28.days
+        override val timeout get() = 27.5.days
         override suspend fun onReceive(sender: User) {
             val app = App.instance
             if (accept) {

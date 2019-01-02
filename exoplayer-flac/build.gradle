@@ -19,9 +19,14 @@ android {
     compileSdkVersion 28
 
     defaultConfig {
-        minSdkVersion 19
+        minSdkVersion 22
         targetSdkVersion 28
         consumerProguardFiles 'proguard-rules.txt'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     sourceSets.main {
@@ -33,8 +38,8 @@ android {
 dependencies {
 //    compile project(modulePrefix + 'library-core')
 //    androidTestCompile project(modulePrefix + 'testutils')
-    implementation 'com.google.android.exoplayer:exoplayer-core:2.8.1'
-    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation "com.google.android.exoplayer:exoplayer-core:$exoplayer_ver"
+    implementation "com.android.support:appcompat-v7:$android_ver"
 //    implementation 'com.google.android.exoplayer:exoplayer-testutils:r2.5.1'
 }
 

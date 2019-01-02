@@ -15,13 +15,13 @@
  */
 package com.google.android.exoplayer2.ext.flac;
 
-import android.support.annotation.IntDef;
-import android.support.annotation.Nullable;
-
 import static com.google.android.exoplayer2.util.Util.getPcmEncoding;
 
+import android.support.annotation.IntDef;
+import android.support.annotation.Nullable;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
+import com.google.android.exoplayer2.extractor.BinarySearchSeeker;
 import com.google.android.exoplayer2.extractor.Extractor;
 import com.google.android.exoplayer2.extractor.ExtractorInput;
 import com.google.android.exoplayer2.extractor.ExtractorOutput;
@@ -37,6 +37,7 @@ import com.google.android.exoplayer2.util.FlacStreamInfo;
 import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.ParsableByteArray;
 import java.io.IOException;
+import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.nio.ByteBuffer;
@@ -47,24 +48,18 @@ import java.util.Arrays;
  */
 public final class FlacExtractor implements Extractor {
 
+  /** Factory that returns one extractor which is a {@link FlacExtractor}. */
+  public static final ExtractorsFactory FACTORY = () -> new Extractor[] {new FlacExtractor()};
+
   /**
-   * Factory that returns one extractor which is a {@link FlacExtractor}.
+   * Flags controlling the behavior of the extractor. Possible flag value is {@link
+   * #FLAG_DISABLE_ID3_METADATA}.
    */
-  public static final ExtractorsFactory FACTORY = new ExtractorsFactory() {
-
-    @Override
-    public Extractor[] createExtractors() {
-      return new Extractor[] {new FlacExtractor()};
-    }
-
-  };
-
-  /** Flags controlling the behavior of the extractor. */
+  @Documented
   @Retention(RetentionPolicy.SOURCE)
   @IntDef(
-    flag = true,
-    value = {FLAG_DISABLE_ID3_METADATA}
-  )
+      flag = true,
+      value = {FLAG_DISABLE_ID3_METADATA})
   public @interface Flags {}
 
   /**
@@ -89,6 +84,7 @@ public final class FlacExtractor implements Extractor {
 
   private ParsableByteArray outputBuffer;
   private ByteBuffer outputByteBuffer;
+  private BinarySearchSeeker.OutputFrameHolder outputFrameHolder;
   private FlacStreamInfo streamInfo;
 
   private Metadata id3Metadata;
@@ -141,7 +137,7 @@ public final class FlacExtractor implements Extractor {
     decoderJni.setData(input);
     readPastStreamInfo(input);
 
-    if (flacBinarySearchSeeker != null && flacBinarySearchSeeker.hasPendingSeek()) {
+    if (flacBinarySearchSeeker != null && flacBinarySearchSeeker.isSeeking()) {
       return handlePendingSeek(input, seekPosition);
     }
 
@@ -225,6 +221,7 @@ public final class FlacExtractor implements Extractor {
     outputFormat(streamInfo);
     outputBuffer = new ParsableByteArray(streamInfo.maxDecodedFrameSize());
     outputByteBuffer = ByteBuffer.wrap(outputBuffer.data);
+    outputFrameHolder = new BinarySearchSeeker.OutputFrameHolder(outputByteBuffer);
   }
 
   private FlacStreamInfo decodeStreamInfo(ExtractorInput input)
@@ -287,9 +284,10 @@ public final class FlacExtractor implements Extractor {
   private int handlePendingSeek(ExtractorInput input, PositionHolder seekPosition)
       throws InterruptedException, IOException {
     int seekResult =
-        flacBinarySearchSeeker.handlePendingSeek(input, seekPosition, outputByteBuffer);
+        flacBinarySearchSeeker.handlePendingSeek(input, seekPosition, outputFrameHolder);
+    ByteBuffer outputByteBuffer = outputFrameHolder.byteBuffer;
     if (seekResult == RESULT_CONTINUE && outputByteBuffer.limit() > 0) {
-      writeLastSampleToOutput(outputByteBuffer.limit(), decoderJni.getLastFrameTimestamp());
+      writeLastSampleToOutput(outputByteBuffer.limit(), outputFrameHolder.timeUs);
     }
     return seekResult;
   }

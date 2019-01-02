@@ -43,7 +43,7 @@ class AlbumCollection(
     override val tracksChannel: ReceiveChannel<List<Song>>
         get() = albums.map { albums ->
             albums.mapNotNull { Repositories.find(it) }.lazy
-                .flatMap { it.tracks.lazy }
+                .flatMap { runBlocking { it.resolveTracks().lazy } }
                 .toList()
         }
 

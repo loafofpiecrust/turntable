@@ -33,6 +33,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 import org.jetbrains.anko.support.v4.alert
@@ -87,7 +88,10 @@ class PlaylistsFragment: BaseFragment() {
                 val pl = CollaborativePlaylist.fromSpotifyPlaylist(userId, playlistId)
                 when (pl) {
                     is Result.Ok -> {
-                        Timber.d { "Loaded playlist ${pl.ok.tracks}" }
+                        Timber.d {
+                            val tracks = runBlocking { pl.ok.resolveTracks() }
+                            "Loaded playlist $tracks"
+                        }
                         UserPrefs.playlists appends pl.ok
                     }
                     is Result.Error -> launch(Dispatchers.Main) {
@@ -151,7 +155,7 @@ class PlaylistsFragment: BaseFragment() {
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-            RecyclerListItem(parent, 3, useIcon = true)
+            RecyclerListItem(parent, 3)
 
         override fun RecyclerListItem.onBind(item: Playlist, position: Int, job: Job) {
             val ctx = itemView.context
@@ -174,7 +178,7 @@ class PlaylistsFragment: BaseFragment() {
                 menu.tint = contrast
             }
 
-            statusIcon.imageResource = item.icon
+            coverImage?.imageResource = item.icon
             menu.visibility = View.GONE
 
             card.setOnClickListener {

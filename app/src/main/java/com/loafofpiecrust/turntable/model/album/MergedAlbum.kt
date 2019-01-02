@@ -27,14 +27,18 @@ class MergedAlbum(
             minOf(yearA, yearB)
         } else yearA.takeIf { it > 0 } ?: yearB
     }
-    override val tracks: List<Song> by lazy {
-        (a.tracks + b.tracks)
+
+    private var tracks: List<Song>? = null
+    override suspend fun resolveTracks(): List<Song> {
+        tracks = tracks ?: (a.resolveTracks() + b.resolveTracks())
             .sortedBy { it.discTrack }
             .dedupMergeSorted(
                 { a, b -> a.disc == b.disc && a.id == b.id },
                 // TODO: Use MergedSong here?
                 { a, b -> a }
             )
+
+        return tracks ?: listOf()
     }
 
     override fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> {

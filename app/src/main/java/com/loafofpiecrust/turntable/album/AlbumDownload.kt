@@ -183,7 +183,7 @@ sealed class TorrentAlbum(
         val tor = torrent ?: return
         val info = tor.info ?: return
         val files = info.files()
-        val songs = goal.tracks
+        val songs = runBlocking { goal.resolveTracks() }
 
         val paths = (0 until files.numFiles()).map { it to File(files.filePath(it)) }.toMutableList()
         val albumFolder = paths.find { (idx, file) ->
@@ -487,17 +487,23 @@ class YouTubeAlbum(
     /// So, a YT full album = RuTracker 256kbps w/ 10 seeders
     /// A YT album with 2 missing tracks = RuTracker 256kbps w/ 3 seeders
     override val value: Int
-        get() = (quality.ordinal * OnlineSearchService.SEEDERS_OVER_QUALITY + 10) - ((goal.tracks.size - songs.size) * 3.5f).toInt()
+        get() {
+            val qualityPoints = quality.ordinal * OnlineSearchService.SEEDERS_OVER_QUALITY + 10
+            val tracks = runBlocking { goal.resolveTracks() }
+            val tracksDiff = ((tracks.size - songs.size) * 3.5f).toInt()
+            return qualityPoints - tracksDiff
+        }
 
     companion object {
         fun search(album: Album): YouTubeAlbum = runBlocking {
             // Search for all the tracks on youtube concurrently
-            val songs = album.tracks
+            val albumTracks = runBlocking { album.resolveTracks() }
+            val songs = albumTracks
                 .parMap { YouTubeSong.search(it) }
                 .awaitAll()
                 .filterNotNull()
 
-            println("albumyt: completeness = ${songs.size}/${album.tracks.size}")
+            println("albumyt: completeness = ${songs.size}/${albumTracks.size}")
 
             YouTubeAlbum(album, songs)
         }
@@ -606,7 +612,8 @@ data class YouTubeFullAlbum(
 //                    println("youtube: video tracks = $videoTracks")
 //                }
 
-                val tracks = album.tracks.mapNotNull { song ->
+                val albumTracks = runBlocking { album.resolveTracks() }
+                val tracks = albumTracks.mapNotNull { song ->
                     if (videoTracks.isNotEmpty()) {
                         val (ratio, vidTrack) = videoTracks.lazy.map {
                             val ratio = FuzzySearch.ratio(it.title.toLowerCase(), song.id.displayName.toLowerCase())
@@ -658,16 +665,17 @@ data class YouTubeFullAlbum(
             val durationStr = pageRes.substring(lengthStartIdx, lengthEndIdx)
             val duration = durationStr.toInt() * 1000
 
-            val goalDuration = album.tracks.sumBy { it.duration }
+            val albumTracks = album.resolveTracks()
+            val goalDuration = albumTracks.sumBy { it.duration }
             val durationDiff = duration - goalDuration
             if (Math.abs(durationDiff) <= 5500) { // Duration is just about the same
                 // So, just map the tracks in order.
                 // This is the mapping *least* likely to be correct.
                 val tracks = mutableMapOf<Song, Track>()
                 // Add the average difference to each song, which should be < 1 second
-                val durationDiscrepancy = durationDiff / album.tracks.size
+                val durationDiscrepancy = durationDiff / albumTracks.size
                 var currStart = 0
-                for (song in album.tracks) {
+                for (song in albumTracks) {
                     val duration = song.duration + durationDiscrepancy
                     tracks[song] = Track("", currStart, currStart + duration)
 //                    val vidTrack = song.copy(remote = if (song.remote != null) {
@@ -688,7 +696,7 @@ data class YouTubeFullAlbum(
 //                    println("youtube: video tracks = $videoTracks")
 //                }
 
-                val tracks = album.tracks.mapNotNull { song ->
+                val tracks = album.resolveTracks().mapNotNull { song ->
                     val (ratio, vidTrack) = videoTracks.mapIndexed { idx, track ->
                         var ratio = FuzzySearch.ratio(track.title.toLowerCase(), song.id.displayName.toLowerCase())
                         if (idx + 1 == song.track) {

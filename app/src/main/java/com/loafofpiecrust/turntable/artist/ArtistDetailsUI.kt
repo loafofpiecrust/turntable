@@ -106,6 +106,7 @@ open class ArtistDetailsUI(
         backgroundColor = colorAttr(android.R.attr.windowBackground)
         id = R.id.container
 
+        val coloredViews = mutableListOf<View>()
         appBarLayout {
             id = R.id.app_bar
             topPadding = dimen(R.dimen.statusbar_height)
@@ -124,8 +125,9 @@ open class ArtistDetailsUI(
 
                     // Active year range of the artist
                     val year = textView {
-                        backgroundResource = R.drawable.rounded_rect
-                        textSizeDimen = R.dimen.small_text_size
+                        coloredViews += this
+//                        backgroundResource = R.drawable.rounded_rect
+//                        textSizeDimen = R.dimen.small_text_size
                         artist.consumeEachAsync { artist ->
                             val start = artist.startYear
                             val end = artist.endYear
@@ -143,10 +145,7 @@ open class ArtistDetailsUI(
                     }
 
                     // Current display mode
-                    val mode = textView {
-                        backgroundResource = R.drawable.rounded_rect
-                        textSizeDimen = R.dimen.small_text_size
-
+                    val mode = button {
                         currentMode.consumeEachAsync { mode ->
                             text = context.getString(
                                 R.string.artist_content_source,
@@ -162,6 +161,26 @@ open class ArtistDetailsUI(
                             )
                         }
                     }
+
+//                    val mode = textView {
+//                        backgroundResource = R.drawable.rounded_rect
+////                        textSizeDimen = R.dimen.small_text_size
+//
+//                        currentMode.consumeEachAsync { mode ->
+//                            text = context.getString(
+//                                R.string.artist_content_source,
+//                                context.getString(mode.resource)
+//                            )
+//                        }
+//
+//                        onClick {
+//                            currentMode puts context.selector(
+//                                context.getString(R.string.artist_pick_source),
+//                                Mode.values().toList(),
+//                                format = { context.getString(it.resource) }
+//                            )
+//                        }
+//                    }
 
                     generateChildrenIds()
                     applyConstraintSet {
@@ -215,7 +234,10 @@ open class ArtistDetailsUI(
 
             artist.openSubscription().switchMap { artist ->
                 artist.loadArtwork(Glide.with(image)).map {
-                    it?.addListener(artist.loadPalette(toolbar, collapser, this@appBarLayout))
+                    it?.addListener(artist.loadPalette(
+                        toolbar, collapser, this@appBarLayout,
+                        *coloredViews.toTypedArray()
+                    ))
                 }
             }.consumeEachAsync {
                 if (it != null) {

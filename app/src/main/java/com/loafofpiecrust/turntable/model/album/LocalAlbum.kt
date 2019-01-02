@@ -9,10 +9,12 @@ import com.loafofpiecrust.turntable.util.minutes
  */
 data class LocalAlbum(
     override val id: AlbumId,
-    override val tracks: List<Song>
+    val tracks: List<Song>
 ): Album {
     @Deprecated("Serializer use only")
     internal constructor(): this(AlbumId(), emptyList())
+
+    override suspend fun resolveTracks() = tracks
 
     override val year: Int
         get() = tracks.find { it.year > 0 }?.year ?: 0
@@ -39,6 +41,9 @@ data class LocalAlbum(
         private const val MAX_SINGLE_TRACKS = 3
         private const val MAX_EP_TRACKS = 6
         private val MAX_EP_DURATION = 30.minutes
-        private val COMPILATION_PAT = Regex("\\b(Collection|Compilation|Best of|Greatest hits)\\b", RegexOption.IGNORE_CASE)
+        private val COMPILATION_PAT = Regex(
+            "\\b(Collection|Compilation|Best of|Greatest hits)\\b",
+            RegexOption.IGNORE_CASE
+        )
     }
 }

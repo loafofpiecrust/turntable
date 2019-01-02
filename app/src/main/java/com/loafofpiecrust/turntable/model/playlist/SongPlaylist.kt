@@ -73,7 +73,7 @@ class SongPlaylist(
                 .toList()
         }
 
-    override val tracks: List<Song> get() =
+    override suspend fun resolveTracks(): List<Song> =
         sides.value.lazy.flatten().map { it.song }.toList()
 
     val sideCount: Int get() = sides.value.size
@@ -85,7 +85,7 @@ class SongPlaylist(
         } ?: 0
 
     fun sideIsFull(sideIdx: Int): Boolean =
-        maxSideDuration != SIDE_UNLIMITED && durationOfSide(sideIdx) >= maxSideDuration
+        durationOfSide(sideIdx) >= maxSideDuration
 
     fun sideName(sideIdx: Int): String =
         ('A' + sideIdx).toString()
@@ -343,7 +343,7 @@ class SongPlaylist(
     }
 
     companion object {
-        const val SIDE_UNLIMITED: Long = -1
+        const val SIDE_UNLIMITED: Long = Long.MAX_VALUE
         private val DEFAULT_TRACK_DURATION = 4.minutes
 
         private fun fromDocument(doc: DocumentSnapshot) = SongPlaylist(

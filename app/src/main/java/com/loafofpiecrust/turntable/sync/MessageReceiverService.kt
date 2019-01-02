@@ -15,7 +15,7 @@ import kotlinx.coroutines.runBlocking
  */
 class MessageReceiverService : FirebaseMessagingService() {
     override fun onMessageReceived(msg: RemoteMessage): Unit = runBlocking {
-        Timber.d { "received ${msg.data}" }
+        Timber.i { "received ${msg.data}" }
 
         val sender = try {
             App.gson.fromJson<User>(msg.data["sender"]!!)

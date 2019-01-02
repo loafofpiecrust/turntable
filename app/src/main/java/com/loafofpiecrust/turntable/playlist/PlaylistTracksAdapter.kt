@@ -57,20 +57,20 @@ class PlaylistTracksAdapter(
         subLine.text = item.id.artist.displayName
         if (playlist.isCompletable) {
             track.visibility = View.INVISIBLE
-            statusIcon.visibility = View.VISIBLE
+            coverImage?.visibility = View.VISIBLE
             launch(Dispatchers.Main + job) {
                 UserPrefs.history.consumeEach { history ->
                     val entry = history.find { it.song.id == item.id }
                     if (entry != null && entry.timestamp > playlist.createdTime.time) {
-                        statusIcon.imageResource = R.drawable.ic_check_box
+                        coverImage?.imageResource = R.drawable.ic_check_box
                     } else {
-                        statusIcon.imageResource = R.drawable.ic_check_box_outline_blank
+                        coverImage?.imageResource = R.drawable.ic_check_box_outline_blank
                     }
                 }
             }
         } else {
             track.visibility = View.VISIBLE
-            statusIcon.visibility = View.INVISIBLE
+            coverImage?.visibility = View.INVISIBLE
             track.text = (position + 1).toString()
         }
     }

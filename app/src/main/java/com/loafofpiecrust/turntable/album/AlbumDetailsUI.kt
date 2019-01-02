@@ -29,6 +29,7 @@ import com.bumptech.glide.request.target.Target
 import com.google.firebase.dynamiclinks.FirebaseDynamicLinks
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.artist.emptyContentView
 import com.loafofpiecrust.turntable.collapsingToolbarlparams
 import com.loafofpiecrust.turntable.model.album.*
 import com.loafofpiecrust.turntable.model.imageTransition
@@ -89,9 +90,9 @@ open class AlbumDetailsUI(
             .addTransition(ChangeClipBounds())
 
         sharedElementEnterTransition = trans
-        sharedElementReturnTransition = trans
+//        sharedElementReturnTransition = trans
 
-        enterTransition = Fade()
+//        enterTransition = Fade()
     }
 
     override fun ViewContext.render() = coordinatorLayout {
@@ -245,8 +246,9 @@ open class AlbumDetailsUI(
 
 private fun Menu.prepareOptions(scope: CoroutineScope, context: Context, album: Album) {
     menuItem(R.string.album_shuffle, R.drawable.ic_shuffle, showIcon =false).onClick(Dispatchers.Default) {
-        if (album.tracks.isNotEmpty()) {
-            MusicService.offer(PlayerAction.PlaySongs(album.tracks, mode = MusicPlayer.OrderMode.SHUFFLE))
+        val tracks = album.resolveTracks()
+        if (tracks.isNotEmpty()) {
+            MusicService.offer(PlayerAction.PlaySongs(tracks, mode = MusicPlayer.OrderMode.SHUFFLE))
         }
     }
 
@@ -319,9 +321,13 @@ private fun Menu.prepareOptions(scope: CoroutineScope, context: Context, album: 
 
 private class AlbumTracksUI(
     album: ReceiveChannel<Album>
-): SongsUI() {
+): SongsUI(
+    makeEmptyView = {
+        emptyContentView(R.string.songs_empty)
+    }
+) {
     override val songs = album
-        .map(Dispatchers.IO) { it.tracks }
+        .map(Dispatchers.IO) { it.resolveTracks() }
         .broadcast(CONFLATED)
 
     override fun makeAdapter() = SongsOnDiscAdapter(

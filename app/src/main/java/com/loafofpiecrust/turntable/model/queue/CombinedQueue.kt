@@ -15,11 +15,12 @@ data class CombinedQueue(
 //    @Deprecated("Serializer use only")
     internal constructor(): this(StaticQueue(), emptyList())
 
-    @Transient
-    override val list: List<Song> =
+    @delegate:Transient
+    override val list: List<Song> by lazy {
         if (nextUp.isNotEmpty()) {
             primary.list.with(nextUp, primary.position + 1)
         } else primary.list
+    }
 
     override val position: Int get() = if (isPlayingNext) {
         primary.position + 1
@@ -126,4 +127,8 @@ data class CombinedQueue(
 }
 
 fun CombinedQueue.indexWithinUpNext(index: Int): Boolean =
-    index > position && index <= position + nextUp.size
+    if (isPlayingNext) {
+        index >= position && index < position + nextUp.size
+    } else {
+        index > position && index <= position + nextUp.size
+    }

@@ -25,7 +25,7 @@ object StreamCache: StreamProvider {
                 if (entry.isStale) {
                     null
                 } else {
-                    Song.Media.fromYouTube(entry.stream, entry.hqStream)
+                    Song.Media.fromYouTube(entry.stream, entry.hqStream, entry.expiryDate)
                 }
             }
             is OnlineSearchService.StreamStatus.Unavailable -> null
@@ -42,12 +42,12 @@ object StreamCache: StreamProvider {
 
     fun save(song: Song, media: Song.Media) = GlobalScope.launch {
         try {
-            // TODO: Include both hq and lq streams in [Song.Media]
             mapper.save(OnlineSearchService.SongDBEntry(
                 song.id.dbKey,
                 null,
                 stream128 = media.mediocreSource()!!.url.compress(),
-                stream192 = media.bestSource()?.url?.compress()
+                stream192 = media.bestSource()?.url?.compress(),
+                expiryDate = media.expiryDate
             ))
         } catch (e: Exception) {
             Timber.e(e) { "Failed to save song to database" }

@@ -12,6 +12,7 @@ buildscript {
     ext.ktor_ver = '1.0.1'
     ext.aws_ver = '2.6.30'
     ext.arrow_version = "0.7.3"
+    ext.exoplayer_ver = "2.9.3"
 
 
     repositories {
@@ -35,7 +36,7 @@ buildscript {
         // in the individual module build.gradle files
         classpath 'com.google.gms:google-services:4.2.0'
 
-        classpath "com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.3"
+        classpath "com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.4"
         classpath "com.vanniktech:gradle-dependency-graph-generator-plugin:0.5.0"
         classpath 'gradle.plugin.org.jmailen.gradle:kotlinter-gradle:1.15.1'
 //        classpath "de.mannodermaus.gradle.plugins:android-junit5:1.2.0.0"

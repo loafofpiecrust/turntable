@@ -13,7 +13,14 @@ import kotlinx.coroutines.runBlocking
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
-abstract class PaperProp<T: Any>: ReadOnlyProperty<Any, ConflatedBroadcastChannel<T>> {
+abstract class PaperProp<T: Any>(key: String): ReadOnlyProperty<Any, ConflatedBroadcastChannel<T>> {
+    init {
+        assert(!registeredPages.contains(key)) {
+            "Cannot have two properties with the same key"
+        }
+        registeredPages.add(key)
+    }
+
     private val subject = ConflatedBroadcastChannel<T>()
     private var initialized = false
 
@@ -50,11 +57,13 @@ abstract class PaperProp<T: Any>: ReadOnlyProperty<Any, ConflatedBroadcastChanne
          * <app_data>/userdata/<name>.paper
          */
         private const val BOOK_NAME = "userdata"
+
+        private val registeredPages = mutableSetOf<String>()
     }
 }
 
 inline fun <reified T: Any> Paper.page(key: String, crossinline defaultValue: () -> T) =
-    object: PaperProp<T>() {
+    object: PaperProp<T>(key) {
         override fun produceDefault(): T = defaultValue()
         override suspend fun readValue(book: Book): T? = book.read<T>(key)
         override suspend fun writeValue(book: Book, value: T) {

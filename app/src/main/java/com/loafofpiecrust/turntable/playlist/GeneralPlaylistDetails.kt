@@ -103,7 +103,7 @@ class PlaylistSidesAdapter(
     R.string.mixtape_side,
     formatSubtitle = { it.id.artist.displayName },
     onClickItem = { song ->
-        val songs = playlist.tracks
+        val songs = playlist.resolveTracks()
         val idx = songs.indexOf(song)
         MusicService.offer(
             PlayerAction.PlaySongs(songs, idx)
@@ -120,13 +120,14 @@ class PlaylistSidesAdapter(
         val sectionsToConsider = sectionForPosition(idx)
         // should be just idx - 1 when there's one side
         val actualIdx = idx - sectionsToConsider
-        playlist.remove(playlist.tracks[actualIdx].id)
+        val tracks = runBlocking { playlist.resolveTracks() }
+        playlist.remove(tracks[actualIdx].id)
     }
 
     override fun onItemMove(fromIdx: Int, toIdx: Int) {
         val actualFrom = fromIdx - sectionForPosition(fromIdx)
         val actualTo = toIdx - sectionForPosition(toIdx)
-        val tracks = playlist.tracks
+        val tracks = runBlocking { playlist.resolveTracks() }
         playlist.move(tracks[actualFrom].id, tracks[actualTo].id)
     }
 }

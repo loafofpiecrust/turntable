@@ -39,7 +39,9 @@
 -keep class * extends com.bumptech.glide.module.AppGlideModule
 -keep class com.loafofpiecrust.**$Parcelable { *; }
 #-keep class com.frostwire.jlibtorrent.swig.** { *; }
-#-keep class com.google.firebase.provider.FirebaseInitProvider
+-keep class com.google.firebase.provider.FirebaseInitProvider
+-keep class com.firebase.ui.auth.data.client.AuthUiInitProvider
+-keep class android.arch.lifecycle.ProcessLifecycleOwnerInitializer
 #-keep class * extends android.content.ContentProvider
 -keep class com.loafofpiecrust.turntable.R
 # If you keep the line number information, uncomment this to

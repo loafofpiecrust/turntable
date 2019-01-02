@@ -17,12 +17,14 @@ import com.google.gson.JsonObject
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.appends
 import com.loafofpiecrust.turntable.model.queue.isEmpty
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.player.MusicService
+import com.loafofpiecrust.turntable.serialize.page
 import com.loafofpiecrust.turntable.ui.BaseActivity
 import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.util.http
@@ -33,8 +35,10 @@ import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.url
 import io.ktor.client.response.HttpResponse
+import io.paperdb.Paper
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.channels.firstOrNull
 import kotlinx.coroutines.tasks.await
 import org.jetbrains.anko.notificationManager
@@ -49,6 +53,9 @@ object Sync {
     private const val PROJECT_ID = BuildConfig.FIREBASE_PROJECT_ID
     private const val SERVER_KEY = BuildConfig.FIREBASE_SERVER_KEY
 
+    private val sendQueue by Paper.page("messagesToSend") {
+        listOf<Pair<Message, Mode>>()
+    }
 
     val selfUser = User()
 
@@ -152,6 +159,11 @@ object Sync {
     }
 
     suspend fun send(msg: Message, mode: Sync.Mode): Boolean {
+        if (App.currentInternetStatus.valueOrNull == App.InternetStatus.OFFLINE) {
+            sendQueue appends (msg to mode)
+            return false
+        }
+
         if (!isLoggedIn) {
             BaseActivity.current?.let { activity ->
                 requestLogin(activity, soft = false)
@@ -261,8 +273,19 @@ object Sync {
     }
 
     fun initDeviceId() {
-        FirebaseInstanceId.getInstance().instanceId.addOnSuccessListener {
-            setCurrentDevice(it.token)
+        GlobalScope.launch {
+            App.internetStatus.consumeEach { status ->
+                if (status != App.InternetStatus.OFFLINE) {
+                    FirebaseInstanceId.getInstance().instanceId.addOnSuccessListener {
+                        setCurrentDevice(it.token)
+                    }
+
+                    sendQueue.value.forEach { (msg, mode) ->
+                        send(msg, mode)
+                    }
+                    sendQueue.offer(listOf())
+                }
+            }
         }
     }
 

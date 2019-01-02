@@ -83,7 +83,7 @@ complexity:
   LabeledExpression:
     active: false
   LargeClass:
-    active: true
+    active: false
     threshold: 150
   LongMethod:
     active: true
@@ -97,7 +97,7 @@ complexity:
     threshold: 6
   NestedBlockDepth:
     active: true
-    threshold: 4
+    threshold: 5
   StringLiteralDuplication:
     active: false
     threshold: 3
@@ -412,7 +412,7 @@ style:
     active: false
     includeLineWrapping: false
   ForbiddenComment:
-    active: true
+    active: false
     values: 'TODO:,FIXME:,STOPSHIP:'
   ForbiddenImport:
     active: false

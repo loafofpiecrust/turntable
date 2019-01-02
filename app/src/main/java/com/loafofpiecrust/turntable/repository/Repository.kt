@@ -25,7 +25,7 @@ interface Repository {
     suspend fun find(album: AlbumId): Album?
     suspend fun find(artist: ArtistId): Artist?
     suspend fun find(song: SongId): Song? =
-        find(song.album)?.tracks?.find { it.id.fuzzyEquals(song) }
+        find(song.album)?.resolveTracks()?.find { it.id.fuzzyEquals(song) }
 
     suspend fun fullArtwork(album: Album, search: Boolean = false): String?
     suspend fun fullArtwork(artist: Artist, search: Boolean = false): String?

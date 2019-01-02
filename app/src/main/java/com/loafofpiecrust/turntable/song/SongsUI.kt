@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewManager
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.artist.emptyContentView
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.player.MusicService
@@ -29,7 +30,14 @@ import kotlinx.coroutines.channels.broadcast
 import kotlinx.coroutines.channels.map
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 
-abstract class SongsUI: UIComponent() {
+abstract class SongsUI(
+    val makeEmptyView: ViewManager.() -> View = {
+        emptyContentView(
+            R.string.songs_empty,
+            0
+        )
+    }
+): UIComponent() {
     abstract val songs: BroadcastChannel<List<Song>>
 
     override fun Menu.prepareOptions(context: Context) {
@@ -69,6 +77,8 @@ abstract class SongsUI: UIComponent() {
                 })
             }
         }
+
+        emptyState { makeEmptyView() }
     }
 
     @Parcelize

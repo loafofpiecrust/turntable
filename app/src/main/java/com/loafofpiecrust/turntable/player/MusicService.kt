@@ -3,6 +3,7 @@ package com.loafofpiecrust.turntable.player
 import activitystarter.ActivityStarter
 import activitystarter.Arg
 import activitystarter.MakeActivityStarter
+import android.app.IntentService
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -33,6 +34,7 @@ import org.jetbrains.anko.powerManager
 import org.jetbrains.anko.startService
 import org.jetbrains.anko.wifiManager
 import java.lang.ref.WeakReference
+import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -48,27 +50,27 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
 
         val player get() = instance.map { it?.player }.startWith(null)
 
-        val currentSongColor: BroadcastChannel<Int> =
-            player.switchMap { it?.queue }
-                .switchMap(Dispatchers.IO) { q ->
-                    val song = q.current
-                    song?.loadCover(Glide.with(App.instance))
-                        ?.map { song to it }
+        val currentSongColor: BroadcastChannel<Int> = player
+            .switchMap { it?.queue }
+            .switchMap(Dispatchers.IO) { q ->
+                val song = q.current
+                song?.loadCover(Glide.with(App.instance))
+                    ?.map { song to it }
+            }
+            .map(Dispatchers.Main) { (song, req) ->
+                if (req == null) {
+                    Color.TRANSPARENT
+                } else suspendCoroutine { cont ->
+                    req.addListener(loadPalette(song.id) { palette, swatch ->
+                        if (swatch == null) {
+                            cont.resume(Color.TRANSPARENT)
+                        } else {
+                            cont.resume(swatch.rgb)
+                        }
+                    }).preload()
                 }
-                .map(Dispatchers.Main) { (song, req) ->
-                    if (req == null) {
-                        Color.TRANSPARENT
-                    } else suspendCoroutine { cont ->
-                        req.addListener(loadPalette(song.id) { palette, swatch ->
-                            if (swatch == null) {
-                                cont.resume(Color.TRANSPARENT)
-                            } else {
-                                cont.resume(swatch.rgb)
-                            }
-                        }).preload()
-                    }
-                }
-                .broadcast(CONFLATED)
+            }
+            .broadcast(CONFLATED)
 
 
         private data class SyncedAction(
@@ -80,11 +82,15 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
             capacity = Channel.UNLIMITED
         ) {
             for (action in channel) {
-                val service = _instance.valueOrNull?.get() ?: run {
-                    App.instance.startService<MusicService>()
-                    instance.filterNotNull().first()
-                }
-                service.doAction(action.message, action.shouldSync)
+                val serviceChan = _instance.openSubscription()
+                    .map { it.get() }
+                    .filterNotNull()
+
+                App.instance.startService<MusicService>()
+                val service = serviceChan.consume { receive() }
+//                withContext(MusicPlayer.THREAD_CONTEXT) {
+                    service.doAction(action.message, action.shouldSync)
+//                }
             }
         }
 
@@ -185,54 +191,59 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
 
     override fun onCreate() {
         super.onCreate()
-        player = MusicPlayer(this)
 
-        launch {
-            player.currentSong.distinctInstanceSeq().consumeEach { song ->
-                withContext(Dispatchers.Main) {
-                    showNotification(song, player.isPlaying.first())
-                }
-            }
-        }
+//        launch(MusicPlayer.THREAD_CONTEXT) {
+            //        runBlocking(MusicPlayer.THREAD_CONTEXT) {
+            player = MusicPlayer(this@MusicService)
+//        }
 
-        launch {
-            player.isPlaying.skip(1).distinctSeq().consumeEach { isPlaying ->
-                withContext(Dispatchers.Main) {
-                    showNotification(player.currentSong.first(), isPlaying)
-                }
-            }
-        }
-
-        launch {
-            player.isPlaying.skip(1)
-                .distinctSeq()
-                .consumeEach { isPlaying ->
-                    if (player.isStreaming) {
-                        // Playing remote song
-                        if (isPlaying) {
-                            wifiLock.acquire()
-                        } else if (wifiLock.isHeld) {
-                            wifiLock.release()
-                        }
+            launch(Dispatchers.Default) {
+                player.currentSong.distinctInstanceSeq().consumeEach { song ->
+                    withContext(Dispatchers.Main) {
+                        showNotification(song, player.isPlaying.first())
                     }
-                    if (isPlaying) {
+                }
+            }
+
+            launch(Dispatchers.Default) {
+                player.isPlaying.skip(1).distinctSeq().consumeEach { isPlaying ->
+                    withContext(Dispatchers.Main) {
+                        showNotification(player.currentSong.first(), isPlaying)
+                    }
+                }
+            }
+
+            launch(Dispatchers.Default) {
+                player.isPlaying.skip(1)
+                    .distinctSeq()
+                    .consumeEach { isPlaying ->
+                        if (player.isStreaming) {
+                            // Playing remote song
+                            if (isPlaying) {
+                                wifiLock.acquire()
+                            } else if (wifiLock.isHeld) {
+                                wifiLock.release()
+                            }
+                        }
+                        if (isPlaying) {
 //                        val buffer = player.currentBufferState
 //                        if (buffer != null) {
 //                            wakeLock.acquire(buffer.duration - buffer.position)
 //                        } else {
                             wakeLock.acquire()
 //                        }
-                    } else if (wakeLock.isHeld) {
-                        wakeLock.release()
+                        } else if (wakeLock.isHeld) {
+                            wakeLock.release()
+                        }
                     }
-                }
-        }
+            }
 
-        registerReceiver(noisyReceiver, IntentFilter(ACTION_AUDIO_BECOMING_NOISY))
-        registerReceiver(plugReceiver, IntentFilter(ACTION_HEADSET_PLUG))
+            registerReceiver(noisyReceiver, IntentFilter(ACTION_AUDIO_BECOMING_NOISY))
+            registerReceiver(plugReceiver, IntentFilter(ACTION_HEADSET_PLUG))
 
-        // once we're good and initialized, tell everyone we exist!
-        _instance puts WeakReference(this)
+            // once we're good and initialized, tell everyone we exist!
+            _instance puts WeakReference(this@MusicService)
+//        }
     }
 
     override fun onDestroy() {
@@ -253,10 +264,11 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null) {
-            _instance.offer(WeakReference(this))
             ActivityStarter.fill(this, intent)
             command?.let { msg ->
-                doAction(msg, shouldSync)
+//                launch(MusicPlayer.THREAD_CONTEXT) {
+                    doAction(msg, shouldSync)
+//                }
             }
         }
         return START_STICKY
@@ -270,26 +282,28 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
     }
 
     override fun onAudioFocusChange(change: Int) {
-        isFocused = change == AUDIOFOCUS_GAIN ||
-            change == AUDIOFOCUS_GAIN_TRANSIENT ||
-            change == AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
+//        launch(MusicPlayer.THREAD_CONTEXT) {
+            isFocused = change == AUDIOFOCUS_GAIN ||
+                change == AUDIOFOCUS_GAIN_TRANSIENT ||
+                change == AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
 
-        when (change) {
-            AUDIOFOCUS_GAIN -> doAction(PlayerAction.Play, false)
-            AUDIOFOCUS_LOSS -> doAction(PlayerAction.Pause, false)
-            AUDIOFOCUS_LOSS_TRANSIENT -> doAction(PlayerAction.Pause, false)
-            AUDIOFOCUS_GAIN_TRANSIENT -> doAction(PlayerAction.Play, false)
-            AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
-                // just decrease volume
-                if (UserPrefs.reduceVolumeOnFocusLoss.value) {
-                    player.volume = 0.3f
+            when (change) {
+                AUDIOFOCUS_GAIN -> doAction(PlayerAction.Play, false)
+                AUDIOFOCUS_LOSS -> doAction(PlayerAction.Pause, false)
+                AUDIOFOCUS_LOSS_TRANSIENT -> doAction(PlayerAction.Pause, false)
+                AUDIOFOCUS_GAIN_TRANSIENT -> doAction(PlayerAction.Play, false)
+                AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                    // just decrease volume
+                    if (UserPrefs.reduceVolumeOnFocusLoss.value) {
+                        player.volume = 0.3f
+                    }
+                }
+                AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK -> {
+                    // increase volume back to normal
+                    player.volume = 1f
                 }
             }
-            AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK -> {
-                // increase volume back to normal
-                player.volume = 1f
-            }
-        }
+//        }
     }
 
     fun requestFocus(): Boolean {

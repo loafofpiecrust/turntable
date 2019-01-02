@@ -69,6 +69,7 @@ android {
         buildConfigField("String", "SPOTIFY_SECRET", SpotifySecret)
         buildConfigField("String", "DYNAMODB_POOL_ID", DynamoDBPoolId)
     }
+
     buildTypes {
         release {
 //            testCoverageEnabled true
@@ -88,10 +89,11 @@ android {
         }
     }
     
-//    compileOptions {
-//        sourceCompatibility JavaVersion.VERSION_1_8
-//        targetCompatibility JavaVersion.VERSION_1_8
-//    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
 //        test.java.srcDirs += 'src/integrationTest'
@@ -200,8 +202,8 @@ dependencies {
     implementation 'com.github.salomonbrys.kotson:kotson:2.5.0'
     implementation 'com.github.lsjwzh.RecyclerViewPager:lib:v1.1.2'
     implementation 'me.xdrop:fuzzywuzzy:1.1.8'
-    implementation 'com.google.android.exoplayer:exoplayer-core:2.8.1'
-    implementation 'com.google.android.exoplayer:extension-okhttp:2.8.1'
+    implementation "com.google.android.exoplayer:exoplayer-core:$exoplayer_ver"
+    implementation "com.google.android.exoplayer:extension-okhttp:$exoplayer_ver"
     implementation 'com.github.daemontus:kotlin-option-result:1.0.1'
 
     // Preferences

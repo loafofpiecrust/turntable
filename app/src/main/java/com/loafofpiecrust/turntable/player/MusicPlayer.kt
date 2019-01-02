@@ -21,23 +21,23 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.putsMapped
+import com.loafofpiecrust.turntable.serialize.page
 import com.loafofpiecrust.turntable.util.startWith
 import com.loafofpiecrust.turntable.util.with
 import com.loafofpiecrust.turntable.util.without
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancelChildren
+import io.paperdb.Paper
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.map
 import kotlinx.coroutines.channels.produce
-import kotlinx.coroutines.delay
 import okhttp3.OkHttpClient
 import org.jetbrains.anko.toast
 import kotlin.coroutines.CoroutineContext
 
 class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
-    override val coroutineContext: CoroutineContext = SupervisorJob()
+    override val coroutineContext: CoroutineContext =
+        SupervisorJob()
 
     enum class EnqueueMode {
         NEXT, // Adds to the end of an "Up Next" section of the queue just after the current song.
@@ -52,14 +52,14 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
                 bandwidthMeter,
                 OkHttpDataSourceFactory(
                     OkHttpClient(),
-                    USER_AGENT,
-                    null
+                    USER_AGENT
                 )
             )
         ).setExtractorsFactory(DefaultExtractorsFactory())
     }
 
     private val player = ExoPlayerFactory.newSimpleInstance(
+        ctx,
         DefaultRenderersFactory(ctx),
         DefaultTrackSelector(AdaptiveTrackSelection.Factory(bandwidthMeter)),
         DefaultLoadControl()
@@ -97,7 +97,9 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
 
 
     private var nonShuffledQueue: Queue? = null
-    private val _queue = UserPrefs.queue
+    private val _queue by Paper.page("queue") {
+        CombinedQueue(StaticQueue(listOf(), 0), listOf())
+    }
     val queue: ReceiveChannel<CombinedQueue> get() = _queue.openSubscription()
 
     val currentSong: ReceiveChannel<Song?>
@@ -114,7 +116,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         player.currentPosition,
         player.bufferedPosition
     )
-    val bufferState: ReceiveChannel<BufferState> get() = produce {
+    val bufferState: ReceiveChannel<BufferState> get() = produce(Dispatchers.Main) {
         while (true) {
             try {
                 if (player.currentTimeline != null && player.currentTimeline.windowCount > 0) {
@@ -177,7 +179,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         // if that fails the 2nd time, skip to the next track in the MediaSource.
         if (error.type == ExoPlaybackException.TYPE_SOURCE) {
             App.instance.toast("Song not available to stream")
-            player.stop(true)
             // to retry, we have to rebuild the MediaSource
             playNext()
             prepareSource()
@@ -205,8 +206,9 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
 
     // Called when ExoPlayer changes tracks (mapped to windows)
     override fun onPositionDiscontinuity(reason: Int) {
+        Timber.d { "position discontinuity, reason = $reason" }
         if (reason == ExoPlayer.DISCONTINUITY_REASON_PERIOD_TRANSITION) {
-            shiftQueuePosition(player.currentWindowIndex)
+            shiftQueuePosition(player.currentWindowIndex, false)
         }
     }
 
@@ -214,11 +216,15 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
     }
 
     override fun onTimelineChanged(timeline: Timeline, manifest: Any?, reason: Int) {
+        Timber.d { "timeline changed (reason: $reason) to $timeline" }
         if (reason == Player.TIMELINE_CHANGE_REASON_PREPARED) {
             val q = _queue.value
             if (player.currentWindowIndex != q.position && timeline.windowCount > 0) {
 //                player.seekToDefaultPosition(min(timeline.windowCount - 1, q.position))
             }
+        } else if (reason == Player.TIMELINE_CHANGE_REASON_DYNAMIC) {
+            // some song cannot be played
+            shiftQueuePosition(player.currentWindowIndex, false)
         }
     }
 
@@ -245,12 +251,12 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         when (mode) {
             OrderMode.SEQUENTIAL -> {
                 val primary = StaticQueue(songs, position)
-                val q = _queue.valueOrNull
-                val next = if (q != null) {
-                    if (q.isPlayingNext) q.nextUp.drop(1) else q.nextUp
-                } else listOf()
+//                val q = _queue.valueOrNull
+//                val next = if (q != null) {
+//                    if (q.isPlayingNext) q.nextUp.drop(1) else q.nextUp
+//                } else listOf()
 
-                _queue.offer(CombinedQueue(primary, next))
+                _queue.offer(CombinedQueue(primary, listOf()))
             }
             OrderMode.SHUFFLE -> {
                 nonShuffledQueue = StaticQueue(songs, position)
@@ -277,11 +283,12 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         player.stop(true)
         mediaSource = ConcatenatingMediaSource().apply {
             addMediaSources(q.list.mapIndexed { index, song ->
-                val cb: ((Boolean) -> Unit)? =
-                    { loaded ->
-                        isPrepared = loaded
-                        if (loaded) play()
+                val cb: ((Boolean) -> Unit)? = { loaded ->
+                    isPrepared = loaded
+                    if (loaded) launch(Dispatchers.Main) {
+                        play()
                     }
+                }
                 StreamMediaSource(song, mediaSourceFactory, cb)
             })
         }
@@ -307,19 +314,22 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         }
 
         when (mode) {
-            EnqueueMode.IMMEDIATELY_NEXT -> _queue putsMapped { q ->
-                mediaSource?.addMediaSources(
-                    q.position + 1,
+            EnqueueMode.IMMEDIATELY_NEXT -> {
+                val q = _queue.value
+                mediaSource!!.addMediaSources(
+                    player.currentWindowIndex + 1,
                     songs.map { StreamMediaSource(it, mediaSourceFactory) }
                 )
+
                 val pos = if (q.isPlayingNext) 1 else 0
-                q.copy(nextUp = q.nextUp.with(songs, pos))
+                _queue puts q.copy(nextUp = q.nextUp.with(songs, pos))
             }
             EnqueueMode.NEXT -> _queue putsMapped { q ->
-                mediaSource?.addMediaSources(
+                mediaSource!!.addMediaSources(
                     q.primary.position + q.nextUp.size + 1,
                     songs.map { StreamMediaSource(it, mediaSourceFactory) }
                 )
+
                 q.copy(nextUp = q.nextUp + songs)
             }
         }
@@ -336,36 +346,56 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         }
     }
 
-    fun playNext() {
+    fun playNext(applyToPlayer: Boolean = true) {
         addCurrentToHistory()
-        val q = _queue.value.toNext()
+        val prev = _queue.value
+        val q = prev.toNext()
         _queue puts q as CombinedQueue
 
-        if (q.position != player.currentWindowIndex) {
+        if (prev.isPlayingNext) {
+            mediaSource?.removeMediaSource(prev.position)
+        }
+
+        if (applyToPlayer && q.position != player.currentWindowIndex) {
             player.seekToDefaultPosition(q.position)
         }
     }
 
-    fun playPrevious() {
+    fun playPrevious(applyToPlayer: Boolean = true) {
         addCurrentToHistory()
         val q = _queue.value.toPrev()
         _queue puts q as CombinedQueue
 
-        if (q.position != player.currentWindowIndex) {
+        if (applyToPlayer && q.position != player.currentWindowIndex) {
             player.seekToDefaultPosition(q.position)
         }
+//        prepareSource()
     }
 
-    fun shiftQueuePosition(pos: Int) {
-        val q = _queue.value
+    fun shiftQueuePosition(pos: Int, applyToPlayer: Boolean = true) {
+        val prev = _queue.value
         when (pos) {
-            q.position - 1 -> if (pos >= 0) playPrevious()
-            q.position + 1 -> if (pos < q.list.size) playNext()
+//            prev.position -> {}
+            prev.position - 1 -> if (pos >= 0) {
+                playPrevious(applyToPlayer)
+            }
+            prev.position + 1 -> if (pos < prev.list.size) {
+                playNext(applyToPlayer)
+            }
             else -> {
-                val q = _queue.value.shiftedPosition(pos)
+                val q = prev.shiftedPosition(pos)
                 _queue puts q as CombinedQueue
 
-                if (player.currentWindowIndex != q.position) {
+                // clear out previous tracks that were in queue
+                if (pos > prev.position) {
+                    for (idx in prev.position..pos) {
+                        if (prev.indexWithinUpNext(idx)) {
+                            mediaSource?.removeMediaSource(idx)
+                        }
+                    }
+                }
+
+                if (applyToPlayer && player.currentWindowIndex != q.position) {
                     player.seekToDefaultPosition(q.position)
                 }
             }
@@ -373,19 +403,9 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
     }
 
     fun shiftQueuePositionRelative(diff: Int) {
-        val q = _queue.value
-        when (diff) {
-            -1 -> if (q.position > 0) playPrevious()
-            1 -> if (q.position + 1 < q.list.size) playNext()
-            else -> {
-                val q = _queue.value.shiftedPosition(q.position + diff)
-                _queue puts q as CombinedQueue
-
-                if (player.currentWindowIndex != q.position) {
-                    player.seekToDefaultPosition(q.position)
-                }
-            }
-        }
+        val prev = _queue.value
+        val pos = prev.position + diff
+        shiftQueuePosition(pos)
     }
 
     fun shiftQueueItem(from: Int, to: Int) {
@@ -393,7 +413,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
             q.shifted(from, to) as CombinedQueue
         }
 
-        mediaSource?.moveMediaSource(from, to)
+        prepareSource()
     }
 
     fun replaceQueue(q: CombinedQueue) {
@@ -477,5 +497,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         // TODO: Decide on percent threshold to count as a "full" listen. Is half the song enough?
         private const val LISTENED_PROPORTION = 0.5
         private const val USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0"
+        val THREAD_CONTEXT = newSingleThreadContext("music-player")
+//        val THREAD_CONTEXT = Dispatchers.Main
     }
 }

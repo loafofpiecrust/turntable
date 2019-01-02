@@ -20,7 +20,7 @@ import io.paperdb.Paper
  */
 object UserPrefs: KotprefModel() {
     // Theming
-    val useDarkTheme by booleanPref(true, "useDarkTheme")
+    val useDarkTheme by booleanPref(false, "useDarkTheme")
     val primaryColor by intPref(context.getColorCompat(R.color.md_purple_300), "primaryColor")
 //    val secondaryColor by intPref(context.getColorCompat(R.color.md_teal_200))
     val accentColor by intPref(context.getColorCompat(R.color.md_teal_200), "accentColor")
@@ -62,10 +62,6 @@ object UserPrefs: KotprefModel() {
     val history by Paper.page("history") { listOf<HistoryEntry>() }
     val playlists by Paper.page("playlists") { listOf<Playlist>() }
     val recommendations by Paper.page("recommendations") { listOf<Recommendable>() }
-
-    val queue by Paper.page("queue") {
-        CombinedQueue(StaticQueue(listOf(), 0), listOf())
-    }
 
     val lastOpenTime by longPref(System.currentTimeMillis(), "lastOpenTime")
     val currentOpenTime by longPref(System.currentTimeMillis(), "currentOpenTime")

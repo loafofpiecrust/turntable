@@ -8,11 +8,13 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.tryOr
 import com.loafofpiecrust.turntable.util.produceSingle
+import com.loafofpiecrust.turntable.util.switchMap
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 @Parcelize
 class RemoteAlbum(
@@ -24,17 +26,30 @@ class RemoteAlbum(
     private constructor(): this(AlbumId(), Spotify.AlbumDetails(""))
 
     @IgnoredOnParcel
-    @delegate:Transient
-    override val tracks: List<Song> by lazy {
-        runBlocking(Dispatchers.IO) {
-            // grab tracks from online
-            tryOr(emptyList()) { remoteId.resolveTracks(id) }
+    private var tracks: List<Song>? = null
+
+    override suspend fun resolveTracks(): List<Song> {
+        tracks = tracks ?: tryOr(null) {
+            withContext(Dispatchers.IO) {
+                remoteId.resolveTracks(id)
+            }
         }
+        return tracks ?: listOf()
     }
 
     override fun loadThumbnail(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> {
         return (remoteId.thumbnailUrl ?: remoteId.artworkUrl)?.let {
             produceSingle(req.load(it))
         } ?: super.loadThumbnail(req)
+    }
+
+    override fun loadCover(req: RequestManager): ReceiveChannel<RequestBuilder<Drawable>?> {
+        return super.loadCover(req).switchMap {
+            if (it != null) {
+                produceSingle(it)
+            } else {
+                loadThumbnail(req)
+            }
+        }
     }
 }

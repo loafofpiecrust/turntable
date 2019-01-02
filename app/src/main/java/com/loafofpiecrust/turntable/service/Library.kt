@@ -146,7 +146,7 @@ object Library: CoroutineScope by GlobalScope {
 //    }
     val songsMap: ConflatedBroadcastChannel<Map<SongId, Song>> = run {
         albumsMap.openSubscription().map {
-            it.values.lazy.flatMap { it.tracks.lazy }
+            it.values.lazy.flatMap { runBlocking { it.resolveTracks().lazy } }
                 .map { it.id to it }
                 .toMap()
         }.replayOne()
@@ -189,7 +189,7 @@ object Library: CoroutineScope by GlobalScope {
     fun sourceForSong(id: SongId): String? = localSongSources[id]
 
     fun songsOnAlbum(id: AlbumId)
-        = findAlbum(id).map { it?.tracks }
+        = findAlbum(id).map { it?.resolveTracks() }
 
     fun findAlbum(key: AlbumId): ReceiveChannel<Album?> =
         albumsMap.openSubscription().map { libAlbums ->
@@ -389,9 +389,12 @@ object Library: CoroutineScope by GlobalScope {
 
     fun addRemoteAlbum(album: Album) = launch {
         // Ensure the tracks are loaded before saving.
-        if (!album.tracks.isEmpty()) {
+        if (!album.resolveTracks().isEmpty()) {
             remoteAlbums appends album
-            KotprefModel.saveFiles()
+            val artwork = Repositories.fullArtwork(album, search = true)
+            if (artwork != null) {
+                addAlbumExtras(AlbumMetadata(album.id, artwork))
+            }
         }
     }
 
@@ -654,7 +657,7 @@ object Library: CoroutineScope by GlobalScope {
                 }
             }
 
-            val firstTrack = it.tracks.firstOrNull() ?: return@launch
+            val firstTrack = it.resolveTracks().firstOrNull() ?: return@launch
             val local = sourceForSong(firstTrack.id)
             val folder = File(local).parentFile
             val imagePaths = folder.listFiles { path ->

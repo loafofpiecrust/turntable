@@ -3,6 +3,7 @@ package com.loafofpiecrust.turntable.artist
 import android.content.Context
 import android.os.Parcelable
 import android.support.annotation.StringRes
+import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.GridLayoutManager
 import android.view.Gravity
 import android.view.Menu
@@ -90,11 +91,15 @@ sealed class ArtistsUI(
                         holder.transitionViews
                     )
                 }
-                layoutManager = GridLayoutManager(context, 3)
+                layoutManager = GridLayoutManager(context, 1).also { grid ->
+                    addItemDecoration(DividerItemDecoration(context, grid.orientation).apply {
+                        setDrawable(context.getDrawable(R.drawable.song_divider))
+                    })
+                }
 
-                val gutter = dimen(R.dimen.grid_gutter)
-                padding = gutter
-                addItemDecoration(ItemOffsetDecoration(gutter))
+//                val gutter = dimen(R.dimen.grid_gutter)
+//                padding = gutter
+//                addItemDecoration(ItemOffsetDecoration(gutter))
             }
         }
 
@@ -129,7 +134,7 @@ sealed class ArtistsUI(
 
 fun ViewManager.emptyContentView(
     @StringRes title: Int,
-    @StringRes details: Int
+    @StringRes details: Int = 0
 ) = verticalLayout {
     gravity = Gravity.CENTER
     padding = dimen(R.dimen.empty_state_padding)
