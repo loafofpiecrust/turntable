@@ -222,9 +222,6 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
             if (player.currentWindowIndex != q.position && timeline.windowCount > 0) {
 //                player.seekToDefaultPosition(min(timeline.windowCount - 1, q.position))
             }
-        } else if (reason == Player.TIMELINE_CHANGE_REASON_DYNAMIC) {
-            // some song cannot be played
-            shiftQueuePosition(player.currentWindowIndex, false)
         }
     }
 

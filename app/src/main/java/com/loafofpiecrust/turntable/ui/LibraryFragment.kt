@@ -130,7 +130,7 @@ class LibraryFragment: BaseFragment() {
 
     companion object {
         val tabs by Paper.page("libraryTabs") {
-            listOf("Albums", "Artists", "Playlists", "Friends", "Recommendations")
+            listOf("Artists", "Albums", "Songs", "Playlists", "Friends", "Recommendations")
         }
     }
 }

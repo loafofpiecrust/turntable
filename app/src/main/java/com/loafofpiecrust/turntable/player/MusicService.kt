@@ -94,8 +94,12 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
             }
         }
 
+        private var lastAction: SyncedAction? = null
+
         fun offer(msg: PlayerAction, shouldSync: Boolean = true) {
-            MusicServiceStarter.start(App.instance, msg, shouldSync)
+//            MusicServiceStarter.start(App.instance, msg, shouldSync)
+            lastAction = SyncedAction(msg, shouldSync)
+            MusicServiceStarter.start(App.instance)
 //            actions.offer(SyncedAction(msg, shouldSync))
         }
     }
@@ -265,11 +269,17 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null) {
             ActivityStarter.fill(this, intent)
-            command?.let { msg ->
-//                launch(MusicPlayer.THREAD_CONTEXT) {
-                    doAction(msg, shouldSync)
-//                }
+            if (lastAction != null) {
+                command = lastAction!!.message
+                shouldSync = lastAction!!.shouldSync
+                lastAction = null
             }
+            command?.let { msg ->
+                doAction(msg, shouldSync)
+            }
+
+            command = null
+            shouldSync = false
         }
         return START_STICKY
     }

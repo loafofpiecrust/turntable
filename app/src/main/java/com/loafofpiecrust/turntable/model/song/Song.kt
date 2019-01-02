@@ -7,6 +7,7 @@ import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.model.Music
+import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.Recommendable
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repository.Repositories
