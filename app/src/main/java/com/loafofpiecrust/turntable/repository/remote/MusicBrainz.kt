@@ -225,7 +225,7 @@ object MusicBrainz: Repository {
 
 //                    )
                 } catch (e: Exception) {
-                    error { e.message }
+                    Timber.e(e)
                     null
                 }
             }.filterNotNull()
@@ -418,7 +418,7 @@ object MusicBrainz: Repository {
             } else null
         } else null
     } catch (e: Exception) {
-        error { e.stackTrace }
+        Timber.e(e)
         null
     }
 

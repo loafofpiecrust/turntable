@@ -22,6 +22,7 @@ android {
         minSdkVersion 22
         targetSdkVersion 28
         consumerProguardFiles 'proguard-rules.txt'
+
     }
 
     compileOptions {
@@ -29,9 +30,15 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
+    externalNativeBuild {
+        ndkBuild {
+            path "src/main/jni/Android.mk"
+        }
+    }
+
     sourceSets.main {
-        jniLibs.srcDir 'src/main/libs'
-        jni.srcDirs = [] // Disable the automatic ndk-build call by Android Studio.
+//        jniLibs.srcDir 'src/main/libs'
+        jni.srcDirs = ["src/main/jni"] // Disable the automatic ndk-build call by Android Studio.
     }
 }
 

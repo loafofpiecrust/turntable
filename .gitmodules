@@ -1,0 +1,3 @@
+[submodule "exoplayer-flac/src/main/jni/flac"]
+	path = exoplayer-flac/src/main/jni/flac
+	url = https://github.com/xiph/flac
