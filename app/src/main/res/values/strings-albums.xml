@@ -24,6 +24,7 @@
     <string name="album_by_artist">Album by %1$s</string>
     <string name="albums_empty">No albums</string>
     <string name="albums_empty_details">Find an artist you like and bookmark one of their albums.</string>
+    <string name="go_to_album">Go to Album</string>
 
     <!-- Album types -->
     <plurals name="Album_Type_LP">

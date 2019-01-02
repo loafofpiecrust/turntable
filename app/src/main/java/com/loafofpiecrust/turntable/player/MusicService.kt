@@ -78,36 +78,14 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
             val shouldSync: Boolean
         )
 
-        private val actions = GlobalScope.actor<SyncedAction>(
-            capacity = Channel.UNLIMITED
-        ) {
-            for (action in channel) {
-                val serviceChan = _instance.openSubscription()
-                    .map { it.get() }
-                    .filterNotNull()
-
-                App.instance.startService<MusicService>()
-                val service = serviceChan.consume { receive() }
-//                withContext(MusicPlayer.THREAD_CONTEXT) {
-                    service.doAction(action.message, action.shouldSync)
-//                }
-            }
-        }
-
         private var lastAction: SyncedAction? = null
 
         fun offer(msg: PlayerAction, shouldSync: Boolean = true) {
-//            MusicServiceStarter.start(App.instance, msg, shouldSync)
             lastAction = SyncedAction(msg, shouldSync)
             MusicServiceStarter.start(App.instance)
-//            actions.offer(SyncedAction(msg, shouldSync))
         }
     }
 
-
-//    enum class Action {
-//        PLAY, PAUSE, NEXT, PREVIOUS, STOP
-//    }
     /**
      * Incoming command from notification _or_ the sync service.
      * Should remain generic between these two uses to make syncing work as smoothly as possible.

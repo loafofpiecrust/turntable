@@ -251,7 +251,7 @@ object Library: CoroutineScope by GlobalScope {
         }
 
 
-
+    @Synchronized
     fun addAlbumExtras(meta: AlbumMetadata) {
         albumCovers[meta.id] = meta
     }
@@ -647,18 +647,18 @@ object Library: CoroutineScope by GlobalScope {
         val imageExts = arrayOf("jpg", "jpeg", "gif", "png")
         val frontReg = Regex("\\b(front|cover|folder|album|booklet)\\b", RegexOption.IGNORE_CASE)
         val existingCovers = albumCovers.valueOrNull ?: emptyMap()
-        for (it in albums) launch(Dispatchers.IO) {
-            if (it !is LocalAlbum && it !is MergedAlbum) return@launch
+        for (it in albums) {
+            if (it !is LocalAlbum && it !is MergedAlbum) continue
 
             if (existingCovers.isNotEmpty()) {
                 val existing = existingCovers[it.id]
                 if (existing != null) {
-                    return@launch
+                    continue
                 }
             }
 
-            val firstTrack = it.resolveTracks().firstOrNull() ?: return@launch
-            val local = sourceForSong(firstTrack.id)
+            val firstTrack = it.resolveTracks().firstOrNull() ?: continue
+            val local = sourceForSong(firstTrack.id) ?: continue
             val folder = File(local).parentFile
             val imagePaths = folder.listFiles { path ->
                 val ext = path.extension

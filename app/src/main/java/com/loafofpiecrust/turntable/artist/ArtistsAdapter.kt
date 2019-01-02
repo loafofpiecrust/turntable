@@ -1,5 +1,6 @@
 package com.loafofpiecrust.turntable.artist
 
+import android.graphics.Typeface
 import android.support.v7.widget.CardView
 import android.support.v7.widget.RecyclerView
 import android.view.View
@@ -12,6 +13,7 @@ import com.loafofpiecrust.turntable.model.artist.loadPalette
 import com.loafofpiecrust.turntable.model.imageTransition
 import com.loafofpiecrust.turntable.model.nameTransition
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.util.textStyle
 import com.loafofpiecrust.turntable.views.RecyclerAdapter
 import com.loafofpiecrust.turntable.views.RecyclerGridItem
 import com.loafofpiecrust.turntable.views.RecyclerItem
@@ -50,6 +52,8 @@ class ArtistsAdapter(
         holder.header.transitionName = item.id.nameTransition
 
         holder.mainLine.text = item.id.displayName
+        holder.mainLine.textStyle = Typeface.BOLD
+
         item.id.altName?.let {
             holder.subLine.text = it
         }

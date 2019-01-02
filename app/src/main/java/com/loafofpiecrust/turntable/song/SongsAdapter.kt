@@ -63,7 +63,6 @@ open class SongsOnDiscAdapter(
         )
     }
 
-
     override fun SimpleHeaderViewHolder.onBindHeader(key: String, job: Job) {
         mainLine.text = itemView.context.getString(headerRes, key)
     }

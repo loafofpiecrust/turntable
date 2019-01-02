@@ -147,6 +147,7 @@ abstract class SectionedAdapter<
     }
 ) {
     var layoutManager: GridLayoutManager
+        @Deprecated("No getter", level = DeprecationLevel.ERROR)
         get() = TODO()
         set(layout) {
             val fullWidth = layout.spanCount
@@ -190,7 +191,7 @@ abstract class SectionedAdapter<
         return total
     }
 
-    protected fun indexInSection(position: Int): Int {
+    private fun indexInSection(position: Int): Int {
         for (index in position downTo 0) {
             if (data[index] is Entry.Header<*>) {
                 return position - index - 1

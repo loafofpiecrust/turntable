@@ -30,9 +30,11 @@ class RelatedArtistsUI(
     override fun ViewContext.render() = verticalLayout {
         appBarLayout {
             topPadding = dimen(R.dimen.statusbar_height)
+
             UserPrefs.primaryColor.consumeEachAsync {
                 backgroundColor = it
             }
+
             toolbar {
                 standardStyle()
                 title = context.getString(R.string.similar_to_artist, baseArtistId.displayName)

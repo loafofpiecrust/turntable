@@ -19,13 +19,13 @@ import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick
 
 fun Menu.songOptions(context: Context, song: Song) {
-    menuItem("Go to Album").onClick {
+    menuItem(R.string.go_to_album).onClick {
         context.replaceMainContent(
             AlbumDetailsUI(song.id.album).createFragment()
         )
     }
 
-    menuItem("Go to Artist").onClick {
+    menuItem(R.string.go_to_artist).onClick {
         context.replaceMainContent(
             ArtistDetailsUI(song.id.artist).createFragment()
         )

@@ -17,4 +17,5 @@
     <string name="artists_empty">No artists</string>
     <string name="artists_empty_details">Add an album to your library and the artist will be listed here.</string>
     <string name="artist_limited_data">Not enough data for this artist.</string>
+    <string name="go_to_artist">Go to Artist</string>
 </resources>

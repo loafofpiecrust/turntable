@@ -1,5 +1,6 @@
 package com.loafofpiecrust.turntable.playlist
 
+import android.graphics.Typeface
 import android.support.v7.graphics.Palette
 import android.support.v7.widget.LinearLayoutManager
 import android.view.*
@@ -160,7 +161,10 @@ class PlaylistsFragment: BaseFragment() {
         override fun RecyclerListItem.onBind(item: Playlist, position: Int, job: Job) {
             val ctx = itemView.context
             val typeName = item.javaClass.localizedName(ctx)
+
             mainLine.text = item.id.displayName
+            mainLine.textStyle = Typeface.BOLD
+
             subLine.text = when {
                 item.id.owner == null || item.id.owner == Sync.selfUser -> typeName
                 item.id.owner != null -> {

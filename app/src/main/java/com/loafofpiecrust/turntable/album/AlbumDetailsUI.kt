@@ -29,6 +29,7 @@ import com.bumptech.glide.request.target.Target
 import com.google.firebase.dynamiclinks.FirebaseDynamicLinks
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
+import com.loafofpiecrust.turntable.artist.ArtistDetailsUI
 import com.loafofpiecrust.turntable.artist.emptyContentView
 import com.loafofpiecrust.turntable.collapsingToolbarlparams
 import com.loafofpiecrust.turntable.model.album.*
@@ -47,10 +48,8 @@ import com.loafofpiecrust.turntable.song.SongsOnDiscAdapter
 import com.loafofpiecrust.turntable.song.SongsUI
 import com.loafofpiecrust.turntable.style.detailsStyle
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
-import com.loafofpiecrust.turntable.ui.universal.UIComponent
-import com.loafofpiecrust.turntable.ui.universal.ViewContext
-import com.loafofpiecrust.turntable.ui.universal.createView
-import com.loafofpiecrust.turntable.ui.universal.show
+import com.loafofpiecrust.turntable.ui.replaceMainContent
+import com.loafofpiecrust.turntable.ui.universal.*
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.CoroutineScope
@@ -193,7 +192,6 @@ open class AlbumDetailsUI(
                 minimumHeight = dimen(R.dimen.details_toolbar_height)
                 width = matchParent
             }
-
         }.lparams(width = matchParent)
 
 
@@ -245,7 +243,7 @@ open class AlbumDetailsUI(
 }
 
 private fun Menu.prepareOptions(scope: CoroutineScope, context: Context, album: Album) {
-    menuItem(R.string.album_shuffle, R.drawable.ic_shuffle, showIcon =false).onClick(Dispatchers.Default) {
+    menuItem(R.string.album_shuffle, R.drawable.ic_shuffle, showIcon = false).onClick(Dispatchers.Default) {
         val tracks = album.resolveTracks()
         if (tracks.isNotEmpty()) {
             MusicService.offer(PlayerAction.PlaySongs(tracks, mode = MusicPlayer.OrderMode.SHUFFLE))
@@ -273,6 +271,12 @@ private fun Menu.prepareOptions(scope: CoroutineScope, context: Context, album: 
 
     menuItem(R.string.add_to_playlist).onClick {
         AddToPlaylistDialog(album.id).show(context)
+    }
+
+    menuItem(R.string.go_to_artist).onClick {
+        context.replaceMainContent(
+            ArtistDetailsUI(album.id.artist).createFragment()
+        )
     }
 
     if (album is RemoteAlbum) {

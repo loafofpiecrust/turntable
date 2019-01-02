@@ -37,6 +37,7 @@ import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
 import kotlinx.coroutines.launch
 import org.jetbrains.anko.dimen
+import org.jetbrains.anko.horizontalPadding
 import org.jetbrains.anko.padding
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 
@@ -99,11 +100,7 @@ sealed class AlbumsUI(
                 layoutManager = grid
                 this.adapter = adapter
 
-                // if (listState != null) {
-                //     grid.onRestoreInstanceState(listState)
-                // }
-
-                padding = dimen(R.dimen.grid_gutter)
+                horizontalPadding = dimen(R.dimen.grid_gutter)
 
                 if (columnCount > 0) {
                     grid.spanCount = columnCount
