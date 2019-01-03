@@ -26,6 +26,7 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
+import com.github.ajalt.timberkt.Timber
 import com.google.firebase.dynamiclinks.FirebaseDynamicLinks
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
@@ -203,13 +204,11 @@ open class AlbumDetailsUI(
             }
 
         // data binding
-        launch(start = CoroutineStart.UNDISPATCHED) {
-            album.consumeEach { album ->
-                if (album.year > 0) {
-                    year.text = album.year.toString()
-                } else {
-                    year.visibility = View.INVISIBLE
-                }
+        album.consumeEachAsync { album ->
+            if (album.year > 0) {
+                year.text = album.year.toString()
+            } else {
+                year.visibility = View.INVISIBLE
             }
         }
 

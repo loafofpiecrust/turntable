@@ -11,18 +11,16 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//import de.ph1b.audiobook.ndkGen.PrepareFlac
-//apply from: '../../constants.gradle'
+
 apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 28
 
     defaultConfig {
-        minSdkVersion 22
+        minSdkVersion 19
         targetSdkVersion 28
         consumerProguardFiles 'proguard-rules.txt'
-
     }
 
     compileOptions {
@@ -37,26 +35,16 @@ android {
     }
 
     sourceSets.main {
-//        jniLibs.srcDir 'src/main/libs'
-        jni.srcDirs = ["src/main/jni"] // Disable the automatic ndk-build call by Android Studio.
+        jni.srcDirs = ["src/main/jni"]
     }
 }
 
 dependencies {
-//    compile project(modulePrefix + 'library-core')
-//    androidTestCompile project(modulePrefix + 'testutils')
     implementation "com.google.android.exoplayer:exoplayer-core:$exoplayer_ver"
     implementation "com.android.support:appcompat-v7:$android_ver"
 //    implementation 'com.google.android.exoplayer:exoplayer-testutils:r2.5.1'
 }
 
-//tasks.withType(JavaCompile) {
-//    compileTask -> compileTask.dependsOn(prepareFlac)
-//}
-//
-//task(prepareFlac, type: PrepareFlac)
-
 ext {
     javadocTitle = 'FLAC extension'
 }
-//apply from: '../../javadoc_library.gradle'

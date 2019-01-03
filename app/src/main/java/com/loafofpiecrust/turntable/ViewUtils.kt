@@ -51,13 +51,13 @@ inline fun broadcastReceiver(crossinline receive: (Context, Intent) -> Unit) =
 fun <T> List<T>.dedup(pred: (T, T) -> Boolean = { a, b -> a == b }): List<T> =
     dedupMerge(pred) { a, b -> a }
 
-fun <T> Collection<T>.dedupMerge(pred: (T, T) -> Boolean, merger: (T, T) -> T): List<T> {
+fun <T> Collection<T>.dedupMerge(isDup: (T, T) -> Boolean, merger: (T, T) -> T): List<T> {
     val result = ArrayList<T>(this.size)
-    this.forEach { curr ->
-        val dupIdx = result.indexOfFirst { pred(curr, it) }
+    for (curr in this) {
+        val dupIdx = result.indexOfFirst { isDup(curr, it) }
         if (dupIdx != -1) {
-            val orig = result.removeAt(dupIdx)
-            result.add(dupIdx, merger(orig, curr))
+            val orig = result[dupIdx]
+            result[dupIdx] = merger(orig, curr)
         } else {
             result.add(curr)
         }
@@ -67,21 +67,15 @@ fun <T> Collection<T>.dedupMerge(pred: (T, T) -> Boolean, merger: (T, T) -> T): 
 
 inline fun <T> Collection<T>.dedupMergeSorted(isDup: (T, T) -> Boolean, merger: (T, T) -> T): List<T> {
     val result = ArrayList<T>(this.size)
-    var prev: T? = null
-    this.forEach { curr ->
-        prev = if (prev != null) {
-            if (isDup(prev!!, curr)) {
-                merger(prev!!, curr)
-            } else {
-                result.add(prev!!)
-                curr
-            }
+    for (curr in this) {
+        val prev = result.lastOrNull()
+        if (prev != null && isDup(prev, curr)) {
+            result[result.size - 1] = merger(prev, curr)
         } else {
             result.add(curr)
-            curr
         }
     }
-    return result.apply { trimToSize() }
+    return result //.apply { trimToSize() }
 }
 
 fun <T> Sequence<T>.dedupMergeSorted(isDup: (T, T) -> Boolean, merger: (T, T) -> T) = sequence {
