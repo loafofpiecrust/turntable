@@ -45,6 +45,7 @@ class QueueFragment : BaseFragment() {
             val currentItem = RecyclerListItem(this, 3).also {
                 addView(it.itemView)
             }
+
             currentItem.coverImage?.imageResource = R.drawable.ic_play_circle_outline
             UserPrefs.accentColor.consumeEachAsync {
                 currentItem.mainLine.textColor = it
@@ -54,9 +55,9 @@ class QueueFragment : BaseFragment() {
 
             textView(R.string.queue_up_next) {
                 textSizeDimen = R.dimen.small_text_size
-                MusicService.currentSongColor.consumeEachAsync {
-                    textColor = it
-                }
+//                MusicService.currentSongColor.consumeEachAsync {
+//                    textColor = it
+//                }
             }.lparams {
                 marginStart = dip(32)
                 bottomMargin = dip(4)

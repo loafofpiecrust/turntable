@@ -15,13 +15,54 @@ import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 import org.jetbrains.anko.design.coordinatorLayout
 import org.jetbrains.anko.dimen
+import org.jetbrains.anko.dip
 import org.jetbrains.anko.frameLayout
 import org.jetbrains.anko.matchParent
 import org.jetbrains.anko.sdk27.coroutines.onClick
 
-class MultiSheetView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : CoordinatorLayout(context, attrs, defStyleAttr) {
+class MultiSheetView(
+    context: Context,
+    block: MultiSheetView.() -> Unit
+) : CoordinatorLayout(context) {
 
-    constructor(context: Context, block: MultiSheetView.() -> Unit): this(context) {
+    private var bottomSheetBehavior1: CustomBottomSheetBehavior<*>
+    private lateinit var  bottomSheetBehavior2: CustomBottomSheetBehavior<*>
+
+    private var sheetStateChangeListener: SheetStateChangeListener? = null
+
+    private val sheet1PeekHeight: Int = dimen(R.dimen.song_item_height)
+    private val sheet2PeekHeight: Int = dimen(R.dimen.song_item_height) + dimen(R.dimen.small_text_size) + dimen(R.dimen.text_content_margin) * 2
+
+    val isHidden: Boolean
+        get() = bottomSheetBehavior1.peekHeight < sheet1PeekHeight
+
+    /**
+     * @return the currently expanded Sheet
+     */
+    private val currentSheet: Sheet
+        get() = when {
+            bottomSheetBehavior2.state == BottomSheetBehavior.STATE_EXPANDED -> Sheet.SECOND
+            bottomSheetBehavior1.state == BottomSheetBehavior.STATE_EXPANDED -> Sheet.FIRST
+            else -> Sheet.NONE
+        }
+
+    private var mainContentInit: (ViewManager.() -> View)? = null
+    private var firstSheetInit: (FrameLayout.() -> Unit)? = null
+    private var firstSheetPeekInit: (FrameLayout.() -> Unit)? = null
+    private var secondSheetInit: (FrameLayout.() -> Unit)? = null
+    private var secondSheetPeekInit: (FrameLayout.() -> Unit)? = null
+
+    private val sheet1: View
+    private lateinit var sheet1Container: View
+    private lateinit var sheet1Peek: View
+
+    private lateinit var sheet2: View
+    private lateinit var sheet2Container: View
+    private lateinit var sheet2Peek: View
+
+    private val mainContainer: View
+
+    init {
         this.block()
 
         mainContainer = mainContentInit?.invoke(this)?.apply {
@@ -41,20 +82,6 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
             }.lparams(width=matchParent, height=sheet1PeekHeight)
 
             coordinatorLayout {
-//                sheet2 = frameLayout {
-//                    sheet2Container = frameLayout {
-//                        secondSheetInit?.invoke(this)
-//                    }.lparams(matchParent, matchParent)
-//
-//                    sheet2Peek = frameLayout {
-//                        secondSheetPeekInit?.invoke(this)
-//                    }.lparams(width=matchParent, height=sheet2PeekHeight)
-//                }.lparams(width=matchParent, height=sheet2PeekHeight*3) {
-//                    behavior = CustomBottomSheetBehavior<FrameLayout>().apply {
-//                        peekHeight = sheet2PeekHeight
-//                    }.also { bottomSheetBehavior2 = it }
-//                }
-
                 sheet2 = frameLayout {
                     sheet2Container = frameLayout {
                         secondSheetInit?.invoke(this)
@@ -110,11 +137,11 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
             }
         })
 
-        //First sheet view click listener
-        sheet1Peek.onClick { v -> expandSheet(Sheet.FIRST) }
+        // First sheet view click listener
+        sheet1Peek.onClick { expandSheet(Sheet.FIRST) }
 
-        //Second sheet view click listener
-        sheet2Peek.onClick { v -> expandSheet(Sheet.SECOND) }
+        // Second sheet view click listener
+        sheet2Peek.onClick { expandSheet(Sheet.SECOND) }
 
         sheet2Peek.setOnTouchListener { v, event ->
             bottomSheetBehavior1.allowDragging = false
@@ -122,31 +149,6 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
             false
         }
     }
-
-    private lateinit var bottomSheetBehavior1: CustomBottomSheetBehavior<*>
-    private lateinit var  bottomSheetBehavior2: CustomBottomSheetBehavior<*>
-
-    private var sheetStateChangeListener: SheetStateChangeListener? = null
-
-    private val sheet1PeekHeight: Int = dimen(R.dimen.song_item_height)
-    private val sheet2PeekHeight: Int = dimen(R.dimen.song_item_height) + dimen(R.dimen.small_text_size) + dimen(R.dimen.text_content_margin)
-
-    val isHidden: Boolean
-        get() = bottomSheetBehavior1.peekHeight < sheet1PeekHeight
-
-    /**
-     * @return the currently expanded Sheet
-     */
-    private val currentSheet: Sheet
-        get() = when {
-            bottomSheetBehavior2.state == BottomSheetBehavior.STATE_EXPANDED -> Sheet.SECOND
-            bottomSheetBehavior1.state == BottomSheetBehavior.STATE_EXPANDED -> Sheet.FIRST
-            else -> Sheet.NONE
-        }
-
-//    val mainContainerResId: Int
-//        @IdRes
-//        get() = R.uuid.mainContainer
 
     interface SheetStateChangeListener {
         fun onSheetStateChanged(sheet: Sheet, @BottomSheetBehavior.State state: Int)
@@ -179,22 +181,6 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
         secondSheetPeekInit = init
     }
 
-
-    private var mainContentInit: (ViewManager.() -> View)? = null
-    private var firstSheetInit: (FrameLayout.() -> Unit)? = null
-    private var firstSheetPeekInit: (FrameLayout.() -> Unit)? = null
-    private var secondSheetInit: (FrameLayout.() -> Unit)? = null
-    private var secondSheetPeekInit: (FrameLayout.() -> Unit)? = null
-
-    private lateinit var sheet1: View
-    private lateinit var sheet1Container: View
-    private lateinit var sheet1Peek: View
-
-    private lateinit var sheet2: View
-    private lateinit var sheet2Container: View
-    private lateinit var sheet2Peek: View
-
-    private lateinit var mainContainer: View
 
     fun onSheetStateChanged(block: (sheet: Sheet, state: Int) -> Unit) {
         sheetStateChangeListener = object: SheetStateChangeListener {
@@ -320,28 +306,6 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
         else -> false
     }
 
-//    @SuppressLint("DefaultLocale")
-//    @IdRes
-//    fun getSheetContainerViewResId(sheet: Sheet): Int {
-//        when (sheet) {
-//            Sheet.FIRST -> return R.uuid.sheet1Container
-//            Sheet.SECOND -> return R.uuid.sheet2Container
-//        }
-//
-//        throw IllegalStateException(String.format("No container view resId found for sheet: %d", sheet))
-//    }
-
-//    @SuppressLint("DefaultLocale")
-//    @IdRes
-//    fun getSheetPeekViewResId(@Sheet sheet: Int): Int {
-//        when (sheet) {
-//            Sheet.FIRST -> return R.uuid.sheet1Peek
-//            Sheet.SECOND -> return R.uuid.sheet2PeekView
-//        }
-//
-//        throw IllegalStateException(String.format("No peek view resId found for sheet: %d", sheet))
-//    }
-
     private fun fadeView(sheet: View, @BottomSheetBehavior.State state: Int) {
         if (state == BottomSheetBehavior.STATE_EXPANDED) {
             fadeView(sheet, 1f)
@@ -354,28 +318,5 @@ class MultiSheetView @JvmOverloads constructor(context: Context, attrs: Attribut
         val alpha = 1 - offset
         v.alpha = alpha
         v.visibility = if (alpha == 0f) View.GONE else View.VISIBLE
-    }
-
-    companion object {
-
-        /**
-         * A helper method to return the first MultiSheetView parent of the passed in View,
-         * or null if none can be found.
-         *
-         * @param v the view whose hierarchy will be traversed.
-         * @return the first MultiSheetView of the passed in view, or null if none can be found.
-         */
-        private fun getParentMultiSheetView(v: View?): MultiSheetView? {
-            if (v == null) return null
-
-            if (v is MultiSheetView) {
-                return v
-            }
-
-            return if (v.parent is View) {
-                getParentMultiSheetView(v.parent as View)
-            } else null
-
-        }
     }
 }

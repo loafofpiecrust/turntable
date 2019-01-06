@@ -21,12 +21,10 @@ import com.loafofpiecrust.turntable.sync.SyncSession
 import com.loafofpiecrust.turntable.util.distinctSeq
 import io.paperdb.Paper
 import io.paperdb.PaperSerializer
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.channels.first
 import org.jetbrains.anko.connectivityManager
 import org.jetbrains.anko.toast
 import java.lang.reflect.Type
@@ -176,22 +174,20 @@ class App: Application() {
         Kotpref.init(this)
         search = OnlineSearchService()
 
-//        search.onCreate()
-//        fileSync.onCreate()
-
         Sync.initDeviceId()
 
         SyncSession.processMessages(
             MessageReceiverService.messages
         )
 
-        UserPrefs.lastOpenTime puts UserPrefs.currentOpenTime.value
-
-//        val currNet = connectivityManager.getNetworkCapabilities(connectivityManager.isActiveNetworkMetered)
+        runBlocking {
+            UserPrefs.lastOpenTime puts UserPrefs.currentOpenTime.openSubscription().first()
+            UserPrefs.currentOpenTime puts System.currentTimeMillis()
+        }
 
         // Initial internet status
         launch {
-            delay(500)
+            delay(300)
             watchConnectionStatus()
         }
     }

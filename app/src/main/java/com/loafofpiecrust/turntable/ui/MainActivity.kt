@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.ui
 
-import activitystarter.Arg
 import android.Manifest
 import android.app.SearchManager
 import android.content.Context
@@ -60,12 +59,13 @@ import org.jetbrains.anko.support.v4.drawerLayout
 class MainActivity : BaseActivity() {
     sealed class Action: Parcelable {
         @Parcelize class OpenNowPlaying: Action()
-        @Parcelize data class SyncRequest(val request: Sync.SentMessage<Sync.Request>): Action()
-        @Parcelize data class FriendRequest(val sender: User): Action()
+        @Parcelize data class SyncRequest(
+            val request: Sync.SentMessage<Sync.Request>
+        ): Action()
+        @Parcelize data class FriendRequest(
+            val sender: User
+        ): Action()
     }
-
-    @Arg(optional=true) var action: Action? = null
-
 
     private lateinit var sheets: MultiSheetView
     private var drawers: DrawerLayout? = null
@@ -177,8 +177,6 @@ class MainActivity : BaseActivity() {
         }
     }
 
-//    lateinit var gclient: GoogleApiClient
-
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
 
@@ -199,7 +197,7 @@ class MainActivity : BaseActivity() {
             }
             is Action.SyncRequest -> {
                 val req = action.request
-                alert("Sync request from ${req.sender}") {
+                alert("Sync request from ${req.sender.name}") {
                     positiveButton(R.string.user_sync_accept) {
                         // set sync mode to One on One, enable sync
                         // change some UI element to indicate sync mode (in Now Playing?)
@@ -249,15 +247,10 @@ class MainActivity : BaseActivity() {
                 }
             }
         }
-        this.action = null
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-//        if (resultCode != RESULT_OK) return
-
-        MainActivityStarter.fill(this, data?.extras)
-        Timber.d { action.toString() }
 
         if (requestCode == 69 && data != null) {
             val result = IdpResponse.fromResultIntent(data)
@@ -265,7 +258,7 @@ class MainActivity : BaseActivity() {
                 Sync.login(FirebaseAuth.getInstance().currentUser!!)
             } else {
                 // Login failed!
-                result?.error?.printStackTrace()
+                Timber.e(result?.error)
             }
         } else if (requestCode == 42) {
             val uri = data!!.data!!
@@ -275,7 +268,6 @@ class MainActivity : BaseActivity() {
             contentResolver.takePersistableUriPermission(uri, permissions)
             UserPrefs.sdCardUri puts uri.toString()
         }
-        this.action = null
     }
 
     override fun onBackPressed() {
@@ -290,8 +282,12 @@ class MainActivity : BaseActivity() {
     }
 
     fun collapseDrawers() {
+        // collapse the side drawer
         drawers?.closeDrawers()
+
+        // collapse the queue
         if (sheets.consumeBackPress()) {
+            // collapse the whole Now Playing sheet
             sheets.consumeBackPress()
         }
     }

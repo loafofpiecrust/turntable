@@ -2,10 +2,13 @@ package com.loafofpiecrust.turntable.player
 
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.PorterDuff
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.FloatingActionButton
 import android.view.View
 import android.view.ViewManager
+import android.widget.ImageButton
+import android.widget.SeekBar
 import com.bumptech.glide.Glide
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
@@ -119,6 +122,7 @@ open class NowPlayingFragment : BaseFragment() {
         }
 
         val prevBtn = iconButton(R.drawable.ic_skip_previous) {
+            tintResource = R.color.md_white_1000
             onClick {
                 MusicService.offer(PlayerAction.RelativePosition(-1))
             }
@@ -146,10 +150,10 @@ open class NowPlayingFragment : BaseFragment() {
                 }
             }
         }
-        bindBackgroundColor(this, playButton)
 
 
         val nextBtn = iconButton(R.drawable.ic_skip_next) {
+            tintResource = R.color.md_white_1000
             onClick {
                 MusicService.offer(PlayerAction.RelativePosition(1))
             }
@@ -190,6 +194,8 @@ open class NowPlayingFragment : BaseFragment() {
 //                }
 //            }
         }
+
+        bindBackgroundColor(this, seeker, playButton, arrayOf(syncBtn, prevBtn, nextBtn, shuffleBtn))
 
         generateChildrenIds()
         applyConstraintSet {
@@ -250,27 +256,38 @@ open class NowPlayingFragment : BaseFragment() {
         }
     }
 
-    private fun bindBackgroundColor(root: View, playButton: FloatingActionButton) {
-        MusicService.currentSongColor.consumeEachAsync {
-            root.backgroundColor = it
-        }
+    private fun bindBackgroundColor(
+        root: View,
+        seeker: SeekBar,
+        playButton: FloatingActionButton,
+        otherButtons: Array<ImageButton>
+    ) {
+        MusicService.currentSongColor.consumeEachAsync { color ->
+            if (color != null) {
+                val (palette, swatch) = color
+                val darkSwatch = palette.mutedSwatch
+                    ?: palette.darkMutedSwatch
+                    ?: palette.darkVibrantSwatch
 
-        MusicService.player.switchMap {
-            it?.currentSong
-        }.switchMap { song ->
-            song?.loadCover(Glide.with(root))?.map { req ->
-                song to req
-            }
-        }.consumeEachAsync { (song, req) ->
-            if (req != null) {
-                req.listener(loadPalette(song.id.album) { palette, swatch ->
-                    val c =
-                        (palette?.mutedSwatch
-                            ?: palette?.darkMutedSwatch
-                            ?: palette?.darkVibrantSwatch)?.rgb
-                            ?: Color.BLACK
-                    playButton.backgroundTintList = ColorStateList.valueOf(c)
-                }).preload()
+                val mainColor = swatch.rgb
+
+                val c = darkSwatch?.rgb?.takeIf { it != mainColor }
+                    ?: swatch.titleTextColor.withAlpha(255)
+                    ?: Color.BLACK
+
+                val colorState = ColorStateList.valueOf(c)
+                playButton.backgroundTintList = colorState
+                playButton.tint = c.contrastColor
+                seeker.thumbTintList = colorState
+                seeker.progressTintList = colorState
+                darkSwatch?.rgb?.let { c ->
+                    seeker.secondaryProgressTintList = ColorStateList.valueOf(c)
+                }
+                root.backgroundColor = mainColor
+
+                for (btn in otherButtons) {
+                    btn.tint = c
+                }
             } else {
                 // reset playButton color.
                 playButton.backgroundTintList = ColorStateList.valueOf(UserPrefs.primaryColor.value)

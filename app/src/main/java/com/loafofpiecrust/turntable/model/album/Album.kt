@@ -13,6 +13,7 @@ import com.bumptech.glide.RequestManager
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.signature.ObjectKey
 import com.github.florent37.glidepalette.GlidePalette
+import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.MusicId
 import com.loafofpiecrust.turntable.model.song.HasTracks
@@ -21,10 +22,7 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repository.Repositories
 import com.loafofpiecrust.turntable.repository.local.SearchCache
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.util.lazy
-import com.loafofpiecrust.turntable.util.produceSingle
-import com.loafofpiecrust.turntable.util.sendFrom
-import com.loafofpiecrust.turntable.util.switchMap
+import com.loafofpiecrust.turntable.util.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.filterNotNull
@@ -119,7 +117,8 @@ fun loadPalette(id: MusicId, views: Array<out View>) =
                 }
             }
 //            view.resources.getColor(R.color.primary)
-            UserPrefs.primaryColor.value
+//            UserPrefs.primaryColor.value
+            views[0].context.getColorCompat(R.color.md_grey_600)
         } else {
             views.forEach {
                 if (it is Toolbar) {

@@ -22,10 +22,6 @@ class MiniPlayerFragment: BaseFragment() {
     override fun ViewManager.createView() = linearLayout {
         gravity = Gravity.CENTER_VERTICAL
 
-        MusicService.currentSongColor.consumeEachAsync {
-            backgroundColor = it
-        }
-
         val cover = imageView {
             scaleType = ImageView.ScaleType.CENTER_CROP
         }.lparams(height = matchParent, width = dimen(R.dimen.mini_player_height))
@@ -63,6 +59,14 @@ class MiniPlayerFragment: BaseFragment() {
             gravity = Gravity.CENTER_VERTICAL
         }
 
+        MusicService.currentSongColor.consumeEachAsync { color ->
+            if (color != null) {
+                val (palette, swatch) = color
+                mainLine.textColor = swatch.titleTextColor
+                subLine.textColor = swatch.titleTextColor
+                this@linearLayout.backgroundColor = swatch.rgb
+            }
+        }
 
         MusicService.instance.switchMap {
             it?.player?.queue?.map { it.current }?.filterNotNull()
@@ -74,8 +78,7 @@ class MiniPlayerFragment: BaseFragment() {
                 song to it
             }
         }.consumeEachAsync { (song, req) ->
-            req?.addListener(loadPalette(song.id.album, arrayOf(mainLine, subLine, this@linearLayout)))
-                ?.into(cover)
+            req?.into(cover)
         }
     }
 }

@@ -204,6 +204,7 @@ dependencies {
     implementation 'me.xdrop:fuzzywuzzy:1.1.8'
     implementation "com.google.android.exoplayer:exoplayer-core:$exoplayer_ver"
     implementation "com.google.android.exoplayer:extension-okhttp:$exoplayer_ver"
+    implementation "com.google.android.exoplayer:extension-mediasession:$exoplayer_ver"
     implementation 'com.github.daemontus:kotlin-option-result:1.0.1'
 
     // Preferences

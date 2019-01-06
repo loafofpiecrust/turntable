@@ -206,7 +206,7 @@ class FriendAdapter(
             menu.visibility = View.GONE
             mainLine.text = friend.user.name
             subLine.text = when (friend.status) {
-                Friend.Status.CONFIRMED -> friend.user.deviceId
+                Friend.Status.CONFIRMED -> friend.user.username
                 Friend.Status.RECEIVED_REQUEST -> context.getString(R.string.friend_request_received)
                 Friend.Status.SENT_REQUEST -> context.getString(R.string.friend_request_sent_line)
             }

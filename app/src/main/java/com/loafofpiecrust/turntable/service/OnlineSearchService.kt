@@ -175,35 +175,33 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
         }
     }
 
-//    val downloadingSongs = HashMap<Long, SongDownload>()
     private val _downloadingSongs = ConflatedBroadcastChannel(listOf<SongDownload>())
     private val downloadingSongs get() = _downloadingSongs.openSubscription().map {
         it.sortedWith(SongDownload.COMPARATOR)
     }
     val downloads = ArrayList<MusicDownload>()
 
-    @DynamoDBTable(tableName="MusicStreams")
+    @DynamoDBTable(tableName = "MusicStreams")
     data class SongDBEntry(
-        @DynamoDBHashKey(attributeName="SongId")
+        @DynamoDBHashKey(attributeName = "SongId")
         var id: String,
-        var youtubeId: String? = null,
-        // TODO: Store expiryDate rather than timestamp
-//        var timestamp: Long = System.currentTimeMillis(),
-        var expiryDate: Long = System.currentTimeMillis() + 5*60*60*1000,
+        var youtubeId: String?,
+        var expiryDate: Long,
         var stream128: String? = null,
         var stream192: String? = null
     ) {
-        private constructor(): this("")
+        private constructor(): this("", null, 0)
     }
 
-    @DynamoDBTable(tableName="TurntableAlbums")
+    @DynamoDBTable(tableName = "MusicStreams")
     data class AlbumDBEntry(
-        @DynamoDBHashKey var id: String,
+        @DynamoDBHashKey(attributeName = "SongId")
+        var id: String,
         var youtubeId: String?,
-        var timestamp: Long = System.currentTimeMillis(),
-        var stream: String? = null,
-        var hqStream: String? = null,
-        var torrentUrl: String? = null,
+        var expiryDate: Long,
+        var stream128: String? = null,
+        var stream192: String? = null,
+//        var torrentUrl: String? = null,
         var tracks: List<Pair<String, Range<Long>>> = listOf()
     )
 
@@ -220,183 +218,185 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
         }
     }
     val dbMapper: DynamoDBMapper by lazy {
-        DynamoDBMapper(database)
+        DynamoDBMapper.builder()
+            .dynamoDBClient(database)
+            .build()
     }
 
-    fun saveYouTubeStreamUrl(entry: SongDBEntry) = launch {
-        try {
-            dbMapper.save(SongDBEntry(
-                entry.id.toLowerCase(),
-                entry.youtubeId,
-                entry.expiryDate,
-                entry.stream128?.compress(),
-                entry.stream192?.compress()
-            ))
-//            database.putItem("MusicStreams", mapOf(
-//                "SongId" to AttributeValue(entry.uuid),
-//                "stream128" to AttributeValue(entry.stream128),
-//                "stream192" to AttributeValue(entry.stream192)
+//    fun saveYouTubeStreamUrl(entry: SongDBEntry) = launch {
+//        try {
+//            dbMapper.save(SongDBEntry(
+//                entry.id.toLowerCase(),
+//                entry.youtubeId,
+//                entry.expiryDate,
+//                entry.stream128?.compress(),
+//                entry.stream192?.compress()
 //            ))
-        } catch (e: Exception) {
-            Timber.e(e) { "Failed to save song to database" }
-        }
-    }
+////            database.putItem("MusicStreams", mapOf(
+////                "SongId" to AttributeValue(entry.uuid),
+////                "stream128" to AttributeValue(entry.stream128),
+////                "stream192" to AttributeValue(entry.stream192)
+////            ))
+//        } catch (e: Exception) {
+//            Timber.e(e) { "Failed to save song to database" }
+//        }
+//    }
 
-    fun checkSongStreams(song: Song): StreamStatus {
-        return getExistingEntry(song.id.dbKey)
-    }
+//    fun checkSongStreams(song: Song): StreamStatus {
+//        return getExistingEntry(song.id.dbKey)
+//    }
+//
+//    fun checkSongStreams(songs: List<Song>): List<Pair<Song, StreamStatus>> {
+//        val entries = dbMapper.batchLoad(mapOf(SongDBEntry::class.java as Class<*> to
+//            songs.map { KeyPair().withHashKey(it.id.dbKey) }
+//        ))["MusicStreams"]!!.map { StreamStatus.from(it as SongDBEntry) }
+//        return songs.zip(entries)
+//    }
+//
+//    fun reloadSongStreams(id: SongId) {
+//        val key = id.dbKey
+//        database.deleteItem("MusicStreams", mapOf("SongId" to AttributeValue(key)))
+//    }
+//    fun reloadAlbumStreams(id: AlbumId) {
+//        val key = id.dbKey
+//        database.deleteItem("MusicStreams", mapOf("SongId" to AttributeValue(key)))
+//    }
 
-    fun checkSongStreams(songs: List<Song>): List<Pair<Song, StreamStatus>> {
-        val entries = dbMapper.batchLoad(mapOf(SongDBEntry::class.java as Class<*> to
-            songs.map { KeyPair().withHashKey(it.id.dbKey) }
-        ))["MusicStreams"]!!.map { StreamStatus.from(it as SongDBEntry) }
-        return songs.zip(entries)
-    }
+//    private fun getExistingEntries(keys: Iterable<String>): Map<String, StreamStatus> {
+//        val m = mapOf<Class<*>, List<KeyPair>>(SongDBEntry::class.java to keys.map { KeyPair().withHashKey(it) })
+//        return dbMapper.batchLoad(m)["MusicStreams"]!!
+//            .map {
+//                val entry = it as SongDBEntry
+//                entry.id to StreamStatus.from(entry)
+//            }.toMap()
+//    }
 
-    fun reloadSongStreams(id: SongId) {
-        val key = id.dbKey
-        database.deleteItem("MusicStreams", mapOf("SongId" to AttributeValue(key)))
-    }
-    fun reloadAlbumStreams(id: AlbumId) {
-        val key = id.dbKey
-        database.deleteItem("MusicStreams", mapOf("SongId" to AttributeValue(key)))
-    }
+//    private fun getExistingEntry(key: String): StreamStatus {
+//        val entry = tryOr(null) { dbMapper.load(SongDBEntry::class.java, key) }
+//        return StreamStatus.from(entry)
+//    }
+//
+//    private suspend fun createEntry(key: String, videoId: String): StreamStatus {
+//        return withContext(Dispatchers.IO) {
+//            suspendCoroutine<StreamStatus> { cont ->
+//                YTExtractor(key, videoId, cont)
+//                    .extract("https://youtube.com/watch?v=$videoId", true, true)
+//            }
+//        }
+//    }
 
-    private fun getExistingEntries(keys: Iterable<String>): Map<String, StreamStatus> {
-        val m = mapOf<Class<*>, List<KeyPair>>(SongDBEntry::class.java to keys.map { KeyPair().withHashKey(it) })
-        return dbMapper.batchLoad(m)["MusicStreams"]!!
-            .map {
-                val entry = it as SongDBEntry
-                entry.id to StreamStatus.from(entry)
-            }.toMap()
-    }
+//    data class SongStream(
+//        val status: StreamStatus,
+//        val start: Int = 0,
+//        val end: Int = 0
+//    )
 
-    private fun getExistingEntry(key: String): StreamStatus {
-        val entry = tryOr(null) { dbMapper.load(SongDBEntry::class.java, key) }
-        return StreamStatus.from(entry)
-    }
+//    private suspend fun evalExistingStream(song: Song, existing: StreamStatus): SongStream {
+//        val key = song.id.dbKey
+//        return if (existing is StreamStatus.Available) {
+//            SongStream(if (existing.isStale) {
+//                createEntry(key, existing.youtubeId)
+//            } else existing)
+//        } else if (existing is StreamStatus.Unavailable && !existing.isStale) {
+//            SongStream(existing)
+//        } else {
+//            val albumKey = song.id.album.dbKey
+//            val album = /*Library.findAlbumOfSong(song).first()
+//                ?:*/ LocalAlbum(song.id.album, listOf(song))
+//
+//            getExistingEntry(albumKey).let { entry ->
+//                if (entry is StreamStatus.Available) {
+//                    YouTubeFullAlbum.grabFromPage(album, entry.youtubeId)?.let { ytAlbum ->
+//                        ytAlbum.tracks[song]?.let { ytTrack ->
+//                            SongStream(
+//                                entry,
+//                                start = ytTrack.start,
+//                                end = ytTrack.end
+//                            )
+//                        }
+//                    }
+//                } else null
+//            } ?: YouTubeFullAlbum.search(album)?.let { ytAlbum ->
+//                ytAlbum.tracks[song]?.let {
+//                    SongStream(
+//                        createEntry(albumKey, ytAlbum.id),
+//                        it.start, it.end
+//                    )
+//                }
+//            } ?: tryOr(SongStream(StreamStatus.Unknown)) {
+//                val res = http.get<JsonObject> {
+//                    url("https://us-central1-turntable-3961c.cloudfunctions.net/parseStreamsFromYouTube")
+//                    parameters(
+//                        "title" to song.id.displayName.toLowerCase(),
+//                        "album" to song.id.album.displayName.toLowerCase(),
+//                        "artist" to song.id.artist.displayName.toLowerCase(),
+//                        "duration" to song.duration.toString()
+//                    )
+//                }
+//
+//                val lq = res["lowQuality"].nullObj?.get("url")?.string
+//
+//                if (lq == null) {
+//                    // not available on youtube!
+//                    val entry = SongDBEntry(
+//                        key, null, System.currentTimeMillis()
+//                    )
+//                    saveYouTubeStreamUrl(entry)
+//                    SongStream(StreamStatus.Unavailable(entry.expiryDate))
+//                } else {
+//                    val hq = res["highQuality"].nullObj?.get("url")?.string
+//                    val id = res["id"].string
+//                    val entry = SongDBEntry(
+//                        key, id,
+//                        stream128 = lq,
+//                        stream192 = hq
+//                    )
+//                    saveYouTubeStreamUrl(entry)
+//                    SongStream(StreamStatus.Available(id, lq, hq, entry.expiryDate))
+//                }
+//            }
+//        }
+//    }
 
-    private suspend fun createEntry(key: String, videoId: String): StreamStatus {
-        return withContext(Dispatchers.IO) {
-            suspendCoroutine<StreamStatus> { cont ->
-                YTExtractor(key, videoId, cont)
-                    .extract("https://youtube.com/watch?v=$videoId", true, true)
-            }
-        }
-    }
+//    suspend fun getSongStreams(song: Song): SongStream {
+//        val key = song.id.dbKey
+//        val existing = getExistingEntry(key)
+//        Timber.d { "youtube: ${song.id} existing entry? $existing" }
+//        return evalExistingStream(song, existing)
+//    }
 
-    data class SongStream(
-        val status: StreamStatus,
-        val start: Int = 0,
-        val end: Int = 0
-    )
+//    fun getManyExistingSongStreams(songs: List<Song>): Map<Song, StreamStatus> {
+//        // TODO: More preemptive check rather than this LAME comparison
+//        if (songs.all { it.id.album == songs[0].id.album }) {
+//            val existingAlbum = getExistingAlbumStream(songs[0].id.album)
+//            if (existingAlbum is StreamStatus.Available) {
+//                return songs.map { it to existingAlbum }.toMap()
+//            }
+//        }
+//
+//        val keys = songs.map { it.id.dbKey }
+//        val existingEntries = getExistingEntries(keys)
+//        return songs.map {
+//            it to existingEntries[it.id.dbKey]!!
+//        }.toMap()
+//    }
 
-    private suspend fun evalExistingStream(song: Song, existing: StreamStatus): SongStream {
-        val key = song.id.dbKey
-        return if (existing is StreamStatus.Available) {
-            SongStream(if (existing.isStale) {
-                createEntry(key, existing.youtubeId)
-            } else existing)
-        } else if (existing is StreamStatus.Unavailable && !existing.isStale) {
-            SongStream(existing)
-        } else {
-            val albumKey = song.id.album.dbKey
-            val album = /*Library.findAlbumOfSong(song).first()
-                ?:*/ LocalAlbum(song.id.album, listOf(song))
+//    private fun getExistingAlbumStream(albumId: AlbumId): StreamStatus {
+//        return getExistingEntry(albumId.dbKey)
+//    }
 
-            getExistingEntry(albumKey).let { entry ->
-                if (entry is StreamStatus.Available) {
-                    YouTubeFullAlbum.grabFromPage(album, entry.youtubeId)?.let { ytAlbum ->
-                        ytAlbum.tracks[song]?.let { ytTrack ->
-                            SongStream(
-                                entry,
-                                start = ytTrack.start,
-                                end = ytTrack.end
-                            )
-                        }
-                    }
-                } else null
-            } ?: YouTubeFullAlbum.search(album)?.let { ytAlbum ->
-                ytAlbum.tracks[song]?.let {
-                    SongStream(
-                        createEntry(albumKey, ytAlbum.id),
-                        it.start, it.end
-                    )
-                }
-            } ?: tryOr(SongStream(StreamStatus.Unknown)) {
-                val res = http.get<JsonObject> {
-                    url("https://us-central1-turntable-3961c.cloudfunctions.net/parseStreamsFromYouTube")
-                    parameters(
-                        "title" to song.id.displayName.toLowerCase(),
-                        "album" to song.id.album.displayName.toLowerCase(),
-                        "artist" to song.id.artist.displayName.toLowerCase(),
-                        "duration" to song.duration.toString()
-                    )
-                }
-
-                val lq = res["lowQuality"].nullObj?.get("url")?.string
-
-                if (lq == null) {
-                    // not available on youtube!
-                    val entry = SongDBEntry(
-                        key, null, System.currentTimeMillis()
-                    )
-                    saveYouTubeStreamUrl(entry)
-                    SongStream(StreamStatus.Unavailable(entry.expiryDate))
-                } else {
-                    val hq = res["highQuality"].nullObj?.get("url")?.string
-                    val id = res["id"].string
-                    val entry = SongDBEntry(
-                        key, id,
-                        stream128 = lq,
-                        stream192 = hq
-                    )
-                    saveYouTubeStreamUrl(entry)
-                    SongStream(StreamStatus.Available(id, lq, hq, entry.expiryDate))
-                }
-            }
-        }
-    }
-
-    suspend fun getSongStreams(song: Song): SongStream {
-        val key = song.id.dbKey
-        val existing = getExistingEntry(key)
-        Timber.d { "youtube: ${song.id} existing entry? $existing" }
-        return evalExistingStream(song, existing)
-    }
-
-    fun getManyExistingSongStreams(songs: List<Song>): Map<Song, StreamStatus> {
-        // TODO: More preemptive check rather than this LAME comparison
-        if (songs.all { it.id.album == songs[0].id.album }) {
-            val existingAlbum = getExistingAlbumStream(songs[0].id.album)
-            if (existingAlbum is StreamStatus.Available) {
-                return songs.map { it to existingAlbum }.toMap()
-            }
-        }
-
-        val keys = songs.map { it.id.dbKey }
-        val existingEntries = getExistingEntries(keys)
-        return songs.map {
-            it to existingEntries[it.id.dbKey]!!
-        }.toMap()
-    }
-
-    private fun getExistingAlbumStream(albumId: AlbumId): StreamStatus {
-        return getExistingEntry(albumId.dbKey)
-    }
-
-    suspend fun getAlbumStreams(album: Album): Pair<Album, StreamStatus> {
-        val key = album.id.dbKey
-
-        return YouTubeFullAlbum.search(album)?.let { ytAlbum ->
-            val resolvedAlbum = ytAlbum.resolveToAlbum()
-            getExistingEntry(key).let {
-                resolvedAlbum to if (it is StreamStatus.Available && !it.isStale) {
-                    it
-                } else createEntry(key, ytAlbum.id)
-            }
-        } ?: album to StreamStatus.Unavailable()
-    }
+//    suspend fun getAlbumStreams(album: Album): Pair<Album, StreamStatus> {
+//        val key = album.id.dbKey
+//
+//        return YouTubeFullAlbum.search(album)?.let { ytAlbum ->
+//            val resolvedAlbum = ytAlbum.resolveToAlbum()
+//            getExistingEntry(key).let {
+//                resolvedAlbum to if (it is StreamStatus.Available && !it.isStale) {
+//                    it
+//                } else createEntry(key, ytAlbum.id)
+//            }
+//        } ?: album to StreamStatus.Unavailable()
+//    }
 
     suspend fun login(): io.ktor.http.Cookie? {
         // TODO: Get the expiration time of the login cookie

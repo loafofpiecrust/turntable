@@ -13,6 +13,7 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.filePath
 import com.loafofpiecrust.turntable.parMap
 import com.loafofpiecrust.turntable.provided
+import com.loafofpiecrust.turntable.repository.StreamProviders
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.util.http
 import com.loafofpiecrust.turntable.util.parameters
@@ -320,9 +321,9 @@ data class YouTubeSong(
 //
 //            "http://www.youtubeinmp3.com/fetch/?video=https://www.youtube.com$url"
 //        }
-        val s = OnlineSearchService.instance.getSongStreams(goal)
-        val streams = s.status as? OnlineSearchService.StreamStatus.Available ?: return
-        val downloadUrl = streams.hqStream ?: streams.stream
+        val streams = StreamProviders.sourceForSong(goal) ?: return
+//        val streams = s .status as? OnlineSearchService.StreamStatus.Available
+        val downloadUrl = streams.bestSource()?.url ?: return
 
 //        println("albumyt song uuid: $downloadUrl")
         val req = DownloadManager.Request(Uri.parse(downloadUrl))

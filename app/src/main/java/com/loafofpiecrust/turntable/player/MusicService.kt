@@ -13,9 +13,14 @@ import android.media.AudioManager
 import android.media.AudioManager.*
 import android.net.wifi.WifiManager
 import android.os.PowerManager
+import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.session.MediaSessionCompat
+import android.support.v7.graphics.Palette
 import com.bumptech.glide.Glide
 import com.github.ajalt.timberkt.Timber
+import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
+import com.google.android.exoplayer2.ext.mediasession.TimelineQueueNavigator
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.broadcastReceiver
 import com.loafofpiecrust.turntable.model.album.loadPalette
@@ -50,7 +55,12 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
 
         val player get() = instance.map { it?.player }.startWith(null)
 
-        val currentSongColor: BroadcastChannel<Int> = player
+        data class PickedSwatch(
+            val palette: Palette,
+            val swatch: Palette.Swatch
+        )
+
+        val currentSongColor: BroadcastChannel<PickedSwatch?> = player
             .switchMap { it?.queue }
             .switchMap(Dispatchers.IO) { q ->
                 val song = q.current
@@ -59,14 +69,10 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
             }
             .map(Dispatchers.Main) { (song, req) ->
                 if (req == null) {
-                    Color.TRANSPARENT
+                    null
                 } else suspendCoroutine { cont ->
                     req.addListener(loadPalette(song.id) { palette, swatch ->
-                        if (swatch == null) {
-                            cont.resume(Color.TRANSPARENT)
-                        } else {
-                            cont.resume(swatch.rgb)
-                        }
+                        PickedSwatch(palette!!, swatch!!)
                     }).preload()
                 }
             }
@@ -117,9 +123,7 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
     val mediaSession by lazy {
         MediaSessionCompat(
             applicationContext,
-            "com.loafofpiecrust.turntable",
-            null,
-            notifyIntent(PlayerAction.Play)
+            "com.loafofpiecrust.turntable"
         ).apply {
             setCallback(object : MediaSessionCompat.Callback() {
                 override fun onPlay() {
@@ -176,7 +180,21 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
 
 //        launch(MusicPlayer.THREAD_CONTEXT) {
             //        runBlocking(MusicPlayer.THREAD_CONTEXT) {
-            player = MusicPlayer(this@MusicService)
+        player = MusicPlayer(this@MusicService)
+        val sessionConnector = MediaSessionConnector(mediaSession)
+        sessionConnector.setPlayer(player.player, null)
+        sessionConnector.setQueueNavigator(object: TimelineQueueNavigator(mediaSession) {
+            override fun getMediaDescription(player: Player, windowIndex: Int): MediaDescriptionCompat {
+                val queue = runBlocking {
+                    this@MusicService.player.queue.first()
+                }
+                val song = queue.list[windowIndex]
+                return MediaDescriptionCompat.Builder()
+                    .setTitle(song.id.displayName)
+                    .setSubtitle(song.id.artist.displayName)
+                    .build()
+            }
+        })
 //        }
 
             launch(Dispatchers.Default) {

@@ -58,7 +58,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         ).setExtractorsFactory(DefaultExtractorsFactory())
     }
 
-    private val player = ExoPlayerFactory.newSimpleInstance(
+    val player = ExoPlayerFactory.newSimpleInstance(
         ctx,
         DefaultRenderersFactory(ctx),
         DefaultTrackSelector(AdaptiveTrackSelection.Factory(bandwidthMeter)),

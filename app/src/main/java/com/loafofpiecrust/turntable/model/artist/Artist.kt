@@ -8,12 +8,14 @@ import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.signature.ObjectKey
+import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.artist.BiographyFragment
 import com.loafofpiecrust.turntable.artist.RelatedArtistsUI
 import com.loafofpiecrust.turntable.model.Music
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.loadPalette
+import com.loafofpiecrust.turntable.model.queue.CombinedQueue
 import com.loafofpiecrust.turntable.model.queue.RadioQueue
 import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.model.sync.PlayerAction
@@ -46,7 +48,7 @@ interface Artist: Music {
     val albums: List<Album>
 
     /**
-     * First year the artist is active
+     * First year the artist is active, or null if unknown
      */
     val startYear: Int?
 
@@ -95,21 +97,23 @@ fun Menu.artistOptions(context: Context, artist: Artist) {
         ).show(context)
     }
 
-    // TODO: Sync with radios...
-    // TODO: Sync with any type of queue!
-    menuItem(R.string.radio_start).onClick(Dispatchers.Default) {
-        MusicService.offer(PlayerAction.Pause, false)
-
-        val radio = RadioQueue.fromSeed(listOf(artist))
-        if (radio != null) {
-//                MusicService.offer(Sync.Message.ReplaceQueue(radio))
-            MusicService.offer(PlayerAction.Play)
-        } else {
-            context.toast(context.getString(R.string.radio_no_data, artist.id.displayName))
-        }
-    }
-
     menuItem(R.string.artist_biography).onClick(Dispatchers.Default) {
         BiographyFragment.fromChan(produceSingle(artist)).show(context)
+    }
+
+    // TODO: Sync with radios...
+    // TODO: Sync with any type of queue!
+    if (BuildConfig.DEBUG) {
+        menuItem(R.string.radio_start).onClick(Dispatchers.Default) {
+            MusicService.offer(PlayerAction.Pause, false)
+
+            val radio = RadioQueue.fromSeed(listOf(artist))
+            if (radio != null) {
+                MusicService.offer(PlayerAction.ReplaceQueue(CombinedQueue(radio, listOf())))
+                MusicService.offer(PlayerAction.Play)
+            } else {
+                context.toast(context.getString(R.string.radio_no_data, artist.id.displayName))
+            }
+        }
     }
 }

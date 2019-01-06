@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.model.sync
 
 import android.app.PendingIntent
+import android.content.Intent
 import android.os.Parcelable
 import android.support.v4.app.NotificationCompat
 import com.github.ajalt.timberkt.Timber
@@ -10,7 +11,6 @@ import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.serialize.page
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.ui.MainActivity
-import com.loafofpiecrust.turntable.ui.MainActivityStarter
 import com.loafofpiecrust.turntable.util.days
 import io.paperdb.Paper
 import kotlinx.android.parcel.Parcelize
@@ -60,7 +60,8 @@ data class Friend(
 
                 setContentIntent(PendingIntent.getActivity(
                     context, 6978,
-                    MainActivityStarter.getIntent(context, MainActivity.Action.FriendRequest(sender)),
+                    Intent(context, MainActivity::class.java)
+                        .putExtra("action", MainActivity.Action.FriendRequest(sender)),
                     0
                 ))
             }.build()

@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.player
 
 import android.app.*
+import android.content.Intent
 import android.os.Build
 import android.support.v4.app.NotificationCompat
 import android.support.v4.media.MediaMetadataCompat
@@ -10,7 +11,6 @@ import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.ui.MainActivity
-import com.loafofpiecrust.turntable.ui.MainActivityStarter
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.launch
@@ -29,7 +29,10 @@ class PlayingNotification(private val service: MusicService) {
         if (song != null && playing) {
             // Load color
             GlobalScope.launch {
-                lastSongColor = MusicService.currentSongColor.openSubscription().first()
+                lastSongColor = MusicService.currentSongColor
+                    .openSubscription().first()
+                    ?.swatch?.rgb
+
                 build(song, playing, lastSongColor)
             }
         }
@@ -90,7 +93,8 @@ class PlayingNotification(private val service: MusicService) {
 
             setContentIntent(PendingIntent.getActivity(
                 service, 6977,
-                MainActivityStarter.getIntent(service, MainActivity.Action.OpenNowPlaying()),
+                Intent(service, MainActivity::class.java)
+                    .putExtra("action", MainActivity.Action.OpenNowPlaying()),
                 0
             ))
         }.build()
@@ -106,14 +110,7 @@ class PlayingNotification(private val service: MusicService) {
 
     private fun updateSessionMeta(song: Song?, playing: Boolean) {
         if (song != null) {
-            service.mediaSession.setMetadata(MediaMetadataCompat.Builder()
-                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, song.id.album.displayName)
-                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, song.id.artist.displayName)
-                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST, song.id.album.artist.displayName)
-                .putLong(MediaMetadataCompat.METADATA_KEY_YEAR, song.year.toLong())
-                .putLong(MediaMetadataCompat.METADATA_KEY_DISC_NUMBER, song.disc.toLong())
-                .build()
-            )
+            service.mediaSession.setMetadata(metaForSong(song))
         }
 
         // TODO: Get more detailed with our state here
@@ -144,6 +141,16 @@ class PlayingNotification(private val service: MusicService) {
                     }
                 )
             }
+        }
+
+        fun metaForSong(song: Song): MediaMetadataCompat {
+            return MediaMetadataCompat.Builder()
+                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, song.id.album.displayName)
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, song.id.artist.displayName)
+                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST, song.id.album.artist.displayName)
+                .putLong(MediaMetadataCompat.METADATA_KEY_YEAR, song.year.toLong())
+                .putLong(MediaMetadataCompat.METADATA_KEY_DISC_NUMBER, song.disc.toLong())
+                .build()
         }
     }
 }

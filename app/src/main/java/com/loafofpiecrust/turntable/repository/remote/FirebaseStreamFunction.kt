@@ -6,47 +6,11 @@ import com.github.salomonbrys.kotson.string
 import com.google.gson.JsonObject
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.repository.StreamProvider
-import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.util.http
 import com.loafofpiecrust.turntable.util.parameters
 import io.ktor.client.request.get
 import io.ktor.client.request.url
 
-
-/**
- * TODO: Move implementation from OnlineSearchService to here.
- * TODO: Split impls for retrieving from: DynamoDB, YouTube Song search, YouTube Album search
- */
-object YouTubeSongProvider: StreamProvider {
-    // TODO: Album-based search.
-    override suspend fun sourceForSong(song: Song): Song.Media? {
-//        return YouTubeSong.search(song)?.let { ytSong ->
-//            val status = suspendCoroutine<OnlineSearchService.StreamStatus> { cont ->
-//                YTExtractor(song.id.dbKey, ytSong.id, cont)
-//                    .extract("https://youtube.com/watch?v=${ytSong.id}", true, true)
-//            }
-//            if (status is OnlineSearchService.StreamStatus.Available) {
-//                Song.Media.fromYouTube(status.stream, status.hqStream)
-//            } else null
-//        }
-        return fromService(song)
-    }
-
-    private suspend fun fromService(song: Song): Song.Media? = run {
-        val streams = OnlineSearchService.instance.getSongStreams(song)
-        if (streams.status is OnlineSearchService.StreamStatus.Available) {
-            Song.Media(
-                listOf(Song.Media.Source(
-                    streams.status.hqStream ?: streams.status.stream,
-                    Song.Media.Quality.UNKNOWN
-                )),
-                expiryDate = streams.status.expiryDate,
-                start = streams.start,
-                end = streams.end
-            )
-        } else null
-    }
-}
 
 /**
  * The stream urls returned from here have some restrictions:
