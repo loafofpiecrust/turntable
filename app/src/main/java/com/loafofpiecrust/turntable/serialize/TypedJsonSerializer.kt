@@ -23,7 +23,7 @@ object TypedJson {
         subTypesOf<Message> {
             abstract<PlayerAction>()
     //        concrete("Play", PlayerAction.Play.serializer())
-            concrete("PlaySongs", PlayerAction.PlaySongs.serializer())
+//            concrete("PlaySongs", PlayerAction.PlaySongs.serializer())
         }
     }
 

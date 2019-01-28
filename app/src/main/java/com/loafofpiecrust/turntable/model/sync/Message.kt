@@ -150,7 +150,7 @@ sealed class PlayerAction: Message, Parcelable {
     }
 
     @Parcelize
-    @Serializable
+//    @Serializable
     data class PlaySongs(
         val songs: List<Song>,
         val position: Int = 0,
