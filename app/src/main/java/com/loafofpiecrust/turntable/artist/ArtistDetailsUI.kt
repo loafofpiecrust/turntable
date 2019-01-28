@@ -91,7 +91,8 @@ open class ArtistDetailsUI(
         AlbumsUI.Custom(
             albums,
             sortBy = AlbumsUI.SortBy.YEAR,
-            splitByType = true
+            splitByType = true,
+            columnCount = 2
         )
     }
 
