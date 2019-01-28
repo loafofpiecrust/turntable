@@ -59,7 +59,7 @@ sealed class AlbumsUI(
         channel = displayAlbums.openSubscription()
 
         contents {
-            val grid = GridLayoutManager(context, 3)
+            val grid = GridLayoutManager(context, columnCount)
 
             val goToAlbum = { item: RecyclerItem, album: Album ->
                 item.itemView.context.replaceMainContent(
@@ -189,8 +189,9 @@ sealed class AlbumsUI(
     class Custom(
         albums: BroadcastChannel<List<Album>>,
         splitByType: Boolean = false,
-        sortBy: SortBy? = null
-    ): AlbumsUI(splitByType, sortBy) {
+        sortBy: SortBy? = null,
+        columnCount: Int = 3
+    ): AlbumsUI(splitByType, sortBy, columnCount) {
         override val albums = albums.openSubscription()
     }
 
