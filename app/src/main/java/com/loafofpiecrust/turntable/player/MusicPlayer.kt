@@ -40,8 +40,14 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         SupervisorJob()
 
     enum class EnqueueMode {
-        NEXT, // Adds to the end of an "Up Next" section of the queue just after the current song.
-        IMMEDIATELY_NEXT, // Will play _immediately_ after the current song
+        /**
+         * Adds to the end of an "Up Next" section of the queue just after the current song.
+         */
+        NEXT,
+        /**
+         * Will play _immediately_ after the current song
+         */
+        IMMEDIATELY_NEXT,
     }
 
     private val bandwidthMeter = DefaultBandwidthMeter()
@@ -129,7 +135,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
     }
 
 
-    private val _isPlaying: ConflatedBroadcastChannel<Boolean> = ConflatedBroadcastChannel(false)
+    private val _isPlaying: ConflatedBroadcastChannel<Boolean> =
+        ConflatedBroadcastChannel(false)
     val isPlaying get() = _isPlaying.openSubscription()
     var isStreaming: Boolean = true
         private set
@@ -335,11 +342,14 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
     fun removeFromQueue(position: Int) {
         // TODO: Start with removing from nextUp, then from anywhere else if from StaticQueue (new interface method?)
 
-        if (_queue.value.indexWithinUpNext(position)) {
-            _queue putsMapped { q ->
-                val diff = if (q.isPlayingNext) 0 else 1
-                q.copy(nextUp = q.nextUp.without(position - q.position - diff))
-            }
+        val q = _queue.value
+        if (q.indexWithinUpNext(position)) {
+            val diff = if (q.isPlayingNext) 0 else 1
+            val indexToRemove = position - q.position - diff
+            _queue puts q.copy(nextUp = q.nextUp.without(indexToRemove))
+            mediaSource?.removeMediaSource(position)
+        } else {
+            Timber.e { "Cannot remove song from base queue" }
         }
     }
 
@@ -453,12 +463,11 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         if (alreadyPlaying) {
             totalListenedTime += player.currentPosition - lastResumeTime
             player.playWhenReady = false
-//            _isPlaying puts false
         }
         return alreadyPlaying
     }
 
-    //    @Synchronized
+
     fun togglePause(): Boolean {
         return if (player.playWhenReady) {
             pause()
@@ -494,7 +503,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         // TODO: Decide on percent threshold to count as a "full" listen. Is half the song enough?
         private const val LISTENED_PROPORTION = 0.5
         private const val USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0"
-        val THREAD_CONTEXT = newSingleThreadContext("music-player")
+//        val THREAD_CONTEXT = newSingleThreadContext("music-player")
 //        val THREAD_CONTEXT = Dispatchers.Main
     }
 }
