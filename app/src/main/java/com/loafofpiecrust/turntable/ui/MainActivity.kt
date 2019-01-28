@@ -199,12 +199,18 @@ class MainActivity : BaseActivity() {
                 val req = action.request
                 alert("Sync request from ${req.sender.name}") {
                     positiveButton(R.string.user_sync_accept) {
-                        // set sync mode to One on One, enable sync
-                        // change some UI element to indicate sync mode (in Now Playing?)
-                        // TODO: Send display uuid or have that somewhere.
+                        // set sync mode and start a session
                         Sync.confirmSync(req)
-                        val target = req.message.mode ?: req.sender
-                        toast("Now synced with $target")
+
+                        // Tell the user they're now in a sync session
+                        val msgMode = req.message.mode
+                        val targetName = when (msgMode) {
+                            is Sync.Mode.InGroup -> msgMode.group.name
+                            is Sync.Mode.Topic -> msgMode.topic
+                            is Sync.Mode.OneOnOne -> msgMode.other.name
+                            else -> req.sender.name
+                        }
+                        toast("Now synced with $targetName")
                     }
                     negativeButton(R.string.request_decline) {
                         Sync.declineSync(req)
