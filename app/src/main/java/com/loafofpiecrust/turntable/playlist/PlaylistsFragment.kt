@@ -79,7 +79,7 @@ class PlaylistsFragment: BaseFragment() {
     }
 
     private fun loadSpotifyPlaylist(urlText: CharSequence) {
-        val pattern = Regex("^https://open.spotify.com/user/(\\d+)/playlist/([^?]+)")
+        val pattern = Regex("^https://open.spotify.com/user/([^/]+)/playlist/([^?]+)")
         val url = pattern.find(urlText)
         if (url != null) {
             val userId = url.groupValues[1]
