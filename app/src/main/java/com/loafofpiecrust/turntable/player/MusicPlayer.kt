@@ -170,8 +170,10 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
     override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters?) {
     }
 
-    override fun onTracksChanged(trackGroups: TrackGroupArray?, trackSelections: TrackSelectionArray?) {
-
+    override fun onTracksChanged(
+        trackGroups: TrackGroupArray?,
+        trackSelections: TrackSelectionArray?
+    ) {
     }
 
     private var errorCount = 0
@@ -186,9 +188,13 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         // if that fails the 2nd time, skip to the next track in the MediaSource.
         if (error.type == ExoPlaybackException.TYPE_SOURCE) {
             App.instance.toast("Song not available to stream")
-            // to retry, we have to rebuild the MediaSource
-            playNext()
-            prepareSource()
+            if (hasNext) {
+                // to retry, we have to rebuild the MediaSource
+                playNext()
+                prepareSource()
+            } else {
+                temporaryPause()
+            }
         } else {
             App.instance.toast("Dubious player error (type ${error.type})")
         }
