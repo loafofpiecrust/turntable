@@ -10,11 +10,14 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.repository.StreamProviders
 import com.loafofpiecrust.turntable.util.Duration
 import com.loafofpiecrust.turntable.util.days
 import com.loafofpiecrust.turntable.util.minutes
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import org.jetbrains.anko.toast
 import java.util.*
 
 interface Message {
@@ -125,7 +128,19 @@ sealed class PlayerAction: Message, Parcelable {
         val mode: MusicPlayer.EnqueueMode
     ) : PlayerAction() {
         override fun MusicService.enact() : Boolean {
-            player.enqueue(songs, mode)
+            // Confirm that each song is available to stream
+            // before queueing it up.
+            launch {
+                val playableSongs = songs.filter { song ->
+                    StreamProviders.sourceForSong(song) != null
+                }
+                if (playableSongs.size != songs.size) {
+                    toast("One or more songs not available to stream")
+                }
+                if (playableSongs.isNotEmpty()) {
+                    player.enqueue(playableSongs, mode)
+                }
+            }
             return true
         }
     }
