@@ -347,7 +347,9 @@ private class AlbumTracksUI(
 
     override fun makeAdapter() = SongsOnDiscAdapter(
         coroutineContext,
-        songs.openSubscription().map { it.groupBy { it.disc.toString() } },
+        songs.openSubscription().map {
+            it.groupBy { it.disc.toString() }
+        },
         R.string.disc_number,
         formatSubtitle = { song ->
             if (song.duration > 0) {
