@@ -82,12 +82,12 @@ data class Friend(
             if (accept) {
                 friends putsMapped { it + (sender to Status.CONFIRMED) }
                 withContext(Dispatchers.Main) {
-                    app.toast("Friendship fostered with ${sender.name}")
+                    app.toast(app.getString(R.string.friend_request_confirmed, sender.name))
                 }
             } else {
                 friends putsMapped { it - sender }
                 withContext(Dispatchers.Main) {
-                    app.toast("${sender.name} declined friendship :(")
+                    app.toast(app.getString(R.string.friend_request_declined, sender.name))
                 }
             }
         }
