@@ -60,7 +60,7 @@ class ArtistsAdapter(
         (holder as? RecyclerListItem)?.menu?.visibility = View.GONE
 
         holder.card.setOnClickListener {
-            listener.invoke(holder, data, position)
+            listener.invoke(holder, data, holder.adapterPosition)
         }
 
 //        (holder.card as? CardView)?.let { card ->
