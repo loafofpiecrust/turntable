@@ -52,7 +52,7 @@ abstract class PaperProp<T: Any>(key: String): ReadOnlyProperty<Any, ConflatedBr
 
     companion object {
         /**
-         * Never **ever** change this book name
+         * Never **ever** change this book name!
          * This means that user data will be stored as JSON in the folder:
          * <app_data>/userdata/<name>.paper
          */
@@ -62,6 +62,10 @@ abstract class PaperProp<T: Any>(key: String): ReadOnlyProperty<Any, ConflatedBr
     }
 }
 
+/**
+ * User data saved to a persistent file.
+ * This file will be backed up to Google Drive if app data backup is enabled by the user.
+ */
 inline fun <reified T: Any> Paper.page(key: String, crossinline defaultValue: () -> T) =
     object: PaperProp<T>(key) {
         override fun produceDefault(): T = defaultValue()

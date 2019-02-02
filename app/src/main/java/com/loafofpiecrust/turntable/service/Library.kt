@@ -45,14 +45,15 @@ import java.io.Serializable
 import java.util.*
 import kotlin.collections.HashMap
 
-/// Manages all our music and album covers, including loading from MediaStore
+/**
+ * Manages all our music and album covers, including loading from MediaStore
+ */
 object Library: CoroutineScope by GlobalScope {
     data class AlbumMetadata(
         val id: AlbumId,
-//        val name: String,
-//        val artist: String,
         val artworkUri: String?,
-        val lastUpdated: Long = System.currentTimeMillis()
+        val lastUpdated: Long = System.currentTimeMillis(),
+        val addedDate: Date = Date()
     ) : Serializable {
         constructor(): this(AlbumId("", ArtistId("")), null)
     }
@@ -403,7 +404,12 @@ object Library: CoroutineScope by GlobalScope {
         val idx = all.indexOfFirst { it.id == album.id }
         if (idx != -1) {
             remoteAlbums puts all.without(idx)
-            KotprefModel.saveFiles()
+            // remove extra metadata for this album
+            albumCovers putsMapped { allMeta ->
+                allMeta.toMutableMap().apply {
+                    remove(album.id)
+                }
+            }
         }
     }
 
