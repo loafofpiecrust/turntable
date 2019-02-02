@@ -19,6 +19,8 @@
     <string name="friend_request_sent">Befriending %1$s</string>
     <string name="friend_request_sent_line">Friendship request sent</string>
     <string name="friend_request_already_added">%1$s is already a friend</string>
+    <string name="friend_request_confirmed">Friendship fostered with %1$s</string>
+    <string name="friend_request_declined">%1$s declined friendship :(</string>
     <string name="friend_request_received">Wants to be friends</string>
     <string name="friend_from_contacts">From Contacts</string>
     <string name="friend_from_email">Email Address</string>
