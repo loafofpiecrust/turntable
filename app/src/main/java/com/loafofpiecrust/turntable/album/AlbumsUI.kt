@@ -38,7 +38,6 @@ import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
 import kotlinx.coroutines.launch
 import org.jetbrains.anko.dimen
 import org.jetbrains.anko.horizontalPadding
-import org.jetbrains.anko.padding
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 
 sealed class AlbumsUI(
@@ -125,10 +124,16 @@ sealed class AlbumsUI(
     }
 
     override fun Menu.prepareOptions(context: Context) {
-        menuItem(R.string.search, R.drawable.ic_search, showIcon =true).onClick {
+        menuItem(R.string.search, R.drawable.ic_search, showIcon = true).onClick {
             context.replaceMainContent(
                 SearchFragment.newInstance(SearchFragment.Category.Albums()),
                 true
+            )
+        }
+
+        menuItem(R.string.recently_added).onClick {
+            context.replaceMainContent(
+                RecentlyAddedAlbumsUI().createFragment()
             )
         }
 
