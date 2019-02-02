@@ -351,7 +351,7 @@ class MainActivity : BaseActivity() {
     }
 }
 
-private fun FragmentManager.replaceMainContent(fragment: Fragment, allowBackNav: Boolean, sharedElems: List<View>? = null) {
+private fun FragmentManager.replaceMainContent(fragment: Fragment, allowBackNav: Boolean = true, sharedElems: List<View>? = null) {
     beginTransaction().apply {
 //        currentFragment?.exitTransition = Fade()
         setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)

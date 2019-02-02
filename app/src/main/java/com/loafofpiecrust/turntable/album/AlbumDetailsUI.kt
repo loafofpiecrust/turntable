@@ -227,7 +227,13 @@ open class AlbumDetailsUI(
                             return false
                         }
 
-                        override fun onResourceReady(resource: Drawable?, model: Any?, target: Target<Drawable>?, dataSource: DataSource?, isFirstResource: Boolean): Boolean {
+                        override fun onResourceReady(
+                            resource: Drawable?,
+                            model: Any?,
+                            target: Target<Drawable>?,
+                            dataSource: DataSource?,
+                            isFirstResource: Boolean
+                        ): Boolean {
                             return false
                         }
                     })
@@ -260,12 +266,18 @@ private fun Menu.prepareOptions(scope: CoroutineScope, context: Context, album: 
         val link = FirebaseDynamicLinks.getInstance()
             .createDynamicLink()
             .setDomainUriPrefix("https://turntable.page.link")
-            .setLink(Uri.parse("https://loafofpiecrust.com/projects/turntable/album?name=${album.id.displayName}&artist=${album.id.artist.displayName}"))
+            .setLink(Uri.parse(
+                "https://loafofpiecrust.com/projects/turntable/album?name=${album.id.displayName}&artist=${album.id.artist.displayName}"
+            ))
             .buildDynamicLink()
 
         val clip = ClipData.newRawUri("Check out ${album.id.displayName}", link.uri)
         context.clipboardManager.primaryClip = clip
         context.toast("Uri copied to clipboard")
+    }
+
+    menuItem(R.string.queue_last).onClick {
+        MusicService.offer(PlayerAction.Enqueue(album.resolveTracks(), MusicPlayer.EnqueueMode.NEXT))
     }
 
     menuItem(R.string.add_to_playlist).onClick {
@@ -335,7 +347,9 @@ private class AlbumTracksUI(
 
     override fun makeAdapter() = SongsOnDiscAdapter(
         coroutineContext,
-        songs.openSubscription().map { it.groupBy { it.disc.toString() } },
+        songs.openSubscription().map {
+            it.groupBy { it.disc.toString() }
+        },
         R.string.disc_number,
         formatSubtitle = { song ->
             if (song.duration > 0) {

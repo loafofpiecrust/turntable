@@ -29,6 +29,7 @@ import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.sync.SyncSession
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import java.util.*
 
 fun GsonBuilder.registerAllTypes() {
     // general settings
@@ -120,6 +121,7 @@ fun GsonBuilder.registerAllTypes() {
     })
 
     registerTypeAdapter(ConflatedBroadcastChannel::class.java, CBCTypeAdapter<Any>())
+    registerTypeAdapter(Date::class.java, DateTimestampSerializer())
 //    registerTypeAdapter<JsonObject> {
 //        serialize {
 //            it.src
