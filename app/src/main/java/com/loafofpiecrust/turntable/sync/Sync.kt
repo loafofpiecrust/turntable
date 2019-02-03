@@ -14,10 +14,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.iid.FirebaseInstanceId
 import com.google.gson.JsonObject
-import com.loafofpiecrust.turntable.App
-import com.loafofpiecrust.turntable.BuildConfig
-import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.appends
+import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.model.queue.isEmpty
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.sync.Message
@@ -37,6 +34,7 @@ import io.ktor.client.request.url
 import io.ktor.client.response.HttpResponse
 import io.paperdb.Paper
 import kotlinx.android.parcel.Parcelize
+import kotlinx.collections.immutable.immutableListOf
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.channels.firstOrNull
@@ -54,7 +52,7 @@ object Sync {
     private const val SERVER_KEY = BuildConfig.FIREBASE_SERVER_KEY
 
     private val sendQueue by Paper.page("messagesToSend") {
-        listOf<Pair<Message, Mode>>()
+        immutableListOf<Pair<Message, Mode>>()
     }
 
     val selfUser = User()
@@ -160,7 +158,7 @@ object Sync {
 
     suspend fun send(msg: Message, mode: Sync.Mode): Boolean {
         if (App.currentInternetStatus.valueOrNull == App.InternetStatus.OFFLINE) {
-            sendQueue appends (msg to mode)
+            sendQueue putsMapped { it.add(msg to mode) }
             return false
         }
 
@@ -283,7 +281,7 @@ object Sync {
                     sendQueue.value.forEach { (msg, mode) ->
                         send(msg, mode)
                     }
-                    sendQueue.offer(listOf())
+                    sendQueue.offer(immutableListOf())
                 }
             }
         }

@@ -74,7 +74,7 @@ fun Toolbar.playlistOptions(
             positiveButton(R.string.playlist_delete) {
                 GlobalScope.launch {
                     UserPrefs.playlists putsMapped {
-                        it.withoutFirst { it.id.uuid == playlist.id.uuid }
+                        it.removeAll { it.id.uuid == playlist.id.uuid }
                     }
                 }
                 ctx.popMainContent()

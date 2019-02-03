@@ -10,6 +10,7 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.util.Duration
 import com.loafofpiecrust.turntable.util.days
 import com.loafofpiecrust.turntable.util.minutes
@@ -33,14 +34,18 @@ interface Message {
     ): Message {
         override val timeout get() = 28.days
         override suspend fun onReceive(sender: User) {
-            UserPrefs.recommendations appends content
+            UserPrefs.recommendations putsMapped {
+                it.add(content)
+            }
         }
     }
 
     data class Playlist(val id: UUID): Message {
         override suspend fun onReceive(sender: User) {
-            AbstractPlaylist.find(id)?.let {
-                UserPrefs.recommendations appends it.id
+            AbstractPlaylist.find(id)?.let { pl ->
+                UserPrefs.recommendations putsMapped { recs ->
+                    recs.add(pl.id)
+                }
             }
         }
     }

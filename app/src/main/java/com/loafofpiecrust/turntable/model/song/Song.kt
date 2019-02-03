@@ -133,11 +133,11 @@ data class Song(
                 hqUrl: String?,
                 expiryDate: Long = System.currentTimeMillis() + 6.hours.toMillis().toLong()
             ): Media {
-                val sources = mutableListOf(
-                    Source(lqUrl, Quality.LOW)
-                )
-                if (hqUrl != null) {
-                    sources.add(Source(hqUrl, Quality.MEDIUM))
+                val lq = Source(lqUrl, Quality.LOW)
+                val sources = if (hqUrl != null) {
+                    listOf(lq, Source(hqUrl, Quality.MEDIUM))
+                } else {
+                    listOf(lq)
                 }
                 return Media(sources, expiryDate)
             }

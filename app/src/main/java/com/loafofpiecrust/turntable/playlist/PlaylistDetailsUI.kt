@@ -121,7 +121,7 @@ class PlaylistDetailsUI(
                         positiveButton(R.string.playlist_delete) {
                             GlobalScope.launch {
                                 UserPrefs.playlists putsMapped {
-                                    it.withoutFirst { it.id.uuid == playlistId.uuid }
+                                    it.removeAll { it.id.uuid == playlistId.uuid }
                                 }
                             }
                             ctx.popMainContent()

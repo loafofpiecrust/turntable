@@ -27,6 +27,7 @@ abstract class SectionedRecyclerAdapter<T, R: Comparable<R>, VH: SectionedViewHo
             groupedData = value.groupBy(groupBy).toList().sortedBy { it.first }
             field = value
         }
+
     private val pendingUpdates = ArrayDeque<List<T>>()
 
     protected var groupedData: List<Pair<R, List<T>>> = listOf()
