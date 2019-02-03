@@ -457,10 +457,11 @@ object Discogs: Repository {
             currType != null -> {
                 val cols = row.children()
                 val titleLink = cols.first { it.hasClass("title") }
-                    .children().first { it.tagName() == "a" }
+                    .children()
+                    .first { it.tagName() == "a" }
                 val title = titleLink.text()
                 val linkParts = titleLink.attr("href").split('/')
-                val id = linkParts[linkParts.size - 2] + "s/" + linkParts.last()
+                val id = "${linkParts[linkParts.size - 2]}s/${linkParts.last()}"
                 val ty = cols.find { it.hasClass("format") }?.text()?.let { format ->
                     val types = format.substring(1, format.length - 1).split(", ")
 
@@ -468,6 +469,7 @@ object Discogs: Repository {
                         types.contains("Single") -> Album.Type.SINGLE
                         types.contains("EP") -> Album.Type.EP
                         types.contains("Comp") -> Album.Type.COMPILATION
+                        types.contains("DVD") -> Album.Type.OTHER
                         else -> currType
                     }
                 } ?: currType
@@ -500,7 +502,7 @@ object Discogs: Repository {
 //                "key" to key,
 //                "secret" to secret
 //            )).gson
-//            "releases/"+ res["versions"][0]["id"].string
+//            "releases/" + res["versions"][0]["id"].string
 //        } else uuid
         if (id.isEmpty()) return listOf()
         Timber.d { "getting tracks of album '$id'" }
@@ -510,12 +512,10 @@ object Discogs: Repository {
         return res["tracklist"].array.map { it.obj }.mapIndexed { idx, it ->
             val title = it["title"].string
             val durationParts = it["duration"].nullString?.split(':')
-            val duration = durationParts?.let {
-                if (it.size > 1) {
-                    (it[0].toInt() * 60 + it[1].toInt()) * 1000
-                } else 0
-            } ?: 0
-//            RemoteSong(
+            val duration = if (durationParts != null && durationParts.size > 1) {
+                (durationParts[0].toInt() * 60 + durationParts[1].toInt()) * 1000
+            } else 0
+
             Song(
                 SongId(
                     title,
@@ -531,7 +531,6 @@ object Discogs: Repository {
                 duration = duration,
                 year = 0
             )
-//            )
         }
     }
 
