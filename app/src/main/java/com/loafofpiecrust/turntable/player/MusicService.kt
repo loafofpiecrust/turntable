@@ -191,7 +191,8 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
                 val queue = runBlocking {
                     this@MusicService.player.queue.first()
                 }
-                val song = queue.list[windowIndex]
+                val idx = minOf(windowIndex, queue.list.size - 1)
+                val song = queue.list[idx]
                 return MediaDescriptionCompat.Builder()
                     .setTitle(song.id.displayName)
                     .setSubtitle(song.id.artist.displayName)

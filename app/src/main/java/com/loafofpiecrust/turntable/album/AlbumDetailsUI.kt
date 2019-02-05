@@ -79,7 +79,7 @@ open class AlbumDetailsUI(
 
     open val album: BroadcastChannel<Album> by lazy(LazyThreadSafetyMode.NONE) {
         Library.findAlbum(albumId).map {
-            it ?: Repositories.findOnline(albumId)!!
+            it ?: Repositories.findOnline(albumId) ?: EmptyAlbum(albumId)
         }.replayOne()
     }
 
