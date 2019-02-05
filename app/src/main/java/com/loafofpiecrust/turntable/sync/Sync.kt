@@ -37,6 +37,7 @@ import kotlinx.android.parcel.Parcelize
 import kotlinx.collections.immutable.immutableListOf
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.channels.firstOrNull
 import kotlinx.coroutines.tasks.await
 import org.jetbrains.anko.notificationManager
@@ -387,6 +388,9 @@ object Sync {
                 if (!queue.isEmpty()) {
                     delay(100)
                     send(PlayerAction.SeekTo(player.currentBufferState.position), other)
+                    if (!player.isPlaying.first()) {
+                        send(PlayerAction.Pause, other)
+                    }
                 }
             }
         }
