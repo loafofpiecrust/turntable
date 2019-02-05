@@ -180,13 +180,10 @@ class App: Application() {
             MessageReceiverService.messages
         )
 
-        runBlocking {
-            UserPrefs.lastOpenTime puts UserPrefs.currentOpenTime.openSubscription().first()
-            UserPrefs.currentOpenTime puts System.currentTimeMillis()
-        }
-
         // Initial internet status
         launch {
+            UserPrefs.lastOpenTime puts UserPrefs.currentOpenTime.openSubscription().first()
+            UserPrefs.currentOpenTime puts System.currentTimeMillis()
             delay(300)
             watchConnectionStatus()
         }

@@ -8,7 +8,6 @@ import android.os.Handler
 import android.provider.MediaStore
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
-import com.chibatching.kotpref.KotprefModel
 import com.github.ajalt.timberkt.Timber
 import com.github.salomonbrys.kotson.get
 import com.github.salomonbrys.kotson.string
@@ -34,6 +33,8 @@ import com.mcxiaoke.koi.ext.longValue
 import com.mcxiaoke.koi.ext.stringValue
 import io.ktor.client.request.get
 import io.paperdb.Paper
+import kotlinx.collections.immutable.immutableListOf
+import kotlinx.collections.immutable.immutableMapOf
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -66,14 +67,6 @@ object Library: CoroutineScope by GlobalScope {
         constructor(): this(ArtistId(""), null)
     }
 
-    data class PlaylistData(
-        val name: String,
-        val color: Int?,
-        val songs: List<Song>
-    ): Serializable {
-        constructor(): this("", null, listOf())
-    }
-
     /// Map of SongId to local file path for that song.
     private val localSongSources = HashMap<SongId, String>()
 
@@ -81,33 +74,29 @@ object Library: CoroutineScope by GlobalScope {
 //    private val _albums = ConflatedBroadcastChannel<List<Album>>(listOf())
 
     private val albumCovers by Paper.page("albumMetadata") {
-        emptyMap<AlbumId, Library.AlbumMetadata>()
+        immutableMapOf<AlbumId, Library.AlbumMetadata>()
     }
 
     private val artistMeta by Paper.page("artistMetadata") {
-        emptyMap<ArtistId, Library.ArtistMetadata>()
+        immutableMapOf<ArtistId, Library.ArtistMetadata>()
     }
 
     val remoteAlbums by Paper.page("remoteAlbums") {
-        listOf<Album>()
+        immutableListOf<Album>()
     }
 
-    private val cachedPlaylists = ConflatedBroadcastChannel(listOf<Playlist>())
+    private val cachedPlaylists = ConflatedBroadcastChannel(
+        immutableListOf<Playlist>()
+    )
 
-//    val remoteAlbums: BehaviorSubject<List<Album>> = BehaviorSubject.createDefault(listOf())
     private var initialized = false
-
-//    val songs: Observable<List<Song>> = Observables.combineLatest(localSongs, remoteAlbums)
-//        .map { (songs, remotes) ->
-//            (songs + remotes.flatMap { it.tracks }).sortedBy { it.searchKey }
-//        }
 
     private val localAlbums: ReceiveChannel<List<Album>> get() = localSongs.openSubscription().map {
         it.groupBy {
             (it.platformId as? LocalSongId)?.albumId
-        }.values.map {
-            val tracks = it.sortedBy { it.discTrack }
-            LocalAlbum(it.first().id.album, tracks)
+        }.values.map { songs ->
+            val tracks = songs.sortedBy { it.discTrack }
+            LocalAlbum(songs.first().id.album, tracks)
         }
     }
 
@@ -116,58 +105,21 @@ object Library: CoroutineScope by GlobalScope {
      * Album sort key: name + artist
      * Song sort key: name + album + artist
      */
-//    val albums: ConflatedBroadcastChannel<List<Album>> = run {
-//        combineLatest(localAlbums, remoteAlbums.openSubscription()) { a, b ->
-//            measureTime("albumsLazy(${a.size + b.size})") {
-//                (a.lazy + b.lazy).toListSortedBy { it.uuid }.dedupMergeSorted(
-//                    { a, b -> a.uuid == b.uuid },
-//                    { a, b -> MergedAlbum(a, b) }
-//                )
-//            }
-//        }.replayOne()
-//    }
-    val albumsMap: ConflatedBroadcastChannel<Map<AlbumId, Album>> = run {
+    val albumsMap: ConflatedBroadcastChannel<Map<AlbumId, Album>> =
         combineLatest(localAlbums, remoteAlbums.openSubscription()) { a, b ->
             (a.lazy + b.lazy).associateByTo(
                 MergingHashMap { a, b -> MergedAlbum(a, b) }
             ) { it.id }
         }.replayOne()
-    }
 
-//    val songs: ConflatedBroadcastChannel<List<Song>> = run {
-////        combineLatest(localSongs.openSubscription(), remoteAlbums.openSubscription()) { songs, albums ->
-////            measureTime("songsLazy(${songs.size} songs, ${albums.size} remote albums)") {
-////                (songs.lazy + albums.lazy.flatMap { it.tracks.lazy }).toListSortedBy { it.uuid }
-////            }
-//        albums.openSubscription().map {
-//            measureTime("songsLazy(${it.size} albums)") {
-//                it.lazy.flatMap { it.tracks.lazy }.toListSortedBy { it.uuid }
-//            }
-//        }.replayOne()
-//    }
-    val songsMap: ConflatedBroadcastChannel<Map<SongId, Song>> = run {
+    val songsMap: ConflatedBroadcastChannel<Map<SongId, Song>> =
         albumsMap.openSubscription().map {
             it.values.lazy.flatMap { runBlocking { it.resolveTracks().lazy } }
                 .map { it.id to it }
                 .toMap()
         }.replayOne()
-    }
 
-//    val artists: ConflatedBroadcastChannel<List<Artist>> = run {
-//        albums.openSubscription().map { albums ->
-//            measureTime("artistsLazy(${albums.size} albums)") {
-//                albums.groupBy { it.uuid.artist }.values.lazy.map { it: List<Album> ->
-//                    val firstAlbum = it.find { it is LocalAlbum } ?: it.first()
-//                    // TODO: Use a dynamic sorting method: eg. sort by uuid, etc.
-//                    LocalArtist(
-//                        firstAlbum.uuid.artist,
-//                        it
-//                    ) as Artist
-//                }.toListSortedBy { it.uuid }
-//            }
-//        }.replayOne()
-//    }
-    val artistsMap: ConflatedBroadcastChannel<Map<ArtistId, Artist>> = run {
+    val artistsMap: ConflatedBroadcastChannel<Map<ArtistId, Artist>> =
         albumsMap.openSubscription().map { albums ->
             albums.values.groupBy { it.id.artist }.mapValues { (id, albums) ->
                 // TODO: Use a dynamic sorting method: eg. sort by uuid, etc.
@@ -177,14 +129,10 @@ object Library: CoroutineScope by GlobalScope {
                 ) as Artist
             }
         }.replayOne()
-    }
 
 
     private var updateTask: Deferred<Unit>? = null
 
-
-
-    class Binder(val music: Library) : android.os.Binder()
 
     /// TODO: Find nearest and do fuzzy compare
     fun sourceForSong(id: SongId): String? = localSongSources[id]
@@ -227,9 +175,6 @@ object Library: CoroutineScope by GlobalScope {
         it[id]
     }
 
-//    fun findArtistFuzzy(name: String): Artist? = artists.blockingFirst().let {
-//        it.find { FuzzySearch.ratio(it.uuid.name, name) >= 88 }
-//    }
 
     fun findAlbumExtras(id: AlbumId) =
         albumCovers.openSubscription().map { it[id] }
@@ -252,13 +197,12 @@ object Library: CoroutineScope by GlobalScope {
         }
 
 
-    @Synchronized
     fun addAlbumExtras(meta: AlbumMetadata) {
-        albumCovers[meta.id] = meta
+        albumCovers putsMapped { it.put(meta.id, meta) }
     }
 
     fun addArtistExtras(meta: ArtistMetadata) {
-        artistMeta[meta.id] = meta
+        artistMeta putsMapped { it.put(meta.id, meta) }
     }
 
 
@@ -281,52 +225,9 @@ object Library: CoroutineScope by GlobalScope {
             // This album definitely has no cover in cache
             // since it would've been grabbed in the album grouping process and assigned to the album instance.
             // So, we can assume here that we need to look online for this album artwork.
-//            async(CommonPool) {
-            // look on Last.FM for artwork
-//            val art = Discogs.getFullArtwork(album, true)
-//            if (art != null && art.isNotEmpty()) {
-//                synchronized(UserPrefs.albumMeta) {
-//                    // Add this artwork url to the cache
-//                    UserPrefs.albumMeta appends AlbumMetadata(album.uuid, art)
-//                }
-//            } else {
-//                // If Last.FM doesn't have this album, then don't check every single start-up.
-//                UserPrefs.albumMeta appends key
-//            }
             val updateKey = {
-                albumCovers putsMapped { it + (key.id to key) }
+                albumCovers putsMapped { it.put(key.id, key) }
             }
-//
-//            val res = try {
-//                Http.get("https://ws.audioscrobbler.com/2.0/", params = mapOf(
-//                    "api_key" to BuildConfig.LASTFM_API_KEY, "format" to "json",
-//                    "method" to "album.getinfo",
-//                    "artist" to album.id.artist.displayName,
-//                    "album" to album.id.displayName
-//                )).gson.obj
-//            } catch (e: Exception) {
-//                return@forEach
-//            }
-//
-//            if (res.has("album")) {
-//                val albumObj = res["album"].obj
-//                if (albumObj.has("image")) {
-//                    val uri = albumObj["image"][3]["#text"].nullString
-//                    if (uri != null && uri.isNotEmpty()) {
-////                        task {
-////                        synchronized(UserPrefs.albumMeta) {
-//                        // Add this artwork url to the cache
-//                        addAlbumExtras(AlbumMetadata(album.id, uri))
-////                        }
-////                        }.success(UI) {
-////                            Glide.with(App.instance)
-////                                .load(uri)
-//////                                .apply(Library.ARTWORK_OPTIONS.signature(ObjectKey(key)))
-////                                .preload()
-////                        }
-//                    } else updateKey()
-//                } else updateKey()
-//            } else updateKey()
 
             val artwork = Repositories.fullArtwork(album, true)
             if (artwork != null) {
@@ -337,9 +238,8 @@ object Library: CoroutineScope by GlobalScope {
 
             // Last.FM has an API limit of 1 request per second
             // But the response itself takes a few hundred ms, so let's just wait a few hundred more.
-            // The limit isn't overly strict
+            // The limit isn't super strict
             delay(100)
-//            }
         }
     }
 
@@ -372,7 +272,7 @@ object Library: CoroutineScope by GlobalScope {
 
             res["artist"]?.get("image")?.get(3)?.get("#text")?.string?.let { uri ->
                 artistMeta putsMapped {
-                    it + (artist.id to key.copy(artworkUri = uri))
+                    it.put(artist.id, key.copy(artworkUri = uri))
                 }
 //                launch(Dispatchers.Main) {
 //                    Glide.with(context.applicationContext)
@@ -381,7 +281,7 @@ object Library: CoroutineScope by GlobalScope {
 //                        .preload()
 //                }
             } ?: run {
-                artistMeta putsMapped { it + (artist.id to key) }
+                artistMeta putsMapped { it.put(artist.id, key) }
             }
 
             delay(50)
@@ -391,7 +291,7 @@ object Library: CoroutineScope by GlobalScope {
     fun addRemoteAlbum(album: Album) = launch {
         // Ensure the tracks are loaded before saving.
         if (!album.resolveTracks().isEmpty()) {
-            remoteAlbums appends album
+            remoteAlbums putsMapped { it.add(album) }
             val artwork = Repositories.fullArtwork(album, search = true)
             if (artwork != null) {
                 addAlbumExtras(AlbumMetadata(album.id, artwork))
@@ -403,12 +303,10 @@ object Library: CoroutineScope by GlobalScope {
         val all = remoteAlbums.value
         val idx = all.indexOfFirst { it.id == album.id }
         if (idx != -1) {
-            remoteAlbums puts all.without(idx)
+            remoteAlbums puts all.removeAt(idx)
             // remove extra metadata for this album
             albumCovers putsMapped { allMeta ->
-                allMeta.toMutableMap().apply {
-                    remove(album.id)
-                }
+                allMeta.remove(album.id)
             }
         }
     }
@@ -431,11 +329,11 @@ object Library: CoroutineScope by GlobalScope {
         }
 
     fun addPlaylist(pl: Playlist) {
-        launch { UserPrefs.playlists appends pl }
+        launch { UserPrefs.playlists putsMapped { it.add(pl) } }
     }
 
     fun cachePlaylist(pl: Playlist) {
-        launch { cachedPlaylists appends pl }
+        launch { cachedPlaylists putsMapped { it.add(pl) } }
     }
 
 
@@ -652,7 +550,7 @@ object Library: CoroutineScope by GlobalScope {
 
         val imageExts = arrayOf("jpg", "jpeg", "gif", "png")
         val frontReg = Regex("\\b(front|cover|folder|album|booklet)\\b", RegexOption.IGNORE_CASE)
-        val existingCovers = albumCovers.valueOrNull ?: emptyMap()
+        val existingCovers = albumCovers.valueOrNull ?: immutableMapOf()
         for (it in albums) {
             if (it !is LocalAlbum && it !is MergedAlbum) continue
 

@@ -26,6 +26,7 @@ import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.views.RecyclerAdapter
 import com.loafofpiecrust.turntable.views.RecyclerListItem
+import kotlinx.collections.immutable.immutableListOf
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.map
 import org.jetbrains.anko.*
@@ -40,7 +41,7 @@ import kotlin.coroutines.CoroutineContext
 class BrowseFragment: BaseFragment() {
     override fun Menu.createOptions() {
         menuItem("Clear", R.drawable.ic_cake, showIcon = false).onClick {
-            UserPrefs.recommendations puts emptyList()
+            UserPrefs.recommendations puts immutableListOf()
         }
     }
 
