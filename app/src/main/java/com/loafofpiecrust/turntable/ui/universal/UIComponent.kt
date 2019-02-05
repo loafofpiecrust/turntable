@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.os.Parcelable
 import android.support.annotation.CallSuper
+import android.support.v4.app.DialogFragment
 import android.support.v4.app.Fragment
 import android.view.Menu
 import android.view.View
@@ -89,10 +90,6 @@ abstract class UIComponent: IUIComponent {
         BaseActivity.current?.replaceMainContent(this.createFragment())
     }
 
-    fun dismiss() {
-        BaseActivity.current?.supportFragmentManager?.popBackStack(javaClass.simpleName, -1)
-    }
-
     fun <T> ReceiveChannel<T>.consumeEachAsync(
         context: CoroutineContext = EmptyCoroutineContext,
         action: suspend (T) -> Unit
@@ -117,6 +114,9 @@ abstract class UIComponent: IUIComponent {
 
 abstract class DialogComponent: UIComponent() {
     open fun AlertBuilder<*>.prepare() {}
+    fun dismiss() {
+        BaseActivity.current?.supportFragmentManager?.popBackStack()
+    }
 }
 
 class ViewContext(

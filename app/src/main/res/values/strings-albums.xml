@@ -11,6 +11,10 @@
     <string name="album_added_library">Added album to library</string>
     <string name="album_removed_library">Removed album from library</string>
 
+    <!-- Recently Added -->
+    <string name="recently_added">Recently Added</string>
+    <string name="recently_added_albums">Recently Added Albums</string>
+
     <!-- Album Editor -->
     <string name="album_title_hint">Title</string>
     <string name="album_artist_hint">Artist</string>

@@ -40,7 +40,6 @@ data class Friend(
     }
 
     // Friendship
-//    @Serializable
     object Request : Message {
         override val timeout get() = 27.5.days
         override suspend fun onReceive(sender: User) = withContext(Dispatchers.Main) {
@@ -76,7 +75,6 @@ data class Friend(
         }
     }
 
-//    @Serializable
     data class Response(val accept: Boolean): Message {
         override val timeout get() = 27.5.days
         override suspend fun onReceive(sender: User) {
@@ -84,12 +82,12 @@ data class Friend(
             if (accept) {
                 friends putsMapped { it + (sender to Status.CONFIRMED) }
                 withContext(Dispatchers.Main) {
-                    app.toast("Friendship fostered with ${sender.name}")
+                    app.toast(app.getString(R.string.friend_request_confirmed, sender.name))
                 }
             } else {
                 friends putsMapped { it - sender }
                 withContext(Dispatchers.Main) {
-                    app.toast("${sender.name} declined friendship :(")
+                    app.toast(app.getString(R.string.friend_request_declined, sender.name))
                 }
             }
         }
@@ -103,21 +101,31 @@ data class Friend(
 
 
     companion object {
-        val friends by Paper.page("friends") { emptyMap<User, Status>() }
+        /**
+         * Map of users to their friend status
+         */
+        val friends by Paper.page("friends") {
+            emptyMap<User, Status>()
+        }
+
+        /**
+         * List of current friends and users with pending friend requests
+         */
         val friendList get() = friends.openSubscription().map {
             it.map { Friend(it.key, it.value) }
         }
 
         /**
-         * @return true if the user wasn't already a friend.
+         * @return whether the user wasn't already a friend
          */
         fun request(user: User): Boolean {
-            return if (!friends.value.containsKey(user)) {
+            val alreadyFriends = friends.value.containsKey(user)
+            if (!alreadyFriends) {
                 Timber.i { "requesting friendship with ${user.displayName} at ${user.username}" }
                 friends putsMapped { it + (user to Status.SENT_REQUEST) }
                 Sync.send(Request, user)
-                true
-            } else false
+            }
+            return !alreadyFriends
         }
 
         fun respondToRequest(user: User, accept: Boolean) {

@@ -70,9 +70,12 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
             .map(Dispatchers.Main) { (song, req) ->
                 if (req == null) {
                     null
-                } else suspendCoroutine { cont ->
+                } else suspendCoroutine<PickedSwatch?> { cont ->
                     req.addListener(loadPalette(song.id) { palette, swatch ->
-                        PickedSwatch(palette!!, swatch!!)
+                        val p = if (palette != null && swatch != null) {
+                            PickedSwatch(palette, swatch)
+                        } else null
+                        cont.resume(p)
                     }).preload()
                 }
             }
