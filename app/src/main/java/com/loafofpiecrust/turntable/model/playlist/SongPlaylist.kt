@@ -15,6 +15,8 @@ import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.util.lazy
 import com.loafofpiecrust.turntable.util.minutes
 import com.loafofpiecrust.turntable.util.withReplaced
+import kotlinx.collections.immutable.immutableListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -63,7 +65,7 @@ class SongPlaylist(
         private set
 
     val sides = ConflatedBroadcastChannel(
-        listOf(listOf<Track>())
+        immutableListOf(immutableListOf<Track>())
     )
 
     val tracksChannel: ReceiveChannel<List<Song>>
@@ -108,9 +110,9 @@ class SongPlaylist(
                 modify()
                 val track = Track(song)
                 if (sideCount <= sideIdx) {
-                    sides appends listOf(track)
+                    sides putsMapped { it.add(immutableListOf(track)) }
                 } else {
-                    sides putsMapped { it.withReplaced(sideIdx, it[sideIdx] + track) }
+                    sides putsMapped { it.set(sideIdx, it[sideIdx].add(track)) }
                 }
                 AddResult.ADDED
             }
@@ -118,7 +120,11 @@ class SongPlaylist(
     }
 
     fun addSide(startingTrack: Song? = null) {
-        sides appends (startingTrack?.let { listOf(Track(it)) } ?: emptyList())
+        sides putsMapped {
+            it.add(startingTrack?.let {
+                immutableListOf(Track(it))
+            } ?: immutableListOf())
+        }
     }
 
     fun rename(newName: String) {
@@ -134,15 +140,13 @@ class SongPlaylist(
     fun remove(songId: SongId) {
         modify()
         sides.putsMapped { sides ->
-            val result = sides.map { it.toMutableList() }
-            for (side in result) {
+            for ((sideIdx, side) in sides.withIndex()) {
                 val index = side.indexOfFirst { it.song.id == songId }
                 if (index != -1) {
-                    side.removeAt(index)
-                    break
+                    return@putsMapped sides.set(sideIdx, side.removeAt(index))
                 }
             }
-            result
+            sides
         }
     }
 
@@ -162,7 +166,7 @@ class SongPlaylist(
             val src = srcSide.removeAt(srcIdx)
             destSide.add(destIdx, src.copy(lastMovedTime = lastModifiedTime))
 
-            result
+            result.lazy.map { it.toImmutableList() }.asIterable().toImmutableList()
         }
     }
 
@@ -326,8 +330,8 @@ class SongPlaylist(
                     compiled.add(index, track)
                 }
 
-                compiled
-            }.toList()
+                compiled.toImmutableList()
+            }.asIterable().toImmutableList()
         }
         return true
     }

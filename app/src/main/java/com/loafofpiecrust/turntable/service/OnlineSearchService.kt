@@ -46,6 +46,8 @@ import io.ktor.client.request.url
 import io.ktor.client.response.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.collections.immutable.immutableListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -175,7 +177,9 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
         }
     }
 
-    private val _downloadingSongs = ConflatedBroadcastChannel(listOf<SongDownload>())
+    private val _downloadingSongs = ConflatedBroadcastChannel(
+        immutableListOf<SongDownload>()
+    )
     private val downloadingSongs get() = _downloadingSongs.openSubscription().map {
         it.sortedWith(SongDownload.COMPARATOR)
     }
@@ -596,8 +600,9 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
                             val dled = cursor.intValue(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
                             val total = cursor.intValue(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
 
-                            val dls = _downloadingSongs.value
-                            _downloadingSongs puts dls.withReplaced(dls.indexOf(dl), dl.copy(progress = dled.toDouble() / total.toDouble()))
+                            _downloadingSongs putsMapped { dls ->
+                                dls.withReplaced(dls.indexOf(dl), dl.copy(progress = dled.toDouble() / total.toDouble())).toImmutableList()
+                            }
                         }
                         DownloadManager.STATUS_SUCCESSFUL -> {
                             val uri = Uri.parse(cursor.stringValue(DownloadManager.COLUMN_LOCAL_URI))
@@ -623,9 +628,9 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
                             } catch (e: Exception) {
                                 e.printStackTrace()
                             }
-                            _downloadingSongs puts _downloadingSongs.value.withoutElem(dl)
+                            _downloadingSongs putsMapped { it.remove(dl) }
                         }
-                        DownloadManager.STATUS_FAILED -> _downloadingSongs puts _downloadingSongs.value.withoutElem(dl)
+                        DownloadManager.STATUS_FAILED -> _downloadingSongs putsMapped { it.remove(dl) }
                     }
                 }
             }
@@ -637,7 +642,7 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
     }
 
     fun addDownload(dl: SongDownload) {
-        _downloadingSongs appends dl
+        _downloadingSongs putsMapped { it.add(dl) }
         updateDownloads()
     }
 

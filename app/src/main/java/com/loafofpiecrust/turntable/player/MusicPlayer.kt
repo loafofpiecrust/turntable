@@ -26,6 +26,7 @@ import com.loafofpiecrust.turntable.util.startWith
 import com.loafofpiecrust.turntable.util.with
 import com.loafofpiecrust.turntable.util.without
 import io.paperdb.Paper
+import kotlinx.collections.immutable.immutableListOf
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -266,7 +267,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
 //                    if (q.isPlayingNext) q.nextUp.drop(1) else q.nextUp
 //                } else listOf()
 
-                _queue.offer(CombinedQueue(primary, listOf()))
+                _queue.offer(CombinedQueue(primary, immutableListOf()))
             }
             OrderMode.SHUFFLE -> {
                 nonShuffledQueue = StaticQueue(songs, position)
@@ -310,7 +311,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
 
     fun clearQueue() {
         nonShuffledQueue = null
-        _queue puts CombinedQueue(StaticQueue(listOf(), 0), listOf())
+        _queue puts CombinedQueue(StaticQueue(listOf(), 0), immutableListOf())
         mediaSource?.clear()
         player.stop()
     }
@@ -500,7 +501,9 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         val percent = total.toDouble() / player.duration
         if (percent > LISTENED_PROPORTION) {
             // TODO: Add timestamp and percent to history entries
-            UserPrefs.history appends HistoryEntry(_queue.value.current!!)
+            UserPrefs.history putsMapped {
+                it.add(HistoryEntry(_queue.value.current!!))
+            }
         }
         totalListenedTime = 0
     }

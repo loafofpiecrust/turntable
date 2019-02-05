@@ -1,5 +1,6 @@
 package com.loafofpiecrust.turntable.serialize
 
+import com.github.salomonbrys.kotson.registerTypeAdapter
 import com.github.salomonbrys.kotson.typeAdapter
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -28,6 +29,9 @@ import com.loafofpiecrust.turntable.repository.remote.MusicBrainz
 import com.loafofpiecrust.turntable.repository.remote.Spotify
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.sync.SyncSession
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import java.util.*
 
@@ -122,13 +126,7 @@ fun GsonBuilder.registerAllTypes() {
 
     registerTypeAdapter(ConflatedBroadcastChannel::class.java, CBCTypeAdapter<Any>())
     registerTypeAdapter(Date::class.java, DateTimestampSerializer())
-//    registerTypeAdapter<JsonObject> {
-//        serialize {
-//            it.src
-//        }
-//        deserialize {
-//            it.json.obj
-//        }
-//    }
-//            registerTypeAdapter(User::class.java, UserSerializer())
+    registerTypeAdapter(ImmutableList::class.java, ImmutableListTypeAdapter<Any>())
+    registerTypeAdapter(ImmutableSet::class.java, ImmutableSetTypeAdapter<Any>())
+    registerTypeAdapter(ImmutableMap::class.java, ImmutableMapTypeAdapter<Any, Any>())
 }

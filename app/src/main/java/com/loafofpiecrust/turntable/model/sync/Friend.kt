@@ -14,6 +14,7 @@ import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.util.days
 import io.paperdb.Paper
 import kotlinx.android.parcel.Parcelize
+import kotlinx.collections.immutable.immutableMapOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.map
 import kotlinx.coroutines.withContext
@@ -47,7 +48,7 @@ data class Friend(
 
             // TODO: Don't add duplicate.
             // We don't know this user in any capacity yet.
-            friends putsMapped { it + (sender to Status.RECEIVED_REQUEST) }
+            friends putsMapped { it.put(sender, Status.RECEIVED_REQUEST) }
 
             val n = NotificationCompat.Builder(context, "turntable").apply {
                 priority = NotificationCompat.PRIORITY_DEFAULT
@@ -80,12 +81,12 @@ data class Friend(
         override suspend fun onReceive(sender: User) {
             val app = App.instance
             if (accept) {
-                friends putsMapped { it + (sender to Status.CONFIRMED) }
+                friends putsMapped { it.put(sender, Status.CONFIRMED) }
                 withContext(Dispatchers.Main) {
                     app.toast(app.getString(R.string.friend_request_confirmed, sender.name))
                 }
             } else {
-                friends putsMapped { it - sender }
+                friends putsMapped { it.remove(sender) }
                 withContext(Dispatchers.Main) {
                     app.toast(app.getString(R.string.friend_request_declined, sender.name))
                 }
@@ -95,7 +96,7 @@ data class Friend(
 
     object Remove: Message {
         override suspend fun onReceive(sender: User) {
-            friends putsMapped { it - sender }
+            friends putsMapped { it.remove(sender) }
         }
     }
 
@@ -105,7 +106,7 @@ data class Friend(
          * Map of users to their friend status
          */
         val friends by Paper.page("friends") {
-            emptyMap<User, Status>()
+            immutableMapOf<User, Status>()
         }
 
         /**
@@ -122,7 +123,7 @@ data class Friend(
             val alreadyFriends = friends.value.containsKey(user)
             if (!alreadyFriends) {
                 Timber.i { "requesting friendship with ${user.displayName} at ${user.username}" }
-                friends putsMapped { it + (user to Status.SENT_REQUEST) }
+                friends putsMapped { it.put(user, Status.SENT_REQUEST) }
                 Sync.send(Request, user)
             }
             return !alreadyFriends
@@ -133,16 +134,16 @@ data class Friend(
 
             friends putsMapped { friends ->
                 if (accept) {
-                    friends + (user to Status.CONFIRMED)
+                    friends.put(user, Status.CONFIRMED)
                 } else {
-                    friends - user
+                    friends.remove(user)
                 }
             }
         }
 
         fun remove(user: User) {
             Sync.send(Remove, user)
-            friends putsMapped { it - user }
+            friends putsMapped { it.remove(user) }
         }
     }
 }

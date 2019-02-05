@@ -13,11 +13,8 @@ object SearchCache: Repository {
     private const val CACHE_COUNT = 25
 
     override suspend fun searchArtists(query: String) = emptyList<Artist>()
-
     override suspend fun searchAlbums(query: String) = emptyList<Album>()
-
     override suspend fun searchSongs(query: String) = emptyList<Song>()
-
 
     private fun <K, T> MutableMap<K, T>.cache(key: K, value: T) {
         if (size >= CACHE_COUNT) {

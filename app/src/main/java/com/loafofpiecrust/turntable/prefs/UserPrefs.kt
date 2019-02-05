@@ -14,6 +14,7 @@ import com.loafofpiecrust.turntable.serialize.page
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.util.getColorCompat
 import io.paperdb.Paper
+import kotlinx.collections.immutable.immutableListOf
 
 /**
  * Never change any of the string keys used here.
@@ -59,9 +60,15 @@ object UserPrefs: KotprefModel() {
     val sdCardUri by Paper.page("sdCardUri") { "" }
 
     // Metadata (saves to files rather than SharedPreferences to reduce memory usage)
-    val history by Paper.page("history") { listOf<HistoryEntry>() }
-    val playlists by Paper.page("playlists") { listOf<Playlist>() }
-    val recommendations by Paper.page("recommendations") { listOf<Recommendable>() }
+    val history by Paper.page("history") {
+        immutableListOf<HistoryEntry>()
+    }
+    val playlists by Paper.page("playlists") {
+        immutableListOf<Playlist>()
+    }
+    val recommendations by Paper.page("recommendations") {
+        immutableListOf<Recommendable>()
+    }
 
     val lastOpenTime by longPref(System.currentTimeMillis(), "lastOpenTime")
     val currentOpenTime by longPref(System.currentTimeMillis(), "currentOpenTime")

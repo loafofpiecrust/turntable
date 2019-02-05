@@ -13,6 +13,7 @@ import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.views.refreshableRecyclerView
 import kotlinx.android.parcel.Parcelize
+import kotlinx.collections.immutable.immutableListOf
 import org.jetbrains.anko.alert
 import org.jetbrains.anko.cancelButton
 import org.jetbrains.anko.recyclerview.v7.recyclerView
@@ -48,7 +49,7 @@ class RecommendationsUI: UIComponent(), Parcelable {
                 title = "Clear Recommendations"
                 message = "Are you sure?"
                 positiveButton("Clear") {
-                    UserPrefs.recommendations.offer(emptyList())
+                    UserPrefs.recommendations.offer(immutableListOf())
                 }
                 cancelButton {}
             }.show()

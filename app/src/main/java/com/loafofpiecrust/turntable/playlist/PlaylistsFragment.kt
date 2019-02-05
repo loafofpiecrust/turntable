@@ -93,7 +93,7 @@ class PlaylistsFragment: BaseFragment() {
                             val tracks = runBlocking { pl.ok.resolveTracks() }
                             "Loaded playlist $tracks"
                         }
-                        UserPrefs.playlists appends pl.ok
+                        UserPrefs.playlists putsMapped { it.add(pl.ok) }
                     }
                     is Result.Error -> launch(Dispatchers.Main) {
                         Timber.e(pl.error) { "Failed to load Spotify playlist" }
@@ -152,7 +152,10 @@ class PlaylistsFragment: BaseFragment() {
 
         override fun canMoveItem(index: Int) = true
         override fun onItemMove(fromIdx: Int, toIdx: Int) {
-            UserPrefs.playlists putsMapped { it.shifted(fromIdx, toIdx) }
+            UserPrefs.playlists putsMapped { playlists ->
+                val pl = playlists[fromIdx]
+                playlists.removeAt(fromIdx).add(toIdx, pl)
+            }
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
