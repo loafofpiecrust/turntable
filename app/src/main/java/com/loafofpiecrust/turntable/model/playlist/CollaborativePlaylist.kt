@@ -127,8 +127,10 @@ class CollaborativePlaylist (
         val op = Operation.Move(from, to)
         val lastOp = operations.value.last()
         if (lastOp is Operation.Move && lastOp.songId == from) {
-            operations putsMapped { ops ->
-                ops.withReplaced(ops.lastIndex, op)
+            runBlocking {
+                operations putsMapped { ops ->
+                    ops.withReplaced(ops.lastIndex, op)
+                }
             }
         } else {
             operations appends op

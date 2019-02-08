@@ -17,6 +17,7 @@ import kotlinx.android.parcel.Parcelize
 import kotlinx.collections.immutable.immutableMapOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.jetbrains.anko.notificationManager
 import org.jetbrains.anko.toast
@@ -121,7 +122,7 @@ data class Friend(
          */
         fun request(user: User): Boolean {
             val alreadyFriends = friends.value.containsKey(user)
-            if (!alreadyFriends) {
+            if (!alreadyFriends) runBlocking {
                 Timber.i { "requesting friendship with ${user.displayName} at ${user.username}" }
                 friends putsMapped { it.put(user, Status.SENT_REQUEST) }
                 Sync.send(Request, user)
@@ -132,18 +133,22 @@ data class Friend(
         fun respondToRequest(user: User, accept: Boolean) {
             Sync.send(Response(accept), user)
 
-            friends putsMapped { friends ->
-                if (accept) {
-                    friends.put(user, Status.CONFIRMED)
-                } else {
-                    friends.remove(user)
+            runBlocking {
+                friends putsMapped { friends ->
+                    if (accept) {
+                        friends.put(user, Status.CONFIRMED)
+                    } else {
+                        friends.remove(user)
+                    }
                 }
             }
         }
 
         fun remove(user: User) {
             Sync.send(Remove, user)
-            friends putsMapped { it.remove(user) }
+            runBlocking {
+                friends putsMapped { it.remove(user) }
+            }
         }
     }
 }

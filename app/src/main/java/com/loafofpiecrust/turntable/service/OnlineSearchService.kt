@@ -641,7 +641,7 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
         }
     }
 
-    fun addDownload(dl: SongDownload) {
+    suspend fun addDownload(dl: SongDownload) {
         _downloadingSongs putsMapped { it.add(dl) }
         updateDownloads()
     }

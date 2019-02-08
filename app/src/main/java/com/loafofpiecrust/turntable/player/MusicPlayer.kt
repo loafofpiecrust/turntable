@@ -335,7 +335,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
                 val pos = if (q.isPlayingNext) 1 else 0
                 _queue puts q.copy(nextUp = q.nextUp.with(songs, pos))
             }
-            EnqueueMode.NEXT -> _queue putsMapped { q ->
+            EnqueueMode.NEXT -> runBlocking {
+                _queue putsMapped { q ->
                 mediaSource!!.addMediaSources(
                     q.primary.position + q.nextUp.size + 1,
                     songs.map { StreamMediaSource(it, mediaSourceFactory) }
@@ -344,6 +345,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
                 q.copy(nextUp = q.nextUp + songs)
             }
         }
+    }
     }
 
     fun removeFromQueue(position: Int) {
@@ -423,8 +425,10 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
     }
 
     fun shiftQueueItem(from: Int, to: Int) {
+        runBlocking {
         _queue putsMapped { q ->
             q.shifted(from, to) as CombinedQueue
+        }
         }
 
         prepareSource()
@@ -501,9 +505,11 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         val percent = total.toDouble() / player.duration
         if (percent > LISTENED_PROPORTION) {
             // TODO: Add timestamp and percent to history entries
+            runBlocking {
             UserPrefs.history putsMapped {
                 it.add(HistoryEntry(_queue.value.current!!))
             }
+        }
         }
         totalListenedTime = 0
     }
