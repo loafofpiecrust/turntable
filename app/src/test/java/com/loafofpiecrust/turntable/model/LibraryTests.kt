@@ -87,21 +87,25 @@ class LibraryTest {
     }
 
 
-    @Test fun `tree vs hash maps`() {
+    @Test fun `tree vs hash maps`() = runBlocking<Unit> {
 //        val songs = generateSongs(20000)
-        val albums = generateAlbums(800)
-        val example = albums[400].tracks[3]
+        val albums = generateAlbums(500)
+        val example = albums[400].resolveTracks()[3]
 
         // first insert into treemap then display
         val tree = measureTime("treemap") {
-            albums.lazy.flatMap { it.tracks.lazy }.map { it.id to it }.toMap(TreeMap())
+            albums.lazy.flatMap {
+                runBlocking { it.resolveTracks().lazy }
+            }.map { it.id to it }.toMap(TreeMap())
         }
         measureTime("treemap sorted") {
             val display = tree.values.toList()
         }
 
         val hash = measureTime("hashmap") {
-            albums.lazy.flatMap { it.tracks.lazy }.map { it.id to it }.toMap(HashMap())
+            albums.lazy.flatMap {
+                runBlocking { it.resolveTracks().lazy }
+            }.map { it.id to it }.toMap(HashMap())
         }
         measureTime("hashmap sorted") {
             val display = hash.values.sortedBy { it.id }
@@ -111,7 +115,9 @@ class LibraryTest {
         }
 
         val list = measureTime("sorted list") {
-            albums.lazy.flatMap { it.tracks.lazy }.toListSortedBy { it.id }
+            albums.lazy.flatMap {
+                runBlocking { it.resolveTracks().lazy }
+            }.toListSortedBy { it.id }
         }
         measureTime("sorted list for display") {
             val display = list

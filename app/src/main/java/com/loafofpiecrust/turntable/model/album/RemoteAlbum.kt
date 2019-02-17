@@ -17,7 +17,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 @Parcelize
-class RemoteAlbum(
+data class RemoteAlbum(
     override val id: AlbumId,
     val remoteId: Album.RemoteDetails, // Discogs, Spotify, or MusicBrainz ID
     override val type: Album.Type = Album.Type.LP,

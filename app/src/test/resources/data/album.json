@@ -1,0 +1,19 @@
+{
+  "type": "RemoteAlbum",
+  "value": {
+    "id": {
+      "name": "The Cry of Love",
+      "artist": {
+        "name": "Jimi Hendrix"
+      }
+    },
+    "year": 1971,
+    "type": "LP",
+    "remoteId": {
+      "type": "Spotify.AlbumDetails",
+      "value": {
+        "id": "7ykAHaoptbCYaO0HAjpgcL"
+      }
+    }
+  }
+}

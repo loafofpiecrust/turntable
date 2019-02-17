@@ -58,6 +58,9 @@ class SongPlaylist(
     var lastModifiedTime: Long = 0
         private set
 
+    /**
+     * Maximum length of one side in milliseconds
+     */
     var maxSideDuration: Long = SIDE_UNLIMITED
         private set
 

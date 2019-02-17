@@ -28,12 +28,9 @@ import com.loafofpiecrust.turntable.util.onClick
 import com.loafofpiecrust.turntable.util.searchBar
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.support.v4.toast
 
@@ -151,9 +148,11 @@ class SearchFragment : BaseFragment() {
                 doSearch(query, category)
             }
             searchJob?.invokeOnCompletion { err ->
-                if (err != null) launch(Dispatchers.Main) {
+                if (err != null && err !is CancellationException) {
                     Timber.e(err) { "Search failed" }
-                    toast("Search failed.")
+                    launch(Dispatchers.Main) {
+                        activity?.toast("Search failed.")
+                    }
                 }
             }
         }

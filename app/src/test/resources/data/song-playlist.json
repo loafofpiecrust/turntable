@@ -1,0 +1,32 @@
+{
+  "type": "SongPlaylist",
+  "value": {
+    "id": {
+      "name": "Things that I like alot",
+      "owner": {
+        "username": "taylorsnead@gmail.com",
+        "deviceId": "f3iur324234"
+      }
+    },
+    "color": null,
+    "maxSideDuration": 600000,
+    "isPublic": true,
+    "sides": [[
+      {
+        "id": {
+          "name": "Too Young To Burn",
+          "album": {
+            "name": "Tomorrow Is Alright",
+            "artist": {
+              "name": "Sonny & The Sunsets"
+            }
+          }
+        },
+        "track": 1,
+        "disc": 1,
+        "year": 2010,
+        "duration": 200000
+      }
+    ]]
+  }
+}
