@@ -24,6 +24,7 @@ import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.sync.Friend
 import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.model.sync.PlayerAction
+import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.repository.remote.Discogs
 import com.loafofpiecrust.turntable.repository.remote.MusicBrainz
 import com.loafofpiecrust.turntable.repository.remote.Spotify
@@ -79,6 +80,7 @@ fun GsonBuilder.registerAllTypes() {
             PlayerAction.Play::class to "Play",
             PlayerAction.Pause::class to "Pause",
             PlayerAction.PlaySongs::class to "PlaySongs",
+            PlayerAction.ChangeOrderMode::class to "ChangeOrderMode",
             PlayerAction.TogglePause::class to "TogglePause",
             PlayerAction.Stop::class to "Stop",
             PlayerAction.Enqueue::class to "Enqueue",
@@ -102,6 +104,13 @@ fun GsonBuilder.registerAllTypes() {
         RuntimeTypeAdapterFactory.of<Queue>().registerSubtypes(
             StaticQueue::class to "StaticQueue",
             CombinedQueue::class to "CombinedQueue"
+        )
+    )
+
+    registerTypeAdapterFactory(
+        RuntimeTypeAdapterFactory.of<MusicPlayer.OrderMode>().registerSubtypes(
+            MusicPlayer.OrderMode.Sequential::class to "Sequential",
+            MusicPlayer.OrderMode.Shuffle::class to "Shuffle"
         )
     )
 

@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.player
 
 import android.content.Context
+import android.os.Parcelable
 import com.github.ajalt.timberkt.Timber
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSourceFactory
@@ -14,7 +15,6 @@ import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.loafofpiecrust.turntable.App
-import com.loafofpiecrust.turntable.appends
 import com.loafofpiecrust.turntable.model.queue.*
 import com.loafofpiecrust.turntable.model.song.HistoryEntry
 import com.loafofpiecrust.turntable.model.song.Song
@@ -26,6 +26,7 @@ import com.loafofpiecrust.turntable.util.startWith
 import com.loafofpiecrust.turntable.util.with
 import com.loafofpiecrust.turntable.util.without
 import io.paperdb.Paper
+import kotlinx.android.parcel.Parcelize
 import kotlinx.collections.immutable.immutableListOf
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
@@ -35,6 +36,7 @@ import kotlinx.coroutines.channels.produce
 import okhttp3.OkHttpClient
 import org.jetbrains.anko.toast
 import kotlin.coroutines.CoroutineContext
+import kotlin.random.Random
 
 class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
     override val coroutineContext: CoroutineContext =
@@ -46,7 +48,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
          */
         NEXT,
         /**
-         * Will play _immediately_ after the current song
+         * Will play *immediately* after the current song.
          */
         IMMEDIATELY_NEXT,
     }
@@ -75,30 +77,40 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
     }
 
 
-    enum class OrderMode {
-        SEQUENTIAL,
-        SHUFFLE,
+    sealed class OrderMode: Parcelable {
+        @Parcelize
+        object Sequential: OrderMode()
+
+        @Parcelize
+        data class Shuffle(
+            internal val seed: Int = Random.nextInt()
+        ): OrderMode()
     }
-    private var _orderMode: OrderMode = OrderMode.SEQUENTIAL
+
+    private var _orderMode: OrderMode = OrderMode.Sequential
     var orderMode: OrderMode
         get() = _orderMode
         set(value) {
             if (_orderMode == value) return
 
-            if (value == OrderMode.SEQUENTIAL) {
-                // shuffled => sequential
-                val bq = nonShuffledQueue
-                if (bq != null) {
-                    // Find the current song in the backup queue and play from there.
-                    _queue putsMapped { it.restoreSequential(bq) }
-                    nonShuffledQueue = null
+            when (value) {
+                is OrderMode.Sequential -> runBlocking {
+                    // shuffled => sequential
+                    val bq = nonShuffledQueue
+                    if (bq != null) {
+                        // Find the current song in the backup queue and play from there.
+                        _queue putsMapped { it.restoreSequential(bq) }
+                        nonShuffledQueue = null
+                    }
                 }
-            } else {
-                // sequential => shuffled
-                val q = _queue.value
-                nonShuffledQueue = q.primary
-                _queue putsMapped { it.shuffled() }
+                is OrderMode.Shuffle -> runBlocking {
+                    // sequential => shuffled
+                    val q = _queue.value
+                    nonShuffledQueue = q.primary
+                    _queue putsMapped { it.shuffled(Random(value.seed)) }
+                }
             }
+
             _orderMode = value
         }
 
@@ -131,14 +143,15 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
                 }
             } finally {
             }
-            delay(350)
+            delay(300)
         }
     }
 
 
-    private val _isPlaying: ConflatedBroadcastChannel<Boolean> =
-        ConflatedBroadcastChannel(false)
-    val isPlaying get() = _isPlaying.openSubscription()
+    private val _isPlaying = ConflatedBroadcastChannel(false)
+    val isPlaying: ReceiveChannel<Boolean>
+        get() = _isPlaying.openSubscription()
+
     var isStreaming: Boolean = true
         private set
 
@@ -158,7 +171,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
 
     init {
         // Handle case of restoring state after process death.
-        if (_queue.valueOrNull?.isEmpty() == false) {
+        val q = _queue.valueOrNull
+        if (q != null && !q.isEmpty()) {
             prepareSource()
         }
     }
@@ -256,11 +270,12 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
 
     private var mediaSource: ConcatenatingMediaSource? = null
 
-    fun playSongs(songs: List<Song>, position: Int = 0, mode: OrderMode = OrderMode.SEQUENTIAL) {
+    fun playSongs(songs: List<Song>, position: Int = 0, mode: OrderMode = OrderMode.Sequential) {
         shouldAutoplay = true
 
+        _orderMode = mode
         when (mode) {
-            OrderMode.SEQUENTIAL -> {
+            is OrderMode.Sequential -> {
                 val primary = StaticQueue(songs, position)
 //                val q = _queue.valueOrNull
 //                val next = if (q != null) {
@@ -269,11 +284,13 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
 
                 _queue.offer(CombinedQueue(primary, immutableListOf()))
             }
-            OrderMode.SHUFFLE -> {
+            is OrderMode.Shuffle -> {
+                val rand = Random(mode.seed)
+
                 nonShuffledQueue = StaticQueue(songs, position)
                 val shuffledSongs = if (position > 0) {
-                    listOf(songs[position]) + songs.without(position).shuffled()
-                } else songs.shuffled()
+                    listOf(songs[position]) + songs.without(position).shuffled(rand)
+                } else songs.shuffled(rand)
 
                 val q = _queue.valueOrNull
                 val next = if (q != null) {
@@ -306,7 +323,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         player.seekToDefaultPosition(q.position)
         player.prepare(mediaSource, false, true)
         player.playWhenReady = true
-        player.shuffleModeEnabled = orderMode == OrderMode.SHUFFLE
+        player.shuffleModeEnabled = orderMode is OrderMode.Shuffle
     }
 
     fun clearQueue() {
@@ -316,7 +333,9 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         player.stop()
     }
 
-    /// By default enqueues at the end, passing 1 will queue next.
+    /**
+     * By default enqueues at the end, passing 1 will queue next.
+     */
     fun enqueue(songs: List<Song>, mode: EnqueueMode = EnqueueMode.NEXT) {
         if (mediaSource == null) {
             mediaSource = ConcatenatingMediaSource()
@@ -337,15 +356,15 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
             }
             EnqueueMode.NEXT -> runBlocking {
                 _queue putsMapped { q ->
-                mediaSource!!.addMediaSources(
-                    q.primary.position + q.nextUp.size + 1,
-                    songs.map { StreamMediaSource(it, mediaSourceFactory) }
-                )
+                    mediaSource!!.addMediaSources(
+                        q.primary.position + q.nextUp.size + 1,
+                        songs.map { StreamMediaSource(it, mediaSourceFactory) }
+                    )
 
-                q.copy(nextUp = q.nextUp + songs)
+                    q.copy(nextUp = q.nextUp + songs)
+                }
             }
         }
-    }
     }
 
     fun removeFromQueue(position: Int) {
@@ -426,9 +445,9 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
 
     fun shiftQueueItem(from: Int, to: Int) {
         runBlocking {
-        _queue putsMapped { q ->
-            q.shifted(from, to) as CombinedQueue
-        }
+            _queue putsMapped { q ->
+                q.shifted(from, to) as CombinedQueue
+            }
         }
 
         prepareSource()
@@ -506,10 +525,10 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         if (percent > LISTENED_PROPORTION) {
             // TODO: Add timestamp and percent to history entries
             runBlocking {
-            UserPrefs.history putsMapped {
-                it.add(HistoryEntry(_queue.value.current!!))
+                UserPrefs.history putsMapped {
+                    it.add(HistoryEntry(_queue.value.current!!))
+                }
             }
-        }
         }
         totalListenedTime = 0
     }

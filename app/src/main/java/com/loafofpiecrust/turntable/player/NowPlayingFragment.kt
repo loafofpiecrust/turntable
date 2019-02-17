@@ -2,17 +2,14 @@ package com.loafofpiecrust.turntable.player
 
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.PorterDuff
 import android.support.constraint.ConstraintSet.PARENT_ID
 import android.support.design.widget.FloatingActionButton
 import android.view.View
 import android.view.ViewManager
 import android.widget.ImageButton
 import android.widget.SeekBar
-import com.bumptech.glide.Glide
-import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.model.album.loadPalette
+import com.loafofpiecrust.turntable.model.queue.RadioQueue
 import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.selector
@@ -23,10 +20,7 @@ import com.loafofpiecrust.turntable.sync.SyncSession
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.universal.show
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.channels.firstOrNull
-import kotlinx.coroutines.channels.map
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.*
 import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
@@ -40,7 +34,6 @@ import org.jetbrains.anko.sdk27.coroutines.onSeekBarChangeListener
 open class NowPlayingFragment : BaseFragment() {
     override fun ViewManager.createView() = constraintLayout {
         backgroundColor = colorAttr(android.R.attr.windowBackground)
-//        elevation = dimen(R.dimen.low_elevation).toFloat()
 
         topPadding = dimen(R.dimen.statusbar_height)
 
@@ -48,7 +41,6 @@ open class NowPlayingFragment : BaseFragment() {
         id = R.id.container
         clipToPadding = false
         clipToOutline = false
-//        lparams(width = matchParent, height = matchParent)
 
 
         val songCarousel = frameLayout {
@@ -151,7 +143,6 @@ open class NowPlayingFragment : BaseFragment() {
             }
         }
 
-
         val nextBtn = iconButton(R.drawable.ic_skip_next) {
             tintResource = R.color.md_white_1000
             onClick {
@@ -160,39 +151,40 @@ open class NowPlayingFragment : BaseFragment() {
         }
 
         val shuffleBtn = iconButton(R.drawable.ic_shuffle) {
-            tintResource = R.color.md_grey_700
-            if (!BuildConfig.DEBUG) {
-                visibility = View.INVISIBLE
+            combineLatest(
+                MusicService.instance,
+                MusicService.instance.switchMap { it?.player?.queue }
+            ).consumeEachAsync { (music, q) ->
+                val q = q.primary
+                if (q is RadioQueue) {
+                    // Option 1: Toggle playing only songs not in your library (or recent history?)
+                    // Option 2: Thumbs up that adds the current song to the radio seed.
+                    imageResource = R.drawable.ic_thumb_up
+                    setColorFilter(Color.DKGRAY)
+                    onClick {
+                        q.current?.let { q.addSeed(it) }
+                        onClick {}
+                        tint = Color.WHITE
+                    }
+                } else when (music?.player?.orderMode) {
+                    is MusicPlayer.OrderMode.Sequential -> {
+                        onClick {
+                            MusicService.offer(PlayerAction.ChangeOrderMode(
+                                MusicPlayer.OrderMode.Shuffle()
+                            ))
+                        }
+                        imageResource = R.drawable.ic_repeat
+                    }
+                    is MusicPlayer.OrderMode.Shuffle -> {
+                        onClick {
+                            MusicService.offer(PlayerAction.ChangeOrderMode(
+                                MusicPlayer.OrderMode.Sequential
+                            ))
+                        }
+                        imageResource = R.drawable.ic_shuffle
+                    }
+                }
             }
-
-//            MusicService.instance.combineLatest(
-//                MusicService.instance.switchMap { it.player.queue }
-//            ).consumeEach(UI) { (music, q) ->
-//                val q = q.primary
-//                if (q is RadioQueue) {
-//                    // Option 1: Toggle playing only songs not in your library (or recent history?)
-//                    // Option 2: Thumbs up that adds the current song to the radio seed.
-//                    imageResource = R.drawable.ic_thumb_up
-//                    setColorFilter(Color.DKGRAY)
-//                    onClick {
-//                        given(q.current) { q.addSeed(it) }
-//                        onClick {}
-//                        setColorFilter(Color.WHITE)
-//                    }
-//                } else {
-//                    imageResource = R.drawable.ic_shuffle
-//                    onClick {
-//                        val mode = music.player.orderMode
-//                        if (mode == MusicPlayer.OrderMode.SEQUENTIAL) {
-//                            task { music.player.orderMode = MusicPlayer.OrderMode.SHUFFLE }
-//                            setColorFilter(Color.WHITE)
-//                        } else {
-//                            task { music.player.orderMode = MusicPlayer.OrderMode.SEQUENTIAL }
-//                            setColorFilter(Color.DKGRAY)
-//                        }
-//                    }
-//                }
-//            }
         }
 
         bindBackgroundColor(this, seeker, playButton, arrayOf(syncBtn, prevBtn, nextBtn, shuffleBtn))

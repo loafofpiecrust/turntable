@@ -251,7 +251,7 @@ private fun Menu.prepareOptions(scope: CoroutineScope, context: Context, album: 
     menuItem(R.string.album_shuffle, R.drawable.ic_shuffle, showIcon = false).onClick(Dispatchers.Default) {
         val tracks = album.resolveTracks()
         if (tracks.isNotEmpty()) {
-            MusicService.offer(PlayerAction.PlaySongs(tracks, mode = MusicPlayer.OrderMode.SHUFFLE))
+            MusicService.offer(PlayerAction.PlaySongs(tracks, mode = MusicPlayer.OrderMode.Shuffle()))
         }
     }
 

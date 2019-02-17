@@ -5,6 +5,7 @@ import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.util.with
 import com.loafofpiecrust.turntable.util.without
 import kotlinx.android.parcel.Parcelize
+import kotlin.random.Random
 
 @Parcelize
 data class CombinedQueue(
@@ -107,7 +108,7 @@ data class CombinedQueue(
         }
     }
 
-    fun shuffled(): CombinedQueue {
+    fun shuffled(random: Random): CombinedQueue {
         val p = if (primary is StaticQueue) {
             val current = primary.list[primary.position]
             val primaryWithoutCurrent = primary.list.without(primary.position).shuffled()

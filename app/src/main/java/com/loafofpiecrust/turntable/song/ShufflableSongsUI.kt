@@ -40,7 +40,7 @@ class ShufflableSongsUI: UIComponent(), Parcelable {
         menuItem(R.string.shuffle_all, R.drawable.ic_shuffle, showIcon = true).onClick {
             val songs = songsUI.songs.openSubscription().first()
             MusicService.offer(
-                PlayerAction.PlaySongs(songs, mode = MusicPlayer.OrderMode.SHUFFLE)
+                PlayerAction.PlaySongs(songs, mode = MusicPlayer.OrderMode.Shuffle())
             )
         }
     }

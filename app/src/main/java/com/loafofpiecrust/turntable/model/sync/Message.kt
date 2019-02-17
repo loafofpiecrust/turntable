@@ -71,6 +71,7 @@ sealed class PlayerAction: Message, Parcelable {
 
     /**
      * TODO: Remove dependency on MusicService to directly use MusicPlayer
+     * @return whether this operation was successful.
      */
     abstract fun MusicService.enact(): Boolean
 
@@ -155,14 +156,23 @@ sealed class PlayerAction: Message, Parcelable {
     }
 
     @Parcelize
-//    @Serializable
     data class PlaySongs(
         val songs: List<Song>,
         val position: Int = 0,
-        val mode: MusicPlayer.OrderMode = MusicPlayer.OrderMode.SEQUENTIAL
+        val mode: MusicPlayer.OrderMode = MusicPlayer.OrderMode.Sequential
     ) : PlayerAction() {
         override fun MusicService.enact(): Boolean {
             player.playSongs(songs, position, mode)
+            return true
+        }
+    }
+
+    @Parcelize
+    data class ChangeOrderMode(
+        val mode: MusicPlayer.OrderMode
+    ) : PlayerAction() {
+        override fun MusicService.enact(): Boolean {
+            player.orderMode = mode
             return true
         }
     }
