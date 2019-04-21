@@ -106,7 +106,7 @@ class SongPlaylist(
         return when {
             sideIsFull(sideIdx) -> AddResult.SIDE_FULL
             side.any { it.song.id == song.id } -> AddResult.DUPLICATE_SONG
-            else -> {
+            else -> runBlocking {
                 modify()
                 val track = Track(song)
                 if (sideCount <= sideIdx) {
@@ -120,10 +120,12 @@ class SongPlaylist(
     }
 
     fun addSide(startingTrack: Song? = null) {
-        sides putsMapped {
-            it.add(startingTrack?.let {
-                immutableListOf(Track(it))
-            } ?: immutableListOf())
+        runBlocking {
+            sides putsMapped {
+                it.add(startingTrack?.let {
+                    immutableListOf(Track(it))
+                } ?: immutableListOf())
+            }
         }
     }
 
@@ -139,34 +141,38 @@ class SongPlaylist(
 
     fun remove(songId: SongId) {
         modify()
-        sides.putsMapped { sides ->
-            for ((sideIdx, side) in sides.withIndex()) {
-                val index = side.indexOfFirst { it.song.id == songId }
-                if (index != -1) {
-                    return@putsMapped sides.set(sideIdx, side.removeAt(index))
+        runBlocking {
+            sides.putsMapped { sides ->
+                for ((sideIdx, side) in sides.withIndex()) {
+                    val index = side.indexOfFirst { it.song.id == songId }
+                    if (index != -1) {
+                        return@putsMapped sides.set(sideIdx, side.removeAt(index))
+                    }
                 }
+                sides
             }
-            sides
         }
     }
 
     fun move(songId: SongId, replacing: SongId) {
         modify()
-        sides.putsMapped { sides ->
-            val result = sides.map { it.toMutableList() }
+        runBlocking {
+            sides.putsMapped { sides ->
+                val result = sides.map { it.toMutableList() }
 
-            // find the list and index of the destination.
-            val (destSide, destIdx) = result.lazy.map {
-                it to it.indexOfFirst { replacing == it.song.id }
-            }.first { it.second != -1 }
-            val (srcSide, srcIdx) = result.lazy.map {
-                it to it.indexOfFirst { songId == it.song.id }
-            }.first { it.second != -1 }
+                // find the list and index of the destination.
+                val (destSide, destIdx) = result.lazy.map {
+                    it to it.indexOfFirst { replacing == it.song.id }
+                }.first { it.second != -1 }
+                val (srcSide, srcIdx) = result.lazy.map {
+                    it to it.indexOfFirst { songId == it.song.id }
+                }.first { it.second != -1 }
 
-            val src = srcSide.removeAt(srcIdx)
-            destSide.add(destIdx, src.copy(lastMovedTime = lastModifiedTime))
+                val src = srcSide.removeAt(srcIdx)
+                destSide.add(destIdx, src.copy(lastMovedTime = lastModifiedTime))
 
-            result.lazy.map { it.toImmutableList() }.asIterable().toImmutableList()
+                result.lazy.map { it.toImmutableList() }.asIterable().toImmutableList()
+            }
         }
     }
 
@@ -260,7 +266,7 @@ class SongPlaylist(
     /**
      * @return true if merging was necessary
      */
-    internal fun mergeWith(remote: SongPlaylist): Boolean {
+    internal suspend fun mergeWith(remote: SongPlaylist): Boolean {
         // If we've synced since the remote was last modified,
         // we don't need to do anything
 //            return false

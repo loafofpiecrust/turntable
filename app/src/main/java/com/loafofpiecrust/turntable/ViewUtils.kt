@@ -25,6 +25,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.channels.first
 import org.jetbrains.anko.alert
 import org.jetbrains.anko.wrapContent
 import java.util.*
@@ -415,9 +416,10 @@ infix fun <T> SendChannel<T>.puts(value: T) {
     offer(value)
 }
 
-inline infix fun <T> ConflatedBroadcastChannel<T>.putsMapped(transform: (T) -> T) {
+suspend inline infix fun <T> ConflatedBroadcastChannel<T>.putsMapped(transform: (T) -> T) {
+    val prev = this.valueOrNull ?: this.openSubscription().first()
     synchronized(this) {
-        offer(transform(this.value))
+        offer(transform(prev))
     }
 }
 

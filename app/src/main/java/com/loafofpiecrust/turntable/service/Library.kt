@@ -197,11 +197,11 @@ object Library: CoroutineScope by GlobalScope {
         }
 
 
-    fun addAlbumExtras(meta: AlbumMetadata) {
+    suspend fun addAlbumExtras(meta: AlbumMetadata) {
         albumCovers putsMapped { it.put(meta.id, meta) }
     }
 
-    fun addArtistExtras(meta: ArtistMetadata) {
+    suspend fun addArtistExtras(meta: ArtistMetadata) {
         artistMeta putsMapped { it.put(meta.id, meta) }
     }
 
@@ -221,19 +221,15 @@ object Library: CoroutineScope by GlobalScope {
             if (cached != null && (cached.artworkUri != null || (now - cached.lastUpdated) <= METADATA_UPDATE_FREQ)) {
                 continue
             }
-
-            // This album definitely has no cover in cache
-            // since it would've been grabbed in the album grouping process and assigned to the album instance.
-            // So, we can assume here that we need to look online for this album artwork.
-            val updateKey = {
-                albumCovers putsMapped { it.put(key.id, key) }
-            }
-
+            
             val artwork = Repositories.fullArtwork(album, true)
             if (artwork != null) {
                 addAlbumExtras((AlbumMetadata(album.id, artwork)))
             } else {
-                updateKey()
+                // This album definitely has no cover in cache
+                // since it would've been grabbed in the album grouping process and assigned to the album instance.
+                // So, we can assume here that we need to look online for this album artwork.
+                albumCovers putsMapped { it.put(key.id, key) }
             }
 
             // Last.FM has an API limit of 1 request per second

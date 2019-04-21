@@ -152,9 +152,11 @@ class PlaylistsFragment: BaseFragment() {
 
         override fun canMoveItem(index: Int) = true
         override fun onItemMove(fromIdx: Int, toIdx: Int) {
-            UserPrefs.playlists putsMapped { playlists ->
-                val pl = playlists[fromIdx]
-                playlists.removeAt(fromIdx).add(toIdx, pl)
+            runBlocking {
+                UserPrefs.playlists putsMapped { playlists ->
+                    val pl = playlists[fromIdx]
+                    playlists.removeAt(fromIdx).add(toIdx, pl)
+                }
             }
         }
 
