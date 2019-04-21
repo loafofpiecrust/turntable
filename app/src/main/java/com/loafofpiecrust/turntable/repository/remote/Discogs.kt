@@ -509,28 +509,39 @@ object Discogs: Repository {
         val res = apiRequest("https://api.discogs.com/$id")
         val albumTitle = res["title"].string
         val artistName = cleanArtistName(res["artists"][0]["name"].string)
-        return res["tracklist"].array.map { it.obj }.mapIndexed { idx, it ->
-            val title = it["title"].string
-            val durationParts = it["duration"].nullString?.split(':')
+        val albumYear = res["year"].nullInt ?: 0
+        var currentDisc = 0
+        var currentTrackNumber = 0
+        return res["tracklist"].array.map { it.obj }.mapNotNull { track ->
+            val title = track["title"].string
+            val durationParts = track["duration"].nullString?.split(':')
             val duration = if (durationParts != null && durationParts.size > 1) {
                 (durationParts[0].toInt() * 60 + durationParts[1].toInt()) * 1000
             } else 0
 
-            Song(
-                SongId(
-                    title,
-                    AlbumId(albumTitle, artistName),
-                    features = if (it.has("extraartists")) {
-                        it["extraartists"].array.map {
-                            ArtistId(it["name"].string, it["anv"].nullString)
-                        }
-                    } else listOf()
-                ),
-                track = idx + 1,
-                disc = 1,
-                duration = duration,
-                year = 0
-            )
+            val ty = track["type_"].nullString
+            if (ty == "heading") {
+                currentDisc += 1
+                currentTrackNumber = 0
+                null
+            } else {
+                currentTrackNumber += 1
+                Song(
+                    SongId(
+                        title,
+                        AlbumId(albumTitle, artistName),
+                        features = if (track.has("extraartists")) {
+                            track["extraartists"].array.map {
+                                ArtistId(it["name"].string, it["anv"].nullString)
+                            }
+                        } else listOf()
+                    ),
+                    track = currentTrackNumber,
+                    disc = maxOf(1, currentDisc),
+                    duration = duration,
+                    year = albumYear
+                )
+            }
         }
     }
 
