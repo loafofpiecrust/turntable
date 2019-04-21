@@ -73,49 +73,47 @@ class PlaylistTests {
     }
 
 
-    @Test fun `serialization`() {
-        val mixtape = MixTape(
-            PlaylistId("For My Love", user),
-            MixTape.Type.C60,
-            Color.BLUE
+    @Test fun `serialization`() = runBlocking<Unit> {
+        val mixtape = SongPlaylist(
+            PlaylistId("For My Love", user)
         )
         val serd = App.gson.toJson(mixtape)
         val deserd: MixTape = App.gson.fromJson(serd)
-        assert(deserd.tracks).toBe(mixtape.tracks)
+        assert(deserd.tracks).toBe(mixtape.resolveTracks())
     }
 
-    @Test fun `basic mixtape`() {
-        val mixtape = MutableMixtape(
-            PlaylistId("For My Love", user),
-            MixTape.Type.C60,
-            Color.BLUE
-        )
-        mixtape.addAll(0, listOf(songs[0]))
+//    @Test fun `basic mixtape`() {
+//        val mixtape = MutableMixtape(
+//            PlaylistId("For My Love", user),
+//            MixTape.Type.C60,
+//            Color.BLUE
+//        )
+//        mixtape.addAll(0, listOf(songs[0]))
+//
+//        // TODO: Make this international? Google what Japanse tape sides were called.
+//        val sides = mixtape.type.sideNames
+//        expect(sides).contains.inOrder.only.entries(
+//            { contains("A") },
+//            { contains("B") }
+//        )
+//        expect(mixtape.type.totalLength).toBe(60)
+//
+//        val side1 = runBlocking { mixtape.tracksOnSide(0).firstOrNull() }
+//        expect(side1!!).toBe(listOf(songs[0]))
+//    }
 
-        // TODO: Make this international? Google what Japanse tape sides were called.
-        val sides = mixtape.type.sideNames
-        expect(sides).contains.inOrder.only.entries(
-            { contains("A") },
-            { contains("B") }
-        )
-        expect(mixtape.type.totalLength).toBe(60)
-
-        val side1 = runBlocking { mixtape.tracksOnSide(0).firstOrNull() }
-        expect(side1!!).toBe(listOf(songs[0]))
-    }
-
-    @Test fun operations() = runBlocking<Unit> {
-        val playlist = CollaborativePlaylist(PlaylistId("All Good Things...", user), Color.GREEN)
-        expect(playlist.add(songs[1])).toBe(true)
-        expect(playlist.add(songs[0])).toBe(true)
-        delay(10)
-        expect(playlist.tracks).toBe(listOf(songs[1], songs[0]))
-        playlist.move(1, 0)
-        playlist.remove(0)
-        expect(playlist.tracks).toBe(listOf(songs[1]))
-        playlist.remove(0)
-        expect(playlist.tracks).isEmpty()
-    }
+//    @Test fun operations() = runBlocking<Unit> {
+//        val playlist = CollaborativePlaylist(PlaylistId("All Good Things...", user), Color.GREEN)
+//        expect(playlist.add(songs[1])).toBe(true)
+//        expect(playlist.add(songs[0])).toBe(true)
+//        delay(10)
+//        expect(playlist.tracks).toBe(listOf(songs[1], songs[0]))
+//        playlist.move(1, 0)
+//        playlist.remove(0)
+//        expect(playlist.tracks).toBe(listOf(songs[1]))
+//        playlist.remove(0)
+//        expect(playlist.tracks).isEmpty()
+//    }
 
     @Test fun `general parallel add`() = runBlocking<Unit> {
         val original = SongPlaylist(id)
@@ -128,11 +126,11 @@ class PlaylistTests {
         val origMerged = copyObj(original)
         origMerged.mergeWith(branch)
         delay(2)
-        expect(origMerged.tracks).toBe(listOf(redHouse, meOnTheBeach))
+        expect(origMerged.resolveTracks()).toBe(listOf(redHouse, meOnTheBeach))
 
         branch.mergeWith(original)
         delay(2)
-        expect(branch.tracks).toBe(origMerged.tracks)
+        expect(branch.resolveTracks()).toBe(origMerged.resolveTracks())
     }
 
     @Test fun `add, remote remove`() = runBlocking<Unit> {
@@ -147,7 +145,7 @@ class PlaylistTests {
         val needed = original.mergeWith(branch)
         delay(2)
         expect(needed).toBe(true)
-        expect(original.tracks).isEmpty()
+        expect(original.resolveTracks()).isEmpty()
     }
 
     @Test fun general() = runBlocking<Unit> {
@@ -156,7 +154,7 @@ class PlaylistTests {
         original.add(cloverSaloon)
         // upload it to the database
         original.updateSync()
-        expect(original.tracks).toBe(listOf(cloverSaloon))
+        expect(original.resolveTracks()).toBe(listOf(cloverSaloon))
 
         // Another user starts editing the playlist.
         val remote = copyObj(original)
@@ -164,16 +162,16 @@ class PlaylistTests {
         remote.remove(cloverSaloon.id)
         // they sync with the database
         remote.updateSync()
-        expect(remote.tracks).toBe(listOf(meOnTheBeach))
+        expect(remote.resolveTracks()).toBe(listOf(meOnTheBeach))
 
         original.add(redHouse)
-        expect(original.tracks).toBe(listOf(cloverSaloon, redHouse))
+        expect(original.resolveTracks()).toBe(listOf(cloverSaloon, redHouse))
 
         // Original user merges with remote version
         original.mergeWith(remote)
         delay(2)
-        print(original.tracks)
-        expect(original.tracks).toBe(listOf(meOnTheBeach, redHouse))
+        print(original.resolveTracks())
+        expect(original.resolveTracks()).toBe(listOf(meOnTheBeach, redHouse))
     }
 
     @Test fun `general with moves`() = runBlocking<Unit> {
@@ -184,27 +182,27 @@ class PlaylistTests {
         original.add(meOnTheBeach)
         // sync
         original.updateSync()
-        expect(original.tracks).toBe(listOf(cloverSaloon, meOnTheBeach))
+        expect(original.resolveTracks()).toBe(listOf(cloverSaloon, meOnTheBeach))
 
         // branch
         val branch = copyObj(original)
         branch.move(meOnTheBeach.id, cloverSaloon.id)
-        expect(branch.tracks).toBe(listOf(meOnTheBeach, cloverSaloon))
+        expect(branch.resolveTracks()).toBe(listOf(meOnTheBeach, cloverSaloon))
 
         delay(2)
 
         original.add(redHouse)
-        expect(original.tracks).toBe(listOf(cloverSaloon, meOnTheBeach, redHouse))
+        expect(original.resolveTracks()).toBe(listOf(cloverSaloon, meOnTheBeach, redHouse))
 
         delay(2)
 
         val branchMerged = copyObj(branch)
         branchMerged.mergeWith(original)
         delay(2)
-        expect(branchMerged.tracks).toBe(listOf(meOnTheBeach, cloverSaloon, redHouse))
+        expect(branchMerged.resolveTracks()).toBe(listOf(meOnTheBeach, cloverSaloon, redHouse))
 
         original.mergeWith(branch)
         delay(2)
-        expect(original.tracks).toBe(branchMerged.tracks)
+        expect(original.resolveTracks()).toBe(branchMerged.resolveTracks())
     }
 }

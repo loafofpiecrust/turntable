@@ -13,6 +13,7 @@ import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.parMap
+import com.loafofpiecrust.turntable.player.MusicPlayer
 import de.javakaffee.kryoserializers.dexx.ListSerializer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitAll
@@ -154,7 +155,10 @@ class SerializationTests {
 
     @Test
     fun `polymorphic message`() {
-        val msg: Message = PlayerAction.PlaySongs(listOf(song))
+        val msg: Message = PlayerAction.PlaySongs(
+            listOf(song),
+            mode = MusicPlayer.OrderMode.Shuffle()
+        )
         val ser = App.gson.typedToJson(msg)
         println(ser)
         val deser: Message = App.gson.fromJson(ser)

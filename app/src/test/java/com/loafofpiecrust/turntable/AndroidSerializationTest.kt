@@ -54,12 +54,12 @@ class AndroidSerializationTest {
         expect(deser).toBe(thing)
     }
 
-    @Test fun polymorphicJson() {
-        val thing: Message = PlayerAction.QueuePosition(2)
-        val json = JSON().apply { install(TypedJson.module) }
-        val ser = json.stringify(thing)
-        println(ser)
-        val deser = json.parse<Message>(ser)
-        expect(deser).toBe(thing)
-    }
+//    @Test fun polymorphicJson() {
+//        val thing: Message = PlayerAction.QueuePosition(2)
+//        val json = JSON().apply { install(TypedJson.module) }
+//        val ser = json.stringify(thing)
+//        println(ser)
+//        val deser = json.parse<Message>(ser)
+//        expect(deser).toBe(thing)
+//    }
 }

@@ -19,7 +19,9 @@ package com.loafofpiecrust.turntable.serialize
 
 
 import com.github.salomonbrys.kotson.jsonObject
+import com.github.salomonbrys.kotson.nullString
 import com.github.salomonbrys.kotson.obj
+import com.github.salomonbrys.kotson.string
 import com.google.gson.Gson
 import com.google.gson.JsonParseException
 import com.google.gson.TypeAdapter
@@ -181,34 +183,50 @@ class RuntimeTypeAdapterFactory<T: Any> private constructor(
     ) : TypeAdapter<R>() {
         @Throws(IOException::class)
         override fun read(input: JsonReader): R {
-            val jsonElement = Streams.parse(input).obj
-            val labelJsonElement = jsonElement[typeFieldName]
-                ?: throw JsonParseException(
-                    "cannot deserialize $baseType without a field named $typeFieldName"
-                )
+            val jsonElement = Streams.parse(input)
+            return if (jsonElement.isJsonPrimitive) {
+                val jsonString = jsonElement.string
+                // singleton
+                val subType = labelToSubtype[jsonString]
+                val singleton = try {
+                    subType?.objectInstance
+            //                subType?.java?.getDeclaredField("INSTANCE")?.get(null)
+                } catch (e: Exception) {
+                    null
+                } ?: error("String value invalid for non-singleton")
 
-            val label = labelJsonElement.asString
-            val delegate = labelToDelegate[label] as? TypeAdapter<R>
-            // registration requires that subtype extends T
-                ?: throw JsonParseException(
-                    "cannot deserialize $baseType subtype named $label; did you forget to register a subtype?"
-                )
-
-            val subType = labelToSubtype[label]
-            val singleton = try {
-                subType?.java?.getDeclaredField("INSTANCE")?.get(null)
-            } catch (e: Exception) {
-                null
-            }
-
-            return if (singleton != null) {
                 singleton as R
             } else {
-                val valueElement = if (maintainType) {
-                    jsonElement
-                } else jsonElement["value"]
+                val jsonObject = jsonElement.obj
+                val labelJsonElement = jsonObject[typeFieldName]
+                    ?: throw JsonParseException(
+                        "cannot deserialize $baseType without a field named $typeFieldName"
+                    )
 
-                delegate.fromJsonTree(valueElement)
+                val label = labelJsonElement.asString
+                val delegate = labelToDelegate[label] as? TypeAdapter<R>
+                // registration requires that subtype extends T
+                    ?: throw JsonParseException(
+                        "cannot deserialize $baseType subtype named $label; did you forget to register a subtype?"
+                    )
+
+                val subType = labelToSubtype[label]
+                val singleton = try {
+                    subType?.objectInstance
+//                subType?.java?.getDeclaredField("INSTANCE")?.get(null)
+                } catch (e: Exception) {
+                    null
+                }
+
+                if (singleton != null) {
+                    singleton as R
+                } else {
+                    val valueElement = if (maintainType) {
+                        jsonObject
+                    } else jsonObject["value"]
+
+                    delegate.fromJsonTree(valueElement)
+                }
             }
         }
 
