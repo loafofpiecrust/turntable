@@ -1,5 +1,6 @@
 *.iml
 *.jks
+*.hprof
 
 .gradle
 /local.properties
