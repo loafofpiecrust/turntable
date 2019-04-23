@@ -203,7 +203,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         // if that fails the 2nd time, skip to the next track in the MediaSource.
         if (error.type == ExoPlaybackException.TYPE_SOURCE) {
             App.instance.toast("Song not available to stream")
-            if (hasNext) {
+            if (hasNext && _isPlaying.value) {
                 // to retry, we have to rebuild the MediaSource
                 playNext()
                 prepareSource()
