@@ -2,6 +2,8 @@
 <resources>
     <string name="song_title_ft">%1$s ft. %2$s</string>
 
+    <string name="song_not_available">Song not available to stream.</string>
+
     <!-- Menu item to queue at the end of "Next Up" -->
     <string name="queue_last">Queue</string>
     <!-- Menu item to queue right after the current song -->
