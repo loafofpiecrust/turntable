@@ -11,8 +11,11 @@ import android.content.IntentFilter
 import android.graphics.Color
 import android.media.AudioManager
 import android.media.AudioManager.*
+import android.net.Uri
 import android.net.wifi.WifiManager
+import android.os.Bundle
 import android.os.PowerManager
+import android.os.ResultReceiver
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v7.graphics.Palette
@@ -143,7 +146,10 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
             })
         }
     }
-//    private var sessionConnector: MediaSessionConnector? = null
+
+    private val sessionConnector: MediaSessionConnector by lazy {
+        MediaSessionConnector(mediaSession)
+    }
 
     private var isFocused = false
 
@@ -181,10 +187,8 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
     override fun onCreate() {
         super.onCreate()
 
-//        launch(MusicPlayer.THREAD_CONTEXT) {
-            //        runBlocking(MusicPlayer.THREAD_CONTEXT) {
         player = MusicPlayer(this@MusicService)
-        val sessionConnector = MediaSessionConnector(mediaSession)
+
         sessionConnector.setPlayer(player.player, null)
         sessionConnector.setQueueNavigator(object: TimelineQueueNavigator(mediaSession) {
             override fun getMediaDescription(player: Player, windowIndex: Int): MediaDescriptionCompat {
@@ -199,55 +203,53 @@ class MusicService : BaseService(), OnAudioFocusChangeListener {
                     .build()
             }
         })
-//        }
 
-            launch(Dispatchers.Default) {
-                player.currentSong.distinctInstanceSeq().consumeEach { song ->
-                    withContext(Dispatchers.Main) {
-                        showNotification(song, player.isPlaying.first())
-                    }
+        launch(Dispatchers.Default) {
+            player.currentSong.distinctInstanceSeq().consumeEach { song ->
+                withContext(Dispatchers.Main) {
+                    showNotification(song, player.isPlaying.first())
                 }
             }
+        }
 
-            launch(Dispatchers.Default) {
-                player.isPlaying.skip(1).distinctSeq().consumeEach { isPlaying ->
-                    withContext(Dispatchers.Main) {
-                        showNotification(player.currentSong.first(), isPlaying)
-                    }
+        launch(Dispatchers.Default) {
+            player.isPlaying.skip(1).distinctSeq().consumeEach { isPlaying ->
+                withContext(Dispatchers.Main) {
+                    showNotification(player.currentSong.first(), isPlaying)
                 }
             }
+        }
 
-            launch(Dispatchers.Default) {
-                player.isPlaying.skip(1)
-                    .distinctSeq()
-                    .consumeEach { isPlaying ->
-                        if (player.isStreaming) {
-                            // Playing remote song
-                            if (isPlaying) {
-                                wifiLock.acquire()
-                            } else if (wifiLock.isHeld) {
-                                wifiLock.release()
-                            }
-                        }
+        launch(Dispatchers.Default) {
+            player.isPlaying.skip(1)
+                .distinctSeq()
+                .consumeEach { isPlaying ->
+                    if (player.isStreaming) {
+                        // Playing remote song
                         if (isPlaying) {
+                            wifiLock.acquire()
+                        } else if (wifiLock.isHeld) {
+                            wifiLock.release()
+                        }
+                    }
+                    if (isPlaying) {
 //                        val buffer = player.currentBufferState
 //                        if (buffer != null) {
 //                            wakeLock.acquire(buffer.duration - buffer.position)
 //                        } else {
-                            wakeLock.acquire()
+                        wakeLock.acquire()
 //                        }
-                        } else if (wakeLock.isHeld) {
-                            wakeLock.release()
-                        }
+                    } else if (wakeLock.isHeld) {
+                        wakeLock.release()
                     }
-            }
+                }
+        }
 
-            registerReceiver(noisyReceiver, IntentFilter(ACTION_AUDIO_BECOMING_NOISY))
-            registerReceiver(plugReceiver, IntentFilter(ACTION_HEADSET_PLUG))
+        registerReceiver(noisyReceiver, IntentFilter(ACTION_AUDIO_BECOMING_NOISY))
+        registerReceiver(plugReceiver, IntentFilter(ACTION_HEADSET_PLUG))
 
-            // once we're good and initialized, tell everyone we exist!
-            _instance puts WeakReference(this@MusicService)
-//        }
+        // once we're good and initialized, tell everyone we exist!
+        _instance puts WeakReference(this@MusicService)
     }
 
     override fun onDestroy() {

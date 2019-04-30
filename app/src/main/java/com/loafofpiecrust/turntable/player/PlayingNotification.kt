@@ -24,7 +24,7 @@ class PlayingNotification(private val service: MusicService) {
     }
 
     fun show(song: Song?, playing: Boolean) {
-        updateSessionMeta(song, playing)
+//        updateSessionMeta(song, playing)
         build(song, playing, lastSongColor)
         if (song != null && playing) {
             // Load color
