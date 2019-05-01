@@ -340,21 +340,9 @@ object Discogs: Repository {
         var masters = releases.filter { it.second == "master" }
             .also { releases.removeAll(it) }
             .map { it.first }
-        var totalMasterReqs = 0
+        val totalMasterReqs = masters.size
         masters = masters.parMap { master ->
             val subRels = run {
-//            val subRels = releases.filter {
-//                it.first.uuid.displayName == master.uuid.displayName
-//            }.let {
-//                if (it.isNotEmpty()) {
-//                    synchronized(releases) {
-//                        releases.removeAll(it)
-//                    }
-//                    it
-//                } else {
-                    synchronized(releases) {
-                        totalMasterReqs += 1
-                    }
                 val det = master.remoteId as AlbumDetails
                     val res = apiRequest(
                         "https://api.discogs.com/${det.id}/versions",
@@ -363,9 +351,6 @@ object Discogs: Repository {
                 releasesToAlbums(null,
                     res["versions"].array.map { it.obj }
                 )
-//                    it
-//                }
-//            }
             }.map { it.first }
 
             val common = subRels.groupingBy { it.type }

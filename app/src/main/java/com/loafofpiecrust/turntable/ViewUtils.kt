@@ -423,15 +423,6 @@ suspend inline infix fun <T> ConflatedBroadcastChannel<T>.putsMapped(transform: 
     }
 }
 
-//infix fun <T> BehaviorSubject<List<T>>.appends(toAdd: T) {
-//    synchronized(this) {
-//        onNext(if (hasValue()) {
-//            this.value + toAdd
-//        } else {
-//            listOf(toAdd)
-//        })
-//    }
-//}
 
 
 infix fun <T> ConflatedBroadcastChannel<List<T>>.appends(toAdd: T) {

@@ -156,8 +156,7 @@ object Spotify: Repository {
                 header("Authorization", "Basic $authKey")
                 urlEncodedFormBody = mapOf("grant_type" to "client_credentials")
             }
-//            task(UI) { println("recs: res = ${t.text}") }
-//            val res = JsonParser().parse(t.text)
+
             accessToken = json["access_token"].nullString
             val lifespan = json["expires_in"].long * 1000
             tokenExpiry = System.currentTimeMillis() + lifespan

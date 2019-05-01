@@ -32,9 +32,8 @@ abstract class SectionedRecyclerAdapter<T, R: Comparable<R>, VH: SectionedViewHo
 
     protected var groupedData: List<Pair<R, List<T>>> = listOf()
 
-    override fun getItemCount(section: Int): Int = run {
+    override fun getItemCount(section: Int): Int =
         groupedData[section].second.size
-    }
 
     override fun getSectionCount(): Int = groupedData.size
 
@@ -52,11 +51,11 @@ abstract class SectionedRecyclerAdapter<T, R: Comparable<R>, VH: SectionedViewHo
 
         // TODO: Provide better diffing
         /// compare existence
-        override fun areItemsTheSame(oldIdx: Int, newIdx: Int)
-            = itemsSame(old[oldIdx], new[newIdx], oldIdx, newIdx)
+        override fun areItemsTheSame(oldIdx: Int, newIdx: Int) =
+            itemsSame(old[oldIdx], new[newIdx], oldIdx, newIdx)
 
-        override fun areContentsTheSame(oldIdx: Int, newIdx: Int) // compare metadata
-            = contentsSame(old[oldIdx], new[newIdx], oldIdx, newIdx)
+        override fun areContentsTheSame(oldIdx: Int, newIdx: Int) = // compare metadata
+            contentsSame(old[oldIdx], new[newIdx], oldIdx, newIdx)
     }
 
     open fun updateData(newData: List<T>, cb: () -> Unit = {}) {
@@ -96,34 +95,6 @@ abstract class SectionedRecyclerAdapter<T, R: Comparable<R>, VH: SectionedViewHo
             }
         }
     } }
-
-    fun replaceData(newData: List<T>) {
-//        val newSize = newData.size
-//        val prevSize = data.size
-        synchronized(this) {
-            data = newData
-            notifyDataSetChanged()
-        }
-//        if (newSize <= 0) {
-//            if (prevSize > 0) {
-//                notifyItemRangeRemoved(0, prevSize)
-//            } // otherwise, was empty and still is
-//        } else {
-//            when {
-//                newSize == prevSize -> {
-//                    notifyItemRangeChanged(0, newSize)
-//                }
-//                newSize < prevSize -> {
-//                    notifyItemRangeChanged(0, newSize)
-//                    notifyItemRangeRemoved(newSize, prevSize - newSize)
-//                }
-//                newSize > prevSize -> {
-//                    if (prevSize > 0) notifyItemRangeChanged(0, prevSize)
-//                    notifyItemRangeInserted(prevSize, newSize - prevSize)
-//                }
-//            }
-//        }
-    }
 }
 
 
