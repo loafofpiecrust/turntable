@@ -11,36 +11,26 @@ import com.amazonaws.auth.CognitoCachingCredentialsProvider
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable
-import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.KeyPair
 import com.amazonaws.regions.Region
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
-import com.amazonaws.services.dynamodbv2.model.AttributeValue
 import com.frostwire.jlibtorrent.SessionManager
 import com.frostwire.jlibtorrent.TorrentHandle
 import com.frostwire.jlibtorrent.TorrentInfo
-import com.github.ajalt.timberkt.Timber
-import com.github.salomonbrys.kotson.nullObj
-import com.github.salomonbrys.kotson.string
-import com.google.gson.JsonObject
-import com.loafofpiecrust.turntable.*
-import com.loafofpiecrust.turntable.album.YouTubeFullAlbum
+import com.loafofpiecrust.turntable.App
+import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.artist.MusicDownload
+import com.loafofpiecrust.turntable.binarySearchElem
 import com.loafofpiecrust.turntable.model.album.Album
-import com.loafofpiecrust.turntable.model.album.AlbumId
-import com.loafofpiecrust.turntable.model.album.LocalAlbum
 import com.loafofpiecrust.turntable.model.album.selfTitledAlbum
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.model.song.SongId
-import com.loafofpiecrust.turntable.model.song.dbKey
-import com.loafofpiecrust.turntable.serialize.compress
-import com.loafofpiecrust.turntable.serialize.decompress
+import com.loafofpiecrust.turntable.putsMapped
+import com.loafofpiecrust.turntable.repository.remote.StreamCache
 import com.loafofpiecrust.turntable.util.*
 import com.mcxiaoke.koi.ext.addToMediaStore
 import com.mcxiaoke.koi.ext.intValue
 import com.mcxiaoke.koi.ext.stringValue
 import io.ktor.client.features.cookies.cookies
-import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.url
 import io.ktor.client.response.HttpResponse
@@ -48,10 +38,13 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.collections.immutable.immutableListOf
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import org.jetbrains.anko.downloadManager
@@ -60,7 +53,6 @@ import java.io.File
 import java.util.*
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 
 class OnlineSearchService : CoroutineScope by GlobalScope {
@@ -124,51 +116,6 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
         val progress: ReceiveChannel<Int> get() = _progress.openSubscription().distinctSeq()
     }
 
-    sealed class StreamStatus {
-        object Unknown : StreamStatus()
-
-        class Unavailable(
-            timeToLive: Long = STALE_UNAVAILABLE_AGE.toMillis().toLong()
-        ): StreamStatus() {
-            private val expiryDate: Long = System.currentTimeMillis() + timeToLive
-            val isStale: Boolean get() =
-                System.currentTimeMillis() > expiryDate
-        }
-
-        data class Available(
-            val youtubeId: String,
-            val stream: String,
-            val hqStream: String? = null,
-            val expiryDate: Long = System.currentTimeMillis() + STALE_ENTRY_AGE.toMillis().toLong()
-        ): StreamStatus() {
-            val isStale: Boolean get() =
-                System.currentTimeMillis() > expiryDate
-        }
-
-        companion object {
-            fun from(entry: SongDBEntry?): StreamStatus = when {
-                entry == null -> StreamStatus.Unknown
-                entry.youtubeId == null -> StreamStatus.Unavailable()
-                else -> tryOr(StreamStatus.Unknown) {
-                    // TODO: Stop using compression or use platform-independent impl
-                    entry.stream128 = entry.stream128?.decompress()
-                    entry.stream192 = entry.stream192?.decompress()
-
-                    StreamStatus.Available(
-                        entry.youtubeId!!,
-                        entry.stream128!!,
-                        entry.stream192,
-                        if (entry.stream128 != null || entry.stream192 != null) {
-                            entry.expiryDate
-                        } else {
-                            0 // force entries without stream urls, but *with* a videoId to be stale.
-                        }
-                    )
-                }
-            }
-        }
-    }
-
     data class SongDownload(val song: Song, val progress: Double, val id: Long) {
         companion object {
             val COMPARATOR = Comparator<SongDownload> { a, b ->
@@ -186,18 +133,6 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
     val downloads = ArrayList<MusicDownload>()
 
     @DynamoDBTable(tableName = "MusicStreams")
-    data class SongDBEntry(
-        @DynamoDBHashKey(attributeName = "SongId")
-        var id: String,
-        var youtubeId: String?,
-        var expiryDate: Long,
-        var stream128: String? = null,
-        var stream192: String? = null
-    ) {
-        private constructor(): this("", null, 0)
-    }
-
-    @DynamoDBTable(tableName = "MusicStreams")
     data class AlbumDBEntry(
         @DynamoDBHashKey(attributeName = "SongId")
         var id: String,
@@ -209,15 +144,16 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
         var tracks: List<Pair<String, Range<Long>>> = listOf()
     )
 
-
-    val database: AmazonDynamoDBClient by lazy {
-        val credentials = CognitoCachingCredentialsProvider(
+    private val awsCredentials by lazy {
+        CognitoCachingCredentialsProvider(
             App.instance,
             IDENTITY_POOL_ID,
             Regions.US_EAST_2
         )
+    }
 
-        AmazonDynamoDBClient(credentials).apply {
+    val database: AmazonDynamoDBClient by lazy {
+        AmazonDynamoDBClient(awsCredentials).apply {
             setRegion(Region.getRegion(Regions.US_EAST_2))
         }
     }
@@ -660,11 +596,11 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
 class YTExtractor(
     val key: String,
     private val videoId: String,
-    val cont: Continuation<OnlineSearchService.StreamStatus>
+    val cont: Continuation<StreamCache.StreamStatus>
 ) : YouTubeExtractor(App.instance) {
     override fun onExtractionComplete(streams: SparseArray<YtFile>?, meta: VideoMeta?) {
         if (streams == null) {
-            cont.resume(OnlineSearchService.StreamStatus.Unavailable())
+            cont.resume(StreamCache.StreamStatus.Unavailable(key))
             return
         }
 
@@ -679,23 +615,24 @@ class YTExtractor(
 //        val entry = OnlineSearchService.SongDBEntry(key, videoId, System.currentTimeMillis(), low?.url, high?.url)
 //        OnlineSearchService.instance.saveYouTubeStreamUrl(entry)
         if (low?.url != null || high?.url != null) {
-            cont.resume(OnlineSearchService.StreamStatus.Available(
+            cont.resume(StreamCache.StreamStatus.Available(
+                key,
                 videoId,
                 (low?.url ?: high?.url)!!,
                 high?.url
             ))
         } else {
-            cont.resume(OnlineSearchService.StreamStatus.Unavailable())
+            cont.resume(StreamCache.StreamStatus.Unavailable(key))
         }
     }
 
     override fun onCancelled(result: SparseArray<YtFile>?) {
         super.onCancelled(result)
-        cont.resume(OnlineSearchService.StreamStatus.Unavailable())
+        cont.resume(StreamCache.StreamStatus.Unavailable(key))
     }
 
     override fun onCancelled() {
         super.onCancelled()
-        cont.resume(OnlineSearchService.StreamStatus.Unavailable())
+        cont.resume(StreamCache.StreamStatus.Unavailable(key))
     }
 }

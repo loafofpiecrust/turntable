@@ -68,6 +68,7 @@ android {
         buildConfigField("String", "SPOTIFY_ID", SpotifyId)
         buildConfigField("String", "SPOTIFY_SECRET", SpotifySecret)
         buildConfigField("String", "DYNAMODB_POOL_ID", DynamoDBPoolId)
+        buildConfigField("String", "AWS_API_KEY", AmazonApiKey)
     }
 
     buildTypes {
