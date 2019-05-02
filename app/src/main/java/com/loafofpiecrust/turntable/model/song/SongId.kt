@@ -59,7 +59,7 @@ data class SongId(
                 } else null
             }
             res
-        } else name
+        } else name.trim()
     }
 
     companion object {

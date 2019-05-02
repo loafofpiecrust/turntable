@@ -15,6 +15,7 @@ import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.loafofpiecrust.turntable.App
+import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.queue.*
 import com.loafofpiecrust.turntable.model.song.HistoryEntry
 import com.loafofpiecrust.turntable.model.song.Song
@@ -67,7 +68,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         ).setExtractorsFactory(DefaultExtractorsFactory())
     }
 
-    val player = ExoPlayerFactory.newSimpleInstance(
+    val player: SimpleExoPlayer = ExoPlayerFactory.newSimpleInstance(
         ctx,
         DefaultRenderersFactory(ctx),
         DefaultTrackSelector(AdaptiveTrackSelection.Factory(bandwidthMeter)),
@@ -202,8 +203,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         // clear streams and try again
         // if that fails the 2nd time, skip to the next track in the MediaSource.
         if (error.type == ExoPlaybackException.TYPE_SOURCE) {
-            App.instance.toast("Song not available to stream")
-            if (hasNext) {
+            App.instance.toast(R.string.song_not_available)
+            if (hasNext && _isPlaying.value) {
                 // to retry, we have to rebuild the MediaSource
                 playNext()
                 prepareSource()
