@@ -50,7 +50,7 @@ data class ArtistId(
                 } else null
             }
             res
-        } else name
+        } else name.trim()
     }
 
     override fun toString(): String = displayName
