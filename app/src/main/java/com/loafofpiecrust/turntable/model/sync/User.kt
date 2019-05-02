@@ -7,6 +7,7 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable
 import com.github.ajalt.timberkt.Timber
 import com.github.salomonbrys.kotson.string
 import com.google.gson.*
+import com.loafofpiecrust.turntable.md5
 import com.loafofpiecrust.turntable.repository.remote.StreamCache
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.sync.Sync
@@ -36,6 +37,10 @@ data class User(
         if (displayName.isNullOrBlank()) {
             username
         } else displayName!!
+
+    @get:DynamoDBIgnore
+    val profileImageUrl: String get() =
+        "https://www.gravatar.com/avatar/${username.toLowerCase().md5()}?s=100&d=retro"
 
     companion object {
         fun resolve(username: String): User? = run {

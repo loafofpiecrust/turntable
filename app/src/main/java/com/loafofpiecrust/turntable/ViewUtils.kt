@@ -28,6 +28,8 @@ import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.first
 import org.jetbrains.anko.alert
 import org.jetbrains.anko.wrapContent
+import java.math.BigInteger
+import java.security.MessageDigest
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.coroutines.*
@@ -517,4 +519,10 @@ suspend fun <T: Any> Context.selector(
         }
         show()
     }
+}
+
+
+fun String.md5(): String {
+    val md = MessageDigest.getInstance("MD5")
+    return BigInteger(1, md.digest(toByteArray())).toString(16).padStart(32, '0')
 }
