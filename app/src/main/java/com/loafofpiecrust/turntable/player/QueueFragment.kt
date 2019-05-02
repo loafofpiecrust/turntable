@@ -185,10 +185,15 @@ class QueueAdapter(
             } else {
                 track.text = relPos.toString()
             }
+
             val c = if (relPos == 0) {
                 UserPrefs.accentColor.value
             } else {
-                itemView.context.colorAttr(android.R.attr.textColor)
+                val base = itemView.context.colorAttr(android.R.attr.textColor)
+                if (relPos < 0) {
+                    // dim already played tracks
+                    base.withAlpha(0xa9)
+                } else base
             }
 
             mainLine.text = song.id.displayName
