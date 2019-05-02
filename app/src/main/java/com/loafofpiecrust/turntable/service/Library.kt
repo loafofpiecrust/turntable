@@ -325,7 +325,12 @@ object Library: CoroutineScope by GlobalScope {
         }
 
     fun addPlaylist(pl: Playlist) {
-        launch { UserPrefs.playlists putsMapped { it.add(pl) } }
+        val existing = UserPrefs.playlists.valueOrNull?.indexOfFirst { it.id == pl.id }
+        if (existing != null && existing >= 0) {
+            launch { UserPrefs.playlists putsMapped { it.removeAt(existing).add(existing, pl) } }
+        } else {
+            launch { UserPrefs.playlists putsMapped { it.add(pl) } }
+        }
     }
 
     fun cachePlaylist(pl: Playlist) {
