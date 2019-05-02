@@ -228,9 +228,6 @@ dependencies {
     implementation("com.amazonaws:aws-android-sdk-core:$aws_ver") {
         exclude group: 'org.apache.httpcomponents'
     }
-    implementation("com.amazonaws:aws-android-sdk-lambda:$aws_ver") {
-        exclude group: 'org.apache.httpcomponents'
-    }
     implementation("com.amazonaws:aws-android-sdk-ddb:$aws_ver") {
         exclude group: 'org.apache.httpcomponents'
     }
