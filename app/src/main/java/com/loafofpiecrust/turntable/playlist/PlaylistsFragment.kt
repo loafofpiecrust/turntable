@@ -20,6 +20,7 @@ import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.serialize.arg
 import com.loafofpiecrust.turntable.serialize.getValue
 import com.loafofpiecrust.turntable.serialize.setValue
+import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.ui.BaseFragment
@@ -79,7 +80,7 @@ class PlaylistsFragment: BaseFragment() {
     }
 
     private fun loadSpotifyPlaylist(urlText: CharSequence) {
-        val pattern = Regex("^https://open.spotify.com/user/([^/]+)/playlist/([^?]+)")
+        val pattern = Regex("^https://open.spotify.com/user/([^/]+)/playlist/([^?]+).*")
         val url = pattern.find(urlText)
         if (url != null) {
             val userId = url.groupValues[1]
@@ -93,7 +94,7 @@ class PlaylistsFragment: BaseFragment() {
                             val tracks = runBlocking { pl.ok.resolveTracks() }
                             "Loaded playlist $tracks"
                         }
-                        UserPrefs.playlists putsMapped { it.add(pl.ok) }
+                        Library.addPlaylist(pl.ok)
                     }
                     is Result.Error -> launch(Dispatchers.Main) {
                         Timber.e(pl.error) { "Failed to load Spotify playlist" }

@@ -12,12 +12,14 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.repository.remote.Spotify
+import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.util.replayOne
 import com.loafofpiecrust.turntable.util.withReplaced
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.firstOrNull
 import kotlinx.coroutines.channels.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -263,9 +265,9 @@ class CollaborativePlaylist (
 
 
         suspend fun fromSpotifyPlaylist(userId: String, id: String): Result<SongPlaylist, Exception> {
-            try {
+            return try {
                 val playlist = Spotify.getPlaylist(userId, id)
-                return Result.Ok(SongPlaylist(
+                Result.Ok(SongPlaylist(
                     PlaylistId(
                         playlist.name,
                         Sync.selfUser,
@@ -277,7 +279,7 @@ class CollaborativePlaylist (
                     }
                 })
             } catch (e: Exception) {
-                return Result.Error(e)
+                Result.Error(e)
             }
         }
     }

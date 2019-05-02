@@ -1,7 +1,6 @@
 package com.loafofpiecrust.turntable.song
 
 //import com.loafofpiecrust.turntable.service.MusicService2
-import android.graphics.Color
 import android.support.annotation.StringRes
 import android.support.v4.graphics.ColorUtils
 import android.view.View
@@ -16,7 +15,6 @@ import com.loafofpiecrust.turntable.popupMenu
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.util.combineLatest
-import com.loafofpiecrust.turntable.util.getColorCompat
 import com.loafofpiecrust.turntable.util.switchMap
 import com.loafofpiecrust.turntable.views.RecyclerBroadcastAdapter
 import com.loafofpiecrust.turntable.views.RecyclerListItem
