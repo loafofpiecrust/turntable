@@ -35,6 +35,7 @@ inline fun <T> CoroutineScope.broadcastSingle(
 
 @ExperimentalCoroutinesApi
 class ReceiveDeferredChannel<E>(val deferred: Deferred<E>): ReceiveChannel<E> {
+
     private var usedUp = false
 
     override val isClosedForReceive: Boolean
@@ -46,10 +47,8 @@ class ReceiveDeferredChannel<E>(val deferred: Deferred<E>): ReceiveChannel<E> {
     override val onReceiveOrNull: SelectClause1<E?>
         get() = deferred.onAwait
 
-    override fun cancel() {
-        deferred.cancel()
-    }
-    override fun cancel(cause: Throwable?) = deferred.cancel(cause)
+    override fun cancel(cause: Throwable?) = false
+    override fun cancel(cause: CancellationException?) = deferred.cancel(cause)
 
     override fun iterator(): ChannelIterator<E> {
         return object: ChannelIterator<E> {

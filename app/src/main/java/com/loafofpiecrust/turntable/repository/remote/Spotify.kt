@@ -31,6 +31,8 @@ import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -141,30 +143,35 @@ object Spotify: Repository {
             header("Authorization", "Bearer ${login()}")
         }
 
-    @Synchronized
+    private val loginMutex = Mutex()
+
     private suspend fun login(): String {
-        val now = System.currentTimeMillis()
-        if (accessToken != null && now < tokenExpiry) {
+        if (accessToken != null && System.currentTimeMillis() < tokenExpiry) {
             return accessToken!!
         }
 
-        try {
-            val authKey = Base64.encodeToString("$clientId:$clientSecret".toByteArray(), Base64.NO_WRAP)
-            Timber.d { "recs: key = $authKey" }
-            val json = http.post<JsonObject> {
-                url("https://accounts.spotify.com/api/token")
-                header("Authorization", "Basic $authKey")
-                urlEncodedFormBody = mapOf("grant_type" to "client_credentials")
+        loginMutex.withLock {
+            if (accessToken != null && System.currentTimeMillis() < tokenExpiry) {
+                return accessToken!!
             }
-//            task(UI) { println("recs: res = ${t.text}") }
-//            val res = JsonParser().parse(t.text)
-            accessToken = json["access_token"].nullString
-            val lifespan = json["expires_in"].long * 1000
-            tokenExpiry = System.currentTimeMillis() + lifespan
-            return accessToken!!
-        } catch (e: Exception) {
-            Timber.e(e) { "Spotify failed to login" }
-            throw e
+
+            try {
+                val authKey = Base64.encodeToString("$clientId:$clientSecret".toByteArray(), Base64.NO_WRAP)
+                Timber.d { "recs: key = $authKey" }
+                val json = http.post<JsonObject> {
+                    url("https://accounts.spotify.com/api/token")
+                    header("Authorization", "Basic $authKey")
+                    urlEncodedFormBody = mapOf("grant_type" to "client_credentials")
+                }
+
+                accessToken = json["access_token"].nullString
+                val lifespan = json["expires_in"].long * 1000
+                tokenExpiry = System.currentTimeMillis() + lifespan
+                return accessToken!!
+            } catch (e: Exception) {
+                Timber.e(e) { "Spotify failed to login" }
+                throw e
+            }
         }
     }
 
