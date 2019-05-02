@@ -40,14 +40,14 @@ data class User(
 
     @get:DynamoDBIgnore
     val profileImageUrl: String get() =
-        "https://www.gravatar.com/avatar/${username.toLowerCase().md5()}?s=100&d=retro"
+        "https://www.gravatar.com/avatar/${username.md5()}?s=100&d=retro"
 
     companion object {
         fun resolve(username: String): User? = run {
             if (username.isBlank()) return null
 
             val db = OnlineSearchService.instance.dbMapper
-            db.load(User::class.java, username)
+            db.load(User::class.java, username.toLowerCase())
         }
     }
 

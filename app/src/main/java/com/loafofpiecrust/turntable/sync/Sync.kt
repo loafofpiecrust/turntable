@@ -65,7 +65,7 @@ object Sync {
                 selfUser.displayName = it.displayName
                 val email = it.email
                 if (email?.isEmpty() == false) {
-                    selfUser.username = email
+                    selfUser.username = email.toLowerCase()
                 }
             }
         }
