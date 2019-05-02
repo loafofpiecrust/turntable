@@ -68,6 +68,7 @@ android {
         buildConfigField("String", "SPOTIFY_ID", SpotifyId)
         buildConfigField("String", "SPOTIFY_SECRET", SpotifySecret)
         buildConfigField("String", "DYNAMODB_POOL_ID", DynamoDBPoolId)
+        buildConfigField("String", "AWS_API_KEY", AmazonApiKey)
     }
 
     buildTypes {
@@ -225,6 +226,9 @@ dependencies {
 
     // Amazon DynamoDB, has way more space for general storage than Firebase
     implementation("com.amazonaws:aws-android-sdk-core:$aws_ver") {
+        exclude group: 'org.apache.httpcomponents'
+    }
+    implementation("com.amazonaws:aws-android-sdk-lambda:$aws_ver") {
         exclude group: 'org.apache.httpcomponents'
     }
     implementation("com.amazonaws:aws-android-sdk-ddb:$aws_ver") {

@@ -2,9 +2,8 @@ package com.loafofpiecrust.turntable.repository
 
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.repository.local.LocalApi
-import com.loafofpiecrust.turntable.repository.remote.FirebaseStreamFunction
+import com.loafofpiecrust.turntable.repository.remote.YouTube
 import com.loafofpiecrust.turntable.repository.remote.StreamCache
-import com.loafofpiecrust.turntable.tryOr
 
 /**
  * Provides streaming urls for a song.
@@ -20,24 +19,30 @@ object StreamProviders: StreamProvider {
     )
 
     private val REMOTE: Array<StreamProvider> = arrayOf(
-        FirebaseStreamFunction
+        YouTube
     )
 
     override suspend fun sourceForSong(song: Song): Song.Media? {
-        for (provider in LIST) {
-            val source = tryOr(null) { provider.sourceForSong(song) }
-            if (source != null) {
-                return source
-            }
-        }
-        for (provider in REMOTE) {
-            val source = tryOr(null) { provider.sourceForSong(song) }
-            if (source != null) {
-                return source.also {
-                    StreamCache.save(song, it)
+        return try {
+            for (provider in LIST) {
+                val source = provider.sourceForSong(song)
+                if (source != null) {
+                    return source
                 }
             }
+
+            var finalSource: Song.Media? = null
+            for (provider in REMOTE) {
+                val source = provider.sourceForSong(song)
+                if (source != null) {
+                    finalSource = source
+                }
+            }
+
+            StreamCache.save(song, finalSource)
+            finalSource
+        } catch (e: Exception) {
+            null
         }
-        return null
     }
 }

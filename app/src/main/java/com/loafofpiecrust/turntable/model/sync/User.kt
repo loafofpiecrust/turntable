@@ -51,7 +51,7 @@ data class User(
 
         println("sync: saving user info under $username")
         GlobalScope.launch {
-            val db = StreamCache.mapper
+            val db = OnlineSearchService.instance.dbMapper
             try {
                 db.save(this@User)
             } catch (e: Exception) {
