@@ -40,7 +40,7 @@ data class User(
 
     @get:DynamoDBIgnore
     val profileImageUrl: String get() =
-        "https://www.gravatar.com/avatar/${username.md5()}?s=100&d=retro"
+        "https://www.gravatar.com/avatar/${username.md5()}?d=retro"
 
     companion object {
         fun resolve(username: String): User? = run {
