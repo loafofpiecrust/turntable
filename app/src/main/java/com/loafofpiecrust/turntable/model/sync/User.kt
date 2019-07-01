@@ -7,6 +7,7 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable
 import com.github.ajalt.timberkt.Timber
 import com.github.salomonbrys.kotson.string
 import com.google.gson.*
+import com.loafofpiecrust.turntable.md5
 import com.loafofpiecrust.turntable.repository.remote.StreamCache
 import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.sync.Sync
@@ -37,12 +38,16 @@ data class User(
             username
         } else displayName!!
 
+    @get:DynamoDBIgnore
+    val profileImageUrl: String get() =
+        "https://www.gravatar.com/avatar/${username.md5()}?d=retro"
+
     companion object {
         fun resolve(username: String): User? = run {
             if (username.isBlank()) return null
 
             val db = OnlineSearchService.instance.dbMapper
-            db.load(User::class.java, username)
+            db.load(User::class.java, username.toLowerCase())
         }
     }
 

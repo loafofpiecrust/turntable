@@ -8,6 +8,7 @@ import android.provider.ContactsContract
 import android.support.v7.widget.LinearLayoutManager
 import android.view.*
 import android.widget.EditText
+import com.bumptech.glide.Glide
 import com.github.ajalt.timberkt.Timber
 import com.github.florent37.runtimepermission.kotlin.askPermission
 import com.loafofpiecrust.turntable.App
@@ -204,6 +205,13 @@ class FriendAdapter(
         val friend = data[position]
         holder.apply {
             menu.visibility = View.GONE
+
+            coverImage?.let { img ->
+                Glide.with(img)
+                    .load(friend.user.profileImageUrl)
+                    .into(img)
+            }
+
             mainLine.text = friend.user.name
             subLine.text = when (friend.status) {
                 Friend.Status.CONFIRMED -> friend.user.username
