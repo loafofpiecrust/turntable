@@ -3,9 +3,7 @@ package com.loafofpiecrust.turntable.playlist
 import android.content.Context
 import android.graphics.Color
 import android.os.Parcelable
-import android.support.v4.app.DialogFragment
 import android.text.InputType
-import android.transition.Slide
 import android.view.ViewManager
 import android.widget.ArrayAdapter
 import com.jaredrummler.android.colorpicker.ColorPickerDialog

@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.serialize
 
-import com.github.salomonbrys.kotson.registerTypeAdapter
 import com.github.salomonbrys.kotson.typeAdapter
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder

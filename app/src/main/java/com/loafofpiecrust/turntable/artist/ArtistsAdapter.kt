@@ -1,7 +1,6 @@
 package com.loafofpiecrust.turntable.artist
 
 import android.graphics.Typeface
-import android.support.v7.widget.CardView
 import android.support.v7.widget.RecyclerView
 import android.view.View
 import android.view.ViewGroup
@@ -9,10 +8,8 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.artist.Artist
-import com.loafofpiecrust.turntable.model.artist.loadPalette
 import com.loafofpiecrust.turntable.model.imageTransition
 import com.loafofpiecrust.turntable.model.nameTransition
-import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.util.textStyle
 import com.loafofpiecrust.turntable.views.RecyclerAdapter
 import com.loafofpiecrust.turntable.views.RecyclerGridItem
@@ -25,7 +22,6 @@ import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.imageResource
 import kotlin.coroutines.CoroutineContext
 

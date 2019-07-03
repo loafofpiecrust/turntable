@@ -13,7 +13,9 @@ import com.loafofpiecrust.turntable.msToTimeString
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.popupMenu
 import com.loafofpiecrust.turntable.prefs.UserPrefs
+import com.loafofpiecrust.turntable.repository.local.LocalApi
 import com.loafofpiecrust.turntable.service.Library
+import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.util.combineLatest
 import com.loafofpiecrust.turntable.util.switchMap
 import com.loafofpiecrust.turntable.views.RecyclerBroadcastAdapter
@@ -24,6 +26,7 @@ import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.selects.select
 import org.jetbrains.anko.colorAttr
 import org.jetbrains.anko.imageResource
 import org.jetbrains.anko.sdk27.coroutines.onClick
@@ -130,7 +133,7 @@ fun RecyclerListItem.bindSong(
     }
 
     card.onClick {
-        val isLocal = Library.sourceForSong(item.id) != null
+        val isLocal = LocalApi.sourceForSong(item) != null
         val internet = App.currentInternetStatus.value
         if (internet == App.InternetStatus.OFFLINE && !isLocal) {
             context.toast(R.string.no_internet)
@@ -139,7 +142,38 @@ fun RecyclerListItem.bindSong(
         }
     }
 
-    CoroutineScope(job).launch(Dispatchers.Main) {
+
+    val scope = CoroutineScope(job)
+
+    progressBar.visibility = View.VISIBLE
+    progressBar.progress = 0
+
+    scope.launch {
+        val downloads = OnlineSearchService.instance.findDownload(item)
+        val localSongs = Library.localSongs.openSubscription()
+        while (true) {
+            var relevantDl: OnlineSearchService.SongDownload? = null
+            select<Unit> {
+                downloads.onReceive {
+                    relevantDl = it
+                }
+                localSongs.onReceive {}
+            }
+
+            val local = LocalApi.sourceForSong(item)
+            withContext(Dispatchers.Main) {
+                if (local != null) {
+                    progressBar.progress = 100
+                } else if (relevantDl != null) {
+                    progressBar.progress = relevantDl!!.progress
+                } else {
+                    progressBar.progress = 0
+                }
+            }
+        }
+    }
+
+    scope.launch(Dispatchers.Main) {
         MusicService.instance.switchMap {
             it?.let { music ->
                 combineLatest(music.player.queue, App.internetStatus)

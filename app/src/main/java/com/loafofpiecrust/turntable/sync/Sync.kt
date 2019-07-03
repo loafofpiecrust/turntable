@@ -14,13 +14,16 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.iid.FirebaseInstanceId
 import com.google.gson.JsonObject
-import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.App
+import com.loafofpiecrust.turntable.BuildConfig
+import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.queue.isEmpty
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.sync.Message
 import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.player.MusicService
+import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.serialize.page
 import com.loafofpiecrust.turntable.ui.BaseActivity
 import com.loafofpiecrust.turntable.ui.MainActivity

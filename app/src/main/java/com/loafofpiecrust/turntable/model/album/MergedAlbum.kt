@@ -3,7 +3,6 @@ package com.loafofpiecrust.turntable.model.album
 import android.graphics.drawable.Drawable
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
-import com.loafofpiecrust.turntable.dedupMerge
 import com.loafofpiecrust.turntable.dedupMergeSorted
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.util.produceSingle
@@ -33,7 +32,7 @@ data class MergedAlbum(
         tracks = tracks ?: (a.resolveTracks() + b.resolveTracks())
             .sortedBy { it.discTrack }
             .dedupMergeSorted(
-                { a, b -> a.discTrack == b.discTrack && a.id.displayName == b.id.displayName },
+                { a, b -> a.discTrack == b.discTrack && a.id == b.id },
                 // TODO: Use MergedSong here?
                 { a, b -> a }
             )

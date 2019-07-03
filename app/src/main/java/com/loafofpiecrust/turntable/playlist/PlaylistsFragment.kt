@@ -8,7 +8,6 @@ import android.widget.EditText
 import com.github.ajalt.timberkt.Timber
 import com.github.daemontus.Result
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.appends
 import com.loafofpiecrust.turntable.artist.emptyContentView
 import com.loafofpiecrust.turntable.browse.RecentMixTapesFragment
 import com.loafofpiecrust.turntable.model.playlist.AbstractPlaylist
@@ -21,12 +20,10 @@ import com.loafofpiecrust.turntable.serialize.arg
 import com.loafofpiecrust.turntable.serialize.getValue
 import com.loafofpiecrust.turntable.serialize.setValue
 import com.loafofpiecrust.turntable.service.Library
-import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.ui.BaseFragment
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.ui.universal.createFragment
-import com.loafofpiecrust.turntable.ui.universal.show
 import com.loafofpiecrust.turntable.util.*
 import com.loafofpiecrust.turntable.views.RecyclerBroadcastAdapter
 import com.loafofpiecrust.turntable.views.RecyclerListItem

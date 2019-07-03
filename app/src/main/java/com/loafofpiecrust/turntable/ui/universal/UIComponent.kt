@@ -4,14 +4,11 @@ import android.app.Activity
 import android.content.Context
 import android.os.Parcelable
 import android.support.annotation.CallSuper
-import android.support.v4.app.DialogFragment
 import android.support.v4.app.Fragment
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import com.loafofpiecrust.turntable.ui.BaseActivity
-import com.loafofpiecrust.turntable.ui.MainActivity
-import com.loafofpiecrust.turntable.ui.popMainContent
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel

@@ -10,18 +10,19 @@ import com.github.ajalt.timberkt.Timber
 import com.github.salomonbrys.kotson.*
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
-import com.loafofpiecrust.turntable.*
+import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.artist.MusicDownload
 import com.loafofpiecrust.turntable.artist.TorrentArtist
+import com.loafofpiecrust.turntable.longestSharedPrefix
+import com.loafofpiecrust.turntable.longestSharedSuffix
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.service.OnlineSearchService
-import com.loafofpiecrust.turntable.song.YouTubeSong
+import com.loafofpiecrust.turntable.tryOr
 import com.loafofpiecrust.turntable.util.*
 import io.ktor.client.request.get
 import io.ktor.client.request.url
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import me.xdrop.fuzzywuzzy.FuzzySearch
@@ -30,6 +31,27 @@ import org.jsoup.nodes.Document
 import org.jsoup.safety.Whitelist
 import java.io.File
 import java.net.URLEncoder
+import kotlin.collections.HashMap
+import kotlin.collections.Map
+import kotlin.collections.filter
+import kotlin.collections.filterIndexed
+import kotlin.collections.find
+import kotlin.collections.firstOrNull
+import kotlin.collections.forEach
+import kotlin.collections.getOrNull
+import kotlin.collections.isNotEmpty
+import kotlin.collections.map
+import kotlin.collections.mapIndexed
+import kotlin.collections.mapNotNull
+import kotlin.collections.maxBy
+import kotlin.collections.mutableMapOf
+import kotlin.collections.putAll
+import kotlin.collections.set
+import kotlin.collections.sortedByDescending
+import kotlin.collections.sumBy
+import kotlin.collections.take
+import kotlin.collections.toMap
+import kotlin.collections.toMutableList
 import kotlin.math.abs
 
 
@@ -475,44 +497,6 @@ class TPBAlbum(
 
     override val value: Int
         get() = quality.ordinal * 3 + seeders
-}
-
-
-class YouTubeAlbum(
-    private val goal: Album,
-    val songs: List<YouTubeSong>
-) : AlbumDownload(Song.Media.Quality.MEDIUM) {
-    /// Youtube download is like 10 seeders
-    /// But for every song missing, value quickly degrades
-    /// So, a YT full album = RuTracker 256kbps w/ 10 seeders
-    /// A YT album with 2 missing tracks = RuTracker 256kbps w/ 3 seeders
-    override val value: Int
-        get() {
-            val qualityPoints = quality.ordinal * OnlineSearchService.SEEDERS_OVER_QUALITY + 10
-            val tracks = runBlocking { goal.resolveTracks() }
-            val tracksDiff = ((tracks.size - songs.size) * 3.5f).toInt()
-            return qualityPoints - tracksDiff
-        }
-
-    companion object {
-        fun search(album: Album): YouTubeAlbum = runBlocking {
-            // Search for all the tracks on youtube concurrently
-            val albumTracks = runBlocking { album.resolveTracks() }
-            val songs = albumTracks
-                .parMap { YouTubeSong.search(it) }
-                .awaitAll()
-                .filterNotNull()
-
-            println("albumyt: completeness = ${songs.size}/${albumTracks.size}")
-
-            YouTubeAlbum(album, songs)
-        }
-    }
-
-    override suspend fun download() = runBlocking {
-        val results = songs
-            .parMap { it.download() }.awaitAll()
-    }
 }
 
 data class YouTubeFullAlbum(

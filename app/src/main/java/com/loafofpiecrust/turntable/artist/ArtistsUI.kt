@@ -22,7 +22,7 @@ import com.loafofpiecrust.turntable.ui.universal.UIComponent
 import com.loafofpiecrust.turntable.ui.universal.ViewContext
 import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.util.*
-import com.loafofpiecrust.turntable.views.*
+import com.loafofpiecrust.turntable.views.refreshableRecyclerView
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.consumeEach

@@ -33,15 +33,24 @@ object YouTube: StreamProvider {
             header("x-api-key", BuildConfig.AWS_API_KEY)
         }
 
-        val lq = res["lowQuality"].nullObj?.get("url")?.string
+        val lqObj = res["lowQuality"].nullObj
+        val lq = lqObj?.get("url")?.string?.let { url ->
+            Song.Media.Source(url, Song.Media.Quality.LOW, lqObj["format"].string)
+        }
 
         return if (lq == null) {
             // not available on youtube!
             null
         } else {
-            val hq = res["highQuality"].nullObj?.get("url")?.string
+            val hqObj = res["highQuality"].nullObj
+            val hq = hqObj?.get("url")?.string?.let { url ->
+                Song.Media.Source(url, Song.Media.Quality.MEDIUM, hqObj["format"].string)
+            }
             val expiryDate = res["expiryDate"].long
-            Song.Media.fromYouTube(lq, hq, expiryDate)
+            Song.Media(
+                if (hq != null) listOf(lq, hq) else listOf(lq),
+                expiryDate
+            )
         }
     }
 }

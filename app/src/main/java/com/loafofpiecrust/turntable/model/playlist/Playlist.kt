@@ -14,7 +14,6 @@ import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repeat
-import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.util.startWith
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.channels.ReceiveChannel

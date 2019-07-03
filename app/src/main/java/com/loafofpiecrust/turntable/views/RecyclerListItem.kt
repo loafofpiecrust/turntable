@@ -5,7 +5,7 @@ import android.support.constraint.ConstraintSet.PARENT_ID
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
-import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.style.ripple
@@ -65,6 +65,14 @@ open class RecyclerListItem(
         tint = context.colorAttr(android.R.attr.textColor)
     }
 
+    val progress = horizontalProgressBar {
+        id = R.id.progressBg
+        visibility = View.GONE
+        isIndeterminate = false
+        progressTintList = resources.getColorStateList(R.color.md_green_400)
+        progressDrawable = context.getDrawable(R.drawable.progress_ring)
+    }
+
     applyConstraintSet {
         track {
             connect(
@@ -115,11 +123,20 @@ open class RecyclerListItem(
             )
             size = dimen(R.dimen.overflow_icon_size)
         }
+        progress {
+            connect(
+                BOTTOM to BOTTOM of PARENT_ID,
+                TOP to TOP of PARENT_ID,
+                START to START of overflow,
+                END to END of overflow
+            )
+            size = dimen(R.dimen.overflow_icon_size)
+        }
     }
 }) {
     val track: TextView = itemView.find(R.id.track)
     val menu: ImageButton = itemView.find(R.id.itemMenuDots)
-//    val progress: View = itemView.findViewById(R.uuid.progressBg)
+    val progressBar: ProgressBar = itemView.findViewById(R.id.progressBg)
 //    val playingIcon: ImageView = itemView.findViewById(R.uuid.playing_icon)
 //    val statusIcon: ImageView = itemView.find(R.id.status_icon)
 }

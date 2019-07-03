@@ -2,7 +2,6 @@ package com.loafofpiecrust.turntable.model.sync
 
 import android.os.Parcelable
 import com.github.ajalt.timberkt.Timber
-import com.loafofpiecrust.turntable.appends
 import com.loafofpiecrust.turntable.model.Recommendable
 import com.loafofpiecrust.turntable.model.playlist.AbstractPlaylist
 import com.loafofpiecrust.turntable.model.queue.CombinedQueue
@@ -15,7 +14,6 @@ import com.loafofpiecrust.turntable.util.Duration
 import com.loafofpiecrust.turntable.util.days
 import com.loafofpiecrust.turntable.util.minutes
 import kotlinx.android.parcel.Parcelize
-import kotlinx.serialization.Serializable
 import java.util.*
 
 interface Message {

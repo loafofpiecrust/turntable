@@ -3,17 +3,12 @@ package com.loafofpiecrust.turntable.ui.universal
 import android.app.Dialog
 import android.content.Context
 import android.os.Bundle
-import android.os.Parcelable
 import android.support.v4.app.DialogFragment
 import android.support.v4.app.FragmentActivity
 import android.support.v4.app.FragmentTransaction
-import android.support.v7.app.AppCompatActivity
-import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.serialize.arg
 import com.loafofpiecrust.turntable.serialize.getValue
 import com.loafofpiecrust.turntable.serialize.setValue
-import com.loafofpiecrust.turntable.ui.replaceMainContent
-import org.jetbrains.anko.matchParent
 import org.jetbrains.anko.support.v4.alert
 
 class UniversalDialogFragment(): DialogFragment() {

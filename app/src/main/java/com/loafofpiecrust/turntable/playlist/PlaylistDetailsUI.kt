@@ -1,8 +1,6 @@
 package com.loafofpiecrust.turntable.playlist
 
 import android.os.Parcelable
-import android.support.transition.Slide
-import android.support.v4.app.Fragment
 import android.support.v7.widget.LinearLayoutManager
 import android.view.Gravity
 import android.widget.EditText
@@ -24,7 +22,6 @@ import com.loafofpiecrust.turntable.ui.universal.show
 import com.loafofpiecrust.turntable.util.lazy
 import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick
-import com.loafofpiecrust.turntable.util.withoutFirst
 import com.loafofpiecrust.turntable.views.refreshableRecyclerView
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.Dispatchers

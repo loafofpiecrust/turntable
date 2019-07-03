@@ -16,11 +16,9 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repository.StreamProviders
 import com.loafofpiecrust.turntable.util.milliseconds
 import com.loafofpiecrust.turntable.util.toMicroseconds
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.io.IOException
 
 class StreamMediaSource(
@@ -138,16 +136,12 @@ class StreamMediaPeriod(
                 UserPrefs.hqStreamingMode.openSubscription().first()
             )!!.url
 
-//            if (srcUrl != null) {
-                source = ClippingMediaSource(
-                    sourceFactory.createMediaSource(Uri.parse(srcUrl)),
-                    start, end
-                )
-//            }
+            source = ClippingMediaSource(
+                sourceFactory.createMediaSource(Uri.parse(srcUrl)),
+                start, end
+            )
 
-//            withContext(Dispatchers.Main) {
-                callback.onContinueLoadingRequested(this@StreamMediaPeriod)
-//            }
+            callback.onContinueLoadingRequested(this@StreamMediaPeriod)
         }
     }
 

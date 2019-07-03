@@ -2,13 +2,12 @@ package com.loafofpiecrust.turntable.model.song
 
 import android.graphics.drawable.Drawable
 import android.os.Parcelable
-import android.support.v7.graphics.Palette
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.RequestManager
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.model.Music
-import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.Recommendable
+import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repository.Repositories
 import com.loafofpiecrust.turntable.service.Library
@@ -124,7 +123,8 @@ data class Song(
 
         data class Source(
             val url: String,
-            val quality: Quality
+            val quality: Quality,
+            val format: String = "aac"
         )
 
         companion object {

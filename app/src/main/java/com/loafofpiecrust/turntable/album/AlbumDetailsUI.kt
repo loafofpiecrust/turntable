@@ -14,7 +14,10 @@ import android.support.design.widget.AppBarLayout.LayoutParams.SCROLL_FLAG_SCROL
 import android.support.design.widget.CollapsingToolbarLayout
 import android.support.design.widget.CollapsingToolbarLayout.LayoutParams.COLLAPSE_MODE_PIN
 import android.support.v4.app.Fragment
-import android.transition.*
+import android.transition.ChangeBounds
+import android.transition.ChangeClipBounds
+import android.transition.ChangeTransform
+import android.transition.TransitionSet
 import android.view.Gravity
 import android.view.Menu
 import android.view.View
@@ -26,7 +29,6 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
-import com.github.ajalt.timberkt.Timber
 import com.google.firebase.dynamiclinks.FirebaseDynamicLinks
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
@@ -44,7 +46,10 @@ import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.AddToPlaylistDialog
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.repository.Repositories
+import com.loafofpiecrust.turntable.repository.StreamProviders
+import com.loafofpiecrust.turntable.repository.local.LocalApi
 import com.loafofpiecrust.turntable.service.Library
+import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.song.SongsOnDiscAdapter
 import com.loafofpiecrust.turntable.song.SongsUI
 import com.loafofpiecrust.turntable.style.detailsStyle
@@ -54,14 +59,14 @@ import com.loafofpiecrust.turntable.ui.universal.*
 import com.loafofpiecrust.turntable.util.*
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
 import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
-import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
+import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.BOTTOM
+import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.START
 import org.jetbrains.anko.constraint.layout.applyConstraintSet
 import org.jetbrains.anko.constraint.layout.constraintLayout
 import org.jetbrains.anko.constraint.layout.matchConstraint
@@ -290,12 +295,15 @@ private fun Menu.prepareOptions(scope: CoroutineScope, context: Context, album: 
         )
     }
 
-    if (album is RemoteAlbum) {
-        menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = false).onClick(Dispatchers.Default) {
+    if (album is RemoteAlbum || album is MergedAlbum) {
+        menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = false).onClick {
             if (App.instance.hasInternet) {
-//                tracks.filter {
-//                    LocalApi.find(it.uuid) == null
-//                }.forEach { it.download() }
+                album.resolveTracks().filter {
+                   LocalApi.sourceForSong(it) == null
+                       && !OnlineSearchService.instance.isDownloading(it)
+                }.forEach {
+                    StreamProviders.download(it)
+                }
             } else {
                 context.toast(R.string.no_internet)
             }

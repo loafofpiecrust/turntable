@@ -3,12 +3,10 @@ package com.loafofpiecrust.turntable.player
 import activitystarter.ActivityStarter
 import activitystarter.Arg
 import activitystarter.MakeActivityStarter
-import android.app.IntentService
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.Color
 import android.media.AudioManager
 import android.media.AudioManager.*
 import android.net.wifi.WifiManager
@@ -17,7 +15,6 @@ import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v7.graphics.Palette
 import com.bumptech.glide.Glide
-import com.github.ajalt.timberkt.Timber
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
 import com.google.android.exoplayer2.ext.mediasession.TimelineQueueNavigator
@@ -31,15 +28,16 @@ import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.sync.SyncSession
 import com.loafofpiecrust.turntable.ui.BaseService
 import com.loafofpiecrust.turntable.util.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.jetbrains.anko.audioManager
 import org.jetbrains.anko.powerManager
-import org.jetbrains.anko.startService
 import org.jetbrains.anko.wifiManager
 import java.lang.ref.WeakReference
-import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 

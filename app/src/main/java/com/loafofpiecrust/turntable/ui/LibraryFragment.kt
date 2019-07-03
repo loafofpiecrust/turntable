@@ -1,6 +1,5 @@
 package com.loafofpiecrust.turntable.ui
 
-import activitystarter.MakeActivityStarter
 import android.support.design.widget.TabLayout
 import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentStatePagerAdapter
@@ -17,12 +16,9 @@ import com.loafofpiecrust.turntable.playlist.PlaylistsFragment
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.serialize.page
 import com.loafofpiecrust.turntable.song.ShufflableSongsUI
-import com.loafofpiecrust.turntable.song.SongsUI
 import com.loafofpiecrust.turntable.sync.SyncTabFragment
 import com.loafofpiecrust.turntable.ui.universal.createFragment
-import com.loafofpiecrust.turntable.util.replayOne
 import io.paperdb.Paper
-import kotlinx.coroutines.channels.map
 import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.navigationIconResource
 import org.jetbrains.anko.appcompat.v7.toolbar
