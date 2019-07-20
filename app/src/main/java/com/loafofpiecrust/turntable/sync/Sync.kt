@@ -160,7 +160,7 @@ object Sync {
         send(msg, Mode.OneOnOne(to))
     }
 
-    suspend fun send(msg: Message, mode: Sync.Mode): Boolean {
+    suspend fun send(msg: Message, mode: Mode): Boolean {
         if (App.currentInternetStatus.valueOrNull == App.InternetStatus.OFFLINE) {
             sendQueue putsMapped { it.add(msg to mode) }
             return false
@@ -320,7 +320,7 @@ object Sync {
 //    @Serializable
     class Request(
         private val currentSong: Song?,
-        val mode: Sync.Mode? = null
+        val mode: Mode? = null
     ): Message, Parcelable {
         override val timeout get() = 20.minutes
         override suspend fun onReceive(sender: User) = withContext(Dispatchers.Main) {
@@ -353,7 +353,7 @@ object Sync {
 //    @Serializable
     class Response(
         val accept: Boolean,
-        val mode: Sync.Mode
+        val mode: Mode
     ): Message {
         override suspend fun onReceive(sender: User) {
             val text = if (accept) {
@@ -387,13 +387,18 @@ object Sync {
             val player = MusicService.player.firstOrNull()
             val queue = player?.queue?.firstOrNull()
             if (queue != null) {
-                send(PlayerAction.ReplaceQueue(queue), other)
+                // Send our queue to the other user.
+                send(PlayerAction.ReplaceQueue(queue), other).join()
+                // if the queue is non-empty, send more info
                 if (!queue.isEmpty()) {
-                    delay(100)
-                    send(PlayerAction.SeekTo(player.currentBufferState.position), other)
+                    // like whether the player is paused or not
                     if (!player.isPlaying.first()) {
                         send(PlayerAction.Pause, other)
-                    }
+                    } else {
+                        send(PlayerAction.Play, other)
+                    }.join()
+                    // and the current seek position
+                    send(PlayerAction.SeekTo(player.currentBufferState.position), other)
                 }
             }
         }
