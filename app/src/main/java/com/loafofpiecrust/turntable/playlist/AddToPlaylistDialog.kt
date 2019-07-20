@@ -14,14 +14,10 @@ import com.loafofpiecrust.turntable.model.song.HasTracks
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.sync.Sync
-import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.ui.universal.DialogComponent
 import com.loafofpiecrust.turntable.ui.universal.ViewContext
-import com.loafofpiecrust.turntable.ui.universal.show
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.map
-import kotlinx.coroutines.launch
 import org.jetbrains.anko.*
 import org.jetbrains.anko.recyclerview.v7.recyclerView
 

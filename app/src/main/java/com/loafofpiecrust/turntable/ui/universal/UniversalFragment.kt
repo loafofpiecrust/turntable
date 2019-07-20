@@ -1,15 +1,12 @@
 package com.loafofpiecrust.turntable.ui.universal
 
 import android.os.Bundle
-import android.os.Parcelable
 import android.support.v4.app.Fragment
 import android.view.*
 import com.loafofpiecrust.turntable.serialize.arg
 import com.loafofpiecrust.turntable.serialize.getValue
 import com.loafofpiecrust.turntable.serialize.setValue
-import com.loafofpiecrust.turntable.ui.currentFragment
 import org.jetbrains.anko.childrenRecursiveSequence
-import java.io.Serializable
 import java.util.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty

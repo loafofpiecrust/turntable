@@ -4,7 +4,6 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.support.design.widget.BottomSheetBehavior
 import android.support.design.widget.CoordinatorLayout
-import android.util.AttributeSet
 import android.view.View
 import android.view.ViewManager
 import android.widget.FrameLayout
@@ -15,7 +14,6 @@ import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 import org.jetbrains.anko.design.coordinatorLayout
 import org.jetbrains.anko.dimen
-import org.jetbrains.anko.dip
 import org.jetbrains.anko.frameLayout
 import org.jetbrains.anko.matchParent
 import org.jetbrains.anko.sdk27.coroutines.onClick

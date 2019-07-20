@@ -11,12 +11,17 @@ import com.loafofpiecrust.turntable.model.sync.PlayerAction
 import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.playlist.AddToPlaylistDialog
+import com.loafofpiecrust.turntable.repository.StreamProviders
+import com.loafofpiecrust.turntable.repository.local.LocalApi
+import com.loafofpiecrust.turntable.service.OnlineSearchService
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.ui.replaceMainContent
 import com.loafofpiecrust.turntable.ui.universal.createFragment
 import com.loafofpiecrust.turntable.ui.universal.show
 import com.loafofpiecrust.turntable.util.menuItem
 import com.loafofpiecrust.turntable.util.onClick
+import kotlinx.coroutines.channels.first
+import kotlinx.coroutines.runBlocking
 
 fun Menu.songOptions(context: Context, song: Song) {
     menuItem(R.string.go_to_album).onClick {
@@ -40,6 +45,23 @@ fun Menu.songOptions(context: Context, song: Song) {
             Message.Recommend(song),
             R.string.share
         ).show(context)
+    }
+
+    val localSource = runBlocking { LocalApi.sourceForSong(song) }
+    if (localSource == null) {
+        val download = runBlocking {
+            OnlineSearchService.instance.findDownload(song).first()
+        }
+
+        if (download == null) {
+            menuItem(R.string.download).onClick {
+                StreamProviders.download(song)
+            }
+        } else {
+            menuItem("Cancel Download").onClick {
+                download.cancel()
+            }
+        }
     }
 }
 

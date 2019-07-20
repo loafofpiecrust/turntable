@@ -19,7 +19,6 @@ package com.loafofpiecrust.turntable.serialize
 
 
 import com.github.salomonbrys.kotson.jsonObject
-import com.github.salomonbrys.kotson.nullString
 import com.github.salomonbrys.kotson.obj
 import com.github.salomonbrys.kotson.string
 import com.google.gson.Gson

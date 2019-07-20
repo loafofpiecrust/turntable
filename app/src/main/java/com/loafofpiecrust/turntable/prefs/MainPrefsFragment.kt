@@ -3,12 +3,8 @@ package com.loafofpiecrust.turntable.prefs
 import activitystarter.MakeActivityStarter
 import android.os.Bundle
 import android.preference.PreferenceFragment
-import com.chibatching.kotpref.KotprefModel
 import com.loafofpiecrust.turntable.BuildConfig
 import com.loafofpiecrust.turntable.R
-import com.loafofpiecrust.turntable.ui.LibraryFragment
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 
 
 @MakeActivityStarter

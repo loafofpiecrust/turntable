@@ -17,7 +17,9 @@ import com.loafofpiecrust.turntable.service.Library
 import com.loafofpiecrust.turntable.sync.FriendPickerDialog
 import com.loafofpiecrust.turntable.ui.popMainContent
 import com.loafofpiecrust.turntable.ui.universal.show
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.util.ViewScope
+import com.loafofpiecrust.turntable.util.menuItem
+import com.loafofpiecrust.turntable.util.onClick
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel

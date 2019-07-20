@@ -60,11 +60,14 @@ fun Enum<*>.nameResource(context: Context, type: String = "string"): Int {
 
 fun String.toFileName(): String {
     val builder = StringBuilder(this.length)
-    forEach { c ->
-        val valid = c !in "|\\/?*<\":"
+    // skip an initial dot to prevent hidden files
+    val iter = if (first() == '.') drop(1) else this
+    for (c in iter) {
+        val valid = c !in "|\\/?*<>\",:;@%="
         if (valid) {
             builder.append(c)
-        } else {
+        } else if (builder.last() != ' ') {
+            // condense multiple replacement spaces
             builder.append(' ')
         }
     }

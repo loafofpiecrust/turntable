@@ -9,7 +9,6 @@ import android.support.v7.widget.LinearLayoutManager
 import android.view.*
 import android.widget.EditText
 import com.bumptech.glide.Glide
-import com.github.ajalt.timberkt.Timber
 import com.github.florent37.runtimepermission.kotlin.askPermission
 import com.loafofpiecrust.turntable.App
 import com.loafofpiecrust.turntable.R
@@ -26,7 +25,6 @@ import com.loafofpiecrust.turntable.views.refreshableRecyclerView
 import com.mcxiaoke.koi.ext.stringValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.launch

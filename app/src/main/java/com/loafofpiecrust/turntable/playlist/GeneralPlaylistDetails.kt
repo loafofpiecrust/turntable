@@ -1,9 +1,7 @@
 package com.loafofpiecrust.turntable.playlist
 
 import android.support.v7.widget.LinearLayoutManager
-import android.view.Gravity
 import android.view.View
-import android.widget.TextView
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.artist.emptyContentView
 import com.loafofpiecrust.turntable.model.playlist.CollaborativePlaylist
@@ -24,10 +22,13 @@ import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.channels.map
 import kotlinx.coroutines.runBlocking
-import org.jetbrains.anko.*
 import org.jetbrains.anko.appcompat.v7.toolbar
+import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.design.appBarLayout
+import org.jetbrains.anko.dimen
 import org.jetbrains.anko.recyclerview.v7.recyclerView
+import org.jetbrains.anko.topPadding
+import org.jetbrains.anko.verticalLayout
 import kotlin.coroutines.CoroutineContext
 
 @Parcelize

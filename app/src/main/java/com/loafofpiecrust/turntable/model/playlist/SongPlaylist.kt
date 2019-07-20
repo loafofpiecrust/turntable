@@ -11,10 +11,8 @@ import com.loafofpiecrust.turntable.model.song.SongId
 import com.loafofpiecrust.turntable.model.sync.User
 import com.loafofpiecrust.turntable.sync.Sync
 import com.loafofpiecrust.turntable.ui.BaseActivity
-import com.loafofpiecrust.turntable.ui.MainActivity
 import com.loafofpiecrust.turntable.util.lazy
 import com.loafofpiecrust.turntable.util.minutes
-import com.loafofpiecrust.turntable.util.withReplaced
 import kotlinx.collections.immutable.immutableListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.GlobalScope

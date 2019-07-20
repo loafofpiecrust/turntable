@@ -18,7 +18,6 @@ import com.github.salomonbrys.kotson.jsonNull
 import com.github.salomonbrys.kotson.registerTypeAdapter
 import com.google.gson.GsonBuilder
 import com.loafofpiecrust.turntable.util.hasValue
-import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.GlobalScope
@@ -516,4 +515,19 @@ suspend fun <T: Any> Context.selector(
 fun String.md5(): String {
     val md = MessageDigest.getInstance("MD5")
     return BigInteger(1, md.digest(toByteArray())).toString(16).padStart(32, '0')
+}
+
+inline fun <E: Exception> (() -> Unit).retryOrCatch(times: Int, catcher: (E) -> Unit) {
+    var currentAttempt = 0
+    while (true) {
+        try {
+            this.invoke()
+        } catch (e: Exception) {
+            currentAttempt += 1
+            if (currentAttempt > times) {
+                catcher(e as E)
+                break
+            }
+        }
+    }
 }

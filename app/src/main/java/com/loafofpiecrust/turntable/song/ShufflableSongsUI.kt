@@ -2,7 +2,6 @@ package com.loafofpiecrust.turntable.song
 
 import android.content.Context
 import android.os.Parcelable
-import android.support.constraint.ConstraintLayout.LayoutParams.PARENT_ID
 import android.view.Menu
 import com.loafofpiecrust.turntable.R
 import com.loafofpiecrust.turntable.model.sync.PlayerAction
@@ -10,18 +9,10 @@ import com.loafofpiecrust.turntable.player.MusicPlayer
 import com.loafofpiecrust.turntable.player.MusicService
 import com.loafofpiecrust.turntable.ui.universal.UIComponent
 import com.loafofpiecrust.turntable.ui.universal.ViewContext
-import com.loafofpiecrust.turntable.ui.universal.createView
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.util.menuItem
+import com.loafofpiecrust.turntable.util.onClick
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.channels.first
-import org.jetbrains.anko.constraint.layout.ConstraintSetBuilder.Side.*
-import org.jetbrains.anko.constraint.layout.applyConstraintSet
-import org.jetbrains.anko.constraint.layout.constraintLayout
-import org.jetbrains.anko.constraint.layout.matchConstraint
-import org.jetbrains.anko.design.floatingActionButton
-import org.jetbrains.anko.dimen
-import org.jetbrains.anko.imageResource
-import org.jetbrains.anko.sdk27.coroutines.onClick
 
 @Parcelize
 class ShufflableSongsUI: UIComponent(), Parcelable {

@@ -17,16 +17,16 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
 import com.frostwire.jlibtorrent.SessionManager
 import com.frostwire.jlibtorrent.TorrentHandle
 import com.frostwire.jlibtorrent.TorrentInfo
-import com.loafofpiecrust.turntable.App
-import com.loafofpiecrust.turntable.BuildConfig
+import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.artist.MusicDownload
-import com.loafofpiecrust.turntable.binarySearchElem
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.selfTitledAlbum
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.repository.remote.StreamCache
-import com.loafofpiecrust.turntable.util.*
+import com.loafofpiecrust.turntable.util.days
+import com.loafofpiecrust.turntable.util.distinctSeq
+import com.loafofpiecrust.turntable.util.hours
+import com.loafofpiecrust.turntable.util.http
 import com.mcxiaoke.koi.ext.addToMediaStore
 import com.mcxiaoke.koi.ext.intValue
 import com.mcxiaoke.koi.ext.stringValue
@@ -37,17 +37,15 @@ import io.ktor.client.response.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.collections.immutable.immutableListOf
-import kotlinx.collections.immutable.toImmutableList
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.channels.map
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import org.jetbrains.anko.downloadManager
+import org.jetbrains.anko.longToast
 import org.jsoup.Jsoup
 import java.io.File
 import java.util.*
@@ -116,7 +114,11 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
         val progress: ReceiveChannel<Int> get() = _progress.openSubscription().distinctSeq()
     }
 
-    data class SongDownload(val song: Song, val progress: Double, val id: Long) {
+    data class SongDownload(val song: Song, val progress: Int, val id: Long) {
+        fun cancel() {
+            App.instance.downloadManager.remove(id)
+        }
+
         companion object {
             val COMPARATOR = Comparator<SongDownload> { a, b ->
                 a.song.id.compareTo(b.song.id)
@@ -127,7 +129,7 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
     private val _downloadingSongs = ConflatedBroadcastChannel(
         immutableListOf<SongDownload>()
     )
-    private val downloadingSongs get() = _downloadingSongs.openSubscription().map {
+    val downloadingSongs get() = _downloadingSongs.openSubscription().map {
         it.sortedWith(SongDownload.COMPARATOR)
     }
     val downloads = ArrayList<MusicDownload>()
@@ -162,181 +164,6 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
             .dynamoDBClient(database)
             .build()
     }
-
-//    fun saveYouTubeStreamUrl(entry: SongDBEntry) = launch {
-//        try {
-//            dbMapper.save(SongDBEntry(
-//                entry.id.toLowerCase(),
-//                entry.youtubeId,
-//                entry.expiryDate,
-//                entry.stream128?.compress(),
-//                entry.stream192?.compress()
-//            ))
-////            database.putItem("MusicStreams", mapOf(
-////                "SongId" to AttributeValue(entry.uuid),
-////                "stream128" to AttributeValue(entry.stream128),
-////                "stream192" to AttributeValue(entry.stream192)
-////            ))
-//        } catch (e: Exception) {
-//            Timber.e(e) { "Failed to save song to database" }
-//        }
-//    }
-
-//    fun checkSongStreams(song: Song): StreamStatus {
-//        return getExistingEntry(song.id.dbKey)
-//    }
-//
-//    fun checkSongStreams(songs: List<Song>): List<Pair<Song, StreamStatus>> {
-//        val entries = dbMapper.batchLoad(mapOf(SongDBEntry::class.java as Class<*> to
-//            songs.map { KeyPair().withHashKey(it.id.dbKey) }
-//        ))["MusicStreams"]!!.map { StreamStatus.from(it as SongDBEntry) }
-//        return songs.zip(entries)
-//    }
-//
-//    fun reloadSongStreams(id: SongId) {
-//        val key = id.dbKey
-//        database.deleteItem("MusicStreams", mapOf("SongId" to AttributeValue(key)))
-//    }
-//    fun reloadAlbumStreams(id: AlbumId) {
-//        val key = id.dbKey
-//        database.deleteItem("MusicStreams", mapOf("SongId" to AttributeValue(key)))
-//    }
-
-//    private fun getExistingEntries(keys: Iterable<String>): Map<String, StreamStatus> {
-//        val m = mapOf<Class<*>, List<KeyPair>>(SongDBEntry::class.java to keys.map { KeyPair().withHashKey(it) })
-//        return dbMapper.batchLoad(m)["MusicStreams"]!!
-//            .map {
-//                val entry = it as SongDBEntry
-//                entry.id to StreamStatus.from(entry)
-//            }.toMap()
-//    }
-
-//    private fun getExistingEntry(key: String): StreamStatus {
-//        val entry = tryOr(null) { dbMapper.load(SongDBEntry::class.java, key) }
-//        return StreamStatus.from(entry)
-//    }
-//
-//    private suspend fun createEntry(key: String, videoId: String): StreamStatus {
-//        return withContext(Dispatchers.IO) {
-//            suspendCoroutine<StreamStatus> { cont ->
-//                YTExtractor(key, videoId, cont)
-//                    .extract("https://youtube.com/watch?v=$videoId", true, true)
-//            }
-//        }
-//    }
-
-//    data class SongStream(
-//        val status: StreamStatus,
-//        val start: Int = 0,
-//        val end: Int = 0
-//    )
-
-//    private suspend fun evalExistingStream(song: Song, existing: StreamStatus): SongStream {
-//        val key = song.id.dbKey
-//        return if (existing is StreamStatus.Available) {
-//            SongStream(if (existing.isStale) {
-//                createEntry(key, existing.youtubeId)
-//            } else existing)
-//        } else if (existing is StreamStatus.Unavailable && !existing.isStale) {
-//            SongStream(existing)
-//        } else {
-//            val albumKey = song.id.album.dbKey
-//            val album = /*Library.findAlbumOfSong(song).first()
-//                ?:*/ LocalAlbum(song.id.album, listOf(song))
-//
-//            getExistingEntry(albumKey).let { entry ->
-//                if (entry is StreamStatus.Available) {
-//                    YouTubeFullAlbum.grabFromPage(album, entry.youtubeId)?.let { ytAlbum ->
-//                        ytAlbum.tracks[song]?.let { ytTrack ->
-//                            SongStream(
-//                                entry,
-//                                start = ytTrack.start,
-//                                end = ytTrack.end
-//                            )
-//                        }
-//                    }
-//                } else null
-//            } ?: YouTubeFullAlbum.search(album)?.let { ytAlbum ->
-//                ytAlbum.tracks[song]?.let {
-//                    SongStream(
-//                        createEntry(albumKey, ytAlbum.id),
-//                        it.start, it.end
-//                    )
-//                }
-//            } ?: tryOr(SongStream(StreamStatus.Unknown)) {
-//                val res = http.get<JsonObject> {
-//                    url("https://us-central1-turntable-3961c.cloudfunctions.net/parseStreamsFromYouTube")
-//                    parameters(
-//                        "title" to song.id.displayName.toLowerCase(),
-//                        "album" to song.id.album.displayName.toLowerCase(),
-//                        "artist" to song.id.artist.displayName.toLowerCase(),
-//                        "duration" to song.duration.toString()
-//                    )
-//                }
-//
-//                val lq = res["lowQuality"].nullObj?.get("url")?.string
-//
-//                if (lq == null) {
-//                    // not available on youtube!
-//                    val entry = SongDBEntry(
-//                        key, null, System.currentTimeMillis()
-//                    )
-//                    saveYouTubeStreamUrl(entry)
-//                    SongStream(StreamStatus.Unavailable(entry.expiryDate))
-//                } else {
-//                    val hq = res["highQuality"].nullObj?.get("url")?.string
-//                    val id = res["id"].string
-//                    val entry = SongDBEntry(
-//                        key, id,
-//                        stream128 = lq,
-//                        stream192 = hq
-//                    )
-//                    saveYouTubeStreamUrl(entry)
-//                    SongStream(StreamStatus.Available(id, lq, hq, entry.expiryDate))
-//                }
-//            }
-//        }
-//    }
-
-//    suspend fun getSongStreams(song: Song): SongStream {
-//        val key = song.id.dbKey
-//        val existing = getExistingEntry(key)
-//        Timber.d { "youtube: ${song.id} existing entry? $existing" }
-//        return evalExistingStream(song, existing)
-//    }
-
-//    fun getManyExistingSongStreams(songs: List<Song>): Map<Song, StreamStatus> {
-//        // TODO: More preemptive check rather than this LAME comparison
-//        if (songs.all { it.id.album == songs[0].id.album }) {
-//            val existingAlbum = getExistingAlbumStream(songs[0].id.album)
-//            if (existingAlbum is StreamStatus.Available) {
-//                return songs.map { it to existingAlbum }.toMap()
-//            }
-//        }
-//
-//        val keys = songs.map { it.id.dbKey }
-//        val existingEntries = getExistingEntries(keys)
-//        return songs.map {
-//            it to existingEntries[it.id.dbKey]!!
-//        }.toMap()
-//    }
-
-//    private fun getExistingAlbumStream(albumId: AlbumId): StreamStatus {
-//        return getExistingEntry(albumId.dbKey)
-//    }
-
-//    suspend fun getAlbumStreams(album: Album): Pair<Album, StreamStatus> {
-//        val key = album.id.dbKey
-//
-//        return YouTubeFullAlbum.search(album)?.let { ytAlbum ->
-//            val resolvedAlbum = ytAlbum.resolveToAlbum()
-//            getExistingEntry(key).let {
-//                resolvedAlbum to if (it is StreamStatus.Available && !it.isStale) {
-//                    it
-//                } else createEntry(key, ytAlbum.id)
-//            }
-//        } ?: album to StreamStatus.Unavailable()
-//    }
 
     suspend fun login(): io.ktor.http.Cookie? {
         // TODO: Get the expiration time of the login cookie
@@ -465,70 +292,19 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
         cb(results)
     }
 
-//    object DownloadReceiver: BroadcastReceiver() {
-//        override fun onReceive(context: Context, intent: Intent) {
-////            ActivityStarter.fill(this, intent)
-//            val downloadId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, 0)
-//            val dl = OnlineSearchService.instance.downloadingSongs[downloadId]
-//            dl?.let { (song, progress) ->
-//                val query = DownloadManager.Query()
-//                query.setFilterById(downloadId)
-//                val cur = context.downloadManager.query(query)
-//                if (cur.moveToFirst()) {
-//                    val status = cur.intValue(DownloadManager.COLUMN_STATUS)
-//                    // If the download was successful, fill in metadata for the file.
-//                    if (status == DownloadManager.STATUS_SUCCESSFUL) {
-//                        val uri = Uri.parse(cur.stringValue(DownloadManager.COLUMN_LOCAL_URI))
-//                        val name = cur.stringValue(DownloadManager.COLUMN_TITLE)
-//
-//                        val path = File(uri.path)
-//                        task(UI) {
-//                            println("youtube: downloaded song ${name} to ${path}")
-//                        }
-//                        try {
-//                            val f = AudioFileIO.read(path)
-//                            val tags = f.tag
-//                            tags.setField(FieldKey.ARTIST, song.artist)
-//                            tags.setField(FieldKey.ALBUM_ARTIST, song.artist)
-//                            tags.setField(FieldKey.ALBUM, song.album)
-//                            tags.setField(FieldKey.TITLE, song.name)
-//                            tags.setField(FieldKey.TRACK, song.track.toString())
-//                            if (song.disc > 0) {
-//                                tags.setField(FieldKey.DISC_NO, song.disc.toString())
-//                            }
-//                            if (song.year != null && song.year > 0) {
-//                                tags.setField(FieldKey.YEAR, song.year.toString())
-//                            }
-//                            AudioFileIO.write(f)
-//                            context.addToMediaStore(path)
-//                        } catch(e: Exception) {
-//                            e.printStackTrace()
-//                        }
-//
-//                    }
-//                }
-//            }
-//        }
-//    }
-
-//    override fun onCreate() {
-//        super.onCreate()
-//        instance = this
-//
-////        App.instance.registerReceiver(DownloadReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
-//    }
-
-    private fun updateDownloads() {
+    fun addDownload(dl: SongDownload) {
         launch {
-            delay(500)
+            val context = App.instance
+            _downloadingSongs putsMapped { it.add(dl) }
 
-//            val toRemove = mutableListOf<SongDownload>()
-            val dls = _downloadingSongs.value
-            dls.forEach { dl ->
+            var finished = false
+            while (!finished) {
+                delay(500)
+
                 val q = DownloadManager.Query()
                 q.setFilterById(dl.id)
 
-                val cursor = App.instance.downloadManager.query(q)
+                val cursor = context.downloadManager.query(q)
                 if (cursor.moveToFirst()) {
                     val status = cursor.intValue(DownloadManager.COLUMN_STATUS)
                     when (status) {
@@ -537,58 +313,67 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
                             val total = cursor.intValue(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
 
                             _downloadingSongs putsMapped { dls ->
-                                dls.withReplaced(dls.indexOf(dl), dl.copy(progress = dled.toDouble() / total.toDouble())).toImmutableList()
+                                val idx = dls.indexOf(dl)
+                                val updated = dl.copy(progress = (dled * 100) / total)
+                                if (idx != -1) {
+                                    dls.set(idx, updated)
+                                } else {
+                                    dls.add(updated)
+                                }
                             }
                         }
                         DownloadManager.STATUS_SUCCESSFUL -> {
                             val uri = Uri.parse(cursor.stringValue(DownloadManager.COLUMN_LOCAL_URI))
                             val path = File(uri.path)
-                            try {
+                            ({
                                 val f = AudioFileIO.read(path)
                                 val tags = f.tag
                                 tags.setField(FieldKey.ARTIST, dl.song.id.artist.displayName)
-                                tags.setField(FieldKey.ALBUM_ARTIST, dl.song.id.album.artist.toString())
-                                tags.setField(FieldKey.ALBUM, dl.song.id.album.toString())
+                                tags.setField(FieldKey.ALBUM_ARTIST, dl.song.id.album.artist.displayName)
+                                tags.setField(FieldKey.ALBUM, dl.song.id.album.displayName)
                                 tags.setField(FieldKey.TITLE, dl.song.id.displayName)
                                 tags.setField(FieldKey.TRACK, dl.song.track.toString())
                                 if (dl.song.disc > 0) {
                                     tags.setField(FieldKey.DISC_NO, dl.song.disc.toString())
                                 }
-                                dl.song.year.let {
-                                    if (it > 0) {
-                                        tags.setField(FieldKey.YEAR, it.toString())
-                                    }
+                                if (dl.song.year > 0) {
+                                    tags.setField(FieldKey.YEAR, dl.song.year.toString())
                                 }
-                                AudioFileIO.write(App.instance, f)
-                                App.instance.addToMediaStore(path)
-                            } catch (e: Exception) {
+                                AudioFileIO.write(context, f)
+                                context.addToMediaStore(path)
+                            }).retryOrCatch(2) { e: Exception ->
                                 e.printStackTrace()
+                                App.launchWith {
+                                    it.longToast(e.message ?: "Metadata write error")
+                                }
+                                path.delete()
                             }
-                            _downloadingSongs putsMapped { it.remove(dl) }
+                            finished = true
                         }
-                        DownloadManager.STATUS_FAILED -> _downloadingSongs putsMapped { it.remove(dl) }
+                        else -> {
+                            finished = true
+                        }
                     }
+                } else {
+                    finished = true
                 }
             }
 
-            if (_downloadingSongs.value.isNotEmpty()) {
-                updateDownloads()
-            }
+            _downloadingSongs putsMapped { it.remove(dl) }
         }
-    }
-
-    suspend fun addDownload(dl: SongDownload) {
-        _downloadingSongs putsMapped { it.add(dl) }
-        updateDownloads()
     }
 
     fun findDownload(song: Song): ReceiveChannel<SongDownload?> {
         return downloadingSongs.map {
             it.binarySearchElem(
-                SongDownload(song, 0.0, 0),
+                SongDownload(song, 0, 0),
                 SongDownload.COMPARATOR
             )
         }
+    }
+
+    fun isDownloading(song: Song): Boolean {
+        return runBlocking { findDownload(song).first() } != null
     }
 }
 

@@ -1,6 +1,7 @@
 package com.loafofpiecrust.turntable.serialize
 
-import com.github.salomonbrys.kotson.*
+import com.github.salomonbrys.kotson.jsonObject
+import com.github.salomonbrys.kotson.obj
 import com.google.gson.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import java.lang.reflect.ParameterizedType

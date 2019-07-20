@@ -21,10 +21,13 @@ import com.loafofpiecrust.turntable.sync.SyncSession
 import com.loafofpiecrust.turntable.util.distinctSeq
 import io.paperdb.Paper
 import io.paperdb.PaperSerializer
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.first
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jetbrains.anko.connectivityManager
 import org.jetbrains.anko.toast
 import java.lang.reflect.Type
