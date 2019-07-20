@@ -219,6 +219,7 @@ object Discogs: Repository {
                     relTy == "LP" -> Album.Type.LP
                     relTy == "Single" -> Album.Type.SINGLE
                     relTy == "EP" -> Album.Type.EP
+                    relTy == "DVD-V" || relTy == "DVD" -> Album.Type.OTHER
                     it.any { it.contains("DVD") || it.contains("Test Pressing") }
                         || it.contains("PAL")
                         || it.contains("NTSC") -> Album.Type.OTHER
