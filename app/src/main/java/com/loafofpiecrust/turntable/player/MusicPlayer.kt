@@ -174,7 +174,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         // Handle case of restoring state after process death.
         val q = _queue.valueOrNull
         if (q != null && !q.isEmpty()) {
-            prepareSource(play = true)
+            prepareSource(play = false)
         }
     }
 
