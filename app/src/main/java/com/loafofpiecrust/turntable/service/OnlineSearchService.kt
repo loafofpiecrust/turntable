@@ -17,14 +17,11 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
 import com.frostwire.jlibtorrent.SessionManager
 import com.frostwire.jlibtorrent.TorrentHandle
 import com.frostwire.jlibtorrent.TorrentInfo
-import com.loafofpiecrust.turntable.App
-import com.loafofpiecrust.turntable.BuildConfig
+import com.loafofpiecrust.turntable.*
 import com.loafofpiecrust.turntable.artist.MusicDownload
-import com.loafofpiecrust.turntable.binarySearchElem
 import com.loafofpiecrust.turntable.model.album.Album
 import com.loafofpiecrust.turntable.model.album.selfTitledAlbum
 import com.loafofpiecrust.turntable.model.song.Song
-import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.repository.remote.StreamCache
 import com.loafofpiecrust.turntable.util.days
 import com.loafofpiecrust.turntable.util.distinctSeq
@@ -328,7 +325,7 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
                         DownloadManager.STATUS_SUCCESSFUL -> {
                             val uri = Uri.parse(cursor.stringValue(DownloadManager.COLUMN_LOCAL_URI))
                             val path = File(uri.path)
-                            try {
+                            ({
                                 val f = AudioFileIO.read(path)
                                 val tags = f.tag
                                 tags.setField(FieldKey.ARTIST, dl.song.id.artist.displayName)
@@ -344,11 +341,12 @@ class OnlineSearchService : CoroutineScope by GlobalScope {
                                 }
                                 AudioFileIO.write(context, f)
                                 context.addToMediaStore(path)
-                            } catch (e: Exception) {
+                            }).retryOrCatch(2) { e: Exception ->
                                 e.printStackTrace()
                                 App.launchWith {
                                     it.longToast(e.message ?: "Metadata write error")
                                 }
+                                path.delete()
                             }
                             finished = true
                         }

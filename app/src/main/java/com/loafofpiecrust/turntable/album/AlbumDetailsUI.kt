@@ -298,6 +298,7 @@ private fun Menu.prepareOptions(scope: CoroutineScope, context: Context, album: 
     if (album is RemoteAlbum || album is MergedAlbum) {
         menuItem(R.string.download, R.drawable.ic_cloud_download, showIcon = false).onClick {
             if (App.instance.hasInternet) {
+                context.toast(R.string.album_starting_download)
                 album.resolveTracks().filter {
                    LocalApi.sourceForSong(it) == null
                        && !OnlineSearchService.instance.isDownloading(it)
