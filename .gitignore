@@ -14,4 +14,6 @@
 /app/release/
 /projectFilesBackup
 /.vscode
-/.settings
+.settings
+.project
+.classpath
