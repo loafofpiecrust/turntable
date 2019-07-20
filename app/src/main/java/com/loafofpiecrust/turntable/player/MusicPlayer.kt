@@ -174,7 +174,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         // Handle case of restoring state after process death.
         val q = _queue.valueOrNull
         if (q != null && !q.isEmpty()) {
-            prepareSource()
+            prepareSource(play = false)
         }
     }
 
@@ -307,7 +307,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         prepareSource()
     }
 
-    private fun prepareSource() {
+    private fun prepareSource(play: Boolean = true) {
         val q = _queue.value
         player.stop(true)
         mediaSource = ConcatenatingMediaSource().apply {
@@ -323,8 +323,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         }
         player.seekToDefaultPosition(q.position)
         player.prepare(mediaSource, false, true)
-        player.playWhenReady = true
         player.shuffleModeEnabled = orderMode is OrderMode.Shuffle
+        player.playWhenReady = play
     }
 
     fun clearQueue() {
