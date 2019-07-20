@@ -22,7 +22,7 @@ import io.ktor.client.request.url
 object YouTube: StreamProvider {
     override suspend fun sourceForSong(song: Song): Song.Media? {
         val res = http.get<JsonObject> {
-            url("https://jp1zvuo1he.execute-api.us-east-2.amazonaws.com/default/findSongOnYouTube")
+            url(BuildConfig.YOUTUBE_SONG_URL)
             parameters(
                 "title" to song.id.displayName.toLowerCase(),
                 "album" to song.id.album.displayName.toLowerCase(),
