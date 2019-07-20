@@ -53,6 +53,17 @@ class QueueFragment : BaseFragment() {
                 currentItem.coverImage?.tint = it
             }
 
+            val queue = MusicService.instance.switchMap { it?.player?.queue }.replayOne()
+
+            currentItem.menu.onClick { v ->
+                val curr = queue.valueOrNull?.current
+                if (curr != null) {
+                    v?.popupMenu {
+                        songOptions(v.context, curr)
+                    }
+                }
+            }
+
             textView(R.string.queue_up_next) {
                 textSizeDimen = R.dimen.small_text_size
 //                MusicService.currentSongColor.consumeEachAsync {
@@ -63,7 +74,6 @@ class QueueFragment : BaseFragment() {
                 bottomMargin = dip(4)
             }
 
-            val queue = MusicService.instance.switchMap { it?.player?.queue }.replayOne()
 
             val linear = LinearLayoutManager(context)
             songList = recyclerView {
@@ -175,10 +185,15 @@ class QueueAdapter(
             } else {
                 track.text = relPos.toString()
             }
+
             val c = if (relPos == 0) {
                 UserPrefs.accentColor.value
             } else {
-                itemView.context.colorAttr(android.R.attr.textColor)
+                val base = itemView.context.colorAttr(android.R.attr.textColor)
+                if (relPos < 0) {
+                    // dim already played tracks
+                    base.withAlpha(0xa9)
+                } else base
             }
 
             mainLine.text = song.id.displayName
