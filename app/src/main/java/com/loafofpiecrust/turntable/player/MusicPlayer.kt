@@ -29,6 +29,7 @@ import com.loafofpiecrust.turntable.util.without
 import io.paperdb.Paper
 import kotlinx.android.parcel.Parcelize
 import kotlinx.collections.immutable.immutableListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -528,6 +529,8 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
             runBlocking {
                 UserPrefs.history putsMapped {
                     it.add(HistoryEntry(_queue.value.current!!))
+                        // only keep the last chunk of history to prevent bloat
+                        .takeLast(HISTORY_LENGTH).toImmutableList()
                 }
             }
         }
@@ -538,6 +541,7 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         // TODO: Decide on percent threshold to count as a "full" listen. Is half the song enough?
         private const val LISTENED_PROPORTION = 0.5
         private const val USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0"
+        private const val HISTORY_LENGTH = 100
 //        val THREAD_CONTEXT = newSingleThreadContext("music-player")
 //        val THREAD_CONTEXT = Dispatchers.Main
     }
