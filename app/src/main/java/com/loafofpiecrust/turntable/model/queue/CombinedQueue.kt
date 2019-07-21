@@ -3,7 +3,6 @@ package com.loafofpiecrust.turntable.model.queue
 import com.loafofpiecrust.turntable.model.song.Song
 import com.loafofpiecrust.turntable.shifted
 import com.loafofpiecrust.turntable.util.with
-import com.loafofpiecrust.turntable.util.without
 import kotlinx.android.parcel.Parcelize
 import kotlin.random.Random
 
@@ -11,6 +10,9 @@ import kotlin.random.Random
 data class CombinedQueue(
     val primary: Queue,
     val nextUp: List<Song>,
+    /**
+     * Is the current track in nextUp? Otherwise, it's from the primary queue.
+     */
     val isPlayingNext: Boolean = false
 ) : Queue {
 //    @Deprecated("Serializer use only")
@@ -108,11 +110,16 @@ data class CombinedQueue(
         }
     }
 
-    fun shuffled(random: Random): CombinedQueue {
+    fun shuffled(seed: Int): CombinedQueue {
         val p = if (primary is StaticQueue) {
             val current = primary.list[primary.position]
-            val primaryWithoutCurrent = primary.list.without(primary.position).shuffled()
-            primary.copy(list = listOf(current) + primaryWithoutCurrent, position = 0)
+            val shuffledPrimary = primary.list.toMutableList().apply {
+                removeAt(primary.position)
+                shuffle(Random(seed))
+                add(0, current)
+            }
+
+            StaticQueue(shuffledPrimary, 0)
         } else primary
 
         return this.copy(primary = p)
