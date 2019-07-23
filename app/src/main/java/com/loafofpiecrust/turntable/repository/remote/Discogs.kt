@@ -28,11 +28,10 @@ import io.ktor.http.userAgent
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jsoup.Jsoup
 
-/**
- * Created by snead on 2/1/18.
- */
+
 object Discogs: Repository {
     override val displayName: Int
         get() = R.string.search_discogs
@@ -112,12 +111,30 @@ object Discogs: Repository {
 //            error(e)
         }
 
-    private suspend fun searchFor(artist: ArtistId): List<Int> =
-        doSearch(artist.displayName, mapOf(
-            "type" to "artist"
-        )).map {
+    private suspend fun searchFor(artist: ArtistId): List<Int> {
+        val res = doSearch(artist.displayName, mapOf(
+            "type" to "artist",
+            "per_page" to "10"
+        ))
+
+        // look for an exact match first
+        val exactMatch = res.find {
+            it["title"].string.equals(artist.displayName, true)
+        }
+
+        return if (exactMatch != null) {
+            listOf(exactMatch["id"].int)
+        } else res.filter {
+            // Only keep results that are a very close match
+            val match = FuzzySearch.ratio(
+                it["title"].string.toLowerCase(),
+                artist.displayName.toLowerCase()
+            )
+            match > 85
+        }.map {
             it["id"].int
         }
+    }
 
     private suspend fun searchFor(album: AlbumId): List<RemoteAlbum> =
         doSearch(album.displayName, mapOf(
@@ -138,7 +155,6 @@ object Discogs: Repository {
         }
 
     private suspend fun doSearch(query: String, params: Map<String, String>): List<JsonObject> {
-        // TODO: Heed rate limits!
         return apiRequest("https://api.discogs.com/database/search", params = params + mapOf(
             "q" to query
         ))["results"].array.map { it.obj }
@@ -306,11 +322,6 @@ object Discogs: Repository {
         val imgs = res["images"].nullArray
         val url = (imgs?.firstOrNull { it["type"].nullString == "primary" } ?: imgs?.first())?.get("uri")?.string
 
-//        if (url != null) {
-//            Library.addArtistExtras(
-//                Library.ArtistMetadata(artist.uuid, url)
-//            )
-//        }
         return url
     }
 

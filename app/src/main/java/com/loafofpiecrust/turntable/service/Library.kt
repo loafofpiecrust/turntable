@@ -28,6 +28,7 @@ import com.loafofpiecrust.turntable.prefs.UserPrefs
 import com.loafofpiecrust.turntable.puts
 import com.loafofpiecrust.turntable.putsMapped
 import com.loafofpiecrust.turntable.repository.Repositories
+import com.loafofpiecrust.turntable.repository.remote.Discogs
 import com.loafofpiecrust.turntable.serialize.page
 import com.loafofpiecrust.turntable.tryOr
 import com.loafofpiecrust.turntable.util.*
@@ -227,7 +228,7 @@ object Library: CoroutineScope by GlobalScope {
     }
 
 
-    private fun fillMissingArtwork() = launch {
+    private fun fillMissingArtwork() = launch(Dispatchers.IO) {
         val albums = albumsMap.openSubscription().first().values
         val cache = albumCovers.openSubscription().first()
 //        val addedCache = listOf<AlbumMetadata>()
@@ -243,9 +244,9 @@ object Library: CoroutineScope by GlobalScope {
                 continue
             }
             
-            val artwork = Repositories.fullArtwork(album, true)
+            val artwork = Repositories.fullArtwork(album, search = true)
             if (artwork != null) {
-                addAlbumExtras((AlbumMetadata(album.id, artwork)))
+                addAlbumExtras(AlbumMetadata(album.id, artwork))
             } else {
                 // This album definitely has no cover in cache
                 // since it would've been grabbed in the album grouping process and assigned to the album instance.
@@ -260,9 +261,10 @@ object Library: CoroutineScope by GlobalScope {
         }
     }
 
-    private fun fillArtistArtwork(context: Context) = launch {
+    private fun fillArtistArtwork() = launch(Dispatchers.IO) {
         val cache = artistMeta.openSubscription().first()
-        artistsMap.openSubscription().first().values.forEach { artist ->
+        val artists = artistsMap.openSubscription().first().values
+        for (artist in artists) {
             val key = ArtistMetadata(artist.id, null)
             val cached = cache[artist.id]
 
@@ -271,41 +273,24 @@ object Library: CoroutineScope by GlobalScope {
             // 1. There is already an entry for this album in the metadata cache
             // 2. That entry has an artwork url OR it's been recently updated (and couldn't find an image on Last.FM)
             if (cached != null && (cached.artworkUri != null || (now - cached.lastUpdated) <= METADATA_UPDATE_FREQ)) {
-                return@forEach
+                continue
             }
 
-            val res = try {
-                http.get<JsonObject>("https://ws.audioscrobbler.com/2.0/") {
-                    parameters(
-                        "format" to "json",
-                        "api_key" to BuildConfig.LASTFM_API_KEY,
-                        "method" to "artist.getinfo",
-                        "artist" to artist.id.displayName
-                    )
-                }
-            } catch (e: Exception) {
-                return@forEach
+            val artwork = Repositories.fullArtwork(artist, search = true)
+            if (artwork != null) {
+                addArtistExtras(ArtistMetadata(artist.id, artwork))
+            } else {
+                // This artist definitely has no cover in cache
+                // since it would've been grabbed in the album grouping process and assigned to the album instance.
+                // So, we can assume here that we need to look online for this album artwork.
+                artistMeta putsMapped { it.put(key.id, key) }
             }
 
-            res["artist"]?.get("image")?.get(3)?.get("#text")?.string?.let { uri ->
-                artistMeta putsMapped {
-                    it.put(artist.id, key.copy(artworkUri = uri))
-                }
-//                launch(Dispatchers.Main) {
-//                    Glide.with(context.applicationContext)
-//                        .load(uri)
-////                      .apply(Library.ARTWORK_OPTIONS.signature(ObjectKey(key)))
-//                        .preload()
-//                }
-            } ?: run {
-                artistMeta putsMapped { it.put(artist.id, key) }
-            }
-
-            delay(50)
+            delay(100)
         }
     }
 
-    fun addRemoteAlbum(album: Album) = launch {
+    fun addRemoteAlbum(album: Album) = launch(Dispatchers.IO) {
         // Ensure the tracks are loaded before saving.
         if (!album.resolveTracks().isEmpty()) {
             remoteAlbums putsMapped { it.add(album) }
@@ -372,7 +357,7 @@ object Library: CoroutineScope by GlobalScope {
                 updateLocalArtwork()
                 if (UserPrefs.downloadArtworkAuto.value) {
                     fillMissingArtwork()
-                    fillArtistArtwork(context)
+                    fillArtistArtwork()
                 }
             }
 
