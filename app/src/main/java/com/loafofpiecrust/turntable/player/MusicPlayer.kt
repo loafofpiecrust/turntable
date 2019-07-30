@@ -8,6 +8,7 @@ import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSourceFactory
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory
 import com.google.android.exoplayer2.source.ConcatenatingMediaSource
 import com.google.android.exoplayer2.source.ExtractorMediaSource
+import com.google.android.exoplayer2.source.ShuffleOrder
 import com.google.android.exoplayer2.source.TrackGroupArray
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
@@ -109,9 +110,10 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
                     // sequential => shuffled
                     val q = _queue.value
                     nonShuffledQueue = q.primary
-                    _queue putsMapped { it.shuffled(Random(value.seed)) }
+                    _queue putsMapped { it.shuffled(value.seed) }
                 }
             }
+            prepareSource(resetPosition = false)
 
             _orderMode = value
         }
@@ -308,8 +310,9 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
         prepareSource()
     }
 
-    private fun prepareSource(play: Boolean = true) {
+    private fun prepareSource(play: Boolean = true, resetPosition: Boolean = true) {
         val q = _queue.value
+        val posInCurrent = player.currentPosition
         player.stop(true)
         mediaSource = ConcatenatingMediaSource().apply {
             addMediaSources(q.list.mapIndexed { index, song ->
@@ -322,9 +325,12 @@ class MusicPlayer(ctx: Context): Player.EventListener, CoroutineScope {
                 StreamMediaSource(song, mediaSourceFactory, cb)
             })
         }
-        player.seekToDefaultPosition(q.position)
+        if (resetPosition) {
+            player.seekToDefaultPosition(q.position)
+        } else {
+            player.seekTo(q.position, posInCurrent)
+        }
         player.prepare(mediaSource, false, true)
-        player.shuffleModeEnabled = orderMode is OrderMode.Shuffle
         player.playWhenReady = play
     }
 
