@@ -30,7 +30,6 @@ object YouTube: StreamProvider {
                 "albumArtist" to song.id.album.artist.displayName.toLowerCase(),
                 "duration" to song.duration
             )
-            header("x-api-key", BuildConfig.AWS_API_KEY)
         }
 
         val lqObj = res["lowQuality"].nullObj
