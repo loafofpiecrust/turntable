@@ -235,6 +235,7 @@ object Discogs: Repository {
                     relTy == "LP" -> Album.Type.LP
                     relTy == "Single" -> Album.Type.SINGLE
                     relTy == "EP" -> Album.Type.EP
+                    relTy == "DVD-V" || relTy == "DVD" -> Album.Type.OTHER
                     it.any { it.contains("DVD") || it.contains("Test Pressing") }
                         || it.contains("PAL")
                         || it.contains("NTSC") -> Album.Type.OTHER
@@ -465,7 +466,8 @@ object Discogs: Repository {
                         types.contains("Single") -> Album.Type.SINGLE
                         types.contains("EP") -> Album.Type.EP
                         types.contains("Comp") -> Album.Type.COMPILATION
-                        types.contains("DVD") -> Album.Type.OTHER
+                        types.contains("DVD") || types.contains("DVD-V") -> Album.Type.OTHER
+                        title.endsWith("Interview CD") && types.contains("Promo") -> Album.Type.OTHER
                         else -> currType
                     }
                 } ?: currType
